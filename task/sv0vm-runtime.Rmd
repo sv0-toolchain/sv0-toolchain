@@ -1,0 +1,94 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0vm-runtime
+key: sv0vm-runtime
+state: draft
+tags:
+    - sv0
+    - sv0vm
+    - runtime
+title: "sv0vm runtime (memory management and built-ins)"
+type: task
+---
+
+# sv0vm runtime (memory management and built-ins)
+
+## purpose
+
+implement the sv0vm runtime layer in SML/NJ. the runtime provides memory
+management, built-in functions, and the contract violation handler for
+programs running on the VM.
+
+the runtime handles:
+- heap allocation for structs, arrays, vectors, strings, boxes
+- garbage collection (or reference counting for simplicity in milestone 2)
+- built-in functions (println, print, panic, format!)
+- contract violation reporting (source location, expression, variable values)
+- I/O operations (stdin, stdout, file system basics)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0VM_ROOT=sv0vm
+/env: SRC_DIR=sv0vm/src
+
+## implementation
+
+### step 1: memory management
+
+/ai: implement a simple memory management system for sv0vm in SML/NJ.
+
+     for milestone 2, use reference counting:
+     - each heap-allocated value has a reference count
+     - increment on copy/assignment, decrement on scope exit
+     - free when count reaches zero
+     - detect cycles as a known limitation (document for future GC)
+
+     alternatively, since SML has its own GC, we can leverage SML's
+     garbage collector by representing sv0 heap values as SML heap
+     values. discuss the tradeoffs and choose the simpler approach
+     for the initial implementation.
+
+### step 2: built-in functions
+
+/ai: implement the built-in function registry for sv0vm.
+
+     built-in functions are called via CALL_BUILTIN opcode:
+     - println(fmt, args...): formatted output with newline
+     - print(fmt, args...): formatted output without newline
+     - panic(msg): abort with error message
+     - vec_new(): create empty vector
+     - vec_push(vec, elem): append element
+     - vec_len(vec): get vector length
+     - vec_get(vec, index): get element (bounds-checked)
+     - string_len(s): get string length
+     - string_concat(a, b): concatenate strings
+
+     each built-in pops its arguments from the stack and pushes
+     the result (if any).
+
+### step 3: contract runtime
+
+/ai: implement the contract violation handler for sv0vm.
+
+     when a CONTRACT_CHECK instruction finds false on the stack:
+     1. look up the contract message from the constant pool
+     2. look up the source span from the debug info section
+     3. print: "contract violation at file:line:col: <expression>"
+     4. print the values of referenced variables (from the stack/locals)
+     5. abort the VM with exit code 1
+
+     the output should match the format described in the sv0 design:
+       contract violation at src/main.sv0:12:3
+         requires(a > 0)
+         where a = -5
+
+/run: 01-build-runtime.sh
+/run: 02-test-runtime.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/runtime/runtime.sml

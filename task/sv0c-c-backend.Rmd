@@ -1,0 +1,114 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-c-backend
+key: sv0c-c-backend
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - c-backend
+    - codegen
+title: "sv0c C backend (code generation)"
+type: task
+---
+
+# sv0c C backend (code generation)
+
+## purpose
+
+implement the C99 code generation backend for sv0c in SML/NJ. this backend
+transpiles sv0-IR to C source code, which is then compiled by a standard
+C compiler (cc/gcc) to produce native binaries.
+
+the C backend is the bootstrap backend -- it is the first backend implemented
+and the one used for self-hosting. it must produce correct, readable C code.
+
+## dependencies
+
+/require: sml
+/require: cc
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+/env: BUILD_DIR=sv0c/build
+
+## implementation
+
+### step 1: C code emitter
+
+/ai: implement the C code generation module in SML/NJ for sv0c.
+
+     create src/backend/c/codegen.sml that translates sv0-IR to C99:
+
+     IR concept -> C translation:
+     - sv0 function -> C function
+     - sv0 i32/u32/etc -> C int32_t/uint32_t (via stdint.h)
+     - sv0 bool -> C _Bool (or int)
+     - sv0 string -> C char* (with length tracking)
+     - sv0 struct -> C struct
+     - sv0 enum -> C tagged union (tag enum + union of payloads)
+     - sv0 array [T; N] -> C T arr[N]
+     - sv0 Vec<T> -> C struct { T* data; size_t len; size_t cap; }
+     - sv0 Option<T> -> C struct { _Bool has_value; T value; }
+     - sv0 Result<T,E> -> C struct { _Bool is_ok; union { T ok; E err; }; }
+     - sv0 &T -> C const T*
+     - sv0 &mut T -> C T*
+     - sv0 Box<T> -> C T* (malloc/free)
+     - SSA variables -> C local variables
+     - phi nodes -> C variable assigned in both branches before the merge
+     - contract checks -> C if (!expr) { sv0_contract_fail(...); abort(); }
+     - match -> C switch or cascading if/else
+
+     the generated C should:
+     - include stdint.h, stdbool.h, stdlib.h, stdio.h
+     - use a sv0_runtime.h header for runtime support functions
+     - produce readable, indented C code
+     - preserve source spans as C comments for debugging
+
+### step 2: runtime support library
+
+/ai: design a minimal C runtime library for sv0-compiled programs.
+
+     create a sv0_runtime.h / sv0_runtime.c that provides:
+     - sv0_contract_fail(file, line, expr_str): print contract violation, abort
+     - sv0_panic(msg): print message, abort
+     - sv0_vec_new(elem_size): create empty vector
+     - sv0_vec_push(vec, elem): append element
+     - sv0_vec_get(vec, index): bounds-checked access
+     - sv0_string_new(cstr): create sv0 string from C string
+     - sv0_println(fmt, ...): formatted output
+     - memory allocation wrappers (malloc/free with tracking)
+
+### step 3: end-to-end compilation
+
+/ai: implement the end-to-end compilation pipeline:
+     1. sv0c reads .sv0 source file
+     2. lexer -> parser -> resolver -> checker -> contracts -> IR -> C codegen
+     3. write C source to build/c/<module>.c
+     4. invoke cc to compile C source to binary
+     5. report any errors
+
+/run: 01-build-c-codegen.sh
+/run: 02-test-c-codegen.sh
+
+### step 4: integration tests
+
+/ai: write end-to-end integration tests that:
+     - compile a .sv0 file to C
+     - compile the C to a binary
+     - run the binary and check output
+     - verify contract violations abort correctly
+
+     test programs:
+     1. hello.sv0: fn main() { println("hello, sv0"); }
+     2. gcd.sv0: the GCD example from the design doc with contracts
+     3. shapes.sv0: enum Shape + match + area calculation
+     4. pairs.sv0: struct with methods and operator overloading
+
+/run: 03-end-to-end-test.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/backend/c/codegen.sml

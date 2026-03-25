@@ -1,0 +1,93 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0doc-extract-memory-model
+key: sv0doc-extract-memory-model
+state: done
+tags:
+    - sv0
+    - sv0doc
+    - memory
+    - ownership
+title: "extract memory model specification"
+type: task
+---
+
+# extract memory model specification
+
+## purpose
+
+extract the memory model specification from the sv0 design document into a
+formal specification at `sv0doc/memory-model/ownership.md`. the memory model
+is central to sv0's safety guarantees and drives the borrow checker
+implementation in sv0c.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0DOC_ROOT=sv0doc
+/env: MEMORY_FILE=$SV0DOC_ROOT/memory-model/ownership.md
+
+## extraction
+
+/ai: extract the complete memory model specification from the sv0 design document.
+
+     organize into these sections:
+
+     1. ownership
+        - every value has exactly one owner
+        - assignment transfers ownership (move semantics)
+        - previous binding invalidated after move
+        - scope-based deallocation (RAII)
+
+     2. Copy and Clone
+        - Copy: bitwise copy, auto-derived when all fields are Copy
+        - explicit impl Copy for documentation
+        - types with Drop cannot be Copy
+        - Clone: explicit duplication via .clone()
+        - Copy implies Clone
+
+     3. references and the exclusivity rule
+        - &T: shared (read-only) reference
+        - &mut T: exclusive (mutable) reference
+        - at any point: either one &mut T OR any number of &T, never both
+        - auto-dereferencing for method calls
+
+     4. borrow tracking tiers
+        - tier 1 (automatic): local borrow/move tracking within function bodies
+        - tier 2 (elision): single-input or &self -> output borrows automatically
+          - rule 1: one input ref -> output borrows from it
+          - rule 2: &self -> output borrows from self
+          - rule 3: otherwise, programmer must annotate
+        - tier 3 (explicit): borrows(x, y) contract for multi-ref returns
+          - replaces Rust lifetime parameters
+          - borrows on struct declarations for reference-holding structs
+
+     5. memory contracts
+        - no_alias(a, b): non-aliasing assertion
+        - old(expr) in ensures: pre-state comparison
+        - borrows(x, y): borrow-source declaration
+
+     6. allocation
+        - stack allocation: default for fixed-size types
+        - Box<T>: explicit heap allocation
+        - Vec<T>, string: heap-backed collections
+        - RAII: destructors run when owner goes out of scope
+
+     7. unsafe
+        - unsafe blocks opt out of borrow checking
+        - contracts still enforced inside unsafe
+        - required for: raw pointer dereference, FFI, mutable statics
+        - raw pointers: *const T, *mut T
+        - integer-to-pointer casts
+
+     write the complete specification to sv0doc/memory-model/ownership.md.
+
+/run: 01-validate-memory-model.sh
+
+## validation
+
+/assert: test -f $MEMORY_FILE
+/assert: test -s $MEMORY_FILE

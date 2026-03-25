@@ -1,0 +1,95 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0doc-extract-contracts
+key: sv0doc-extract-contracts
+state: done
+tags:
+    - sv0
+    - sv0doc
+    - contracts
+title: "extract contract system semantics"
+type: task
+---
+
+# extract contract system semantics
+
+## purpose
+
+extract the contract system semantics from the sv0 design document into a
+formal specification at `sv0doc/contracts/semantics.md`. contracts are the
+defining feature of sv0 -- this specification must be precise enough to
+implement the contract analyzer in sv0c.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0DOC_ROOT=sv0doc
+/env: CONTRACTS_FILE=$SV0DOC_ROOT/contracts/semantics.md
+
+## extraction
+
+/ai: extract the complete contract system semantics from the sv0 design document.
+
+     organize into these sections:
+
+     1. contract syntax
+        - requires(expr) -- preconditions on function entry
+        - ensures(expr) -- postconditions on function exit
+        - loop_invariant(expr) -- loop invariants
+        - placement: between function signature and body
+        - multiple contract clauses (additive conjunction)
+
+     2. contract builtins
+        - result: binding to the return value in ensures clauses
+          - direct binding for non-Result return types
+          - pattern matching with match for Result<T,E> and Option<T>
+          - tuple access (result.0, result.1) for tuple returns
+        - old(expr): pre-state snapshot at function entry
+          - valid only in ensures clauses
+          - compiler generates temporaries for runtime checking
+        - forall(var in range, predicate): universal quantifier
+          - runtime: iterates over range
+          - static: SMT solver proves
+        - exists(var in range, predicate): existential quantifier
+        - no_alias(a, b): asserts two references don't alias
+        - borrows(x, y): declares borrow sources for returned references
+
+     3. contract verification phases
+        - phase 1 (runtime): all contracts compiled to runtime checks
+          - failed check: prints source location, expression, variable values, aborts
+        - phase 2 (local static): SMT solver proves contracts within a function
+          - proven contracts produce no runtime code
+          - unproven contracts remain as runtime checks
+          - sv0 verify reports verification status
+        - phase 3 (modular static): cross-function verification
+          - caller's arguments proven against callee's requires
+          - refinement types checked at assignment
+
+     4. contract-mode settings
+        - runtime: all contracts are runtime checks (default, phase 1+)
+        - verified: proven contracts stripped, unproven remain (phase 2+)
+        - disabled: all contracts stripped (phase 1+, release builds)
+
+     5. trait contracts
+        - trait methods can have contracts
+        - impl must satisfy trait contracts
+        - impl can strengthen with additional contracts
+        - contravariance: impl requires can be weaker, ensures can be stronger
+
+     6. narrowing cast contracts
+        - `x as u8` implicitly inserts requires(x <= 255)
+        - compiler proves or inserts runtime check
+        - .truncate() for intentional wrapping (no contract)
+        - .try_into() for checked conversion returning Result
+
+     write the complete specification to sv0doc/contracts/semantics.md.
+
+/run: 01-validate-contracts.sh
+
+## validation
+
+/assert: test -f $CONTRACTS_FILE
+/assert: test -s $CONTRACTS_FILE

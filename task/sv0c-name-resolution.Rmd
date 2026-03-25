@@ -1,0 +1,93 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-name-resolution
+key: sv0c-name-resolution
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - name-resolution
+    - scope
+title: "sv0c name resolution"
+type: task
+---
+
+# sv0c name resolution
+
+## purpose
+
+implement name resolution for sv0c in SML/NJ. this pass transforms an
+untyped AST into a resolved AST where every identifier is bound to its
+definition. it also builds the module dependency graph.
+
+name resolution detects:
+- undefined names (use of undeclared variables, types, functions)
+- ambiguous imports (multiple definitions with same name)
+- circular module dependencies
+- visibility violations (accessing private items from outside module)
+- duplicate definitions in the same scope
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+
+## implementation
+
+### step 1: scope and environment
+
+/ai: implement the scope/environment data structures in SML/NJ for sv0c.
+
+     create src/name_resolution/resolver.sml with:
+
+     - a scope type that maps names to definitions
+     - nested scopes (function body creates new scope, block creates new scope)
+     - module-level scopes for cross-file resolution
+     - support for the module path resolution rules:
+       1. crypto::ghash resolves to crypto/ghash.sv0
+       2. crypto::ghash resolves to crypto/ghash/mod.sv0
+     - import handling for all use forms:
+       - use crypto::aes (import module)
+       - use crypto::aes::encrypt (import item)
+       - use crypto::aes::{encrypt, decrypt} (import multiple)
+       - use crypto::aes::* (glob import)
+       - pub use crypto::aes::encrypt (re-export)
+     - visibility checking (private, pub, pub(crate))
+
+### step 2: resolution pass
+
+/ai: implement the name resolution pass that traverses the AST and resolves
+     all identifiers. each identifier node in the resolved AST should carry
+     a reference to its definition (or an error if undefined).
+
+     handle:
+     - variable bindings (let introduces a name into scope)
+     - function parameters (create scope for function body)
+     - struct/enum/trait/impl names (module-level scope)
+     - type parameters in generics
+     - pattern bindings in match arms
+     - self and Self in impl blocks
+     - shadow detection (warn, don't error)
+
+/run: 01-build-resolver.sh
+
+### step 3: resolver tests
+
+/ai: write tests for name resolution covering:
+     - simple variable lookup
+     - nested scopes and shadowing
+     - module imports (all use forms)
+     - undefined name errors
+     - duplicate definition errors
+     - cross-module resolution
+     - visibility violations
+
+/run: 02-test-resolver.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/name_resolution/resolver.sml

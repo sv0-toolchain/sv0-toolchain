@@ -1,0 +1,78 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0doc-extract-keywords
+key: sv0doc-extract-keywords
+state: done
+tags:
+    - sv0
+    - sv0doc
+    - keywords
+title: "extract keyword and operator reference"
+type: task
+---
+
+# extract keyword and operator reference
+
+## purpose
+
+extract the complete keyword and operator reference tables from the sv0
+design document into `sv0doc/keywords/reference.md`. this reference drives
+the lexer's keyword recognition and the parser's operator precedence.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0DOC_ROOT=sv0doc
+/env: KEYWORDS_FILE=$SV0DOC_ROOT/keywords/reference.md
+
+## extraction
+
+/ai: extract the keyword and operator reference from the sv0 design document.
+
+     include:
+
+     1. reserved keywords (complete table with purpose for each)
+        - binding: let, mut, const, static
+        - functions: fn, return
+        - control: if, else, match, while, for, in
+        - types: struct, enum, trait, impl, type, newtype, where
+        - visibility: pub, pub(crate)
+        - modules: module, use
+        - safety: unsafe, move
+        - casting: as
+        - self: self, Self
+        - contracts: requires, ensures, loop_invariant, result, old, forall, exists, borrows, no_alias
+        - literals: true, false, Some, None, Ok, Err
+        - assembly: asm! (milestone 6)
+
+     2. operators (complete table with precedence, associativity, and trait mapping)
+        - arithmetic: +, -, *, /, % -> Add, Sub, Mul, Div, Rem
+        - unary: - (negation) -> Neg
+        - equality: ==, != -> Eq
+        - comparison: <, >, <=, >= -> Ord
+        - logical: &&, ||, ! -> built-in bool
+        - bitwise: &, |, ^, ~ -> BitAnd, BitOr, BitXor, Not
+        - shift: <<, >> -> Shl, Shr
+        - reference: &, &mut -> built-in
+        - dereference: * -> Deref, DerefMut
+        - error: ? -> built-in Result/Option
+        - range: .., ..= -> built-in
+        - index: [] -> Index, IndexMut
+        - cast: as -> built-in
+        - pattern: | -> built-in match
+        - closure/match: => -> built-in
+        - attribute: #[...] -> built-in
+
+     3. operator precedence table (highest to lowest)
+
+     write the reference to sv0doc/keywords/reference.md.
+
+/run: 01-validate-keywords.sh
+
+## validation
+
+/assert: test -f $KEYWORDS_FILE
+/assert: test -s $KEYWORDS_FILE

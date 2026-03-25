@@ -1,0 +1,12 @@
+[submodule "sv0c"]
+	path = sv0c
+	url = git@github.com:sv0-toolchain/sv0c.git
+[submodule "sv0vm"]
+	path = sv0vm
+	url = git@github.com:sv0-toolchain/sv0vm.git
+[submodule "sv0doc"]
+	path = sv0doc
+	url = git@github.com:sv0-toolchain/sv0doc.git
+[submodule "sv0-mcp"]
+	path = sv0-mcp
+	url = git@github.com:sv0-toolchain/sv0-mcp.git

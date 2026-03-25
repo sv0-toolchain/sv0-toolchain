@@ -1,0 +1,116 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0doc-milestone-0
+key: sv0doc-milestone-0
+state: done
+tags:
+    - sv0
+    - sv0doc
+    - milestone-0
+title: "milestone 0: extract formal language specification"
+type: task
+---
+
+# milestone 0: extract formal language specification
+
+## purpose
+
+extract the formal sv0 language specification from the design document into
+sv0doc/ as a structured, implementable reference. this is the prerequisite
+for all compiler and VM work -- sv0c and sv0vm implement against the
+specifications produced here.
+
+milestone 0 is complete when:
+- the grammar is formalized in EBNF
+- the type system rules are documented
+- the contract semantics are specified
+- the memory model (ownership, borrowing, borrows()) is defined
+- the keyword and operator reference is extracted
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0DOC_ROOT=sv0doc
+/env: DESIGN_DOC_URL=http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html
+
+## specification extraction
+
+the design document contains all language features as prose with code examples.
+each sub-agent extracts one section into a formal, implementable format.
+
+### step 1: formal grammar (EBNF)
+
+/ai: extract the complete EBNF grammar for sv0 from the design document.
+     cover all syntactic constructs: bindings, control flow, pattern matching,
+     functions with contracts, types (struct, enum, trait, impl, newtype, type),
+     modules and imports, closures, generics, and attributes.
+     write the grammar to sv0doc/grammar/sv0.ebnf.
+
+/include: task/sv0doc-extract-grammar.Rmd
+
+### step 2: type system rules
+
+/ai: extract the type system rules from the design document. cover:
+     - primitive types and their relationships
+     - type inference rules for local bindings
+     - generic type constraints and trait bounds
+     - trait resolution and impl validation
+     - function overloading resolution
+     - Copy/Clone auto-derivation rules
+     - Send/Sync inference rules
+     write the rules to sv0doc/type-system/rules.md.
+
+/include: task/sv0doc-extract-type-rules.Rmd
+
+### step 3: contract semantics
+
+/ai: extract the contract system semantics from the design document. cover:
+     - requires/ensures/loop_invariant syntax and semantics
+     - the result binding in ensures clauses
+     - old() for pre-state snapshots
+     - forall/exists quantifiers
+     - no_alias() for aliasing contracts
+     - borrows() for borrow-source annotations
+     - the three verification phases (runtime, local static, modular)
+     - contract-mode settings (runtime, verified, disabled)
+     write the semantics to sv0doc/contracts/semantics.md.
+
+/include: task/sv0doc-extract-contracts.Rmd
+
+### step 4: memory model
+
+/ai: extract the memory model specification from the design document. cover:
+     - ownership and move semantics
+     - the exclusivity rule (&T XOR &mut T)
+     - automatic local borrow tracking (tier 1)
+     - elision rules at function boundaries (tier 2)
+     - borrows() contracts for complex cases (tier 3)
+     - structs holding references
+     - unsafe blocks and raw pointers
+     - Copy/Clone trait semantics
+     write the specification to sv0doc/memory-model/ownership.md.
+
+/include: task/sv0doc-extract-memory-model.Rmd
+
+### step 5: keyword and operator reference
+
+/ai: extract the complete keyword and operator reference tables from the
+     design document. include the trait mapping for each operator.
+     write the reference to sv0doc/keywords/reference.md.
+
+/include: task/sv0doc-extract-keywords.Rmd
+
+## validation
+
+/assert: test -f $SV0DOC_ROOT/grammar/sv0.ebnf
+/assert: test -f $SV0DOC_ROOT/type-system/rules.md
+/assert: test -f $SV0DOC_ROOT/contracts/semantics.md
+/assert: test -f $SV0DOC_ROOT/memory-model/ownership.md
+/assert: test -f $SV0DOC_ROOT/keywords/reference.md
+
+/ai: review the extracted specifications for completeness and consistency.
+     identify any gaps or ambiguities that need resolution before sv0c
+     implementation begins. list them as open questions.

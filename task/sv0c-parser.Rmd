@@ -1,0 +1,140 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-parser
+key: sv0c-parser
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - parser
+    - ast
+title: "sv0c parser (recursive descent) and AST definition"
+type: task
+---
+
+# sv0c parser (recursive descent) and AST definition
+
+## purpose
+
+implement the AST type definitions and recursive descent parser for sv0
+in SML/NJ. the parser consumes a token stream (from the lexer) and produces
+an untyped AST with full source spans.
+
+the parser must handle:
+- all top-level declarations (module, use, fn, struct, enum, trait, impl,
+  type, newtype, const, static)
+- function signatures with contract clauses
+- all expression forms (binary, unary, call, field, index, cast, match,
+  if, closures, blocks)
+- all statement forms (let, assignment, expression, return)
+- pattern matching (exhaustive match arms with guards)
+- operator precedence and associativity
+- error recovery (panic mode: skip to next statement boundary)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+/env: SV0DOC_ROOT=sv0doc
+
+## implementation
+
+### step 1: AST type definitions
+
+/ai: implement the AST datatypes in SML/NJ for sv0c.
+
+     create src/ast/ast.sml with algebraic datatypes representing
+     the complete sv0 abstract syntax tree.
+
+     the AST should include:
+     - program: list of top-level declarations
+     - declarations: Module, Use, FnDecl, StructDecl, EnumDecl,
+       TraitDecl, ImplDecl, TypeAlias, Newtype, ConstDecl, StaticDecl
+     - FnDecl: name, params, return type, contracts, body, visibility
+     - contracts: Requires of expr | Ensures of expr |
+       LoopInvariant of expr | Borrows of ident list
+     - type expressions: NamedType, ArrayType, SliceType, TupleType,
+       RefType, MutRefType, FnType, GenericType
+     - expressions: Literal, Ident, Binary, Unary, Call, MethodCall,
+       FieldAccess, Index, Cast, If, Match, Block, Closure, ForIn,
+       While, WhileLet, IfLet, Return, Try (?), Assign
+     - patterns: WildcardPat, BindPat, LitPat, TuplePat, StructPat,
+       EnumPat, OrPat, GuardedPat
+     - statements: LetStmt, ExprStmt, ReturnStmt
+     - literals: IntLit, FloatLit, StringLit, BoolLit, CharLit
+
+     every AST node should carry a Span.span field.
+     reference: sv0doc/grammar/sv0.ebnf
+
+/run: 01-define-ast.sh
+
+### step 2: recursive descent parser
+
+/ai: implement the recursive descent parser in SML/NJ for sv0c.
+
+     create src/parser/parser.sml with:
+
+     signature PARSER = sig
+       val parse : Lexer.located_token list -> Ast.program
+       val parseExpr : Lexer.located_token list ->
+                       Ast.expr * Lexer.located_token list
+     end
+
+     the parser should:
+     - use recursive descent (no parser generator)
+     - implement Pratt parsing for expression precedence
+     - handle all sv0 operator precedence levels
+     - parse contract clauses (requires, ensures, loop_invariant, borrows)
+       between function signature and body
+     - parse generic type parameters and trait bounds
+     - implement error recovery: on syntax error, skip tokens until a
+       statement/declaration boundary (semicolon, closing brace, keyword)
+       and continue parsing to report multiple errors
+     - produce meaningful error messages with source spans
+
+     operator precedence (lowest to highest):
+     1. assignment (=)
+     2. logical or (||)
+     3. logical and (&&)
+     4. equality (==, !=)
+     5. comparison (<, >, <=, >=)
+     6. bitwise or (|)
+     7. bitwise xor (^)
+     8. bitwise and (&)
+     9. shift (<<, >>)
+     10. additive (+, -)
+     11. multiplicative (*, /, %)
+     12. unary (-, !, ~, &, &mut, *)
+     13. postfix (., (), [], as, ?)
+
+     reference: sv0doc/grammar/sv0.ebnf
+
+/run: 02-build-parser.sh
+
+### step 3: parser tests
+
+/ai: write a comprehensive test suite for the sv0c parser in SML/NJ.
+
+     create sv0c/test/parser_test.sml with tests for:
+     - simple let bindings (let x: i32 = 42;)
+     - function declarations with and without contracts
+     - struct and enum declarations
+     - match expressions with all pattern types
+     - operator precedence (verify AST structure)
+     - if/else as expressions
+     - for..in loops
+     - closures (arrow syntax)
+     - generic type parameters
+     - module and use declarations
+     - error recovery (malformed input still produces partial AST)
+
+/run: 03-test-parser.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/ast/ast.sml
+/assert: test -f $SRC_DIR/parser/parser.sml

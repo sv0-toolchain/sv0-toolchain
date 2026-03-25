@@ -1,0 +1,153 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-lexer
+key: sv0c-lexer
+state: done
+tags:
+    - sv0
+    - sv0c
+    - lexer
+    - tokenizer
+title: "sv0c lexer (tokenizer)"
+type: task
+---
+
+# sv0c lexer (tokenizer)
+
+## purpose
+
+implement the sv0 lexer in SML/NJ. the lexer transforms UTF-8 source text
+into a stream of tokens, each carrying a source span for error reporting.
+
+the lexer is the first pass in the compiler pipeline and must handle:
+- all sv0 keywords (let, mut, fn, struct, enum, trait, impl, requires,
+  ensures, loop_invariant, match, if, else, while, for, in, return,
+  type, newtype, where, pub, module, use, unsafe, move, as, self, Self,
+  forall, exists, borrows, no_alias, const, static, true, false,
+  Some, None, Ok, Err)
+- identifiers (alphanumeric + underscore, cannot start with digit)
+- numeric literals (decimal with underscores, hex 0x, binary 0b, octal 0o,
+  float with optional type suffix _f32/_f64)
+- string literals (double-quoted, with escape sequences)
+- operators and punctuation (all operators from the reference table)
+- doc comments (/// line comments)
+- regular comments (// line comments, /* block comments */)
+- whitespace (spaces, tabs, newlines -- significant only for line tracking)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+/env: SV0DOC_ROOT=sv0doc
+
+## implementation
+
+### step 1: token datatype
+
+/ai: implement the Token datatype in SML/NJ for sv0c.
+
+     create src/lexer/token.sml defining:
+
+     datatype token =
+       (* keywords *)
+       LET | MUT | FN | RETURN | IF | ELSE | MATCH | WHILE | FOR | IN
+     | STRUCT | ENUM | TRAIT | IMPL | TYPE | NEWTYPE | WHERE
+     | PUB | PUB_CRATE | MODULE | USE
+     | UNSAFE | MOVE | AS | SELF_LOWER | SELF_UPPER
+     | REQUIRES | ENSURES | LOOP_INVARIANT
+     | FORALL | EXISTS | BORROWS | NO_ALIAS
+     | CONST | STATIC
+     | TRUE | FALSE | SOME | NONE | OK | ERR
+       (* literals *)
+     | INT_LIT of IntInf.int
+     | FLOAT_LIT of real
+     | STRING_LIT of string
+     | CHAR_LIT of char
+       (* identifiers *)
+     | IDENT of string
+       (* operators and punctuation *)
+     | PLUS | MINUS | STAR | SLASH | PERCENT
+     | EQ_EQ | BANG_EQ | LT | GT | LT_EQ | GT_EQ
+     | AMP_AMP | PIPE_PIPE | BANG
+     | AMP | PIPE | CARET | TILDE
+     | LT_LT | GT_GT
+     | EQ | ARROW | FAT_ARROW | DOT_DOT | DOT_DOT_EQ | QUESTION
+     | LPAREN | RPAREN | LBRACE | RBRACE | LBRACKET | RBRACKET
+     | COMMA | SEMICOLON | COLON | COLON_COLON | DOT
+     | HASH_LBRACKET
+       (* special *)
+     | DOC_COMMENT of string
+     | EOF
+
+     type located_token = {token: token, span: Span.span}
+
+     include a tokenToString function for debugging.
+
+     reference: sv0doc/keywords/reference.md
+
+/run: 01-define-tokens.sh
+
+### step 2: lexer implementation
+
+/ai: implement the Lexer structure in SML/NJ for sv0c.
+
+     create src/lexer/lexer.sml with:
+
+     signature LEXER = sig
+       type state
+       val init : string -> string -> state  (* filename -> source -> state *)
+       val next : state -> located_token * state
+       val tokenize : string -> string -> located_token list
+     end
+
+     structure Lexer :> LEXER = struct
+       (* implementation *)
+     end
+
+     the lexer should:
+     - be a hand-written scanner (no lexer generator)
+     - track line and column numbers for span construction
+     - handle all numeric literal formats (decimal, hex, binary, octal, float)
+     - handle escape sequences in strings (\n, \t, \\, \", \0, \xNN)
+     - handle underscore separators in numeric literals (1_000_000)
+     - handle type-suffixed literals (3.14_f64)
+     - distinguish between keywords and identifiers via lookup table
+     - produce meaningful error messages for malformed tokens
+     - support error recovery (skip to next valid token start)
+
+/run: 02-build-lexer.sh
+
+### step 3: lexer tests
+
+/ai: write a comprehensive test suite for the sv0c lexer in SML/NJ.
+
+     create sv0c/test/lexer_test.sml with tests for:
+     - all keywords tokenize correctly
+     - identifiers vs keywords
+     - all numeric literal formats
+     - string literals with escape sequences
+     - all operators and punctuation
+     - doc comments
+     - error cases (unterminated string, invalid escape, malformed number)
+     - source spans are correct (line, column)
+     - empty input produces EOF
+     - whitespace handling
+
+     use a simple assertion-based test framework:
+     fun assertEqual (expected, actual, msg) = ...
+
+/run: 03-test-lexer.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/lexer/token.sml
+/assert: test -f $SRC_DIR/lexer/lexer.sml
+
+/ai: review the lexer implementation for correctness and completeness.
+     verify that every keyword in sv0doc/keywords/reference.md is handled.
+     check that all code examples from the design document would tokenize
+     correctly.

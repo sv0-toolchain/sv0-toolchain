@@ -1,0 +1,129 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0vm-bytecode-format
+key: sv0vm-bytecode-format
+state: draft
+tags:
+    - sv0
+    - sv0vm
+    - bytecode
+title: "sv0vm bytecode format definition"
+type: task
+---
+
+# sv0vm bytecode format definition
+
+## purpose
+
+design and implement the sv0 bytecode format. the bytecode format is the
+binary representation of sv0-IR that sv0vm executes. it must be compact,
+fast to decode, and expressive enough to represent all sv0-IR operations.
+
+the bytecode format should be documented in sv0doc so both sv0c (encoder)
+and sv0vm (decoder) implement the same specification.
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0VM_ROOT=sv0vm
+/env: SV0DOC_ROOT=sv0doc
+/env: SRC_DIR=sv0vm/src
+
+## implementation
+
+### step 1: instruction set design
+
+/ai: design the sv0 bytecode instruction set.
+
+     the VM is a stack-based machine. design opcodes for:
+
+     stack operations:
+     - PUSH_I32 <value>    push 32-bit integer
+     - PUSH_I64 <value>    push 64-bit integer
+     - PUSH_F64 <value>    push 64-bit float
+     - PUSH_BOOL <value>   push boolean
+     - PUSH_STRING <index> push string from constant pool
+     - PUSH_UNIT           push unit value ()
+     - POP                 discard top of stack
+     - DUP                 duplicate top of stack
+
+     arithmetic (pop operands, push result):
+     - ADD_I32, SUB_I32, MUL_I32, DIV_I32, MOD_I32
+     - ADD_I64, SUB_I64, MUL_I64, DIV_I64, MOD_I64
+     - ADD_F64, SUB_F64, MUL_F64, DIV_F64
+     - NEG_I32, NEG_I64, NEG_F64
+
+     comparison:
+     - EQ, NEQ, LT, GT, LTE, GTE
+     - (operate on top two stack values, push bool)
+
+     logic/bitwise:
+     - AND, OR, NOT
+     - BIT_AND, BIT_OR, BIT_XOR, BIT_NOT
+     - SHL, SHR
+
+     local variables:
+     - LOAD_LOCAL <slot>   push value from local variable slot
+     - STORE_LOCAL <slot>  pop and store into local variable slot
+
+     control flow:
+     - JUMP <offset>       unconditional jump
+     - JUMP_IF <offset>    jump if top of stack is true
+     - JUMP_IF_NOT <offset> jump if top of stack is false
+     - CALL <func_index> <arg_count>  call function
+     - RETURN              return from function
+     - CALL_BUILTIN <id>   call built-in function
+
+     memory:
+     - ALLOC_STRUCT <type_index>  allocate struct on heap
+     - GET_FIELD <field_index>    get struct field
+     - SET_FIELD <field_index>    set struct field
+     - ALLOC_ARRAY <count>        allocate array
+     - GET_INDEX                  array index access (bounds-checked)
+     - SET_INDEX                  array index store
+
+     contracts:
+     - CONTRACT_CHECK <msg_index>  pop bool, abort with message if false
+
+     enum/tagged union:
+     - CONSTRUCT_VARIANT <type_index> <variant_index> <field_count>
+     - GET_TAG                      get variant tag
+     - GET_VARIANT_FIELD <index>    get variant field
+
+     casting:
+     - CAST <from_type> <to_type>  type conversion
+
+     document the instruction set in sv0doc/bytecode/instructions.md.
+
+### step 2: binary format
+
+/ai: design the binary file format (.sv0b) for sv0 bytecode.
+
+     the file should contain:
+     - magic bytes: "SV0B"
+     - version: u16
+     - constant pool: strings, type descriptors
+     - function table: name, arity, local count, bytecode offset
+     - bytecode section: raw instruction bytes
+     - debug info section (optional): source spans for each instruction
+
+     implement the encoder (for sv0c's VM backend) and decoder (for sv0vm)
+     as SML modules.
+
+/run: 01-define-bytecode.sh
+
+### step 3: bytecode tests
+
+/ai: write tests for bytecode encoding/decoding:
+     - round-trip: encode instructions -> decode -> verify match
+     - file format: write .sv0b file -> read back -> verify
+     - all instruction types covered
+
+/run: 02-test-encoding.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/bytecode/bytecode.sml

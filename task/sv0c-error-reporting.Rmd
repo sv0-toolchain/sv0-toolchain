@@ -1,0 +1,108 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-error-reporting
+key: sv0c-error-reporting
+state: done
+tags:
+    - sv0
+    - sv0c
+    - errors
+title: "sv0c error reporting infrastructure"
+type: task
+---
+
+# sv0c error reporting infrastructure
+
+## purpose
+
+implement the error reporting infrastructure that all compiler passes use.
+this is built first because every pass needs source span tracking and
+formatted error output from the start.
+
+the error system provides:
+- source span tracking (file, line, column, length) through every pass
+- highlighted code snippets in error messages
+- error recovery support (continue after errors to report multiple issues)
+- structured error types with error codes (E0100 for parsing, E0200 for
+  name resolution, E0300 for type errors, E0400 for contract errors)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+
+## implementation
+
+### step 1: source span type
+
+/ai: implement the source span module in SML/NJ for sv0c.
+
+     create src/error/span.sml with:
+
+     signature SPAN = sig
+       type pos = {line: int, col: int, offset: int}
+       type span = {file: string, start: pos, stop: pos}
+       val dummy : span
+       val merge : span -> span -> span
+       val toString : span -> string
+     end
+
+     structure Span :> SPAN = struct
+       (* implementation *)
+     end
+
+     the span tracks file path, start position (line, column, byte offset),
+     and end position. merge combines two spans into the smallest span
+     that contains both. toString produces "file:line:col" format.
+
+/run: 01-implement-spans.sh
+
+### step 2: error reporter
+
+/ai: implement the error reporter in SML/NJ for sv0c.
+
+     create src/error/reporter.sml with:
+
+     datatype severity = Error | Warning | Note
+     datatype error = CompilerError of {
+       code: string,       (* "E0102", "W0001", etc. *)
+       severity: severity,
+       message: string,
+       span: Span.span,
+       related: (string * Span.span) list,  (* "first defined here", etc. *)
+       help: string list   (* suggestions *)
+     }
+
+     the reporter should:
+     - accumulate errors without aborting (for multi-error reporting)
+     - format errors with source snippets (reads the source file)
+     - highlight the span within the source line
+     - include help text and related locations
+     - sort errors by file and line number for output
+
+     match the error format from the design document:
+       error[E0301]: narrowing cast may overflow
+         --> src/main.sv0:12:18
+          |
+       12 |     let z: u8 = x as u8;
+          |                  ^^^^^^^ u32 -> u8 requires x <= 255
+          |
+          = help: use .truncate() for intentional wrapping
+
+/run: 02-implement-reporter.sh
+
+### step 3: CM integration
+
+/ai: create the sources.cm file for the error module and verify it
+     compiles independently.
+
+/run: 03-test-errors.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/error/span.sml
+/assert: test -f $SRC_DIR/error/reporter.sml

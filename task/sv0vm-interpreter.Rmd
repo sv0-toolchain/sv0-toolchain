@@ -1,0 +1,115 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0vm-interpreter
+key: sv0vm-interpreter
+state: draft
+tags:
+    - sv0
+    - sv0vm
+    - interpreter
+    - stack-machine
+title: "sv0vm interpreter (instruction dispatch)"
+type: task
+---
+
+# sv0vm interpreter (instruction dispatch)
+
+## purpose
+
+implement the sv0vm instruction dispatch loop in SML/NJ. this is the core
+execution engine -- it reads bytecode instructions and executes them on a
+stack-based virtual machine.
+
+the interpreter must:
+- execute all bytecode instructions correctly
+- maintain a value stack for operands
+- maintain a call stack for function frames
+- support local variables via frame-local slots
+- handle contract check failures (abort with diagnostic)
+- support tail call optimization (optional in milestone 2)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0VM_ROOT=sv0vm
+/env: SRC_DIR=sv0vm/src
+
+## implementation
+
+### step 1: VM state
+
+/ai: implement the VM state representation in SML/NJ for sv0vm.
+
+     create src/interpreter/interpreter.sml with:
+
+     the VM state includes:
+     - value stack: dynamically sized array of sv0 values
+     - call stack: stack of call frames
+     - call frame: return address, base pointer (stack offset for locals),
+       function reference
+     - program: loaded bytecode (constant pool, function table, instructions)
+     - instruction pointer: current position in bytecode
+
+     sv0 value representation:
+     datatype value =
+       VInt32 of Int32.int
+     | VInt64 of Int64.int
+     | VFloat64 of real
+     | VBool of bool
+     | VString of string
+     | VUnit
+     | VStruct of value array
+     | VVariant of int * value array  (* tag + fields *)
+     | VArray of value array
+     | VRef of value ref
+     | VNone
+
+### step 2: dispatch loop
+
+/ai: implement the main dispatch loop for sv0vm.
+
+     the loop:
+     1. fetch instruction at IP
+     2. decode opcode and operands
+     3. execute (manipulate stack, locals, control flow)
+     4. advance IP (unless jump modified it)
+     5. repeat until HALT or error
+
+     handle each instruction category:
+     - stack ops: push, pop, dup
+     - arithmetic: pop operands, compute, push result
+     - comparison: pop operands, compare, push bool
+     - locals: load/store from frame-local slots
+     - control flow: jump (modify IP), call (push frame), return (pop frame)
+     - memory: struct/array allocation and access
+     - contracts: check bool, abort if false
+
+     error handling:
+     - stack underflow -> panic with diagnostic
+     - division by zero -> panic
+     - out of bounds array access -> panic with index and length
+     - contract violation -> print source location and expression, abort
+     - invalid opcode -> panic
+
+/run: 01-build-interpreter.sh
+
+### step 3: interpreter tests
+
+/ai: write tests for the interpreter covering:
+     - arithmetic operations (i32, i64, f64)
+     - comparison and logic
+     - local variable load/store
+     - function calls and returns
+     - recursive function calls
+     - contract check pass and fail
+     - struct construction and field access
+     - array operations with bounds checking
+
+/run: 02-test-interpreter.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/interpreter/interpreter.sml

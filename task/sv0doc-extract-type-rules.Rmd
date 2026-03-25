@@ -1,0 +1,89 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0doc-extract-type-rules
+key: sv0doc-extract-type-rules
+state: done
+tags:
+    - sv0
+    - sv0doc
+    - types
+title: "extract type system rules"
+type: task
+---
+
+# extract type system rules
+
+## purpose
+
+extract the type system rules from the sv0 design document into a formal
+specification at `sv0doc/type-system/rules.md`. this specification drives
+the implementation of sv0c's type checker.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0DOC_ROOT=sv0doc
+/env: TYPE_RULES_FILE=$SV0DOC_ROOT/type-system/rules.md
+
+## extraction
+
+/ai: extract the complete type system rules from the sv0 design document.
+
+     organize into these sections:
+
+     1. primitive types
+        - integer types (i8-i128, u8-u128), floating point (f32, f64)
+        - bool, char, byte, string
+        - widening/narrowing cast rules with contract implications
+
+     2. composite types
+        - arrays [T; N], slices &[T], tuples (T1, T2, ...)
+        - structs (product types), enums (sum types)
+        - Option<T>, Result<T, E>
+        - type aliases, newtypes, refined types (type T = U where ...)
+
+     3. reference types
+        - &T (shared reference), &mut T (exclusive reference)
+        - raw pointers *const T, *mut T
+        - function pointers fn(A) -> B
+
+     4. type inference
+        - local variable inference (let x = expr)
+        - closure parameter inference in known contexts
+        - explicit annotation required at function boundaries
+
+     5. generics
+        - type parameters <T: Trait>
+        - associated types (type Output)
+        - where clauses for trait bounds
+        - monomorphization strategy
+
+     6. trait system
+        - trait definition with contracts
+        - impl blocks (inherent and trait)
+        - trait resolution rules
+        - impl coherence (orphan rules)
+        - operator trait desugaring
+
+     7. function overloading
+        - resolution by argument types
+        - ambiguity detection
+        - interaction with generics
+
+     8. auto-derivation
+        - Copy: auto-derived when all fields are Copy
+        - Clone: implied by Copy
+        - Send/Sync: inferred from field types
+        - negative impls (impl !Send for T)
+
+     write the complete specification to sv0doc/type-system/rules.md.
+
+/run: 01-validate-type-rules.sh
+
+## validation
+
+/assert: test -f $TYPE_RULES_FILE
+/assert: test -s $TYPE_RULES_FILE

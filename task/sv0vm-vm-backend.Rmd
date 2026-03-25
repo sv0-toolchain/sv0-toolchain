@@ -1,0 +1,90 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0vm-vm-backend
+key: sv0vm-vm-backend
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - sv0vm
+    - vm-backend
+title: "sv0c VM backend (IR to bytecode)"
+type: task
+---
+
+# sv0c VM backend (IR to bytecode)
+
+## purpose
+
+implement the VM backend for sv0c that compiles sv0-IR to sv0vm bytecode.
+this is the bridge between the compiler and the virtual machine -- it lives
+in sv0c but produces output consumed by sv0vm.
+
+the VM backend translates sv0-IR operations to stack-machine instructions.
+the key challenge is converting SSA-form IR (register-based) to a
+stack-based instruction sequence.
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: SRC_DIR=sv0c/src
+
+## implementation
+
+### step 1: IR-to-stack lowering
+
+/ai: implement the IR-to-bytecode lowering in SML/NJ.
+
+     this module lives in sv0c (it's a backend, like the C backend):
+     create sv0c/src/backend/vm/codegen.sml
+
+     the lowering must handle the SSA-to-stack conversion:
+     - SSA variables -> local variable slots (allocated per function)
+     - SSA phi nodes -> stores to the target slot in each predecessor
+     - IR arithmetic -> push operands, emit arithmetic opcode
+     - IR function call -> push arguments, emit CALL
+     - IR conditional branch -> push condition, emit JUMP_IF/JUMP_IF_NOT
+     - IR return -> push return value, emit RETURN
+     - IR contract check -> push condition, emit CONTRACT_CHECK
+     - IR struct construction -> push fields, emit ALLOC_STRUCT
+     - IR match lowering -> emit tag check + jumps
+
+     produce the bytecode in the format defined by sv0vm-bytecode-format.
+
+### step 2: bytecode file writer
+
+/ai: implement the .sv0b file writer that serializes the bytecode output
+     to the binary format defined in sv0vm-bytecode-format.
+
+     the writer should:
+     - build the constant pool (strings, type descriptors)
+     - build the function table
+     - serialize instructions to bytes
+     - optionally include debug info (source spans)
+     - write the complete .sv0b file
+
+### step 3: sv0c --target=vm integration
+
+/ai: integrate the VM backend into sv0c's compilation pipeline.
+
+     when invoked with --target=vm (or sv0 build --target=vm):
+     1. run the standard frontend (lex, parse, resolve, type-check, contracts)
+     2. lower to sv0-IR
+     3. instead of C codegen, invoke the VM backend
+     4. write the bytecode to build/vm/<module>.sv0b
+
+/run: 01-build-vm-codegen.sh
+/run: 02-test-vm-codegen.sh
+
+## validation
+
+/assert: test -d $SRC_DIR/backend/vm
+
+/ai: verify that the VM backend produces bytecode that sv0vm can execute.
+     compile a test program via both backends (C and VM), run both,
+     and verify identical output.

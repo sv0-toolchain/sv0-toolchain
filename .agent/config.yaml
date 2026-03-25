@@ -1,0 +1,19 @@
+runners:
+  .sml: sml.sh
+  .sh: shell.sh
+  .bash: shell.sh
+  .py: python.sh
+  .c: c.sh
+  .sv0: sv0.sh
+
+defaults:
+  shell: /bin/bash
+  sml: sml
+  python: python3
+  cc: cc
+
+paths:
+  sv0c_root: sv0c
+  sv0vm_root: sv0vm
+  sv0doc_root: sv0doc
+  build_dir: build

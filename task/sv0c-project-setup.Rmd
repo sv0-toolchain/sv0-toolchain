@@ -1,0 +1,101 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-project-setup
+key: sv0c-project-setup
+state: done
+tags:
+    - sv0
+    - sv0c
+    - setup
+title: "sv0c project scaffolding and SML/NJ build system"
+type: task
+---
+
+# sv0c project scaffolding and SML/NJ build system
+
+## purpose
+
+set up the SML/NJ project structure for sv0c, including:
+- CM (Compilation Manager) build files for each module
+- the main entry point that wires all passes together
+- a test harness for running unit tests
+- build scripts for compiling and running the compiler
+
+## dependencies
+
+/require: sml
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+
+## step 1: SML/NJ project structure
+
+/ai: design the SML/NJ project structure for sv0c using CM (Compilation
+     Manager) .cm files. the structure should support:
+     - independent compilation of each compiler pass
+     - a top-level sources.cm that ties everything together
+     - separate test .cm files for unit testing
+     - clean module boundaries using SML signatures and structures
+
+     the directory layout should be:
+     sv0c/
+     ├── sources.cm              (top-level CM file)
+     ├── src/
+     │   ├── main.sml            (entry point: read file, run pipeline, emit C)
+     │   ├── lexer/
+     │   │   ├── sources.cm
+     │   │   ├── token.sml       (Token datatype)
+     │   │   └── lexer.sml       (Lexer structure)
+     │   ├── ast/
+     │   │   ├── sources.cm
+     │   │   └── ast.sml         (AST datatypes)
+     │   ├── parser/
+     │   │   ├── sources.cm
+     │   │   └── parser.sml      (Parser structure)
+     │   ├── name_resolution/
+     │   │   ├── sources.cm
+     │   │   └── resolver.sml
+     │   ├── type_checker/
+     │   │   ├── sources.cm
+     │   │   └── checker.sml
+     │   ├── contract_analyzer/
+     │   │   ├── sources.cm
+     │   │   └── analyzer.sml
+     │   ├── ir/
+     │   │   ├── sources.cm
+     │   │   ├── ir.sml          (IR datatypes)
+     │   │   └── lowering.sml    (AST -> IR)
+     │   ├── backend/
+     │   │   └── c/
+     │   │       ├── sources.cm
+     │   │       └── codegen.sml (IR -> C source)
+     │   └── error/
+     │       ├── sources.cm
+     │       ├── span.sml        (source location tracking)
+     │       └── reporter.sml    (error message formatting)
+     └── test/
+         ├── sources.cm
+         └── test_runner.sml
+
+     create the CM files and stub SML files.
+
+/run: 01-create-scaffolding.sh
+
+## step 2: build system
+
+/ai: create a Makefile or build script that:
+     - compiles sv0c using SML/NJ's CM
+     - runs the test suite
+     - produces a heap image for fast startup
+     - cleans build artifacts
+
+/run: 02-create-build-script.sh
+
+## validation
+
+/assert: test -f $SV0C_ROOT/sources.cm
+/assert: test -f $SRC_DIR/main.sml
+/run: 03-verify-build.sh

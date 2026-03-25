@@ -1,0 +1,51 @@
+---
+description: Handle agent directives in .Rmd files
+globs: "**/*.Rmd"
+alwaysApply: true
+---
+
+When processing `.Rmd` files, recognize these directives:
+
+- `/ai: <prompt>` — resolve the prompt using LLM reasoning and write the response below
+- `/run: <script>` — execute the script from the companion folder (same name as the .Rmd file, minus extension)
+- `/run:inline <lang>` — execute the code block that follows
+- `/require: <dependency>` — verify the dependency is available before proceeding
+- `/assert: <shell-expression>` — evaluate the expression; halt if it exits non-zero
+- `/on-error: halt|continue|retry N|fallback <script>` — set error policy for subsequent `/run:` directives
+- `/if: <shell-expression>` ... `/else` ... `/endif` — conditionally execute a block of directives
+- `/capture: VAR` — store the preceding `/run:` or `/include:` result (`OK` or `FAIL`) in a named variable
+- `/prompt: VAR <message>` — pause and ask the user for input; store the response in a variable
+- `/env: KEY=VALUE` — set as environment variable for subsequent commands
+- `/include: <path>` — read and process the referenced file inline
+- `/output: <path>` — redirect next command's output to this file
+
+## script routing
+
+When you encounter `/run: <script-name>`, resolve it by:
+
+1. Finding the companion folder: same directory as the `.Rmd` file, same name minus `.Rmd`
+2. The script path is: `<companion-folder>/<script-name>`
+3. Execute using the shell tool
+
+## context sharing
+
+- `/env:` variables persist through `/include:` boundaries
+- `/capture: VAR` stores the preceding `/run:` or `/include:` result in `$VAR` (`OK` on success, `FAIL` on error)
+- Included files inherit the parent's environment
+
+## sv0-toolchain specific
+
+This workspace contains three subprojects:
+
+- `sv0doc/` — formal language specification (source of truth)
+- `sv0c/` — bootstrap compiler in SML/NJ
+- `sv0vm/` — bytecode VM interpreter in SML/NJ
+
+Common environment variables:
+
+- `SV0C_ROOT=sv0c`
+- `SV0VM_ROOT=sv0vm`
+- `SV0DOC_ROOT=sv0doc`
+- `SRC_DIR=<project>/src`
+- `BUILD_DIR=<project>/build`
+- `TEST_DIR=<project>/test`

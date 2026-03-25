@@ -1,0 +1,112 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-type-checker
+key: sv0c-type-checker
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - type-checker
+    - type-inference
+title: "sv0c type checker"
+type: task
+---
+
+# sv0c type checker
+
+## purpose
+
+implement the type checker for sv0c in SML/NJ. this pass transforms a
+resolved AST into a typed AST where every expression carries its inferred
+or checked type.
+
+the type checker handles:
+- type inference for local bindings (let x = expr infers x's type)
+- explicit type checking at function boundaries
+- generic type instantiation and constraint checking
+- trait resolution (which impl satisfies a trait bound)
+- function overloading resolution (select overload by argument types)
+- operator desugaring to trait method calls
+- Copy/Clone/Send/Sync auto-derivation
+- exhaustiveness checking for match expressions
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+/env: SV0DOC_ROOT=sv0doc
+
+## implementation
+
+### step 1: type representation
+
+/ai: design the internal type representation in SML/NJ for sv0c.
+
+     create the type datatypes that the checker uses:
+
+     datatype ty =
+       TInt of int_size | TUint of int_size | TFloat of float_size
+     | TBool | TChar | TByte | TString
+     | TArray of ty * int | TSlice of ty
+     | TTuple of ty list
+     | TRef of ty | TMutRef of ty
+     | TRawPtr of ty | TMutRawPtr of ty
+     | TFn of ty list * ty
+     | TNamed of string * ty list  (* generics: Vec<i32> = TNamed("Vec", [TInt I32]) *)
+     | TVar of int  (* unification variable for inference *)
+     | TError  (* placeholder for error recovery *)
+
+     and int_size = I8 | I16 | I32 | I64 | I128
+     and float_size = F32 | F64
+
+     include a unification engine for type inference:
+     - substitution: mapping from TVar to ty
+     - unify: ty * ty -> substitution (or error)
+     - apply: substitution -> ty -> ty
+
+     reference: sv0doc/type-system/rules.md
+
+### step 2: type checker pass
+
+/ai: implement the type checking pass that traverses the resolved AST,
+     infers types for expressions, and checks type consistency.
+
+     handle these specific sv0 features:
+     - let with explicit type: check expr type matches annotation
+     - let without type: infer from expr
+     - function calls: check argument types against parameter types
+     - method calls: resolve receiver type, find impl, check args
+     - operator expressions: desugar to trait method calls, type check
+     - if/else: both branches must have same type
+     - match: all arms must have same type; exhaustiveness check
+     - closures: infer parameter types from context when possible
+     - as casts: check widening (safe) vs narrowing (requires contract)
+     - ? operator: check enclosing function returns Result/Option
+
+     reference: sv0doc/type-system/rules.md
+
+/run: 01-build-type-checker.sh
+
+### step 3: type checker tests
+
+/ai: write tests for the type checker covering:
+     - basic type inference (let x = 42 infers i32)
+     - explicit type annotations
+     - function call type checking
+     - generic instantiation
+     - trait bound checking
+     - operator type resolution
+     - match exhaustiveness (missing variant -> error)
+     - type mismatch errors with good messages
+     - closure type inference
+     - narrowing cast detection
+
+/run: 02-test-type-checker.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/type_checker/checker.sml

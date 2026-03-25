@@ -1,0 +1,111 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-contract-analyzer
+key: sv0c-contract-analyzer
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - contracts
+    - verification
+title: "sv0c contract analyzer"
+type: task
+---
+
+# sv0c contract analyzer
+
+## purpose
+
+implement the contract analyzer for sv0c in SML/NJ. this pass validates
+contract expressions and instruments them as runtime checks (phase 1).
+
+contracts are sv0's defining feature. in milestone 1, all contracts are
+compiled to runtime checks. the contract analyzer:
+- validates that contract expressions are well-typed
+- validates that contract builtins (result, old, forall, exists) are
+  used in the correct context
+- lowers requires() to entry-point checks
+- lowers ensures() to exit-point checks (before return)
+- lowers loop_invariant() to loop-entry checks
+- generates temporaries for old() snapshots
+- lowers forall/exists to iteration loops
+- inserts no_alias checks for pointer arguments
+- handles narrowing cast contracts (as with implicit requires)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+/env: SV0DOC_ROOT=sv0doc
+
+## implementation
+
+### step 1: contract validation
+
+/ai: implement contract validation in SML/NJ for sv0c.
+
+     the validator checks:
+     - requires/ensures expressions are boolean-typed
+     - result is only used inside ensures clauses
+     - old(expr) is only used inside ensures clauses
+     - forall/exists are only used inside contract clauses
+     - no_alias(a, b) arguments are references
+     - borrows(x, y) names match function parameters
+     - contract expressions don't have side effects
+
+     reference: sv0doc/contracts/semantics.md
+
+### step 2: runtime check insertion (phase 1)
+
+/ai: implement contract lowering to runtime checks in SML/NJ.
+
+     for each contract kind, describe the transformation:
+
+     requires(expr):
+       at function entry, insert: if not expr then contract_fail(...)
+
+     ensures(expr):
+       before each return point, insert: if not expr then contract_fail(...)
+       bind result to the return value before checking
+
+     old(expr):
+       at function entry, evaluate expr and store in a temporary
+       in ensures, replace old(expr) with the temporary
+
+     loop_invariant(expr):
+       at loop entry (before first iteration), insert check
+       at end of each iteration, insert check
+
+     forall(var in range, pred):
+       expand to: for var in range { if not pred then contract_fail(...) }
+
+     exists(var in range, pred):
+       expand to: found = false; for var in range { if pred { found = true; break } }
+                  if not found then contract_fail(...)
+
+     contract_fail should produce:
+       "contract violation at file:line:col: <expression>"
+       with the values of all referenced variables
+
+/run: 01-build-contract-analyzer.sh
+
+### step 3: contract analyzer tests
+
+/ai: write tests for the contract analyzer covering:
+     - simple requires/ensures insertion
+     - old() snapshot generation
+     - result binding in ensures
+     - forall/exists expansion
+     - invalid contract usage (result outside ensures -> error)
+     - narrowing cast implicit contracts
+     - contract-mode=disabled strips all checks
+
+/run: 02-test-contract-analyzer.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/contract_analyzer/analyzer.sml

@@ -1,0 +1,101 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0vm-milestone-2
+key: sv0vm-milestone-2
+state: draft
+tags:
+    - sv0
+    - sv0vm
+    - milestone-2
+    - bytecode
+title: "milestone 2: sv0vm bytecode virtual machine (SML/NJ)"
+type: task
+---
+
+# milestone 2: sv0vm bytecode virtual machine (SML/NJ)
+
+## purpose
+
+build the sv0 bytecode virtual machine in SML/NJ. when milestone 2 is
+complete, sv0c can compile sv0 source to bytecode, and sv0vm can execute
+that bytecode. this provides the fastest iteration cycle during development
+(no external C compiler needed) and powers the REPL.
+
+milestone 2 is complete when:
+- the bytecode format is defined and documented in sv0doc
+- sv0c has a VM backend that emits bytecode
+- sv0vm loads and executes bytecode files
+- contract checks work at runtime in the VM
+- the REPL can evaluate expressions interactively
+- sv0vm passes the same test suite as the C backend
+
+## dependencies
+
+/require: sml
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: SV0DOC_ROOT=sv0doc
+/env: BUILD_DIR=sv0vm/build
+
+## prerequisite: bootstrap compiler
+
+the VM backend is an additional backend for sv0c. the frontend (lexer through
+contract analyzer) and IR must be complete before the VM backend can emit
+bytecode.
+
+/assert: test -f $SV0C_ROOT/src/ir/ir.sml
+/assert: test -f $SV0C_ROOT/src/ir/lowering.sml
+
+## phase 1: bytecode format design
+
+/include: task/sv0vm-bytecode-format.Rmd
+
+/capture: BYTECODE_STATUS
+/assert: test "$BYTECODE_STATUS" != "FAIL"
+
+## phase 2: interpreter core
+
+/include: task/sv0vm-interpreter.Rmd
+
+/capture: INTERPRETER_STATUS
+/assert: test "$INTERPRETER_STATUS" != "FAIL"
+
+## phase 3: runtime support
+
+/include: task/sv0vm-runtime.Rmd
+
+/capture: RUNTIME_STATUS
+/assert: test "$RUNTIME_STATUS" != "FAIL"
+
+## phase 4: VM backend for sv0c
+
+/include: task/sv0vm-vm-backend.Rmd
+
+/capture: VMBACKEND_STATUS
+/assert: test "$VMBACKEND_STATUS" != "FAIL"
+
+## phase 5: integration testing
+
+/ai: design an integration test suite for sv0vm that mirrors the C backend
+     tests. every program that compiles and runs via the C backend should
+     produce identical output when compiled to bytecode and run on sv0vm.
+
+/run: 01-verify-setup.sh
+/run: 02-integration-test.sh
+
+## milestone completion check
+
+/assert: test -f $SV0VM_ROOT/src/bytecode/bytecode.sml
+/assert: test -f $SV0VM_ROOT/src/interpreter/interpreter.sml
+/assert: test -f $SV0VM_ROOT/src/runtime/runtime.sml
+
+/ai: summarize the state of milestone 2. report:
+     - bytecode format completeness
+     - which sv0 features the VM supports
+     - performance characteristics (vs C backend)
+     - REPL status
+     - readiness for milestone 3 (self-hosting)

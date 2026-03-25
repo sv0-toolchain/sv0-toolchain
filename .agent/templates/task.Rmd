@@ -1,0 +1,37 @@
+---
+created: "TIMESTAMP"
+id: task-ID
+key: TASK_KEY
+state: draft
+tags:
+    - sv0
+title: TASK_TITLE
+type: task
+---
+
+# TASK_TITLE
+
+## purpose
+
+<!-- describe what this task accomplishes and why it matters -->
+
+## dependencies
+
+/require: sml
+/require: cc
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: BUILD_DIR=build
+
+## steps
+
+/ai: outline the implementation approach for this task.
+
+<!-- add /run: directives referencing scripts in the companion folder -->
+
+## validation
+
+<!-- add /assert: directives to verify the task completed correctly -->

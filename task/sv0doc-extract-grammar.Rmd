@@ -1,0 +1,68 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0doc-extract-grammar
+key: sv0doc-extract-grammar
+state: done
+tags:
+    - sv0
+    - sv0doc
+    - grammar
+    - ebnf
+title: "extract formal EBNF grammar"
+type: task
+---
+
+# extract formal EBNF grammar
+
+## purpose
+
+extract the complete EBNF grammar for sv0 from the design document and write
+it to `sv0doc/grammar/sv0.ebnf`. this grammar is the primary reference for
+sv0c's lexer and parser implementation.
+
+the grammar must cover every syntactic construct described in the design
+document, organized by category. ambiguities in the prose must be resolved
+and documented as decisions.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0DOC_ROOT=sv0doc
+/env: GRAMMAR_FILE=$SV0DOC_ROOT/grammar/sv0.ebnf
+
+## extraction
+
+/ai: read the sv0 design document and extract the complete EBNF grammar.
+
+     organize the grammar into these sections:
+     1. lexical grammar (tokens, literals, identifiers, keywords, operators)
+     2. top-level declarations (module, use, fn, struct, enum, trait, impl, type, newtype, const, static)
+     3. function declarations (parameters, return type, contracts, body)
+     4. contract clauses (requires, ensures, loop_invariant, borrows)
+     5. type expressions (primitives, arrays, slices, tuples, references, generics, function types)
+     6. expressions (literals, binary ops, unary ops, field access, method call, index, cast, closures)
+     7. statements (let, assignment, expression statements, return)
+     8. control flow (if/else, match, while, for..in, while let, if let)
+     9. pattern matching (literal, wildcard, binding, tuple, struct, enum, or-pattern, guard)
+     10. attributes (#[...])
+     11. visibility modifiers (pub, pub(crate))
+
+     use ISO 14977 EBNF notation. resolve any syntactic ambiguities with
+     precedence rules and document the decisions.
+
+     write the complete grammar to sv0doc/grammar/sv0.ebnf.
+
+/output: $GRAMMAR_FILE
+/run: 01-validate-grammar.sh
+
+## validation
+
+/assert: test -f $GRAMMAR_FILE
+/assert: test -s $GRAMMAR_FILE
+
+/ai: review the extracted grammar for completeness. check that every code
+     example in the design document can be parsed by this grammar. list any
+     constructs that are missing or ambiguous.

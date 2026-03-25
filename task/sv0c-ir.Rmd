@@ -1,0 +1,109 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-ir
+key: sv0c-ir
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - ir
+    - intermediate-representation
+title: "sv0c intermediate representation (sv0-IR)"
+type: task
+---
+
+# sv0c intermediate representation (sv0-IR)
+
+## purpose
+
+implement the sv0-IR definition and AST-to-IR lowering pass for sv0c in
+SML/NJ. the IR is the heart of the compiler -- it sits above all backends
+and is the representation on which optimizations happen.
+
+sv0-IR properties:
+- typed: every value carries its type
+- SSA form: static single assignment for clean dataflow analysis
+- contract-annotated: contracts preserved as first-class IR nodes
+- target-independent: no backend-specific details
+
+sv0-IR operations:
+- arithmetic, comparison, logic
+- memory load/store
+- function call, indirect call
+- branch (conditional, unconditional)
+- phi (SSA merge at join points)
+- contract-check (runtime contract assertion)
+- alloca (stack allocation)
+- aggregate construction/extraction (structs, enums)
+
+## dependencies
+
+/require: sml
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SRC_DIR=sv0c/src
+
+## implementation
+
+### step 1: IR type definitions
+
+/ai: implement the sv0-IR datatypes in SML/NJ for sv0c.
+
+     create src/ir/ir.sml with:
+
+     - basic blocks: labeled sequences of instructions ending in a terminator
+     - instructions: arithmetic, comparison, load, store, call, alloca,
+       aggregate ops, contract-check
+     - terminators: branch, conditional branch, return, unreachable
+     - phi nodes for SSA merge points
+     - values: constants, SSA variables (named with unique IDs), function refs
+     - types: mirror the frontend type representation
+     - functions: name, params, return type, basic block list, contract list
+     - modules: function list, global list, type definitions
+
+     the IR should be printable in a human-readable text format for debugging.
+
+### step 2: AST-to-IR lowering
+
+/ai: implement the lowering pass from annotated AST to sv0-IR in SML/NJ.
+
+     create src/ir/lowering.sml that handles:
+     - let bindings -> alloca + store
+     - expressions -> SSA value computation
+     - if/else -> conditional branch + phi node
+     - match -> cascading conditional branches (or jump table)
+     - while loops -> back-edge with conditional branch
+     - for..in -> desugared to iterator protocol (into_iter, next, match)
+     - closures -> closure struct + function pointer
+     - ? operator -> conditional branch on Result/Option
+     - contract checks -> contract-check IR nodes
+     - function calls -> call instruction
+     - struct construction -> aggregate construction
+     - enum construction -> tagged aggregate
+     - pattern matching -> extract + compare
+
+     generate fresh SSA variable names using a counter.
+     maintain a symbol table mapping source names to SSA variables.
+
+/run: 01-define-ir.sh
+/run: 02-build-lowering.sh
+
+### step 3: IR tests
+
+/ai: write tests for the IR lowering covering:
+     - simple arithmetic expressions
+     - let bindings
+     - if/else (verify phi nodes)
+     - match expressions
+     - function calls
+     - contract check insertion
+     - IR text output for debugging
+
+/run: 03-test-ir.sh
+
+## validation
+
+/assert: test -f $SRC_DIR/ir/ir.sml
+/assert: test -f $SRC_DIR/ir/lowering.sml

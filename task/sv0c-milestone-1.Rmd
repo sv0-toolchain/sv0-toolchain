@@ -1,0 +1,160 @@
+---
+created: "2026-03-22T00:00:00Z"
+id: task-sv0c-milestone-1
+key: sv0c-milestone-1
+state: draft
+tags:
+    - sv0
+    - sv0c
+    - milestone-1
+    - compiler
+title: "milestone 1: sv0c bootstrap compiler (SML/NJ)"
+type: task
+---
+
+# milestone 1: sv0c bootstrap compiler (SML/NJ)
+
+## purpose
+
+build the complete sv0 bootstrap compiler in SML/NJ. when milestone 1 is
+complete, sv0c can read `.sv0` source files and produce C99 source code,
+which `cc` compiles to native binaries.
+
+this is the foundation for everything that follows -- self-hosting,
+the bytecode VM, the LLVM backend, and the crypto/kernel use cases.
+
+milestone 1 is complete when:
+- sv0c compiles simple sv0 programs (bindings, functions, control flow,
+  pattern matching, basic types, contracts) to C
+- runtime contract checks are emitted as C assertions
+- the module system resolves imports within a project
+- error reporting includes source spans with highlighted snippets
+- the test suite covers each compiler pass independently
+
+## dependencies
+
+/require: sml
+/require: cc
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+/env: BUILD_DIR=sv0c/build
+/env: SRC_DIR=sv0c/src
+/env: TEST_DIR=sv0c/test
+
+## prerequisite: formal specification
+
+the compiler implements against the formal specification in sv0doc/.
+ensure milestone 0 is complete before starting.
+
+/assert: test -f $SV0DOC_ROOT/grammar/sv0.ebnf
+/assert: test -f $SV0DOC_ROOT/type-system/rules.md
+/assert: test -f $SV0DOC_ROOT/contracts/semantics.md
+/assert: test -f $SV0DOC_ROOT/memory-model/ownership.md
+/assert: test -f $SV0DOC_ROOT/keywords/reference.md
+
+## phase 1: project scaffolding and error infrastructure
+
+/include: task/sv0c-project-setup.Rmd
+
+/capture: SETUP_STATUS
+/assert: test "$SETUP_STATUS" != "FAIL"
+
+/include: task/sv0c-error-reporting.Rmd
+
+/capture: ERROR_REPORTING_STATUS
+/assert: test "$ERROR_REPORTING_STATUS" != "FAIL"
+
+## phase 2: frontend (source -> typed AST)
+
+the frontend transforms source text through four passes, each building
+on the output of the previous one.
+
+### lexer (source text -> token stream)
+
+/include: task/sv0c-lexer.Rmd
+
+/capture: LEXER_STATUS
+/assert: test "$LEXER_STATUS" != "FAIL"
+
+### parser (token stream -> untyped AST)
+
+/include: task/sv0c-parser.Rmd
+
+/capture: PARSER_STATUS
+/assert: test "$PARSER_STATUS" != "FAIL"
+
+### name resolution (untyped AST -> resolved AST)
+
+/include: task/sv0c-name-resolution.Rmd
+
+/capture: RESOLVER_STATUS
+/assert: test "$RESOLVER_STATUS" != "FAIL"
+
+### type checker (resolved AST -> typed AST)
+
+/include: task/sv0c-type-checker.Rmd
+
+/capture: TYPECHECKER_STATUS
+/assert: test "$TYPECHECKER_STATUS" != "FAIL"
+
+## phase 3: contract analysis (typed AST -> annotated AST)
+
+/include: task/sv0c-contract-analyzer.Rmd
+
+/capture: CONTRACT_STATUS
+/assert: test "$CONTRACT_STATUS" != "FAIL"
+
+## phase 4: backend (annotated AST -> sv0-IR -> C source)
+
+### IR definition and lowering
+
+/include: task/sv0c-ir.Rmd
+
+/capture: IR_STATUS
+/assert: test "$IR_STATUS" != "FAIL"
+
+### C code generation
+
+/include: task/sv0c-c-backend.Rmd
+
+/capture: CBACKEND_STATUS
+/assert: test "$CBACKEND_STATUS" != "FAIL"
+
+## phase 5: integration testing
+
+/ai: design an end-to-end integration test suite for sv0c. the suite
+     should include:
+     - a minimal "hello world" sv0 program
+     - a program with contracts (requires/ensures)
+     - a program with pattern matching on enums
+     - a program with structs and methods
+     - a program with generic functions
+     - a program using the module system (multi-file)
+     each test should compile to C, compile the C to a binary, run the
+     binary, and verify the output.
+
+/run: 01-verify-sml-setup.sh
+/run: 02-integration-test.sh
+
+## milestone completion check
+
+/assert: test -f $SRC_DIR/main.sml
+/assert: test -d $SRC_DIR/lexer
+/assert: test -d $SRC_DIR/parser
+/assert: test -d $SRC_DIR/ast
+/assert: test -d $SRC_DIR/name_resolution
+/assert: test -d $SRC_DIR/type_checker
+/assert: test -d $SRC_DIR/contract_analyzer
+/assert: test -d $SRC_DIR/ir
+/assert: test -d $SRC_DIR/backend/c
+
+/ai: summarize the state of milestone 1. report:
+     - which compiler passes are implemented and tested
+     - which sv0 language features are supported
+     - what test coverage looks like
+     - known limitations and open issues
+     - readiness for milestone 2 (bytecode VM backend)
