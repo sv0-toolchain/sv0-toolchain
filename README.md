@@ -6,9 +6,12 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 | project | purpose | language | status |
 |---|---|---|---|
-| [sv0doc](sv0doc/) | formal language specification and wiki | markdown | **Milestone 0 (task) complete**; bytecode spec under `bytecode/` |
-| [sv0c](sv0c/) | bootstrap compiler (lexer through C backend) | SML/NJ | **Milestone 1 (task) complete** |
-| [sv0vm](sv0vm/) | bytecode virtual machine interpreter | SML/NJ | **Milestone 2 (task) in progress** |
+| [sv0doc](sv0doc/) | **documentation hub**: formal language spec, bytecode spec, roadmap links to vision doc | markdown | **Milestone 0 (task) complete**; bytecode under `bytecode/`; hub text in [sv0doc/README.md](sv0doc/README.md) |
+| [sv0c](sv0c/) | compiler implementation + in-repo docs (`doc/`) | SML/NJ | **Milestone 1 (task) complete**; VM backend in progress with sv0vm |
+| [sv0vm](sv0vm/) | bytecode VM interpreter implementation + notes | SML/NJ | **Milestone 2 (task) in progress** |
+| [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain | Python | tracked under **`task/sv0-mcp-milestone-0.Rmd`** |
+
+**Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
 ## agent workflow
 
@@ -40,7 +43,23 @@ task/sv0vm-milestone-2.Rmd        milestone 2: bytecode VM
   ├── sv0vm-interpreter.Rmd           stack machine dispatch loop
   ├── sv0vm-runtime.Rmd               memory management + built-ins
   └── sv0vm-vm-backend.Rmd            sv0c VM backend (IR -> bytecode)
+
+task/sv0-toolchain-workspace.Rmd   meta: four submodules, env, aggregate commands
+task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 ```
+
+### developer commands (toolchain root)
+
+```bash
+make help             # check, test, test-mcp, doc, fmt, integration-vm, ci, ci-all
+./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
+./scripts/sv0 test    # full sv0c tests + sv0vm bytecode tests
+./scripts/sv0 test-mcp   # sv0-mcp pytest via uv (skips if uv missing)
+./scripts/sv0 ci      # SML-only: check + test + VM integration (no sv0-mcp)
+./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
+```
+
+From **sv0c**: `make check` (compile only), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
 
 ### running agents
 
@@ -57,13 +76,15 @@ task/sv0vm-milestone-2.Rmd        milestone 2: bytecode VM
 ### dependency flow
 
 ```
-sv0doc (specification)
+sv0doc (spec + hub pointers)
   |
   v
 sv0c (compiler)
   |
   ├── C backend (milestone 1)
   └── VM backend (milestone 2) ---> sv0vm (interpreter)
+
+sv0-mcp (graph + MCP tools) — cross-cuts spec, compiler, VM, and task/ for development
 ```
 
 ## design document
@@ -78,8 +99,10 @@ sv0-toolchain/
 ├── .agent/          agent infrastructure (runner, config, adapters)
 ├── .cursor/         cursor IDE integration (rules, commands)
 ├── lib/             shared scripts (shell utilities, SML helpers)
+├── scripts/         aggregate driver (`sv0`) for check/test/ci
 ├── task/            agent workflow files (.Rmd) + companion scripts
-├── sv0doc/          formal specification repository (git repo)
-├── sv0c/            bootstrap compiler source (git repo)
-└── sv0vm/           bytecode VM source (git repo)
+├── sv0doc/          specification + documentation hub (git submodule)
+├── sv0c/            compiler (git submodule)
+├── sv0vm/           bytecode VM (git submodule)
+└── sv0-mcp/         MCP server + graph sync (git submodule)
 ```

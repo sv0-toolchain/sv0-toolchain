@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+SV0C="$ROOT/sv0c"
+SV0VM="$ROOT/sv0vm"
+SV0DOC="$ROOT/sv0doc"
+SV0_MCP="$ROOT/sv0-mcp"
+
+# shellcheck disable=SC1091
+source "$ROOT/lib/shell/common.sh"
+
+usage() {
+  cat >&2 <<EOF
+usage: sv0 <command> [args]
+
+  check              compile sv0c (CM) and sv0vm (use) — fast smoke compile
+  build              alias for check
+  test               sv0c make test + sv0vm bytecode tests
+  test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
+  doc                verify sv0doc layout + sv0-mcp README
+  fmt                bash -n on shell scripts; shfmt -w if shfmt is in PATH
+  integration-vm     VM pipeline integration tests (task script)
+  vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
+  vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
+  ci                 SML-only: check + test + integration-vm (no sv0-mcp; same as \`make ci\`)
+  ci-all             after ci, run test-mcp when uv is available (full toolchain smoke)
+
+EOF
+}
+
+require_sml() {
+  sv0_require_cmd sml
+}
+
+sml_log_check() {
+  local label="$1"
+  local log="$2"
+  if grep -q 'Error:' "$log"; then
+    tail -50 "$log"
+    rm -f "$log"
+    sv0_fail "$label: SML compile errors"
+  fi
+  rm -f "$log"
+}
+
+check_sv0c() {
+  require_sml
+  local log
+  log="$(mktemp)"
+  if ! ( cd "$SV0C" && echo 'CM.make "sources.cm";' | sml >"$log" 2>&1 ); then
+    tail -50 "$log"
+    rm -f "$log"
+    sv0_fail "sv0c: sml exited non-zero"
+  fi
+  sml_log_check "sv0c" "$log"
+  sv0_ok "sv0c: sources.cm"
+}
+
+check_sv0vm() {
+  require_sml
+  local log
+  log="$(mktemp)"
+  if ! ( cd "$SV0VM" && echo 'use "src/main.sml";' | sml >"$log" 2>&1 ); then
+    tail -50 "$log"
+    rm -f "$log"
+    sv0_fail "sv0vm: sml exited non-zero"
+  fi
+  sml_log_check "sv0vm" "$log"
+  sv0_ok "sv0vm: interpreter loads"
+}
+
+run_check() {
+  check_sv0c
+  check_sv0vm
+}
+
+run_test() {
+  (cd "$SV0C" && make test)
+  require_sml
+  (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml";' | sml >/dev/null)
+  sv0_ok "sv0vm bytecode tests"
+}
+
+run_test_mcp() {
+  sv0_require_dir "$SV0_MCP"
+  if command -v uv >/dev/null 2>&1; then
+    (cd "$SV0_MCP" && uv sync --all-extras)
+    (cd "$SV0_MCP" && uv run pytest tests/ -q)
+    sv0_ok "sv0-mcp: pytest"
+  else
+    sv0_info "uv not in PATH; skipped sv0-mcp tests (install uv or run from sv0-mcp/)"
+  fi
+}
+
+run_doc() {
+  sv0_require_dir "$SV0DOC"
+  sv0_require_file "$SV0DOC/README.md"
+  sv0_require_file "$SV0DOC/bytecode/format.md"
+  sv0_require_file "$SV0DOC/bytecode/instructions.md"
+  sv0_require_dir "$SV0_MCP"
+  sv0_require_file "$SV0_MCP/README.md"
+  sv0_ok "sv0doc + sv0-mcp: expected doc paths present"
+}
+
+run_fmt() {
+  local f
+  local fmt_targets=(
+    "$ROOT/scripts/sv0"
+    "$ROOT/lib/shell/common.sh"
+    "$ROOT/lib/sml/build-helpers.sh"
+    "$ROOT/task/sv0vm-milestone-2/01-verify-setup.sh"
+    "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"
+    "$ROOT/task/sv0c-milestone-1/01-verify-sml-setup.sh"
+    "$ROOT/task/sv0c-milestone-1/02-integration-test.sh"
+    "$ROOT/task/sv0-toolchain-workspace/01-verify-submodules.sh"
+    "$ROOT/task/sv0-mcp-milestone-0/01-verify-package.sh"
+  )
+  for f in "${fmt_targets[@]}"; do
+    [[ -f "$f" ]] || continue
+    bash -n "$f" || sv0_fail "bash -n failed: $f"
+  done
+  if command -v shfmt >/dev/null 2>&1; then
+    local existing=()
+    for f in "${fmt_targets[@]}"; do
+      [[ -f "$f" ]] && existing+=("$f")
+    done
+    if ((${#existing[@]} > 0)); then
+      shfmt -i 2 -w "${existing[@]}"
+    fi
+    sv0_ok "shfmt applied"
+  else
+    sv0_info "shfmt not installed; skipped write-format"
+  fi
+  sv0_ok "fmt: bash syntax OK"
+}
+
+run_ci() {
+  run_check
+  run_test
+  bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"
+  sv0_ok "ci: SML-only (sv0c + sv0vm + integration-vm) passed"
+}
+
+run_ci_all() {
+  run_ci
+  run_test_mcp
+  sv0_ok "ci-all: SML ci + sv0-mcp (pytest when uv is available)"
+}
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  check|build)
+    run_check
+    ;;
+  test)
+    run_test
+    ;;
+  test-mcp)
+    run_test_mcp
+    ;;
+  doc)
+    run_doc
+    ;;
+  fmt)
+    run_fmt
+    ;;
+  integration-vm)
+    bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"
+    ;;
+  vm-compile)
+    rel="${1:-}"
+    if [[ -z "$rel" ]]; then usage; exit 1; fi
+    (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"$rel\"]);" | sml)
+    ;;
+  vm-run)
+    sv0b="${1:-}"
+    if [[ -z "$sv0b" ]]; then usage; exit 1; fi
+    (cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml)
+    ;;
+  ci)
+    run_ci
+    ;;
+  ci-all)
+    run_ci_all
+    ;;
+  ""|-h|--help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "sv0: unknown command: $cmd" >&2
+    usage
+    exit 1
+    ;;
+esac

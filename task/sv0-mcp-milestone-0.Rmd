@@ -1,0 +1,50 @@
+---
+created: "2026-03-25T00:00:00Z"
+id: task-sv0-mcp-milestone-0
+key: sv0-mcp-milestone-0
+state: draft
+tags:
+  - sv0
+  - sv0-mcp
+  - mcp
+  - neo4j
+title: "milestone 0: sv0-mcp server, sync, and documentation alignment"
+type: task
+---
+
+# milestone 0: sv0-mcp (graph memory + MCP)
+
+## purpose
+
+**sv0-mcp** is the submodule that implements the MCP server, Neo4j sync, watchers, and CLI used to **develop and debug** the sv0 toolchain. it does not replace **sv0doc** (normative language spec); it **indexes** spec entities, compiler structure, VM components, and `task/` workflow state for AI agents and humans.
+
+this milestone is complete when:
+
+- the server and sync workflow are documented in **sv0-mcp** (`README.md`, setup, Cursor config)
+- **sv0doc** describes where toolchain and MCP documentation live (hub role; see `sv0doc/README.md`)
+- unit tests pass via `uv run pytest` from **sv0-mcp** (or `./scripts/sv0 test-mcp` from the parent repo)
+- parent **sv0-toolchain** references this milestone from `task/sv0-toolchain-workspace.Rmd`
+
+## dependencies
+
+/require: bash
+/require: python3
+
+## configuration
+
+/env: SV0_MCP_ROOT=sv0-mcp
+/env: SV0TOOLCHAIN_ROOT=.
+
+## phase 1: verify Python package and tests
+
+/run: 01-verify-package.sh
+
+## phase 2: documentation cross-links
+
+/ai: ensure sv0doc README "relationship to other subprojects" mentions sv0-mcp and points to sv0-mcp README for MCP setup, graph schema, and Cursor integration.
+
+## milestone completion check
+
+/assert: test -f $SV0_MCP_ROOT/README.md
+/assert: test -f $SV0_MCP_ROOT/pyproject.toml
+/assert: test -d $SV0_MCP_ROOT/src/sv0_mcp

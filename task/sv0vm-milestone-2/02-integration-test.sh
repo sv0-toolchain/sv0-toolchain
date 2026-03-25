@@ -3,37 +3,98 @@ set -euo pipefail
 
 echo "=== sv0vm milestone 2: integration test suite ==="
 
-SV0C_ROOT="${SV0C_ROOT:-sv0c}"
-SV0VM_ROOT="${SV0VM_ROOT:-sv0vm}"
-BUILD_DIR="${BUILD_DIR:-sv0vm/build}"
-TEST_DIR="${TEST_DIR:-sv0c/test}"
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+SV0C_ROOT="${SV0C_ROOT:-$ROOT/sv0c}"
+SV0VM_ROOT="${SV0VM_ROOT:-$ROOT/sv0vm}"
+TEST_DIR="${TEST_DIR:-$SV0C_ROOT/test}"
 
-mkdir -p "$BUILD_DIR"
+mkdir -p "$SV0C_ROOT/build/vm"
 
-echo "integration tests (bytecode path):"
-
-run_vm_test() {
-    local name="$1"
-    local sv0_file="$2"
-
-    echo -n "  $name... "
-
-    if [[ ! -f "$sv0_file" ]]; then
-        echo "SKIP (source not found)"
-        return
-    fi
-
-    # TODO: invoke sv0c --target=vm to compile .sv0 -> .sv0b
-    # TODO: invoke sv0vm to execute .sv0b
-    # TODO: compare output against expected
-
-    echo "TODO (pipeline not yet connected)"
+compile_vm() {
+  local rel="$1"
+  local log
+  log="$(mktemp)"
+  if ! ( cd "$SV0C_ROOT" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"$rel\"]);" | sml >"$log" 2>&1 ); then
+    echo "FAIL: sml invocation for $rel"
+    tail -40 "$log"
+    rm -f "$log"
+    return 1
+  fi
+  if grep -q 'Error:' "$log"; then
+    echo "FAIL: compile errors for $rel"
+    tail -40 "$log"
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+  return 0
 }
 
-run_vm_test "hello" "$TEST_DIR/integration/hello.sv0"
-run_vm_test "gcd" "$TEST_DIR/integration/gcd.sv0"
-run_vm_test "contracts" "$TEST_DIR/integration/contracts.sv0"
-run_vm_test "patterns" "$TEST_DIR/integration/patterns.sv0"
+capture_vm() {
+  local sv0b="$1"
+  cd "$SV0VM_ROOT" && SV0B="$sv0b" sml < scripts/run_sv0b.sml 2>&1
+}
+
+failures=0
+
+run_exit_case() {
+  local stem="$1"
+  local rel="$2"
+  local want="$3"
+  local sv0b="$SV0C_ROOT/build/vm/${stem}.sv0b"
+  echo -n "  $stem... "
+  if ! compile_vm "$rel"; then
+    failures=$((failures + 1))
+    echo "FAIL (compile)"
+    return
+  fi
+  if [[ ! -f "$sv0b" ]]; then
+    echo "FAIL (missing $sv0b)"
+    failures=$((failures + 1))
+    return
+  fi
+  local out
+  out="$(capture_vm "$sv0b")" || true
+  if echo "$out" | grep -q "vm_exit:${want}"; then
+    echo "PASS (exit $want)"
+  else
+    echo "FAIL (expected vm_exit:${want})"
+    echo "$out" | tail -20
+    failures=$((failures + 1))
+  fi
+}
+
+echo "integration tests (sv0c --target=vm + sv0vm run_sv0b):"
+
+run_exit_case "hello" "test/integration/hello/hello.sv0" 0
+run_exit_case "contracts" "test/integration/contracts/contracts.sv0" 0
+run_exit_case "patterns" "test/integration/patterns/patterns.sv0" 1
+
+echo -n "  println_ok... "
+if compile_vm "test/data/golden/pass/println_ok.sv0" && [[ -f "$SV0C_ROOT/build/vm/println_ok.sv0b" ]]; then
+  out="$(capture_vm "$SV0C_ROOT/build/vm/println_ok.sv0b")" || true
+  if echo "$out" | grep -qFx "golden" && echo "$out" | grep -q "vm_exit:0"; then
+    echo "PASS (println + exit 0)"
+  else
+    echo "FAIL (expected line golden and vm_exit:0)"
+    echo "$out" | tail -20
+    failures=$((failures + 1))
+  fi
+else
+  echo "FAIL (compile or missing println_ok.sv0b)"
+  failures=$((failures + 1))
+fi
+
+if [[ -f "$TEST_DIR/integration/gcd/gcd.sv0" ]]; then
+  run_exit_case "gcd" "test/integration/gcd/gcd.sv0" 0
+else
+  echo "  SKIP: gcd (no test/integration/gcd/gcd.sv0)"
+fi
 
 echo ""
-echo "integration tests complete"
+if [[ "$failures" -eq 0 ]]; then
+  echo "integration tests complete: all passed"
+else
+  echo "integration tests complete: $failures failed"
+  exit 1
+fi

@@ -35,17 +35,22 @@ When you encounter `/run: <script-name>`, resolve it by:
 
 ## sv0-toolchain specific
 
-This workspace contains three subprojects:
+This workspace contains **four** submodules under the parent **sv0-toolchain** repo:
 
-- `sv0doc/` — formal language specification (source of truth)
+- `sv0doc/` — formal language specification (source of truth for the language and bytecode)
 - `sv0c/` — bootstrap compiler in SML/NJ
 - `sv0vm/` — bytecode VM interpreter in SML/NJ
+- `sv0-mcp/` — MCP server + Neo4j graph sync for toolchain development and debugging
+
+Meta / index task: `task/sv0-toolchain-workspace.Rmd`.
 
 Common environment variables:
 
+- `SV0TOOLCHAIN_ROOT=.` (parent repo root when working from sv0-toolchain)
 - `SV0C_ROOT=sv0c`
 - `SV0VM_ROOT=sv0vm`
 - `SV0DOC_ROOT=sv0doc`
+- `SV0_MCP_ROOT=sv0-mcp`
 - `SRC_DIR=<project>/src`
 - `BUILD_DIR=<project>/build`
 - `TEST_DIR=<project>/test`

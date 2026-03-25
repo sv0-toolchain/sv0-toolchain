@@ -1,0 +1,89 @@
+---
+created: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-workspace
+key: sv0-toolchain-workspace
+state: active
+tags:
+  - sv0
+  - sv0-toolchain
+  - workspace
+  - meta
+title: "workspace: sv0-toolchain meta-repo and four subprojects"
+type: task
+---
+
+# workspace: sv0-toolchain meta-repository
+
+## purpose
+
+**sv0-toolchain** is the parent git repository that tracks coordinated development across four submodules:
+
+| submodule | role |
+|-------------|------|
+| **sv0doc** | Formal spec hub: language, bytecode, and pointers to toolchain / MCP documentation |
+| **sv0c** | Bootstrap compiler (SML/NJ): lexer through C and VM backends |
+| **sv0vm** | Bytecode loader and stack interpreter for `.sv0b` |
+| **sv0-mcp** | Neo4j-backed MCP server and sync tooling for AI-assisted development and debugging |
+
+this task file is the **index** for agent and human workflows: environment layout, milestone task files under `task/`, and verification that submodules are present.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0DOC_ROOT=sv0doc
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: SV0_MCP_ROOT=sv0-mcp
+
+## submodule and layout check
+
+/assert: test -d $SV0DOC_ROOT
+/assert: test -d $SV0C_ROOT
+/assert: test -d $SV0VM_ROOT
+/assert: test -d $SV0_MCP_ROOT
+
+/run: 01-verify-submodules.sh
+
+## milestone and area tasks (child Rmd files)
+
+use these as entry points for scoped work:
+
+| area | task file | submodule |
+|------|-----------|-----------|
+| formal language spec (extracted) | `task/sv0doc-milestone-0.Rmd` | sv0doc |
+| bootstrap compiler (M1) | `task/sv0c-milestone-1.Rmd` | sv0c |
+| bytecode VM + backend (M2) | `task/sv0vm-milestone-2.Rmd` | sv0c + sv0vm |
+| MCP server + graph | `task/sv0-mcp-milestone-0.Rmd` | sv0-mcp |
+
+finer-grained tasks remain as existing `task/sv0c-*.Rmd`, `task/sv0vm-*.Rmd`, `task/sv0doc-*.Rmd` files included from those milestones.
+
+## dependency flow
+
+```
+sv0doc (spec) ─────────────────────────────┐
+     │                                     │
+     v                                     │
+sv0c (compiler)                            │
+     ├── C backend                         │
+     └── VM backend ──> sv0vm (interpreter) │
+                                            │
+sv0-mcp (graph + MCP tools) ────────────────┘
+     mirrors spec, compiler phases, VM, tasks for AI workflows
+```
+
+## aggregate commands (parent repo only)
+
+from the **sv0-toolchain** root:
+
+- `./scripts/sv0 check` — compile-check **sv0c** + load **sv0vm**
+- `./scripts/sv0 test` — **sv0c** + **sv0vm** tests
+- `./scripts/sv0 test-mcp` — **sv0-mcp** unit tests (requires `uv`; skips if absent)
+- `./scripts/sv0 doc` — required paths under **sv0doc** (+ **sv0-mcp** README)
+- `make ci` / `./scripts/sv0 ci` — **SML-only** CI: check + test + VM integration script (does **not** run sv0-mcp)
+- `make ci-all` / `./scripts/sv0 ci-all` — same as `ci`, then **sv0-mcp** tests when `uv` is available
+
+/ai: when planning cross-cutting changes, list which submodules need commits and in what order (spec first vs code first).

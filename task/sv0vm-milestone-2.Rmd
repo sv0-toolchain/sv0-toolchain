@@ -84,6 +84,8 @@ bytecode.
      tests. every program that compiles and runs via the C backend should
      produce identical output when compiled to bytecode and run on sv0vm.
 
+the pipeline is wired from the toolchain root: `make integration-vm`, `./scripts/sv0 integration-vm`, or `make -C sv0c integration-vm` (compiles selected `.sv0` with `sv0c --target=vm`, runs `.sv0b` via `sv0vm/scripts/run_sv0b.sml`). SML-only CI: `make ci` or `./scripts/sv0 ci`. to include **sv0-mcp** tests as well, use `make ci-all` or `./scripts/sv0 ci-all` (requires `uv`).
+
 /run: 01-verify-setup.sh
 /run: 02-integration-test.sh
 
