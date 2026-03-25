@@ -2,7 +2,7 @@
 created: "2026-03-22T00:00:00Z"
 id: task-sv0c-milestone-1
 key: sv0c-milestone-1
-state: active
+state:complete
 tags:
     - sv0
     - sv0c
@@ -148,6 +148,7 @@ until `<T>` is type-checked.
 /assert: test -d $SRC_DIR/contract_analyzer
 /assert: test -d $SRC_DIR/ir
 /assert: test -d $SRC_DIR/backend/c
+/assert: test -d $SRC_DIR/link
 
 /ai: summarize the state of milestone 1. report:
      - which compiler passes are implemented and tested
