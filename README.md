@@ -6,9 +6,9 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 | project | purpose | language | status |
 |---|---|---|---|
-| [sv0doc](sv0doc/) | formal language specification and wiki | markdown | milestone 0 |
-| [sv0c](sv0c/) | bootstrap compiler (lexer through C backend) | SML/NJ | milestone 1 |
-| [sv0vm](sv0vm/) | bytecode virtual machine interpreter | SML/NJ | milestone 2 |
+| [sv0doc](sv0doc/) | formal language specification and wiki | markdown | **Milestone 0 (task) complete**; bytecode spec under `bytecode/` |
+| [sv0c](sv0c/) | bootstrap compiler (lexer through C backend) | SML/NJ | **Milestone 1 (task) complete** |
+| [sv0vm](sv0vm/) | bytecode virtual machine interpreter | SML/NJ | **Milestone 2 (task) in progress** |
 
 ## agent workflow
 
