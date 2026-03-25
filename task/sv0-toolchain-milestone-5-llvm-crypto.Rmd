@@ -1,0 +1,72 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-milestone-5-llvm-crypto
+key: sv0-toolchain-milestone-5-llvm-crypto
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-5
+  - llvm
+  - crypto
+title: "milestone 5: LLVM backend and production-oriented crypto"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 5: LLVM backend and production-oriented crypto
+
+## purpose
+
+match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 5**: **LLVM IR** lowering from sv0-IR, use of LLVM’s optimization and codegen, and **performance-oriented** work on the **crypto** standard library tier with **contract-backed** guarantees where the design promises them (e.g. constant-time patterns).
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## prerequisites
+
+- stable **sv0-IR** and at least one mature backend (C and/or VM) for differential testing
+- self-hosting recommended but not strictly required if LLVM work proceeds on bootstrap compiler (document the choice in refinement log)
+
+## completion criteria (refine as you implement)
+
+- **`--target=llvm`** (or equivalent) produces **LLVM IR** and links/compiles via documented LLVM toolchain version
+- **optimization path**: document which LLVM passes are run by default; how to reproduce builds
+- **crypto std**: implement a **milestone-scoped** subset of the design’s `crypto::*` modules to “production candidate” quality (define the subset in a child task when ready)
+- **constant-time / side-channel**: criteria aligned with design + verification milestone where they overlap
+
+## phases
+
+### phase 1: LLVM IR emitter
+
+/ai: module boundaries mirroring C backend; type mapping for sv0 primitives and structs; calling conventions.
+
+### phase 2: integration tests vs C backend
+
+/ai: same programs: compare observable behavior (and optionally IR-level invariants), not necessarily bit-identical object code.
+
+### phase 3: crypto library hardening
+
+/ai: module list, fuzzing, known-answer tests, optional formal/verification hooks from milestone 4.
+
+### phase 4: release engineering
+
+/ai: LLVM version matrix, packaging notes, security advisory process for crypto.
+
+## refinement log
+
+- 2026-03-25: initial scaffold from design milestone 5.
+
+## related
+
+- `task/sv0-toolchain-roadmap-full.Rmd`
+- `task/sv0-toolchain-milestone-4-verification.Rmd` — overlapping guarantees
+- design doc: compiler architecture diagram (C / LLVM / VM backends)

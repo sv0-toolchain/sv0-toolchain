@@ -10,9 +10,14 @@ tags:
     - bytecode
 title: "milestone 2: sv0vm bytecode virtual machine (SML/NJ)"
 type: task
+roadmap_parent:sv0 - toolchain - roadmap - full
 ---
 
 # milestone 2: sv0vm bytecode virtual machine (SML/NJ)
+
+## design alignment
+
+the [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 2 (self-hosting preparation)** also covers **`sv0 fmt`**, **`sv0 doc`**, **`sv0 test`/doc tests**, and **starting the compiler rewrite in sv0**. those are tracked in **`task/sv0-toolchain-milestone-2-prep.Rmd`**. this file is the **VM + bytecode + REPL parity** slice only.
 
 ## purpose
 
@@ -100,4 +105,4 @@ the pipeline is wired from the toolchain root: `make integration-vm`, `./scripts
      - which sv0 features the VM supports
      - performance characteristics (vs C backend)
      - REPL status
-     - readiness for milestone 3 (self-hosting)
+     - readiness for `task/sv0-toolchain-milestone-2-prep.Rmd` and design milestone 3 (self-hosting compiler)

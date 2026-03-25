@@ -1,0 +1,73 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-milestone-cross-cutting
+key: sv0-toolchain-milestone-cross-cutting
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - cross-cutting
+  - macros
+  - literate
+  - std
+  - packaging
+title: "cross-cutting: macros, literate sources, std/concurrency, packaging"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# cross-cutting work (spans multiple design milestones)
+
+## purpose
+
+track features in the [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) that **do not map cleanly** to a single numbered milestone or that **start after bootstrap** is far enough along. this file is intentionally a **backlog + link hub**; split out child tasks when any stream becomes large.
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0DOC_ROOT=sv0doc
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+
+## streams (refine independently)
+
+### A — hygienic macro system (design: post-bootstrap)
+
+- declarative and procedural macros; procedural macros on **bytecode VM**
+- parser reserves (`!`, hygiene rules) already documented in design — keep **sv0doc** and parser aligned
+- **prerequisite**: stable AST, VM, parser (design lists all three)
+
+/ai: when starting implementation, create `task/sv0-toolchain-milestone-cross-cutting-macros.Rmd` with phased deliverables.
+
+### B — literate `.sv0.md` tangling
+
+- chunk names, `<<references>>`, error mapping to markdown line numbers
+- integration with `sv0 doc` and doctests (`task/sv0-toolchain-milestone-2-prep.Rmd`)
+
+/ai: add grammar/spec updates under **sv0doc** before enabling in compiler by default.
+
+### C — standard library depth
+
+- **`core`**: complete vs design tier 1
+- **`std`**: allocator, I/O, collections, **networking**
+- **concurrency**: `std::thread`, channels, `Mutex`, `Arc`, atomics (design ties to milestone 3+)
+- **`crypto`**: overlaps **milestone 5**; link deliverables to avoid duplication
+
+### D — package registry and ecosystem
+
+- design mentions a **future** registry — track feasibility, naming, and versioning here until it becomes its own milestone file
+
+### E — quantum simulator and other research use cases
+
+- aspirational in design goals; no numbered milestone — use this section or a dedicated task if work begins
+
+## refinement log
+
+- 2026-03-25: initial scaffold; streams A–E from design “macro system”, literate section, std vision, future registry, and goals list.
+
+## related
+
+- `task/sv0-toolchain-roadmap-full.Rmd`
+- `task/sv0-toolchain-milestone-3-self-host.Rmd` — macros often follow self-host stability
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — crypto std overlap

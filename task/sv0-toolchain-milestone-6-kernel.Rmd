@@ -1,0 +1,72 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-milestone-6-kernel
+key: sv0-toolchain-milestone-6-kernel
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-6
+  - kernel
+  - bare-metal
+title: "milestone 6: kernel development (asm, boot, HAL, minimal kernel)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 6: kernel and bare-metal development
+
+## purpose
+
+match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 6**: **inline assembly** (`asm!`), **linker scripts** and **boot** support, **HAL-oriented** pieces in `core`, and a **minimal kernel** example that proves the language for OS research.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## prerequisites
+
+- **freestanding / `no_std`-style** subset defined in spec and compiler (ties to `core` tier in design)
+- codegen path stable enough for fixed targets (likely **LLVM milestone** or a dedicated freestanding C path — document which)
+
+## completion criteria (refine as you implement)
+
+- **`asm!`**: parse, semantic checks, and codegen for at least one target (document which architecture first)
+- **boot**: documented flow from sv0 objects + linker script to bootable artifact (emulator or hardware TBD)
+- **HAL traits / abstractions** in `core` per design direction
+- **minimal kernel** demo in-repo or linked submodule with build instructions
+
+## phases
+
+### phase 1: inline asm syntax and IR representation
+
+/ai: align with grammar in **sv0doc**; define escape hatch semantics with `unsafe`.
+
+### phase 2: freestanding linking model
+
+/ai: document object format, linker, and platform ABI assumptions.
+
+### phase 3: HAL and driver samples
+
+/ai: small MMIO / interrupt examples as in design use cases.
+
+### phase 4: minimal kernel integration test
+
+/ai: CI strategy (emulator?); timeout and artifact size limits.
+
+## refinement log
+
+- 2026-03-25: initial scaffold from design milestone 6.
+
+## related
+
+- `task/sv0-toolchain-roadmap-full.Rmd`
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — likely codegen vehicle
+- design doc: kernel use case and `asm!` milestone note

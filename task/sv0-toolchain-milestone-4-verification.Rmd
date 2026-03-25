@@ -1,0 +1,71 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-milestone-4-verification
+key: sv0-toolchain-milestone-4-verification
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-4
+  - verification
+  - smt
+title: "milestone 4: advanced verification (SMT, refinement types, sv0 verify)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 4: advanced verification
+
+## purpose
+
+match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 4**: **SMT-backed** static reasoning where possible, **refinement types**, **`sv0 verify`**, and using verification on **real libraries** (e.g. crypto-oriented examples in the design).
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## prerequisites
+
+- self-hosting or stable bootstrap compiler with frozen enough IR + contract AST (`task/sv0-toolchain-milestone-3-self-host.Rmd` or agreed partial state)
+- **sv0doc** contract semantics and verification phases documented (`sv0doc/contracts/semantics.md`)
+
+## completion criteria (refine as you implement)
+
+- **solver integration**: chosen SMT (or other) engine; error reporting when proof fails or times out
+- **`sv0 verify`**: runs static checks after `sv0 check` (or equivalent); reports proven vs residual runtime checks
+- **refinement types**: subset or full design per spec updates in **sv0doc**
+- **library proofs**: at least one non-trivial module uses `verified` contract mode for critical routines (scope TBD)
+
+## phases
+
+### phase 1: contract → solver pipeline
+
+/ai: map contract AST fragments to solver queries; define which builtins are in scope for phase 2 in the design vs deferred.
+
+### phase 2: `sv0 verify` UX and CI hooks
+
+/ai: stable JSON or machine-readable output for tooling; timeout and resource limits.
+
+### phase 3: refinement types
+
+/ai: spec delta in **sv0doc/type-system/**; integration with type checker in sv0 compiler.
+
+### phase 4: crypto / std pilots
+
+/ai: pick pilot APIs from design `crypto::*` vision; document proof obligations.
+
+## refinement log
+
+- 2026-03-25: initial scaffold from design milestone 4.
+
+## related
+
+- `task/sv0-toolchain-roadmap-full.Rmd`
+- `sv0doc/contracts/semantics.md` — verification phases

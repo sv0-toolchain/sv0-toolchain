@@ -1,0 +1,109 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-roadmap-full
+key: sv0-toolchain-roadmap-full
+state: active
+tags:
+  - sv0
+  - sv0-toolchain
+  - roadmap
+  - option-c
+  - meta
+title: "roadmap: full toolchain (option C — design milestones 2–6 + cross-cutting)"
+type: task
+graph_entity_type: roadmap
+---
+
+# full toolchain roadmap (option C)
+
+## purpose
+
+this file is the **parent-repo index** for the complete implementation surface described in the [sv0 compiler vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html): from self-hosting preparation through LLVM, static verification, kernel support, macros, literate sources, rich `std`/`crypto`, and packaging.
+
+use it to:
+
+- see **which task file owns** each design milestone slice
+- **order work** (dependencies and suggested sequencing)
+- **refine acceptance criteria** as the design and implementation learn from each other
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0DOC_ROOT=sv0doc
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: SV0_MCP_ROOT=sv0-mcp
+/env: DESIGN_DOC_URL=http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html
+
+## verify roadmap artifacts
+
+/run: 01-verify-roadmap-artifacts.sh
+
+## design milestone → repo task files
+
+| design milestone (vision doc) | primary repo task(s) | notes |
+|--------------------------------|------------------------|--------|
+| 0 — language specification (prose + agreed roadmap) | design HTML; `task/sv0doc-milestone-0.Rmd` (extracted formal spec) | normative extracted spec lives in **sv0doc/** |
+| 1 — bootstrap compiler (SML) | `task/sv0c-milestone-1.Rmd` | C backend; state tracked in that file |
+| 2 — self-hosting **preparation** | `task/sv0vm-milestone-2.Rmd` (VM slice) + `task/sv0-toolchain-milestone-2-prep.Rmd` (fmt, doc, test harness, rewrite start) | two files on purpose: VM is deep; prep is cross-cutting |
+| 3 — self-hosting compiler | `task/sv0-toolchain-milestone-3-self-host.Rmd` | compiler in sv0; bootstrap SML archived |
+| 4 — advanced verification | `task/sv0-toolchain-milestone-4-verification.Rmd` | SMT, refinement types, `sv0 verify` |
+| 5 — LLVM + production crypto | `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` | LLVM IR backend + crypto library hardening |
+| 6 — kernel development | `task/sv0-toolchain-milestone-6-kernel.Rmd` | `asm!`, boot/link, HAL, minimal kernel |
+| (cross-cutting, multi-milestone) | `task/sv0-toolchain-milestone-cross-cutting.Rmd` | macros, `.sv0.md` literate, `std`/concurrency, packaging |
+| developer graph + MCP | `task/sv0-mcp-milestone-0.Rmd` | supports all phases; not a language milestone |
+
+## dependency graph (high level)
+
+```
+sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
+                    │
+                    ├── milestone-2-prep (tooling + rewrite start)
+                    │
+                    v
+            self-host (milestone 3)
+                    │
+        ┌───────────┼───────────┐
+        v           v           v
+ verification   llvm/crypto   kernel
+    (4)            (5)          (6)
+        └───────────┴───────────┘
+              cross-cutting (macros, literate, std, packages)
+```
+
+## refinement protocol (living plan)
+
+**sources of truth**
+
+1. **Language vision and examples** — design HTML (and any successor doc). Major semantic or syntax shifts start here.
+2. **Implementable specification** — **sv0doc/** (grammar, types, contracts, memory model, bytecode when specified there). Compiler and VM must align with this when building production behavior.
+3. **Milestone acceptance criteria** — each `task/sv0-toolchain-milestone-*.Rmd` and submodule milestone. Update these when scope or order changes.
+
+**how to refine during implementation**
+
+- When you change the **design**, note the implication in the relevant milestone file (deliverables, `/ai:` prompts, or a short “decision log” subsection in markdown).
+- When you discover **spec gaps**, prefer a **sv0doc** change plus a one-line pointer from the milestone that depended on the gap.
+- When a milestone grows too large, **split** it: add `task/sv0-toolchain-milestone-N-<topic>.Rmd` and `/include:` it from the parent milestone (same pattern as `sv0c-milestone-1.Rmd`).
+
+**YAML `state` convention** (optional but recommended)
+
+- `draft` — scope or criteria not frozen
+- `active` — in progress
+- `complete` — criteria met; keep file for history
+- `superseded` — replaced by another task id; link to successor in the body
+
+**graph sync (sv0-mcp)**
+
+- `graph_entity_type: roadmap` on this file — Neo4j node label `Roadmap` (not inferred from the key).
+- `roadmap_parent: sv0-toolchain-roadmap-full` on child milestone tasks — creates `PART_OF` edges into this roadmap for `sv0://roadmaps` and `get_roadmap_children`.
+
+## suggested implementation order
+
+1. close **VM + integration parity** (`task/sv0vm-milestone-2.Rmd`)
+2. advance **prep** tooling and rewrite entry points (`task/sv0-toolchain-milestone-2-prep.Rmd`)
+3. **self-hosting** (`task/sv0-toolchain-milestone-3-self-host.Rmd`)
+4. parallel tracks as staffing allows: **verification** (4), **cross-cutting** items that unblock macros/tests, **MCP** polish
+5. **LLVM + crypto** (5), then **kernel** (6)
+
+/ai: when the design doc gains a new numbered milestone or renames scope, update this file’s mapping table and the affected child milestone Rmd files in the same change set.

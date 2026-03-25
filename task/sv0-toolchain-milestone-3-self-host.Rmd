@@ -1,0 +1,68 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-milestone-3-self-host
+key: sv0-toolchain-milestone-3-self-host
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-3
+  - self-hosting
+title: "milestone 3: self-hosting compiler (sv0 in sv0)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 3: self-hosting compiler
+
+## purpose
+
+match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 3**: the **sv0 compiler is implemented in sv0**, compiles **itself** (via the C backend or another agreed bootstrap path), and the **SML bootstrap** is **archived** or demoted to fallback-only.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## prerequisites
+
+- design milestone 2 complete enough: VM iteration path + prep tasks advanced so sv0 codebase for the compiler is realistic (`task/sv0vm-milestone-2.Rmd`, `task/sv0-toolchain-milestone-2-prep.Rmd`)
+
+## completion criteria (refine as you implement)
+
+- **full pipeline in sv0**: lexer → parser → name resolution → type check → contracts → IR → **C backend** (minimum); VM backend parity as a stretch or parallel track
+- **self-compile**: documented recipe builds the compiler binary using the previous stage (SML or older sv0)
+- **bootstrap story**: SML sources archived or clearly marked legacy; upgrade path documented
+
+## phases (add `/include:` child tasks as modules migrate)
+
+### phase 1: module graph and build order
+
+/ai: define the sv0 package layout for the compiler, dependency order, and how CI proves stage0 → stage1 equality (e.g. compare IR or bytecode snapshots).
+
+### phase 2: transliteration completion
+
+/ai: track each SML component → sv0 module; use a checklist table in this file or a child `task/sv0-toolchain-milestone-3-checklist.Rmd`.
+
+### phase 3: parity and regression
+
+/ai: require the same golden tests as bootstrap sv0c; define tolerance for diagnostics text.
+
+### phase 4: archive bootstrap
+
+/ai: document location of archived SML, version pins, and recovery procedure if self-host breaks.
+
+## refinement log
+
+- 2026-03-25: initial scaffold from design milestone 3.
+
+## related
+
+- `task/sv0-toolchain-roadmap-full.Rmd`
+- `task/sv0c-milestone-1.Rmd` — reference bootstrap implementation

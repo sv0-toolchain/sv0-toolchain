@@ -47,16 +47,31 @@ this task file is the **index** for agent and human workflows: environment layou
 /assert: test -d $SV0_MCP_ROOT
 
 /run: 01-verify-submodules.sh
+/run: 02-verify-roadmap-artifacts.sh
+
+## full toolchain roadmap (option C)
+
+the design document’s **milestones 2–6**, cross-cutting backlog (macros, literate `*.sv0.md`, `std`, packaging), and **refinement protocol** live in:
+
+- `task/sv0-toolchain-roadmap-full.Rmd` — master index, design ↔ task mapping, dependency graph
+
+individual milestone task files are listed in the table below; split further with new `task/sv0-toolchain-milestone-*.Rmd` or `/include:` children as work stabilizes.
 
 ## milestone and area tasks (child Rmd files)
 
 use these as entry points for scoped work:
 
-| area | task file | submodule |
-|------|-----------|-----------|
+| area | task file | submodule / scope |
+|------|-----------|-------------------|
 | formal language spec (extracted) | `task/sv0doc-milestone-0.Rmd` | sv0doc |
-| bootstrap compiler (M1) | `task/sv0c-milestone-1.Rmd` | sv0c |
-| bytecode VM + backend (M2) | `task/sv0vm-milestone-2.Rmd` | sv0c + sv0vm |
+| bootstrap compiler (design M1) | `task/sv0c-milestone-1.Rmd` | sv0c |
+| bytecode VM + backend (design M2 slice) | `task/sv0vm-milestone-2.Rmd` | sv0c + sv0vm |
+| self-hosting **prep** — test, fmt, doc, rewrite (design M2 slice) | `task/sv0-toolchain-milestone-2-prep.Rmd` | parent + sv0c + sv0vm |
+| self-hosting compiler (design M3) | `task/sv0-toolchain-milestone-3-self-host.Rmd` | sv0c (+ future sv0 sources) |
+| advanced verification (design M4) | `task/sv0-toolchain-milestone-4-verification.Rmd` | sv0c + sv0doc |
+| LLVM + crypto (design M5) | `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` | sv0c + sv0doc |
+| kernel / bare metal (design M6) | `task/sv0-toolchain-milestone-6-kernel.Rmd` | sv0c + sv0doc |
+| cross-cutting backlog | `task/sv0-toolchain-milestone-cross-cutting.Rmd` | multi |
 | MCP server + graph | `task/sv0-mcp-milestone-0.Rmd` | sv0-mcp |
 
 finer-grained tasks remain as existing `task/sv0c-*.Rmd`, `task/sv0vm-*.Rmd`, `task/sv0doc-*.Rmd` files included from those milestones.

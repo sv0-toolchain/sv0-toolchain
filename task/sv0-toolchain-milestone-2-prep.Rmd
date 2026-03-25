@@ -1,0 +1,78 @@
+---
+created: "2026-03-25T00:00:00Z"
+updated: "2026-03-25T00:00:00Z"
+id: task-sv0-toolchain-milestone-2-prep
+key: sv0-toolchain-milestone-2-prep
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-2
+  - self-hosting-prep
+  - tooling
+title: "milestone 2 (prep): self-hosting preparation — test, fmt, doc, rewrite entry"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 2 (preparation slice): tooling and compiler-in-sv0 entry
+
+## purpose
+
+the [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 2** includes more than the bytecode VM: **test framework** (`sv0 test`, doc tests), **`sv0 fmt`** and **`sv0 doc`** for **sv0 source**, and **beginning the rewrite** of compiler components in sv0.
+
+this task file owns the **non-VM** parts of design milestone 2. the VM stack is **`task/sv0vm-milestone-2.Rmd`**.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: SV0DOC_ROOT=sv0doc
+
+## prerequisite
+
+bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
+
+/assert: test -d $SV0C_ROOT/src/backend/vm
+
+## completion criteria (refine as you implement)
+
+- **`sv0 test`**: unified driver discovers unit + integration + (eventually) module tests; stable exit codes for CI
+- **doc tests**: examples embedded in sources or docs are extracted, compiled, and executed under a defined policy
+- **`sv0 fmt`**: formats **`.sv0`** (and optionally `.sv0.md` chunks) — distinct from shell formatting in `./scripts/sv0 fmt` today; either extend the driver or rename subcommands when this lands
+- **`sv0 doc`**: generates documentation from literate / commented sources; links to contracts and signatures where specified in design
+- **rewrite entry**: at least one compiler pipeline module has a **sv0** counterpart checked in, with a documented build path (even if not yet wired as the default compiler)
+
+## phases (split into child Rmds when ready)
+
+### phase 1: test harness and policy
+
+/ai: specify how `sv0 test` maps to sv0c/sv0vm today and what additional discovery (directories, attributes, golden files) is required. add child task `task/sv0-toolchain-milestone-2-prep-test-harness.Rmd` when the plan stabilizes.
+
+### phase 2: formatter (`sv0 fmt`)
+
+/ai: choose formatting scope (core grammar only vs full surface), idempotence guarantees, and interaction with literate `.sv0.md`. update **sv0doc** if grammar spacing rules are normative.
+
+### phase 3: document generator (`sv0 doc`)
+
+/ai: define output format (HTML, md, etc.), linkage to design examples, and doctest extraction rules.
+
+### phase 4: first compiler modules in sv0
+
+/ai: pick the first transliterated module (e.g. lexer or diagnostic types), define directory layout under sv0c or a new `sv0-compiler/` tree, and the command that builds it with the bootstrap compiler.
+
+## refinement log
+
+<!-- append dated bullets when scope or design decisions change; keeps git blame readable -->
+
+- 2026-03-25: initial scaffold; criteria copied from design milestone 2; VM split documented.
+
+## related
+
+- `task/sv0-toolchain-roadmap-full.Rmd` — full option C index
+- `task/sv0vm-milestone-2.Rmd` — VM backend + interpreter + REPL slice
