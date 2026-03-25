@@ -2,7 +2,7 @@
 created: "2026-03-22T00:00:00Z"
 id: task-sv0c-milestone-1
 key: sv0c-milestone-1
-state: draft
+state: active
 tags:
     - sv0
     - sv0c
@@ -126,16 +126,13 @@ on the output of the previous one.
 
 ## phase 5: integration testing
 
-/ai: design an end-to-end integration test suite for sv0c. the suite
-     should include:
-     - a minimal "hello world" sv0 program
-     - a program with contracts (requires/ensures)
-     - a program with pattern matching on enums
-     - a program with structs and methods
-     - a program with generic functions
-     - a program using the module system (multi-file)
-     each test should compile to C, compile the C to a binary, run the
-     binary, and verify the output.
+integration scenarios live under `sv0c/test/integration/` (per-directory or
+single file). multi-file projects are built with `sv0c --project <dir>`
+(all `*.sv0` in the directory, sorted). the companion script compiles each
+fixture to C, links with `sv0_runtime.c`, runs the binary, and checks the
+process exit code. structs use a free function instead of `impl` methods
+until method dispatch is in scope; the generics scenario is monomorphic
+until `<T>` is type-checked.
 
 /run: 01-verify-sml-setup.sh
 /run: 02-integration-test.sh

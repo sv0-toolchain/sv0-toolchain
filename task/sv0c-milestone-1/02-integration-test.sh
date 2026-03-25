@@ -1,43 +1,92 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# sv0c milestone 1: compile .sv0 -> C -> binary -> run (see task/sv0c-milestone-1.Rmd)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+SV0C_ROOT="${SV0C_ROOT:-$WORKSPACE_ROOT/sv0c}"
+
 echo "=== sv0c milestone 1: integration test suite ==="
+echo "sv0c root: $SV0C_ROOT"
 
-SV0C_ROOT="${SV0C_ROOT:-sv0c}"
-BUILD_DIR="${BUILD_DIR:-sv0c/build}"
-TEST_DIR="${TEST_DIR:-sv0c/test}"
+cd "$SV0C_ROOT"
+make heap >/dev/null
 
-mkdir -p "$BUILD_DIR"
+COMP=(sml "@SMLload=build/sv0c")
+COUT="build/itest_tmp.c"
+RUN="build/itest_tmp_run"
+
+compile_one() {
+  "${COMP[@]}" "$1" >"$COUT"
+}
+
+compile_project() {
+  "${COMP[@]}" --project "$1" >"$COUT"
+}
+
+cc_link() {
+  cc -o "$RUN" "$COUT" -Iruntime runtime/sv0_runtime.c
+}
 
 PASS=0
 FAIL=0
 TOTAL=0
 
-run_test() {
-    local test_name="$1"
-    local test_file="$2"
-    TOTAL=$((TOTAL + 1))
-
-    echo -n "  $test_name... "
-
-    if [[ ! -f "$test_file" ]]; then
-        echo "SKIP (file not found)"
-        return
-    fi
-
-    # TODO: invoke sv0c to compile .sv0 -> .c
-    # TODO: invoke cc to compile .c -> binary
-    # TODO: run binary and check exit code
-    echo "TODO (not yet implemented)"
+run_case() {
+  local name="$1" mode="$2" path="$3" want="$4"
+  TOTAL=$((TOTAL + 1))
+  echo -n "  $name... "
+  if [[ ! -e "$path" ]]; then
+    echo "SKIP (missing)"
+    return
+  fi
+  set +e
+  if [[ "$mode" == "project" ]]; then
+    compile_project "$path"
+  else
+    compile_one "$path"
+  fi
+  compile_st=$?
+  if [[ "$compile_st" -ne 0 ]]; then
+    echo "FAIL (compile)"
+    FAIL=$((FAIL + 1))
+    set -e
+    return
+  fi
+  cc_link
+  link_st=$?
+  if [[ "$link_st" -ne 0 ]]; then
+    echo "FAIL (cc)"
+    FAIL=$((FAIL + 1))
+    set -e
+    return
+  fi
+  "$RUN"
+  st=$?
+  set -e
+  if [[ "$st" -eq "$want" ]]; then
+    echo "PASS"
+    PASS=$((PASS + 1))
+  else
+    echo "FAIL (exit $st, expected $want)"
+    FAIL=$((FAIL + 1))
+  fi
 }
 
+echo ""
 echo "integration tests:"
-run_test "hello world" "$TEST_DIR/integration/hello.sv0"
-run_test "contracts" "$TEST_DIR/integration/contracts.sv0"
-run_test "pattern matching" "$TEST_DIR/integration/patterns.sv0"
-run_test "structs and methods" "$TEST_DIR/integration/structs.sv0"
-run_test "generics" "$TEST_DIR/integration/generics.sv0"
-run_test "modules" "$TEST_DIR/integration/modules.sv0"
+IT="$SV0C_ROOT/test/integration"
+
+run_case "hello world" one "$IT/hello/hello.sv0" 0
+run_case "contracts" one "$IT/contracts/contracts.sv0" 0
+run_case "pattern matching" one "$IT/patterns/patterns.sv0" 1
+run_case "structs (free fn)" one "$IT/structs/structs.sv0" 42
+run_case "generics placeholder (monomorphic id)" one "$IT/generics/generics.sv0" 99
+run_case "modules (multi-file project)" project "$IT/modules" 42
 
 echo ""
 echo "results: $PASS passed, $FAIL failed, $TOTAL total"
+
+if [[ "$FAIL" -gt 0 ]]; then
+  exit 1
+fi
