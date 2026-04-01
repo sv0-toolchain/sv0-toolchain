@@ -23,6 +23,7 @@ usage: sv0 <command> [args]
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
+  repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
   ci                 SML-only: check + test + integration-vm (no sv0-mcp; same as \`make ci\`)
   ci-all             after ci, run test-mcp when uv is available (full toolchain smoke)
 
@@ -148,6 +149,67 @@ run_ci_all() {
   sv0_ok "ci-all: SML ci + sv0-mcp (pytest when uv is available)"
 }
 
+run_repl() {
+  require_sml
+  mkdir -p "$SV0C/build/vm"
+  local src="$SV0C/build/repl_line.sv0"
+  echo "sv0 repl (bytecode VM). Enter an i32 expression (e.g. 2 + 2) or a println(\"...\") call." >&2
+  echo "main's exit code is printed as the expression result. :q or EOF quits." >&2
+  while true; do
+    read -r -p "> " line || {
+      echo >&2
+      break
+    }
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    case "$line" in
+      :q | :quit) break ;;
+    esac
+    if [[ "$line" =~ ^[[:space:]]*println\( ]]; then
+      local stmt="$line"
+      [[ "$stmt" != *';' ]] && stmt="${stmt};"
+      cat >"$src" <<EOF
+fn main() -> unit {
+  ${stmt}
+}
+EOF
+    else
+      cat >"$src" <<EOF
+fn main() -> i32 {
+  return (${line});
+}
+EOF
+    fi
+    local log
+    log="$(mktemp)"
+    if ! (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"build/repl_line.sv0\"]);" | sml >"$log" 2>&1); then
+      echo "compile error:" >&2
+      tail -20 "$log" >&2
+      rm -f "$log"
+      continue
+    fi
+    if grep -q 'Error:' "$log"; then
+      echo "compile error:" >&2
+      tail -20 "$log" >&2
+      rm -f "$log"
+      continue
+    fi
+    rm -f "$log"
+    local sv0b="$SV0C/build/vm/repl_line.sv0b"
+    if [[ ! -f "$sv0b" ]]; then
+      echo "no bytecode emitted" >&2
+      continue
+    fi
+    local out
+    out="$(cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml 2>&1)" || true
+    local ev
+    ev="$(echo "$out" | grep -E '^vm_exit:' | tail -1 | sed 's/^vm_exit://')"
+    echo "$out" | awk '/^SV0VM_RUN_BEGIN$/ {p=1; next} /^vm_exit:/ {p=0; next} p && !/^val exitCode =/ {print}' || true
+    if [[ -n "$ev" ]]; then
+      echo "=> exit ${ev}" >&2
+    fi
+  done
+}
+
 cmd="${1:-}"
 shift || true
 
@@ -179,6 +241,9 @@ case "$cmd" in
     sv0b="${1:-}"
     if [[ -z "$sv0b" ]]; then usage; exit 1; fi
     (cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml)
+    ;;
+  repl)
+    run_repl
     ;;
   ci)
     run_ci

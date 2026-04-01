@@ -7,8 +7,8 @@ development workspace for the sv0 programming language compiler and toolchain.
 | project | purpose | language | status |
 |---|---|---|---|
 | [sv0doc](sv0doc/) | **documentation hub**: formal language spec, bytecode spec, roadmap links to vision doc | markdown | **Milestone 0 (task) complete**; bytecode under `bytecode/`; hub text in [sv0doc/README.md](sv0doc/README.md) |
-| [sv0c](sv0c/) | compiler implementation + in-repo docs (`doc/`) | SML/NJ | **Milestone 1 (task) complete**; VM backend in progress with sv0vm |
-| [sv0vm](sv0vm/) | bytecode VM interpreter implementation + notes | SML/NJ | **Milestone 2 (task) in progress** |
+| [sv0c](sv0c/) | compiler implementation + in-repo docs (`doc/`) | SML/NJ | **Milestones 1–2 (task) complete** — C backend + VM backend (`--target=vm`, `--target=vm --project`) |
+| [sv0vm](sv0vm/) | bytecode VM interpreter implementation + notes | SML/NJ | **Milestone 2 (task) complete** |
 | [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain | Python | tracked under **`task/sv0-mcp-milestone-0.Rmd`** |
 
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
@@ -55,6 +55,7 @@ make help             # check, test, test-mcp, doc, fmt, integration-vm, ci, ci-
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
 ./scripts/sv0 test    # full sv0c tests + sv0vm bytecode tests
 ./scripts/sv0 test-mcp   # sv0-mcp pytest via uv (skips if uv missing)
+./scripts/sv0 repl    # line-at-a-time eval (VM): i32 expr or println("...")
 ./scripts/sv0 ci      # SML-only: check + test + VM integration (no sv0-mcp)
 ./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
 ```
