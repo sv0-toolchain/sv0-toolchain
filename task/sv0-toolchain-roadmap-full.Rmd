@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-03-25T00:00:00Z"
+updated:"2026-04-01T00:00:00Z"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active
@@ -100,8 +100,8 @@ sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
 
 ## suggested implementation order
 
-1. close **VM + integration parity** (`task/sv0vm-milestone-2.Rmd`)
-2. advance **prep** tooling and rewrite entry points (`task/sv0-toolchain-milestone-2-prep.Rmd`)
+1. close **VM + integration parity** (`task/sv0vm-milestone-2.Rmd`) — **complete**
+2. advance **prep** tooling and rewrite entry points (`task/sv0-toolchain-milestone-2-prep.Rmd`) — **complete**
 3. **self-hosting** (`task/sv0-toolchain-milestone-3-self-host.Rmd`)
 4. parallel tracks as staffing allows: **verification** (4), **cross-cutting** items that unblock macros/tests, **MCP** polish
 5. **LLVM + crypto** (5), then **kernel** (6)

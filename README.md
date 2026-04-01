@@ -44,6 +44,9 @@ task/sv0vm-milestone-2.Rmd        milestone 2: bytecode VM
   ├── sv0vm-runtime.Rmd               memory management + built-ins
   └── sv0vm-vm-backend.Rmd            sv0c VM backend (IR -> bytecode)
 
+task/sv0-toolchain-milestone-2-prep.Rmd   milestone 2 prep: sv0 test, doctest, fmt, doc, rewrite/
+task/sv0-toolchain-roadmap-full.Rmd       option C roadmap index (milestones 2–6 + cross-cutting)
+
 task/sv0-toolchain-workspace.Rmd   meta: four submodules, env, aggregate commands
 task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 ```
@@ -53,10 +56,15 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 ```bash
 make help             # check, test, test-mcp, doc, fmt, integration-vm, ci, ci-all
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
-./scripts/sv0 test    # full sv0c tests + sv0vm bytecode tests
+./scripts/sv0 test    # units + C/VM integration + sv0c/rewrite/*.sv0 + Markdown doctests
+./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
+./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
+./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
+./scripts/sv0 doc     # generate build/sv0-toolchain-doc/index.md; verify sv0doc paths
+./scripts/sv0 rewrite-build  # compile sv0c/rewrite/*.sv0 to VM and run (exit 0)
 ./scripts/sv0 test-mcp   # sv0-mcp pytest via uv (skips if uv missing)
 ./scripts/sv0 repl    # line-at-a-time eval (VM): i32 expr or println("...")
-./scripts/sv0 ci      # SML-only: check + test + VM integration (no sv0-mcp)
+./scripts/sv0 ci      # check + full ./scripts/sv0 test (no sv0-mcp)
 ./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
 ```
 

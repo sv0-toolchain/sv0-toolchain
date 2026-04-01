@@ -7,12 +7,12 @@ help:
 	@echo "sv0-toolchain targets:"
 	@echo "  make check           — compile sv0c + sv0vm (no unit tests)"
 	@echo "  make build           — same as check"
-	@echo "  make test            — sv0c suite + sv0vm bytecode tests"
+	@echo "  make test            — unified harness (units, C+VM integration, rewrite, doctests)"
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
-	@echo "  make doc             — verify sv0doc + sv0-mcp doc paths"
-	@echo "  make fmt             — bash syntax (+ shfmt if installed)"
-	@echo "  make integration-vm  — compile sample .sv0 to .sv0b and run on sv0vm"
-	@echo "  make ci              — SML-only: check + test + integration-vm (no sv0-mcp)"
+	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
+	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"
+	@echo "  make integration-vm  — VM integration only (also part of make test)"
+	@echo "  make ci              — check + full test (no sv0-mcp)"
 	@echo "  make ci-all          — ci, then sv0-mcp tests (uv + pytest when uv available)"
 	@echo "  make all             — same as ci"
 
@@ -34,7 +34,7 @@ fmt:
 integration-vm:
 	@"$(ROOT)/scripts/sv0" integration-vm
 
-ci all: check test integration-vm
+ci all: check test
 	@echo "ci: OK"
 
 ci-all: ci test-mcp

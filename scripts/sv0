@@ -16,10 +16,13 @@ usage: sv0 <command> [args]
 
   check              compile sv0c (CM) and sv0vm (use) — fast smoke compile
   build              alias for check
-  test               sv0c make test + sv0vm bytecode tests
+  test               unified: sv0c + sv0vm units, C + VM integration, rewrite/*.sv0, doctests
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
-  doc                verify sv0doc layout + sv0-mcp README
-  fmt                bash -n on shell scripts; shfmt -w if shfmt is in PATH
+  doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
+  doctest            run Markdown sv0 doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
+  fmt                format .sv0 sources (whitespace) + shell fmt (see fmt-shell)
+  fmt-shell          bash -n on shell scripts; shfmt -w if shfmt is in PATH
+  rewrite-build      compile sv0c/rewrite/*.sv0 to bytecode and run on sv0vm (exit 0)
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
@@ -77,10 +80,79 @@ run_check() {
 }
 
 run_test() {
-  (cd "$SV0C" && make test)
+  local ec=0
+  (cd "$SV0C" && make test) || ec=1
   require_sml
-  (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml";' | sml >/dev/null)
-  sv0_ok "sv0vm bytecode tests"
+  if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml";' | sml >/dev/null); then
+    ec=1
+  fi
+  sv0_info "sv0 test: C backend integration (sv0c)"
+  if ! bash "$ROOT/task/sv0c-milestone-1/02-integration-test.sh"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: VM pipeline integration"
+  if ! bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: rewrite/*.sv0 on VM"
+  if ! run_rewrite_build; then
+    ec=1
+  fi
+  sv0_info "sv0 test: Markdown doctests"
+  if ! run_doctests; then
+    ec=1
+  fi
+  if [[ "$ec" -ne 0 ]]; then
+    sv0_fail "sv0 test: one or more stages failed (exit $ec)"
+  fi
+  sv0_ok "sv0 test: units + C integration + VM integration + rewrite + doctests"
+}
+
+run_doctests() {
+  sv0_require_cmd python3
+  python3 "$ROOT/scripts/sv0_doctest.py" --root "$ROOT" \
+    "$ROOT/task/sv0-toolchain-milestone-2-prep/doctests.md"
+}
+
+run_rewrite_build() {
+  require_sml
+  mkdir -p "$SV0C/build/vm"
+  shopt -s nullglob
+  local f rel stem sv0b out log
+  local rw=("$SV0C"/rewrite/*.sv0)
+  if ((${#rw[@]} == 0)); then
+    sv0_warn "rewrite-build: no sv0c/rewrite/*.sv0 files"
+    sv0_ok "rewrite-build: skipped (no sources)"
+    return 0
+  fi
+  for f in "${rw[@]}"; do
+    rel="rewrite/$(basename "$f")"
+    stem=$(basename "$f" .sv0)
+    sv0b="$SV0C/build/vm/${stem}.sv0b"
+    log="$(mktemp)"
+    if ! (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"$rel\"]);" | sml >"$log" 2>&1); then
+      tail -30 "$log"
+      rm -f "$log"
+      return 1
+    fi
+    if grep -q 'Error:' "$log"; then
+      tail -30 "$log"
+      rm -f "$log"
+      return 1
+    fi
+    rm -f "$log"
+    if [[ ! -f "$sv0b" ]]; then
+      echo "rewrite-build: missing $sv0b (for $rel)" >&2
+      return 1
+    fi
+    out="$(cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml 2>&1)" || true
+    if ! echo "$out" | grep -q "vm_exit:0"; then
+      echo "$out" | tail -20
+      return 1
+    fi
+  done
+  sv0_ok "rewrite-build: all sv0c/rewrite/*.sv0 passed on VM"
+  return 0
 }
 
 run_test_mcp() {
@@ -95,16 +167,29 @@ run_test_mcp() {
 }
 
 run_doc() {
+  sv0_require_cmd python3
   sv0_require_dir "$SV0DOC"
   sv0_require_file "$SV0DOC/README.md"
   sv0_require_file "$SV0DOC/bytecode/format.md"
   sv0_require_file "$SV0DOC/bytecode/instructions.md"
   sv0_require_dir "$SV0_MCP"
   sv0_require_file "$SV0_MCP/README.md"
-  sv0_ok "sv0doc + sv0-mcp: expected doc paths present"
+  python3 "$ROOT/scripts/gen_sv0_doc.py" --root "$ROOT"
+  sv0_ok "sv0 doc: generated build/sv0-toolchain-doc/index.md; sv0doc + sv0-mcp paths OK"
+}
+
+run_fmt_sv0() {
+  sv0_require_cmd python3
+  python3 "$ROOT/scripts/fmt_sv0.py" "$SV0C" "$SV0VM"
+  sv0_ok "fmt: .sv0 whitespace normalization under sv0c/ and sv0vm/"
 }
 
 run_fmt() {
+  run_fmt_sv0
+  run_fmt_shell
+}
+
+run_fmt_shell() {
   local f
   local fmt_targets=(
     "$ROOT/scripts/sv0"
@@ -133,14 +218,13 @@ run_fmt() {
   else
     sv0_info "shfmt not installed; skipped write-format"
   fi
-  sv0_ok "fmt: bash syntax OK"
+  sv0_ok "fmt-shell: bash syntax OK"
 }
 
 run_ci() {
   run_check
   run_test
-  bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"
-  sv0_ok "ci: SML-only (sv0c + sv0vm + integration-vm) passed"
+  sv0_ok "ci: SML-only (check + full sv0 test harness) passed"
 }
 
 run_ci_all() {
@@ -226,8 +310,17 @@ case "$cmd" in
   doc)
     run_doc
     ;;
+  doctest)
+    run_doctests
+    ;;
   fmt)
     run_fmt
+    ;;
+  fmt-shell)
+    run_fmt_shell
+    ;;
+  rewrite-build)
+    run_rewrite_build || exit 1
     ;;
   integration-vm)
     bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"
