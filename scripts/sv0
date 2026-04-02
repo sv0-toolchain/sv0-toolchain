@@ -22,12 +22,16 @@ usage: sv0 <command> [args]
   doctest            run Markdown sv0 doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
   fmt                format .sv0 sources (whitespace) + shell fmt (see fmt-shell)
   fmt-shell          bash -n on shell scripts; shfmt -w if shfmt is in PATH
-  rewrite-build      compile sv0c/rewrite/*.sv0 to bytecode and run on sv0vm (exit 0)
+  rewrite-build      VM-compile programs listed in sv0c/rewrite/rewrite-sources.list (fallback: rewrite/*.sv0)
+  emit-c <rel>       print C for one .sv0 (path relative to sv0c/; uses make heap + SML bootstrap)
+  self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
+  self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
+  self-host-check-golden  diff bootstrap C vs rewrite/golden/stage0/<stem>.c (same rules as sv0 test)
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
-  ci                 SML-only: check + test + integration-vm (no sv0-mcp; same as \`make ci\`)
+  ci                 check + full ./scripts/sv0 test (no sv0-mcp; same as \`make ci\`)
   ci-all             after ci, run test-mcp when uv is available (full toolchain smoke)
 
 EOF
@@ -98,6 +102,10 @@ run_test() {
   if ! run_rewrite_build; then
     ec=1
   fi
+  sv0_info "sv0 test: stage0 C vs rewrite/golden/stage0 (when present)"
+  if ! run_self_host_stage0_golden; then
+    ec=1
+  fi
   sv0_info "sv0 test: Markdown doctests"
   if ! run_doctests; then
     ec=1
@@ -105,7 +113,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + rewrite + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + rewrite + stage0 golden + doctests"
 }
 
 run_doctests() {
@@ -114,21 +122,125 @@ run_doctests() {
     "$ROOT/task/sv0-toolchain-milestone-2-prep/doctests.md"
 }
 
+# Sets REWRITE_REL_PATHS_RESULT (paths relative to sv0c/) for rewrite-build and golden checks.
+rewrite_fill_rel_paths() {
+  REWRITE_REL_PATHS_RESULT=()
+  local list="$SV0C/rewrite/rewrite-sources.list"
+  local line
+  if [[ -f "$list" ]]; then
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      [[ "$line" =~ ^[[:space:]]*# ]] && continue
+      [[ -z "${line//[[:space:]]/}" ]] && continue
+      REWRITE_REL_PATHS_RESULT+=("$line")
+    done <"$list"
+  fi
+  if ((${#REWRITE_REL_PATHS_RESULT[@]} == 0)); then
+    shopt -s nullglob
+    local f
+    for f in "$SV0C"/rewrite/*.sv0; do
+      REWRITE_REL_PATHS_RESULT+=("rewrite/$(basename "$f")")
+    done
+    shopt -u nullglob
+  fi
+}
+
+_self_host_stage0_heap_ready() {
+  (cd "$SV0C" && make heap >/dev/null 2>&1)
+}
+
+# Emit C for one .sv0 via SML heap image; write to $2. Requires heap ready. Returns 0 on success.
+_self_host_stage0_emit_c_to() {
+  local rel="${1:?}"
+  local out="${2:?}"
+  local log
+  log="$(mktemp)"
+  if [[ ! -f "$SV0C/$rel" ]]; then
+    rm -f "$log"
+    return 1
+  fi
+  set +e
+  (cd "$SV0C" && sml "@SMLload=build/sv0c" "$rel" >"$out" 2>"$log")
+  local sml_ec=$?
+  set -e
+  if [[ "$sml_ec" -ne 0 ]] || grep -q 'Error:' "$log"; then
+    tail -30 "$log" >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+  if ! grep -q '#include' "$out"; then
+    echo "self-host: emitted file missing #include: $out" >&2
+    return 1
+  fi
+  return 0
+}
+
+run_self_host_stage0_golden() {
+  require_sml
+  rewrite_fill_rel_paths
+  local -a rel_paths=("${REWRITE_REL_PATHS_RESULT[@]}")
+  if ((${#rel_paths[@]} == 0)); then
+    sv0_info "self-host stage0 golden: skipped (no rewrite sources)"
+    return 0
+  fi
+  local rel stem golden n=0
+  for rel in "${rel_paths[@]}"; do
+    stem=$(basename "$rel" .sv0)
+    golden="$SV0C/rewrite/golden/stage0/${stem}.c"
+    if [[ -f "$golden" ]]; then
+      n=$((n + 1))
+    fi
+  done
+  if [[ "$n" -eq 0 ]]; then
+    sv0_info "self-host stage0 golden: no rewrite/golden/stage0/<stem>.c for list entries; skipped"
+    return 0
+  fi
+  if ! _self_host_stage0_heap_ready; then
+    sv0_fail "self-host stage0 golden: sv0c make heap failed"
+  fi
+  local tmp d
+  for rel in "${rel_paths[@]}"; do
+    stem=$(basename "$rel" .sv0)
+    golden="$SV0C/rewrite/golden/stage0/${stem}.c"
+    if [[ ! -f "$golden" ]]; then
+      continue
+    fi
+    tmp="$(mktemp)"
+    if ! _self_host_stage0_emit_c_to "$rel" "$tmp"; then
+      rm -f "$tmp"
+      sv0_fail "self-host stage0 golden: emit failed for $rel"
+    fi
+    set +e
+    diff -u "$golden" "$tmp"
+    d=$?
+    set -e
+    rm -f "$tmp"
+    if [[ "$d" -ne 0 ]]; then
+      sv0_fail "self-host stage0 golden: ${stem}.c differs from $golden (refresh golden after intentional C-backend change)"
+    fi
+  done
+  sv0_ok "self-host stage0 golden: $n file(s) match bootstrap C output"
+  return 0
+}
+
 run_rewrite_build() {
   require_sml
   mkdir -p "$SV0C/build/vm"
-  shopt -s nullglob
-  local f rel stem sv0b out log
-  local rw=("$SV0C"/rewrite/*.sv0)
-  if ((${#rw[@]} == 0)); then
-    sv0_warn "rewrite-build: no sv0c/rewrite/*.sv0 files"
+  local rel stem sv0b out log
+  rewrite_fill_rel_paths
+  local -a rel_paths=("${REWRITE_REL_PATHS_RESULT[@]}")
+  if ((${#rel_paths[@]} == 0)); then
+    sv0_warn "rewrite-build: no entries in rewrite-sources.list and no rewrite/*.sv0"
     sv0_ok "rewrite-build: skipped (no sources)"
     return 0
   fi
-  for f in "${rw[@]}"; do
-    rel="rewrite/$(basename "$f")"
-    stem=$(basename "$f" .sv0)
+  for rel in "${rel_paths[@]}"; do
+    stem=$(basename "$rel" .sv0)
     sv0b="$SV0C/build/vm/${stem}.sv0b"
+    if [[ ! -f "$SV0C/$rel" ]]; then
+      echo "rewrite-build: missing file $SV0C/$rel" >&2
+      return 1
+    fi
     log="$(mktemp)"
     if ! (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"$rel\"]);" | sml >"$log" 2>&1); then
       tail -30 "$log"
@@ -151,8 +263,74 @@ run_rewrite_build() {
       return 1
     fi
   done
-  sv0_ok "rewrite-build: all sv0c/rewrite/*.sv0 passed on VM"
+  sv0_ok "rewrite-build: all rewrite-sources.list (or rewrite/*.sv0) programs passed on VM"
   return 0
+}
+
+run_emit_c() {
+  local rel="${1:-}"
+  if [[ -z "$rel" ]]; then
+    echo "usage: sv0 emit-c <path-relative-to-sv0c/>" >&2
+    exit 1
+  fi
+  require_sml
+  if [[ ! -f "$SV0C/$rel" ]]; then
+    sv0_fail "emit-c: not found: $SV0C/$rel"
+  fi
+  if ! (cd "$SV0C" && make heap >/dev/null 2>&1); then
+    sv0_fail "emit-c: sv0c make heap failed"
+  fi
+  (cd "$SV0C" && sml "@SMLload=build/sv0c" "$rel")
+}
+
+run_self_host_capture_stage0() {
+  local rel="${1:-}"
+  if [[ -z "$rel" ]]; then
+    echo "usage: sv0 self-host-capture-stage0 <path-relative-to-sv0c/>" >&2
+    exit 1
+  fi
+  local stem
+  stem=$(basename "$rel" .sv0)
+  local outdir="$ROOT/build/self-host-compare/stage0"
+  mkdir -p "$outdir"
+  local out="$outdir/${stem}.c"
+  require_sml
+  if [[ ! -f "$SV0C/$rel" ]]; then
+    sv0_fail "self-host-capture-stage0: not found: $SV0C/$rel"
+  fi
+  if ! _self_host_stage0_heap_ready; then
+    sv0_fail "self-host-capture-stage0: sv0c make heap failed"
+  fi
+  if ! _self_host_stage0_emit_c_to "$rel" "$out"; then
+    sv0_fail "self-host-capture-stage0: compile failed for $rel"
+  fi
+  sv0_ok "self-host-capture-stage0: wrote $out"
+}
+
+run_self_host_compare() {
+  local stem="${1:-}"
+  if [[ -z "$stem" ]]; then
+    echo "usage: sv0 self-host-compare <stem>   (e.g. span_core for span_core.c)" >&2
+    exit 1
+  fi
+  local s0="$ROOT/build/self-host-compare/stage0/${stem}.c"
+  local s1="$ROOT/build/self-host-compare/stage1/${stem}.c"
+  if [[ ! -f "$s0" ]]; then
+    sv0_fail "self-host-compare: missing stage0 file $s0 (run self-host-capture-stage0 first)"
+  fi
+  if [[ ! -f "$s1" ]]; then
+    sv0_info "self-host-compare: stage1 missing $s1 — nothing to diff yet"
+    return 0
+  fi
+  set +e
+  diff -u "$s0" "$s1"
+  local d=$?
+  set -e
+  if [[ "$d" -eq 0 ]]; then
+    sv0_ok "self-host-compare: $stem stage0 and stage1 C are identical"
+  else
+    sv0_fail "self-host-compare: $stem differs between stage0 and stage1"
+  fi
 }
 
 run_test_mcp() {
@@ -321,6 +499,24 @@ case "$cmd" in
     ;;
   rewrite-build)
     run_rewrite_build || exit 1
+    ;;
+  emit-c)
+    rel="${1:-}"
+    if [[ -z "$rel" ]]; then usage; exit 1; fi
+    run_emit_c "$rel"
+    ;;
+  self-host-capture-stage0)
+    rel="${1:-}"
+    if [[ -z "$rel" ]]; then usage; exit 1; fi
+    run_self_host_capture_stage0 "$rel"
+    ;;
+  self-host-compare)
+    stem="${1:-}"
+    if [[ -z "$stem" ]]; then usage; exit 1; fi
+    run_self_host_compare "$stem"
+    ;;
+  self-host-check-golden)
+    run_self_host_stage0_golden || exit 1
     ;;
   integration-vm)
     bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"

@@ -1,9 +1,9 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-03-25T00:00:00Z"
+updated:"2026-04-01T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
-state: draft
+state:active
 tags:
   - sv0
   - sv0-toolchain
@@ -34,6 +34,10 @@ match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task
 
 - design milestone 2 complete enough: VM iteration path + prep tasks advanced so sv0 codebase for the compiler is realistic (`task/sv0vm-milestone-2.Rmd`, `task/sv0-toolchain-milestone-2-prep.Rmd`)
 
+## layout decision
+
+The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). Start from **`sv0c/rewrite/`** (see `sv0c/rewrite/README.md` and `./scripts/sv0 rewrite-build`); phase 1 names any extra subpackages under `sv0c/` as the module graph grows.
+
 ## completion criteria (refine as you implement)
 
 - **full pipeline in sv0**: lexer → parser → name resolution → type check → contracts → IR → **C backend** (minimum); VM backend parity as a stretch or parallel track
@@ -44,7 +48,11 @@ match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task
 
 ### phase 1: module graph and build order
 
-/ai: define the sv0 package layout for the compiler, dependency order, and how CI proves stage0 → stage1 equality (e.g. compare IR or bytecode snapshots).
+**Plan (living doc):** `sv0c/rewrite/LAYOUT.md` — directories, transliteration order, stage0 vs stage1 C compare workflow.
+
+**Tooling (meta-repo):** `rewrite-sources.list` drives `./scripts/sv0 rewrite-build`. For C snapshots use `./scripts/sv0 self-host-capture-stage0 <path-relative-to-sv0c/>` and, when stage1 exists, `./scripts/sv0 self-host-compare <stem>`. One-off C to stdout: `./scripts/sv0 emit-c <rel>`.
+
+**CI:** `run test` / `ci` runs `rewrite-build`, then for each `rewrite-sources.list` entry that has `rewrite/golden/stage0/<stem>.c`, emits C via the SML heap compiler and **`diff`**s against that golden (update the golden intentionally when the C backend output changes). Stage-1 parity remains `./scripts/sv0 self-host-compare <stem>` when `stage1/*.c` exists.
 
 ### phase 2: transliteration completion
 
@@ -61,6 +69,9 @@ match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task
 ## refinement log
 
 - 2026-03-25: initial scaffold from design milestone 3.
+- 2026-04-01: compiler-in-sv0 sources stay in **sv0c** (extend `rewrite/` and/or add further dirs under `sv0c/`); no separate meta-repo `sv0-compiler/` root.
+- 2026-04-01: phase 1 scaffold — `LAYOUT.md`, `rewrite-sources.list`, `scripts/sv0` commands `emit-c`, `self-host-capture-stage0`, `self-host-compare`.
+- 2026-04-01: CI compares bootstrap C to `rewrite/golden/stage0/<stem>.c` for each rewrite list entry that has a golden file (`self-host-check-golden`).
 
 ## related
 
