@@ -14,24 +14,38 @@ concurrency:
 permissions:
   contents: read
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   verify:
     runs-on: ubuntu-22.04
+    timeout-minutes: 45
     steps:
+      - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
       - name: Checkout with submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install SML/NJ, C toolchain, Python
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y smlnj build-essential python3
+      - name: Cache SML/NJ install
+        uses: actions/cache@v4
+        id: smlnj-cache
+        with:
+          path: ~/smlnj-110.99.9
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-v1
+
+      - name: Install SML/NJ (110.99.x; apt package is too old)
+        run: bash scripts/ci-install-smlnj.sh
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          cache-dependency-glob: |
+            **/uv.lock
 
       - name: Check + test + MCP (same as make ci-all)
         run: ./scripts/sv0 ci-all

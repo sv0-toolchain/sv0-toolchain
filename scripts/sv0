@@ -371,6 +371,7 @@ run_fmt_shell() {
   local f
   local fmt_targets=(
     "$ROOT/scripts/sv0"
+    "$ROOT/scripts/ci-install-smlnj.sh"
     "$ROOT/lib/shell/common.sh"
     "$ROOT/lib/sml/build-helpers.sh"
     "$ROOT/task/sv0vm-milestone-2/01-verify-setup.sh"
