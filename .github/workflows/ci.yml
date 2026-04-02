@@ -20,7 +20,7 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
@@ -35,7 +35,7 @@ jobs:
         id: smlnj-cache
         with:
           path: ~/smlnj-110.99.9
-          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-v1
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-curl-v2
 
       - name: Install SML/NJ (110.99.x; apt package is too old)
         run: bash scripts/ci-install-smlnj.sh
