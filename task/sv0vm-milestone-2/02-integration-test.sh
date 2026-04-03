@@ -91,6 +91,7 @@ run_exit_case "contracts" "test/integration/contracts/contracts.sv0" 0
 run_exit_case "patterns" "test/integration/patterns/patterns.sv0" 1
 run_exit_case "structs" "test/integration/structs/structs.sv0" 42
 run_exit_case "generics" "test/integration/generics/generics.sv0" 99
+run_exit_case "call_arg_order" "test/integration/call_arg_order/call_arg_order.sv0" 0
 
 echo -n "  modules (project)... "
 if compile_vm_project "test/integration/modules" && [[ -f "$SV0C_ROOT/build/vm/main.sv0b" ]]; then
