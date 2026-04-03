@@ -60,6 +60,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-03-25: initial scaffold; criteria copied from design milestone 2; VM split documented.
 - 2026-04-01: implemented unified test, doctest runner, fmt_sv0, doc generator, `sv0c/rewrite/`; marked **complete**.
 - 2026-04-02: SML bootstrap → **`sv0c/sml/`**; sv0 seeds → **`sv0c/lib/`**; recursive **`--project`**; **`lexer/`** placeholder; **`bootstrap-build`** + **`lib/bootstrap-sources.list`** only (no **`rewrite-build`** / **`rewrite-sources.list`**).
+- 2026-04-03: **`lib/diagnostic_core.sv0`** + golden **`diagnostic_core.c`** (diagnostics transliteration after **`span_core`**).
 
 ## related
 

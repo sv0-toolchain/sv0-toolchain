@@ -46,7 +46,7 @@ use it to:
 |--------------------------------|------------------------|--------|
 | 0 — language specification (prose + agreed roadmap) | design HTML; `task/sv0doc-milestone-0.Rmd` (extracted formal spec) | normative extracted spec lives in **sv0doc/** |
 | 1 — bootstrap compiler (SML) | `task/sv0c-milestone-1.Rmd` | C backend; state tracked in that file |
-| 2 — self-hosting **preparation** | `task/sv0vm-milestone-2.Rmd` (VM slice) + `task/sv0-toolchain-milestone-2-prep.Rmd` (fmt, doc, test harness, rewrite start) | two files on purpose: VM is deep; prep is cross-cutting |
+| 2 — self-hosting **preparation** | `task/sv0vm-milestone-2.Rmd` (VM slice) + `task/sv0-toolchain-milestone-2-prep.Rmd` (fmt, doc, test harness, `lib/` bootstrap seeds) | two files on purpose: VM is deep; prep is cross-cutting |
 | 3 — self-hosting compiler | `task/sv0-toolchain-milestone-3-self-host.Rmd` | compiler in sv0; bootstrap SML archived |
 | 4 — advanced verification | `task/sv0-toolchain-milestone-4-verification.Rmd` | SMT, refinement types, `sv0 verify` |
 | 5 — LLVM + production crypto | `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` | LLVM IR backend + crypto library hardening |
