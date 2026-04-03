@@ -62,6 +62,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-02: SML bootstrap → **`sv0c/sml/`**; sv0 seeds → **`sv0c/lib/`**; recursive **`--project`**; **`lexer/`** placeholder; **`bootstrap-build`** + **`lib/bootstrap-sources.list`** only (no **`rewrite-build`** / **`rewrite-sources.list`**).
 - 2026-04-03: **`lib/diagnostic_core.sv0`** + golden **`diagnostic_core.c`** (diagnostics transliteration after **`span_core`**).
 - 2026-04-04: **`lib/diagnostic_batch_core.sv0`**, **`lib/env_core.sv0`**, **`lexer/token_keyword_core.sv0`** + goldens; **sv0vm** `RETURN_SLOTS` fix for struct return.
+- 2026-04-05: **`lib/resolver_value_core.sv0`** (three-slot `lookup_value` / `resolve_path_ok`); **`lexer/token_delim_core.sv0`** (delimiter tag band + `is_delimiter_tag`); stage0 goldens + **`bootstrap-sources.list`**.
 
 ## related
 
