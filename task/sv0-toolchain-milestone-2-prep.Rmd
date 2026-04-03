@@ -69,6 +69,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-09: **`lib/type_alias_core.sv0`**, **`lexer/token_op_core.sv0`** + goldens.
 - 2026-04-10: **`lib/lookup_type_alias_core.sv0`** + golden (integrated type lookup + aliases).
 - 2026-04-11: **`parser/expr_entry_core.sv0`** + golden (`parsePrimaryExpr` dispatch vs **`parser.sml`**).
+- 2026-04-12: **`lexer/token_delim_core.sv0`** bracket tags + **`expr_entry_core`** bracket **16**; refreshed goldens.
 
 ## related
 

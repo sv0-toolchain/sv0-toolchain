@@ -81,7 +81,8 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-08: **`lib/resolver_call_core.sv0`**, **`lib/lookup_type_core.sv0`** + goldens — call resolution + type path slice.
 - 2026-04-09: **`lib/type_alias_core.sv0`** (`resolveCanonicalTy` / `tyAlias`) — **high** value for **`lookupType`** + resolver; **`lexer/token_op_core.sv0`** — **medium** value lexer tag band. Bootstrap list + goldens.
 - 2026-04-10: **`lib/lookup_type_alias_core.sv0`** — single struct + **`lookup_type_resolved`** (canonicalize then prelude/mod; **Self** bypasses aliases); primary reference for type-path testing vs **`env.sml`**.
-- 2026-04-11: **`parser/expr_entry_core.sv0`** — **`parsePrimaryExpr`** first-token dispatch table + bridges to **`token_keyword_core`** / **`token_delim_core`**; **`primary_arm_is_compound`**. *Next (lower urgency):* **`[`** / **`]`** in **`token_delim_core`** to drop synthetic **17**, or stmt-level parse entry slice.
+- 2026-04-11: **`parser/expr_entry_core.sv0`** — **`parsePrimaryExpr`** first-token dispatch table + bridges to **`token_keyword_core`** / **`token_delim_core`**; **`primary_arm_is_compound`**.
+- 2026-04-12: **`lexer/token_delim_core.sv0`** — **`[`** / **`]`** tags **16**/**17**; **`parser/expr_entry_core`** uses **16** for **`LBRACKET`** (aligned with delim seed). *Next (lower urgency):* stmt-level parse entry slice.
 
 ## related
 
