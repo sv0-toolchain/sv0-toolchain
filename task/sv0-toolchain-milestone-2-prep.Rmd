@@ -64,6 +64,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-04: **`lib/diagnostic_batch_core.sv0`**, **`lib/env_core.sv0`**, **`lexer/token_keyword_core.sv0`** + goldens; **sv0vm** `RETURN_SLOTS` fix for struct return.
 - 2026-04-05: **`lib/resolver_value_core.sv0`** (three-slot `lookup_value` / `resolve_path_ok`); **`lexer/token_delim_core.sv0`** (delimiter tag band + `is_delimiter_tag`); stage0 goldens + **`bootstrap-sources.list`**.
 - 2026-04-06: **`lib/resolver_arity_core.sv0`** (fn arity table + `call_arity_ok`); **`lib/env_scope_core.sv0`** (enter/bind/exit/local lookup); goldens + list.
+- 2026-04-07: **`lib/lookup_value_core.sv0`** — merged **`FullEnv`** (`lookup_value` = locals then module); golden + list.
 
 ## related
 

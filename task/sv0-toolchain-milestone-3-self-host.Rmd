@@ -77,6 +77,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-04: **sv0vm** — `CALL` binds actuals left-to-right; **`RETURN_SLOTS`** does not reverse multi-slot returns (struct return to caller). **`diagnostic_core`** scalar **`format_*`** helpers; VM regression **`test/integration/call_arg_order`**. New seeds **`lib/diagnostic_batch_core.sv0`**, **`lib/env_core.sv0`**, **`lexer/token_keyword_core.sv0`** + goldens + **`bootstrap-sources.list`**.
 - 2026-04-05: **`lib/resolver_value_core.sv0`**, **`lexer/token_delim_core.sv0`** + goldens — lexer + name-resolution seeds in parallel.
 - 2026-04-06: **`lib/resolver_arity_core.sv0`**, **`lib/env_scope_core.sv0`** + goldens — call arity + scoped locals.
+- 2026-04-07: **`lib/lookup_value_core.sv0`** — merged env (**`lookupValue`** order); **`env_core`** / **`env_scope_core`** kept as smaller slices.
 
 ## related
 
