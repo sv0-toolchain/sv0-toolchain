@@ -79,7 +79,8 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-06: **`lib/resolver_arity_core.sv0`**, **`lib/env_scope_core.sv0`** + goldens — call arity + scoped locals.
 - 2026-04-07: **`lib/lookup_value_core.sv0`** — merged env (**`lookupValue`** order); **`env_core`** / **`env_scope_core`** kept as smaller slices.
 - 2026-04-08: **`lib/resolver_call_core.sv0`**, **`lib/lookup_type_core.sv0`** + goldens — call resolution + type path slice.
-- 2026-04-09: **`lib/type_alias_core.sv0`** (`resolveCanonicalTy` / `tyAlias`) — **high** value for **`lookupType`** + resolver; **`lexer/token_op_core.sv0`** — **medium** value lexer tag band. Bootstrap list + goldens. *Next high-value env work:* fold alias resolution into a **`lookup_type`**-shaped helper or grow **`registerTypeAlias`** errors; *next medium:* literal / ident token band or parser expression slice.
+- 2026-04-09: **`lib/type_alias_core.sv0`** (`resolveCanonicalTy` / `tyAlias`) — **high** value for **`lookupType`** + resolver; **`lexer/token_op_core.sv0`** — **medium** value lexer tag band. Bootstrap list + goldens.
+- 2026-04-10: **`lib/lookup_type_alias_core.sv0`** — single struct + **`lookup_type_resolved`** (canonicalize then prelude/mod; **Self** bypasses aliases); primary reference for type-path testing vs **`env.sml`**. *Next medium:* literal/ident lexer band or small **`parser_expr_core`** slice.
 
 ## related
 
