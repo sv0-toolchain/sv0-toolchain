@@ -74,6 +74,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-01: CI compares bootstrap C to `lib/golden/stage0/<stem>.c` for each listed bootstrap-in-sv0 program that has a golden file (`self-host-check-golden`).
 - 2026-04-02: **`sml/`** = SML bootstrap; **`lib/`** + **`lexer/`**… = sv0 track; **`lib/golden/`**; recursive **`--project`**; **`bootstrap-build`** / **`lib/bootstrap-sources.list`**.
 - 2026-04-03: **`lib/diagnostic_core.sv0`** — next transliteration after **`span_core`** (`sml/error/diagnostic.*` subset); stage0 golden **`diagnostic_core.c`**.
+- 2026-04-04: **sv0vm** `CALL` binds actuals left-to-right (fixes reversed formals); **`diagnostic_core`** uses scalar **`format_*`** helpers again; VM regression **`test/integration/call_arg_order`**.
 
 ## related
 
