@@ -17,7 +17,7 @@ fi
 echo "OK: sv0vm source directory exists"
 
 SV0C_ROOT="${SV0C_ROOT:-sv0c}"
-if [[ ! -f "$SV0C_ROOT/src/ir/ir.sml" ]]; then
+if [[ ! -f "$SV0C_ROOT/sml/ir/ir.sml" ]]; then
     echo "WARN: sv0c IR not yet implemented (prerequisite for VM backend)"
 fi
 

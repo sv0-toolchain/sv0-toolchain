@@ -29,7 +29,7 @@ set up the SML/NJ project structure for sv0c, including:
 ## configuration
 
 /env: SV0C_ROOT=sv0c
-/env: SRC_DIR=sv0c/src
+/env: SRC_DIR=sv0c/sml
 
 ## step 1: SML/NJ project structure
 

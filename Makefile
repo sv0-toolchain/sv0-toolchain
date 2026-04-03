@@ -7,7 +7,7 @@ help:
 	@echo "sv0-toolchain targets:"
 	@echo "  make check           — compile sv0c + sv0vm (no unit tests)"
 	@echo "  make build           — same as check"
-	@echo "  make test            — unified harness (units, C+VM integration, rewrite, doctests)"
+	@echo "  make test            — unified harness (units, C+VM integration, bootstrap-in-sv0, doctests)"
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
 	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
 	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"

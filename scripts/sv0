@@ -16,17 +16,17 @@ usage: sv0 <command> [args]
 
   check              compile sv0c (CM) and sv0vm (use) — fast smoke compile
   build              alias for check
-  test               unified: sv0c + sv0vm units, C + VM integration, rewrite/*.sv0, doctests
+  test               unified: sv0c + sv0vm units, C + VM integration, bootstrap-in-sv0 programs, doctests
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
   doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
   doctest            run Markdown sv0 doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
   fmt                format .sv0 sources (whitespace) + shell fmt (see fmt-shell)
   fmt-shell          bash -n on shell scripts; shfmt -w if shfmt is in PATH
-  rewrite-build      VM-compile programs listed in sv0c/rewrite/rewrite-sources.list (fallback: rewrite/*.sv0)
+  bootstrap-build    VM-compile programs listed in sv0c/lib/bootstrap-sources.list (fallback: lib/*.sv0)
   emit-c <rel>       print C for one .sv0 (path relative to sv0c/; uses make heap + SML bootstrap)
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
-  self-host-check-golden  diff bootstrap C vs rewrite/golden/stage0/<stem>.c (same rules as sv0 test)
+  self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
@@ -98,11 +98,11 @@ run_test() {
   if ! bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"; then
     ec=1
   fi
-  sv0_info "sv0 test: rewrite/*.sv0 on VM"
-  if ! run_rewrite_build; then
+  sv0_info "sv0 test: bootstrap-in-sv0 programs on VM"
+  if ! run_bootstrap_build; then
     ec=1
   fi
-  sv0_info "sv0 test: stage0 C vs rewrite/golden/stage0 (when present)"
+  sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
   if ! run_self_host_stage0_golden; then
     ec=1
   fi
@@ -113,7 +113,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + rewrite + stage0 golden + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + stage0 golden + doctests"
 }
 
 run_doctests() {
@@ -122,23 +122,26 @@ run_doctests() {
     "$ROOT/task/sv0-toolchain-milestone-2-prep/doctests.md"
 }
 
-# Sets REWRITE_REL_PATHS_RESULT (paths relative to sv0c/) for rewrite-build and golden checks.
-rewrite_fill_rel_paths() {
-  REWRITE_REL_PATHS_RESULT=()
-  local list="$SV0C/rewrite/rewrite-sources.list"
+# Sets BOOTSTRAP_SV0_RELS (paths relative to sv0c/) for bootstrap-build and stage0 golden checks.
+bootstrap_fill_sv0_paths() {
+  BOOTSTRAP_SV0_RELS=()
+  local list=""
+  if [[ -f "$SV0C/lib/bootstrap-sources.list" ]]; then
+    list="$SV0C/lib/bootstrap-sources.list"
+  fi
   local line
-  if [[ -f "$list" ]]; then
+  if [[ -n "$list" ]]; then
     while IFS= read -r line || [[ -n "$line" ]]; do
       [[ "$line" =~ ^[[:space:]]*# ]] && continue
       [[ -z "${line//[[:space:]]/}" ]] && continue
-      REWRITE_REL_PATHS_RESULT+=("$line")
+      BOOTSTRAP_SV0_RELS+=("$line")
     done <"$list"
   fi
-  if ((${#REWRITE_REL_PATHS_RESULT[@]} == 0)); then
+  if ((${#BOOTSTRAP_SV0_RELS[@]} == 0)); then
     shopt -s nullglob
     local f
-    for f in "$SV0C"/rewrite/*.sv0; do
-      REWRITE_REL_PATHS_RESULT+=("rewrite/$(basename "$f")")
+    for f in "$SV0C"/lib/*.sv0; do
+      BOOTSTRAP_SV0_RELS+=("lib/$(basename "$f")")
     done
     shopt -u nullglob
   fi
@@ -177,22 +180,22 @@ _self_host_stage0_emit_c_to() {
 
 run_self_host_stage0_golden() {
   require_sml
-  rewrite_fill_rel_paths
-  local -a rel_paths=("${REWRITE_REL_PATHS_RESULT[@]}")
+  bootstrap_fill_sv0_paths
+  local -a rel_paths=("${BOOTSTRAP_SV0_RELS[@]}")
   if ((${#rel_paths[@]} == 0)); then
-    sv0_info "self-host stage0 golden: skipped (no rewrite sources)"
+    sv0_info "self-host stage0 golden: skipped (no bootstrap-in-sv0 sources)"
     return 0
   fi
   local rel stem golden n=0
   for rel in "${rel_paths[@]}"; do
     stem=$(basename "$rel" .sv0)
-    golden="$SV0C/rewrite/golden/stage0/${stem}.c"
+    golden="$SV0C/lib/golden/stage0/${stem}.c"
     if [[ -f "$golden" ]]; then
       n=$((n + 1))
     fi
   done
   if [[ "$n" -eq 0 ]]; then
-    sv0_info "self-host stage0 golden: no rewrite/golden/stage0/<stem>.c for list entries; skipped"
+    sv0_info "self-host stage0 golden: no lib/golden/stage0/<stem>.c for list entries; skipped"
     return 0
   fi
   if ! _self_host_stage0_heap_ready; then
@@ -201,7 +204,7 @@ run_self_host_stage0_golden() {
   local tmp d
   for rel in "${rel_paths[@]}"; do
     stem=$(basename "$rel" .sv0)
-    golden="$SV0C/rewrite/golden/stage0/${stem}.c"
+    golden="$SV0C/lib/golden/stage0/${stem}.c"
     if [[ ! -f "$golden" ]]; then
       continue
     fi
@@ -223,22 +226,22 @@ run_self_host_stage0_golden() {
   return 0
 }
 
-run_rewrite_build() {
+run_bootstrap_build() {
   require_sml
   mkdir -p "$SV0C/build/vm"
   local rel stem sv0b out log
-  rewrite_fill_rel_paths
-  local -a rel_paths=("${REWRITE_REL_PATHS_RESULT[@]}")
+  bootstrap_fill_sv0_paths
+  local -a rel_paths=("${BOOTSTRAP_SV0_RELS[@]}")
   if ((${#rel_paths[@]} == 0)); then
-    sv0_warn "rewrite-build: no entries in rewrite-sources.list and no rewrite/*.sv0"
-    sv0_ok "rewrite-build: skipped (no sources)"
+    sv0_warn "bootstrap-build: no lib/bootstrap-sources.list and no top-level lib/*.sv0"
+    sv0_ok "bootstrap-build: skipped (no sources)"
     return 0
   fi
   for rel in "${rel_paths[@]}"; do
     stem=$(basename "$rel" .sv0)
     sv0b="$SV0C/build/vm/${stem}.sv0b"
     if [[ ! -f "$SV0C/$rel" ]]; then
-      echo "rewrite-build: missing file $SV0C/$rel" >&2
+      echo "bootstrap-build: missing file $SV0C/$rel" >&2
       return 1
     fi
     log="$(mktemp)"
@@ -254,7 +257,7 @@ run_rewrite_build() {
     fi
     rm -f "$log"
     if [[ ! -f "$sv0b" ]]; then
-      echo "rewrite-build: missing $sv0b (for $rel)" >&2
+      echo "bootstrap-build: missing $sv0b (for $rel)" >&2
       return 1
     fi
     out="$(cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml 2>&1)" || true
@@ -263,7 +266,7 @@ run_rewrite_build() {
       return 1
     fi
   done
-  sv0_ok "rewrite-build: all rewrite-sources.list (or rewrite/*.sv0) programs passed on VM"
+  sv0_ok "bootstrap-build: all listed (or top-level lib/*.sv0) programs passed on VM"
   return 0
 }
 
@@ -498,8 +501,8 @@ case "$cmd" in
   fmt-shell)
     run_fmt_shell
     ;;
-  rewrite-build)
-    run_rewrite_build || exit 1
+  bootstrap-build)
+    run_bootstrap_build || exit 1
     ;;
   emit-c)
     rel="${1:-}"

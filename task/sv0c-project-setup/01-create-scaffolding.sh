@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SV0C_ROOT="${SV0C_ROOT:-sv0c}"
-SRC_DIR="$SV0C_ROOT/src"
+SRC_DIR="$SV0C_ROOT/sml"
 
 echo "creating SML/NJ project scaffolding..."
 

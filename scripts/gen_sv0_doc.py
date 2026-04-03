@@ -28,7 +28,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     sv0doc = root / "sv0doc"
-    rewrite = root / "sv0c" / "rewrite"
+    bootstrap_sv0 = root / "sv0c" / "lib"
     def rp(p: Path) -> str:
         try:
             return str(p.relative_to(root))
@@ -46,16 +46,19 @@ def main() -> int:
         f"- Grammar: `{rp(sv0doc / 'grammar' / 'sv0.ebnf')}`",
         f"- Bytecode: `{rp(sv0doc / 'bytecode')}`",
         "",
-        "## Bootstrap compiler in sv0 (rewrite track)",
+        "## Bootstrap compiler in sv0 (`sv0c/lib/`)",
         "",
     ]
-    if rewrite.is_dir():
-        for sv0 in sorted(rewrite.glob("*.sv0")):
+    if bootstrap_sv0.is_dir():
+        sv0_files = sorted(bootstrap_sv0.rglob("*.sv0"))
+        if not sv0_files:
+            lines.append("_(no `*.sv0` under sv0c/lib yet)_\n")
+        for sv0 in sv0_files:
             lines.append(f"### `{rp(sv0)}`")
             lines.extend(outline_sv0(sv0) or ["- _(no top-level items detected)_"])
             lines.append("")
     else:
-        lines.append("_(no rewrite/ directory yet)_\n")
+        lines.append("_(no sv0c/lib directory yet)_\n")
 
     index = out_dir / "index.md"
     index.write_text("\n".join(lines), encoding="utf-8")

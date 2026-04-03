@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 SV0C_ROOT="${SV0C_ROOT:-sv0c}"
-SRC_DIR="${SRC_DIR:-sv0c/src}"
+SRC_DIR="${SRC_DIR:-sv0c/sml}"
 echo "building IR module..."
 if [[ -f "$SRC_DIR/ir/sources.cm" ]]; then
-    cd "$SV0C_ROOT" && echo 'CM.make "src/ir/sources.cm";' | sml 2>&1
+    cd "$SV0C_ROOT" && echo 'CM.make "sml/ir/sources.cm";' | sml 2>&1
     echo "OK: IR module compiles"
+elif [[ -f "$SV0C_ROOT/sources.cm" ]]; then
+    cd "$SV0C_ROOT" && echo 'CM.make "sources.cm";' | sml 2>&1
+    echo "OK: sv0c compiles (root sources.cm; no sml/ir/sources.cm yet)"
 else
     echo "TODO: create sources.cm for IR module"
 fi

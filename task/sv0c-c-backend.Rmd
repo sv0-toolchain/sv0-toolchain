@@ -31,7 +31,7 @@ and the one used for self-hosting. it must produce correct, readable C code.
 ## configuration
 
 /env: SV0C_ROOT=sv0c
-/env: SRC_DIR=sv0c/src
+/env: SRC_DIR=sv0c/sml
 /env: BUILD_DIR=sv0c/build
 
 ## implementation

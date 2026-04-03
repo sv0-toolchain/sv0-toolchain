@@ -36,7 +36,7 @@ match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task
 
 ## layout decision
 
-The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). Start from **`sv0c/rewrite/`** (see `sv0c/rewrite/README.md` and `./scripts/sv0 rewrite-build`); phase 1 names any extra subpackages under `sv0c/` as the module graph grows.
+The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). **SML bootstrap** sources live under **`sv0c/sml/`**. **sv0 transliteration** starts in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`); add parallel top-level dirs (**`lexer/`**, **`parser/`**, …) as modules split out of `lib/`.
 
 ## completion criteria (refine as you implement)
 
@@ -48,11 +48,11 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 
 ### phase 1: module graph and build order
 
-**Plan (living doc):** `sv0c/rewrite/LAYOUT.md` — directories, transliteration order, stage0 vs stage1 C compare workflow.
+**Plan (living doc):** `sv0c/lib/LAYOUT.md` — directories, transliteration order, stage0 vs stage1 C compare workflow.
 
-**Tooling (meta-repo):** `rewrite-sources.list` drives `./scripts/sv0 rewrite-build`. For C snapshots use `./scripts/sv0 self-host-capture-stage0 <path-relative-to-sv0c/>` and, when stage1 exists, `./scripts/sv0 self-host-compare <stem>`. One-off C to stdout: `./scripts/sv0 emit-c <rel>`.
+**Tooling (meta-repo):** `sv0c/lib/bootstrap-sources.list` drives `./scripts/sv0 bootstrap-build`. For C snapshots use `./scripts/sv0 self-host-capture-stage0 <path-relative-to-sv0c/>` and, when stage1 exists, `./scripts/sv0 self-host-compare <stem>`. One-off C to stdout: `./scripts/sv0 emit-c <rel>`.
 
-**CI:** `run test` / `ci` runs `rewrite-build`, then for each `rewrite-sources.list` entry that has `rewrite/golden/stage0/<stem>.c`, emits C via the SML heap compiler and **`diff`**s against that golden (update the golden intentionally when the C backend output changes). Stage-1 parity remains `./scripts/sv0 self-host-compare <stem>` when `stage1/*.c` exists.
+**CI:** `run test` / `ci` runs `bootstrap-build`, then for each list entry that has `lib/golden/stage0/<stem>.c`, emits C via the SML heap compiler and **`diff`**s against that golden (update the golden intentionally when the C backend output changes). Stage-1 parity remains `./scripts/sv0 self-host-compare <stem>` when `stage1/*.c` exists.
 
 ### phase 2: transliteration completion
 
@@ -69,9 +69,10 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 ## refinement log
 
 - 2026-03-25: initial scaffold from design milestone 3.
-- 2026-04-01: compiler-in-sv0 sources stay in **sv0c** (extend `rewrite/` and/or add further dirs under `sv0c/`); no separate meta-repo `sv0-compiler/` root.
-- 2026-04-01: phase 1 scaffold — `LAYOUT.md`, `rewrite-sources.list`, `scripts/sv0` commands `emit-c`, `self-host-capture-stage0`, `self-host-compare`.
-- 2026-04-01: CI compares bootstrap C to `rewrite/golden/stage0/<stem>.c` for each rewrite list entry that has a golden file (`self-host-check-golden`).
+- 2026-04-01: compiler-in-sv0 sources stay in **sv0c** (extend **`lib/`** and/or add further dirs under `sv0c/`); no separate meta-repo `sv0-compiler/` root.
+- 2026-04-01: phase 1 scaffold — `LAYOUT.md`, source list + golden C, `scripts/sv0` commands `emit-c`, `self-host-capture-stage0`, `self-host-compare`.
+- 2026-04-01: CI compares bootstrap C to `lib/golden/stage0/<stem>.c` for each listed bootstrap-in-sv0 program that has a golden file (`self-host-check-golden`).
+- 2026-04-02: **`sml/`** = SML bootstrap; **`lib/`** + **`lexer/`**… = sv0 track; **`lib/golden/`**; recursive **`--project`**; **`bootstrap-build`** / **`lib/bootstrap-sources.list`**.
 
 ## related
 

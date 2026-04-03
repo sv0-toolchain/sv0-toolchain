@@ -18,8 +18,8 @@ fi
 echo "OK: cc found at $(command -v cc)"
 
 SV0C_ROOT="${SV0C_ROOT:-sv0c}"
-if [[ ! -d "$SV0C_ROOT/src" ]]; then
-    echo "FAIL: sv0c source directory not found at $SV0C_ROOT/src"
+if [[ ! -d "$SV0C_ROOT/sml" ]]; then
+    echo "FAIL: sv0c source directory not found at $SV0C_ROOT/sml"
     exit 1
 fi
 echo "OK: sv0c source directory exists"

@@ -53,8 +53,8 @@ the VM backend is an additional backend for sv0c. the frontend (lexer through
 contract analyzer) and IR must be complete before the VM backend can emit
 bytecode.
 
-/assert: test -f $SV0C_ROOT/src/ir/ir.sml
-/assert: test -f $SV0C_ROOT/src/ir/lowering.sml
+/assert: test -f $SV0C_ROOT/sml/ir/ir.sml
+/assert: test -f $SV0C_ROOT/sml/ir/lowering.sml
 
 ## phase 1: bytecode format design
 

@@ -37,7 +37,7 @@ the type checker handles:
 ## configuration
 
 /env: SV0C_ROOT=sv0c
-/env: SRC_DIR=sv0c/src
+/env: SRC_DIR=sv0c/sml
 /env: SV0DOC_ROOT=sv0doc
 
 ## implementation

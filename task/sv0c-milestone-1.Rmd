@@ -42,7 +42,7 @@ milestone 1 is complete when:
 /env: SV0C_ROOT=sv0c
 /env: SV0DOC_ROOT=sv0doc
 /env: BUILD_DIR=sv0c/build
-/env: SRC_DIR=sv0c/src
+/env: SRC_DIR=sv0c/sml
 /env: TEST_DIR=sv0c/test
 
 ## prerequisite: formal specification

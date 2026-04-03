@@ -33,7 +33,7 @@ the error system provides:
 ## configuration
 
 /env: SV0C_ROOT=sv0c
-/env: SRC_DIR=sv0c/src
+/env: SRC_DIR=sv0c/sml
 
 ## implementation
 

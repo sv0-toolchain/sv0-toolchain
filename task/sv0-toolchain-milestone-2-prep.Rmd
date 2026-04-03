@@ -39,26 +39,27 @@ this task file owns the **non-VM** parts of design milestone 2. the VM stack is 
 
 bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 
-/assert: test -d $SV0C_ROOT/src/backend/vm
+/assert: test -d $SV0C_ROOT/sml/backend/vm
 
 ## completion criteria (met)
 
-- **`sv0 test`**: `./scripts/sv0 test` runs, in order: **sv0c** `make test`, **sv0vm** bytecode tests, **C** integration (`task/sv0c-milestone-1/02-integration-test.sh`), **VM** integration (`task/sv0vm-milestone-2/02-integration-test.sh`), **`sv0c/rewrite/*.sv0`** on the VM (`rewrite-build`), and **Markdown doctests** (`scripts/sv0_doctest.py`). Any failure yields a non-zero exit (CI-stable).
+- **`sv0 test`**: `./scripts/sv0 test` runs, in order: **sv0c** `make test`, **sv0vm** bytecode tests, **C** integration (`task/sv0c-milestone-1/02-integration-test.sh`), **VM** integration (`task/sv0vm-milestone-2/02-integration-test.sh`), **`lib/bootstrap-sources.list`** entries on the VM (`bootstrap-build`), and **Markdown doctests** (`scripts/sv0_doctest.py`). Any failure yields a non-zero exit (CI-stable).
 - **doc tests**: `task/sv0-toolchain-milestone-2-prep/doctests.md` defines ```sv0 doctest``` fences; policy and runner documented in that file. Run alone via `./scripts/sv0 doctest`.
 - **`sv0 fmt`**: **`scripts/fmt_sv0.py`** normalizes trailing whitespace and final newline for all `*.sv0` under `sv0c/` and `sv0vm/`. Shell-only formatting is **`./scripts/sv0 fmt-shell`**; **`./scripts/sv0 fmt`** runs both.
-- **`sv0 doc`**: **`scripts/gen_sv0_doc.py`** writes **`build/sv0-toolchain-doc/index.md`** (spec pointers + outline of `sv0c/rewrite/*.sv0`). Same command still verifies expected **sv0doc** and **sv0-mcp** README paths.
-- **rewrite entry**: **`sv0c/rewrite/`** with **`span_core.sv0`** (seed transliteration of `span.sml`) and **`rewrite/README.md`** documenting bootstrap build commands (`./scripts/sv0 rewrite-build`, `sml` + `--target=vm`).
+- **`sv0 doc`**: **`scripts/gen_sv0_doc.py`** writes **`build/sv0-toolchain-doc/index.md`** (spec pointers + outline of `sv0c/lib/**/*.sv0`). Same command still verifies expected **sv0doc** and **sv0-mcp** README paths.
+- **bootstrap-in-sv0 entry**: **`sv0c/lib/`** with **`span_core.sv0`** (seed transliteration of `sml/error/span.sml`), **`lib/README.md`**, **`lib/LAYOUT.md`**, and **`lib/bootstrap-sources.list`**; commands `./scripts/sv0 bootstrap-build`, `sml` + `--target=vm`. **`sml/`** holds the SML bootstrap; top-level **`lexer/`**, etc. are reserved for future sv0 modules.
 
 ## implementation notes
 
 - **`.sv0.md` literate** formatting is **out of scope** for this slice (no normative grammar change in sv0doc); extend `fmt_sv0.py` when blocks are specified.
 - **`sv0 doc`** is an **index / outline**, not a full API reference with contracts; link to **sv0doc** and the vision doc for normative prose.
-- Some **`main`** control-flow shapes still **omit IR lowering** in the bootstrap compiler; **`span_core.sv0`** uses straight-line code so **VM** emits `main` (see `rewrite/README.md`).
+- Some **`main`** control-flow shapes still **omit IR lowering** in the bootstrap compiler; **`span_core.sv0`** uses straight-line code so **VM** emits `main` (see `lib/README.md`).
 
 ## refinement log
 
 - 2026-03-25: initial scaffold; criteria copied from design milestone 2; VM split documented.
 - 2026-04-01: implemented unified test, doctest runner, fmt_sv0, doc generator, `sv0c/rewrite/`; marked **complete**.
+- 2026-04-02: SML bootstrap → **`sv0c/sml/`**; sv0 seeds → **`sv0c/lib/`**; recursive **`--project`**; **`lexer/`** placeholder; **`bootstrap-build`** + **`lib/bootstrap-sources.list`** only (no **`rewrite-build`** / **`rewrite-sources.list`**).
 
 ## related
 

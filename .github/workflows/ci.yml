@@ -1,4 +1,4 @@
-# Full sv0-toolchain: submodules + unified scripts/sv0 harness (SML, C, VM, rewrite, golden, doctests) + sv0-mcp.
+# Full sv0-toolchain: submodules + unified scripts/sv0 harness (SML, C, VM, bootstrap-in-sv0, golden, doctests) + sv0-mcp.
 name: CI
 
 on:
