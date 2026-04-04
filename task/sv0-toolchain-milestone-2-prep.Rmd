@@ -72,6 +72,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-12: **`lexer/token_delim_core.sv0`** bracket tags + **`expr_entry_core`** bracket **16**; refreshed goldens.
 - 2026-04-13: **`parser/item_entry_core.sv0`** + golden (`parseItem` dispatch).
 - 2026-04-14: **`parser/stmt_entry_core.sv0`** + golden (`tryStmt` dispatch).
+- 2026-04-15: **`lexer/token_keyword_core.sv0`** break/continue tags + **`stmt_entry_core`** alignment; goldens refreshed.
 
 ## related
 

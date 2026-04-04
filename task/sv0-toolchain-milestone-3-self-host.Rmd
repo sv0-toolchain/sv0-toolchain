@@ -84,7 +84,8 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-11: **`parser/expr_entry_core.sv0`** — **`parsePrimaryExpr`** first-token dispatch table + bridges to **`token_keyword_core`** / **`token_delim_core`**; **`primary_arm_is_compound`**.
 - 2026-04-12: **`lexer/token_delim_core.sv0`** — **`[`** / **`]`** tags **16**/**17**; **`parser/expr_entry_core`** uses **16** for **`LBRACKET`** (aligned with delim seed).
 - 2026-04-13: **`parser/item_entry_core.sv0`** — **`parseItem`** first-token dispatch (clearer than block **`tryStmt`**); **`tag_kw_fn`** bridge.
-- 2026-04-14: **`parser/stmt_entry_core.sv0`** — **`tryStmt`** dispatch (**let → break → continue → assert →** **`tryAssignStmt`**); bridges **`tag_kw_let`**, assert **56**; **`parseBlock`** **`parseExpr`** fallback noted. *Next:* **`tryAssignStmt`** / LHS slice or grow keyword lexer for **break**/**continue**.
+- 2026-04-14: **`parser/stmt_entry_core.sv0`** — **`tryStmt`** dispatch (**let → break → continue → assert →** **`tryAssignStmt`**); bridges **`tag_kw_let`**, assert **56**; **`parseBlock`** **`parseExpr`** fallback noted.
+- 2026-04-15: **`lexer/token_keyword_core.sv0`** — **`tag_kw_break`**/**`tag_kw_continue`** (**4**/**5**); **`stmt_entry_core`** uses them (replaces **190**/**191** stand-ins); refreshed goldens. *Next:* **`tryAssignStmt`** / LHS slice.
 
 ## related
 
