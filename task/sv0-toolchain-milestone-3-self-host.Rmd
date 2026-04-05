@@ -94,6 +94,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-21: **`parser/expr_rhs_stub_core.sv0`** — assignment RHS stub (**atom** / **`lit + lit`**); **`try_assign_stmt_core`** uses **`rhs_stub_ok_with_semi`** (names avoid **`then`**/**`ident`** lexer pitfalls in identifiers). *Next:* wider RHS / Pratt slice.
 - 2026-04-22: **`try_assign_deref_op_rhs_stub`** — deref LHS + same RHS stub as ident path (**`*x = 1 + 2`**); keeps assign story testable before full **`parseExpr`**. *Next:* Pratt slice or field path + binop RHS.
 - 2026-04-23: **`try_assign_field_op_rhs_stub`** — field LHS (**`ident . ident`**) + binop RHS stub (**`a.b = 1 + 2`**). *Next:* Pratt or deeper LHS (index, nested field).
+- 2026-04-24: **`try_assign_index_op_rhs_stub`** — **`ident [ int_lit ]`** + binop RHS stub; index operand is literal **40** only in this seed. *Next:* Pratt (precedence) or compound index / nested LHS.
 
 ## related
 
