@@ -83,6 +83,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-23: **`try_assign_field_op_rhs_stub`** (8-arg) for **`a.b = 1 + 2`**, truncated RHS, **`EQ` instead of DOT** between segments; golden refreshed.
 - 2026-04-24: **`try_assign_index_op_rhs_stub`** (9-arg) for **`a[i] = 1 + 2`** (**`[`**/**`]`** **16**/**17**), truncated RHS, **`DOT` instead of `[`**; golden refreshed.
 - 2026-04-25: **`parser/expr_pratt_stub_core.sv0`** — **`pratt_rhs_ok_with_semi`** (**tag_op_plus** **20** vs **tag_op_star** **22**, six-token window); bootstrap list + golden.
+- 2026-04-26: **`try_assign_stmt_core`** — **`try_assign_id_op_pratt_rhs_stub`** + duplicated **`pratt_rhs_ok_with_semi`**; **`tok_binop_star`**; golden refreshed.
 
 ## related
 
