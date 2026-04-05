@@ -92,6 +92,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-19: **`parser/assign_binop_core.sv0`** — **`assignBinop`** band **211–220** + ast ids **1–10**; **`assign_lhs_core`** / **`try_assign_stmt_core`** use full binop set for follow tokens.
 - 2026-04-20: **`lexer/token_op_core.sv0`** — **`tag_op_pluseq`**…**`tag_op_gtgteq`** (**211–220**) + **`is_compound_assign_tag`**; aligns with **`assign_binop_core`**.
 - 2026-04-21: **`parser/expr_rhs_stub_core.sv0`** — assignment RHS stub (**atom** / **`lit + lit`**); **`try_assign_stmt_core`** uses **`rhs_stub_ok_with_semi`** (names avoid **`then`**/**`ident`** lexer pitfalls in identifiers). *Next:* wider RHS / Pratt slice.
+- 2026-04-22: **`try_assign_deref_op_rhs_stub`** — deref LHS + same RHS stub as ident path (**`*x = 1 + 2`**); keeps assign story testable before full **`parseExpr`**. *Next:* Pratt slice or field path + binop RHS.
 
 ## related
 
