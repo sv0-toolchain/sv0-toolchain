@@ -77,6 +77,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-17: **`lexer/token_delim_core.sv0`** DOT + assignment **`=`**; **`assign_lhs_core`** + goldens refreshed.
 - 2026-04-18: **`parser/try_assign_stmt_core.sv0`** + golden (`tryAssignStmt` stub).
 - 2026-04-19: **`parser/assign_binop_core.sv0`** + golden; **`assign_lhs_core`** / **`try_assign_stmt_core`** refreshed.
+- 2026-04-20: **`lexer/token_op_core.sv0`** compound-assign tags **211–220** + golden.
 
 ## related
 
