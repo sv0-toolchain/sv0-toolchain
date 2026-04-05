@@ -88,7 +88,8 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-15: **`lexer/token_keyword_core.sv0`** — **`tag_kw_break`**/**`tag_kw_continue`** (**4**/**5**); **`stmt_entry_core`** uses them (replaces **190**/**191** stand-ins); refreshed goldens.
 - 2026-04-16: **`parser/assign_lhs_core.sv0`** — **`parseAssignTarget`** depth shapes + **`tryParseAssignLHS`** entry / assign-tail; one **`+=`** binop stand-in **211**.
 - 2026-04-17: **`lexer/token_delim_core.sv0`** — **`tag_delim_dot`** (**18**), **`tag_delim_eq`** (**19**, **`Token.EQ`**); **`assign_lhs_core`** aligned; goldens refreshed.
-- 2026-04-18: **`parser/try_assign_stmt_core.sv0`** — **`tryAssignStmt`** with **one-token RHS** + **`;`**; rejects **`==`**, missing **`;`**. *Next:* expand **`assign_binop`** / **`parseExpr`** length or **`assign_binop_core`**.
+- 2026-04-18: **`parser/try_assign_stmt_core.sv0`** — **`tryAssignStmt`** with **one-token RHS** + **`;`**; rejects **`==`**, missing **`;`**.
+- 2026-04-19: **`parser/assign_binop_core.sv0`** — **`assignBinop`** band **211–220** + ast ids **1–10**; **`assign_lhs_core`** / **`try_assign_stmt_core`** use full binop set for follow tokens. *Next:* **`parseExpr`** length / **`token_op_core`** compound assigns.
 
 ## related
 
