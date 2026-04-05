@@ -92,6 +92,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-05-02: **`pratt_is_add_binop`** (**20** / **21**) in **`pratt_from_atom`** — binary **`-`** with **`*`** precedence; goldens refreshed.
 - 2026-05-03: **`parser/expr_cast_core.sv0`** — **`parseCastExpr`** stub (**atom `;`** or **`atom as i32 ;`**, **`as`** **61**); bootstrap list + golden.
 - 2026-05-04: **`expr_cast_core`** — **`parse_cast_stub_ok_with_semi6`**: chained **`as`** (**`1 as i32 as u32 ;`** as two **73** type slots); golden refreshed.
+- 2026-05-05: **`parser/type_parse_core.sv0`** — **`parse_type_unit_ok`** (**10**/**11**), **`parse_type_ident_ok`** (**73**); bootstrap list + golden.
 
 ## related
 

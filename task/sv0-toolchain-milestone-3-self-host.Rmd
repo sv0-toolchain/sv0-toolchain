@@ -105,6 +105,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-05-02: Binary **MINUS** in **`pratt_from_atom`** (**`pratt_is_add_binop`**). *Next:* **`parseCastExpr`** stub or chained add-tier (**`a+b+c ;`**) with wider window.
 - 2026-05-03: **`parser/expr_cast_core.sv0`** — **`parse_cast_stub_ok_with_semi`** (**`1 ;`**, **`x ;`**, **`1 as i32 ;`**, **`x as i32 ;`**); **`tok_as_kw` = 61**; golden + list. *Next:* chained **`as`** or **`parseType`** slice.
 - 2026-05-04: **`parse_cast_stub_ok_with_semi6`** — up to **two** **`as`** + **IDENT** type slots (**73**); rejects third **`as`** in six slots. *Next:* **`parseType`** seed or wider window.
+- 2026-05-05: **`parser/type_parse_core.sv0`** — **`parseType`** prefix: **`()`** + **IDENT**; cross-ref **token_delim** **10**/**11**. *Next:* wire into **`expr_cast_core`** or tuple slice.
 
 ## related
 
