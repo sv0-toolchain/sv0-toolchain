@@ -97,6 +97,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-24: **`try_assign_index_op_rhs_stub`** — **`ident [ int_lit ]`** + binop RHS stub; index operand is literal **40** only in this seed. *Next:* Pratt (precedence) or compound index / nested LHS.
 - 2026-04-25: **`expr_pratt_stub_core`** — two-level precedence slice (**tag_op_star** **22** tighter than **tag_op_plus** **20**). *Next:* wire into **`try_assign`** RHS or grow **`parseExpr`** in SML then transliterate.
 - 2026-04-26: **`try_assign_id_op_pratt_rhs_stub`** — ident-assign path accepts Pratt window (**`x = 1+2*3`**, **`+= 1*2+3`**). *Next:* same for deref / field / index LHS, or SML **`parseExpr`** slice.
+- 2026-04-27: **`try_assign_{deref,field,index}_op_pratt_rhs_stub`** — Pratt RHS on all simple LHS shapes. *Next:* SML **`parseExpr`** subsection seed or wider Pratt (unary **`-`**, longer chains).
 
 ## related
 
