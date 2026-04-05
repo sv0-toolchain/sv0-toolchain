@@ -86,6 +86,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-26: **`try_assign_stmt_core`** — **`try_assign_id_op_pratt_rhs_stub`** + duplicated **`pratt_rhs_ok_with_semi`**; **`tok_binop_star`**; golden refreshed.
 - 2026-04-27: Pratt RHS helpers for **deref** / **field** / **index** LHS (**9** / **10** / **11** args); golden refreshed.
 - 2026-04-28: **`parser/expr_prec_ladder_core.sv0`** — **`parseAddExpr`** / **`parseMulExpr`** tier ranks (**20–21** vs **22–23**) + golden; documents SML ladder above numeric Pratt.
+- 2026-04-29: **`lexer/token_op_core.sv0`** — **`tag_op_percent`** (**29**), **`is_operator_tag`**; **`expr_prec_ladder_core`** mul tier includes **`%`**; goldens refreshed.
 
 ## related
 
