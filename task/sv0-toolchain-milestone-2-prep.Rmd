@@ -78,6 +78,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-18: **`parser/try_assign_stmt_core.sv0`** + golden (`tryAssignStmt` stub).
 - 2026-04-19: **`parser/assign_binop_core.sv0`** + golden; **`assign_lhs_core`** / **`try_assign_stmt_core`** refreshed.
 - 2026-04-20: **`lexer/token_op_core.sv0`** compound-assign tags **211–220** + golden.
+- 2026-04-21: **`parser/expr_rhs_stub_core.sv0`** + **`try_assign_stmt_core`** RHS stub + goldens.
 
 ## related
 
