@@ -101,6 +101,7 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-04-28: **`parser/expr_prec_ladder_core.sv0`** — **`prec_binary_rank`** / add vs mul layer predicates vs **`token_op_core`**; comment maps **`parser.sml`** chain through **`parseLeftAssoc`**. *Next:* unary **`-`** Pratt / **`parseCastExpr`** slice ( **`%`** added **2026-04-29**).
 - 2026-04-29: **`lexer/token_op_core`** — **`tag_op_percent`** (**29**, mul tier with **22**/**23**); operator band **20–29**; **`expr_prec_ladder_core`** uses **`is_mul_tier_tag`**. *Next:* unary **`-`** in Pratt stub, or **`parseCastExpr`** seed.
 - 2026-04-30: Pratt RHS — optional unary **21** (**`parseUnaryExpr`** slice); six-token cap still rejects **` - a+b*c ;`** without a seventh slot. *Next:* **`pratt_rhs` t0..t6** or **`parseCastExpr`** stub.
+- 2026-05-01: **`pratt_rhs_ok_with_semi7`** + **`stub7`** assign helpers — full unary Pratt chain in seven RHS slots. *Next:* **`parseCastExpr`** seed or binary **MINUS** in **`pratt_from_atom`**.
 
 ## related
 

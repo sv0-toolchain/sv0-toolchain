@@ -88,6 +88,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-28: **`parser/expr_prec_ladder_core.sv0`** — **`parseAddExpr`** / **`parseMulExpr`** tier ranks (**20–21** vs **22–23**) + golden; documents SML ladder above numeric Pratt.
 - 2026-04-29: **`lexer/token_op_core.sv0`** — **`tag_op_percent`** (**29**), **`is_operator_tag`**; **`expr_prec_ladder_core`** mul tier includes **`%`**; goldens refreshed.
 - 2026-04-30: **`expr_pratt_stub_core`** / **`try_assign_stmt_core`** — unary **MINUS** (**21**) before primary (**`pratt_from_atom`** refactor); goldens refreshed.
+- 2026-05-01: **`pratt_rhs_ok_with_semi7`** (**t0..t6**) + **`try_assign_*_op_pratt_rhs_stub7`** — unary **` - lit+lit*lit ;`** on all Pratt LHS shapes; goldens refreshed.
 
 ## related
 
