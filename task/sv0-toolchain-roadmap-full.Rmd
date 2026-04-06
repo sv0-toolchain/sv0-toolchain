@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-06T00:00:00Z"
+updated: "2026-05-17T00:00:00Z"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active
@@ -108,7 +108,7 @@ This is a human-readable summary; detailed criteria stay in each **`task/sv0-*-m
 | **0** — language spec | **Baseline met** | **sv0doc** holds grammar, types, contracts, memory model, keywords, and **bytecode anchor** docs under **`bytecode/`**. Parent **`./scripts/sv0 test`** runs **`verify_sv0doc_baseline.py`** so required paths cannot disappear silently. Normative prose can still evolve. |
 | **1** — SML bootstrap compiler | **Met** | **sv0c** lexer through C backend; unit + integration tests green under **`./scripts/sv0 test`**. |
 | **2** — self-host prep | **Met** (split: VM vs prep) | **sv0vm** runs bytecode; **sv0c** emits **`.sv0b`**. Prep slice: **`sv0 test`** (includes **sv0doc** baseline, block-comment guard, **`task/*.Rmd`** YAML lint, **stage0** golden C for listed seeds, doctests), **`sv0 test-guards`** / **`make test-guards`** for the same three Python checks without **SML**, **fmt**, **doc**, **bootstrap-in-sv0** programs. |
-| **3** — self-hosting compiler | **Not met** | Compiler still authored primarily in **SML**; **sv0** seeds in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** are **incremental transliterations**, not a full replacement. Completing M3 means the sv0 compiler can build itself and the SML bootstrap is archived. |
+| **3** — self-hosting compiler | **Not met** | **Bar (see `task/sv0-toolchain-milestone-3-self-host.Rmd`):** **sv0** at **feature parity** with SML; **VM** fully functional; **strict** bytecode vs SML on a **curated ~50–100** program suite (allowlist only); diagnostics **behavioral** first, **tighten to strict**. **Retirement:** tag **`bootstrap-sml-final`**, **`sv0c/sml/`** → **`sml-legacy/`**, default build **sv0-only**. Today: seeds only; SML still authoritative. |
 
 **Finishing milestone 3** requires **compiler transliteration and a bootstrap recipe**, not only docs or tests. Use **`task/sv0-toolchain-milestone-3-self-host.Rmd`** (“remaining work vs definition of done”) for the live checklist; **`task/sv0-toolchain-milestone-2-prep.Rmd`** (“quick start”) for the unified test entry.
 

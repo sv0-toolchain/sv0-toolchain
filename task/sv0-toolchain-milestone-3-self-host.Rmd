@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-01T00:00:00Z"
+updated: "2026-05-17T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -18,7 +18,7 @@ roadmap_parent: sv0-toolchain-roadmap-full
 
 ## purpose
 
-match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 3**: the **sv0 compiler is implemented in sv0**, compiles **itself** (via the C backend or another agreed bootstrap path), and the **SML bootstrap** is **archived** or demoted to fallback-only.
+match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 3**: the **sv0 compiler is fully implemented in sv0**, reaches **feature parity** with the SML compiler (including a **fully functional VM** path), compiles **itself**, and the **SML bootstrap** is **tagged and moved to legacy** (see **stakeholder decisions**).
 
 ## dependencies
 
@@ -36,20 +36,47 @@ match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task
 
 ## layout decision
 
-The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). **SML bootstrap** sources live under **`sv0c/sml/`**. **sv0 transliteration** starts in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`); add parallel top-level dirs (**`lexer/`**, **`parser/`**, …) as modules split out of `lib/`.
+The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). **Until SML retirement:** bootstrap sources live under **`sv0c/sml/`**. **At retirement (tag `bootstrap-sml-final`):** that tree moves to **`sv0c/sml-legacy/`**; default builds do not compile SML (see stakeholder decisions). **sv0 transliteration** continues in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`) and parallel dirs (**`lexer/`**, **`parser/`**, …).
+
+## stakeholder decisions (implementation bar)
+
+These choices unblock scope, CI, and transliteration priority. **Do not** move **`sml/`** or drop SML from default workflows **until** the completion criteria below are met.
+
+### bootstrap and retirement
+
+- **End state:** compiler **fully in sv0**; **SML** removed from the **default** developer and CI path.
+- **Git tag on sv0c:** **`bootstrap-sml-final`** — last revision where SML is the authoritative bootstrap **before** legacy layout (exact repo: **sv0c**; meta-repo may mirror with a note if you tag both).
+- **Layout at retirement:** **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; **`make`** / **`./scripts/sv0`** compile SML only via **explicit legacy** targets documented in **sv0c** README.
+- **Cold bootstrap / recovery:** document how to build from **`bootstrap-sml-final` + `sml-legacy/`** if the self-host chain breaks.
+
+### feature parity and VM
+
+- **M3 is not complete** until the **sv0** compiler matches the **SML** compiler for **language surface and semantics** (feature parity) **and** the **VM** path is **fully functional** for real programs (not “C-only self-host is enough”).
+
+### parity proof (“split contract”, preference strict)
+
+- **VM:** **strict** parity — **sv0-emitted bytecode** matches **SML-emitted reference** for every program in the **v1 corpus**, except items on a written **allowlist** (intentional deltas only).
+- **Diagnostics / frontend:** **behavioral** parity first (accept/reject, stable codes or categories where defined); **prefer tightening toward strict** (message text, ordering) over time.
+
+### VM corpus v1
+
+- **New curated suite** (explicit manifest + SML goldens), e.g. under **`sv0c/test/vm-parity/`** or as agreed — **not** “entire `./scripts/sv0 test`” on day one.
+- **Initial size:** **~50–100** programs for depth; expand as features land.
 
 ## completion criteria (refine as you implement)
 
-- **full pipeline in sv0**: lexer → parser → name resolution → type check → contracts → IR → **C backend** (minimum); VM backend parity as a stretch or parallel track
-- **self-compile**: documented recipe builds the compiler binary using the previous stage (SML or older sv0)
-- **bootstrap story**: SML sources archived or clearly marked legacy; upgrade path documented
+- **full pipeline in sv0**: lexer → parser → name resolution → type check → contracts → IR → **C backend** and **VM backend**; **feature parity** with SML on the agreed surface and semantics.
+- **self-compile**: documented recipe: **sv0** compiler builds **sv0** sources end-to-end; cold path from **`bootstrap-sml-final`** / **`sml-legacy/`** documented until optional binary-only bootstrap exists.
+- **VM strict parity v1**: curated **~50–100** programs, **SML golden bytecode**, sv0 matches except **allowlist**.
+- **diagnostics**: behavioral baseline; tighten toward **strict** where practical (see above).
+- **SML retirement**: tag **`bootstrap-sml-final`**; **`sml/`** → **`sml-legacy/`**; default build is **sv0-only**; recovery documented.
 
 ## remaining work vs definition of done
 
 milestone **3** is **not** complete until the bullets above hold. today’s repo state (for orientation only — grows with commits):
 
 - **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, and integration tests.
-- **not done (core M3):** most of **`sv0c/sml/`** (full lexer/parser/checker/IR/codegen) still has **no** corresponding **sv0** module; **no** documented **self-compile** loop where **sv0-built** compiler builds **sv0** sources end-to-end; **SML** is still the **authoritative** implementation.
+- **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **no** documented **sv0→sv0** self-compile loop; **no** **vm-parity v1** suite (50–100 programs, SML goldens); **SML** still **authoritative**; **feature parity**, **VM bar**, and **SML retirement** (tag + **`sml-legacy/`**) are **not** satisfied.
 
 closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
 
@@ -69,11 +96,11 @@ closing M3 is **sequenced transliteration + parity + bootstrap story** (phases b
 
 ### phase 3: parity and regression
 
-/ai: require the same golden tests as bootstrap sv0c; define tolerance for diagnostics text.
+Implement **VM strict parity v1**: curated **~50–100** programs, SML-produced **golden bytecode**, comparison harness in CI; maintain an explicit **allowlist** for bytecode deltas. **Diagnostics:** start from **behavioral** parity on a shared accept/reject corpus; tighten toward **strict** per stakeholder preference. Keep **stage0** / bootstrap **C** goldens for **`lib/`** seeds as today unless superseded by a wider policy.
 
 ### phase 4: archive bootstrap
 
-/ai: document location of archived SML, version pins, and recovery procedure if self-host breaks.
+Apply tag **`bootstrap-sml-final`**; move **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; remove SML from default **make** / **`./scripts/sv0`** paths; document **legacy** build targets, **version pins**, and **recovery** if self-host breaks.
 
 ## refinement log
 
@@ -127,6 +154,7 @@ closing M3 is **sequenced transliteration + parity + bootstrap story** (phases b
 - 2026-05-15: **“Remaining work vs definition of done”** — honest gap list (seeds + harness vs full **`sml/`** transliteration + self-compile); YAML **`updated:`** spacing; README links M3 **in progress**.
 - 2026-05-16: YAML **`updated:`** / **`state:`** spacing normalized (graph sync).
 - 2026-04-02: Parent **`verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** on **`task/sv0c-*.Rmd`** hub files (graph-safe).
+- 2026-05-17: **Stakeholder decisions** — retire SML after **feature parity** + **full VM**; **strict** bytecode parity on **curated ~50–100** program VM suite (SML goldens) with allowlist; diagnostics **behavioral → strict** preference; retirement = tag **`bootstrap-sml-final`**, **`sml/`** → **`sml-legacy/`**, sv0-only default build.
 
 ## related
 
