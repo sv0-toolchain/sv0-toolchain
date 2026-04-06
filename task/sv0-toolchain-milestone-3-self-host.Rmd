@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-17T00:00:00Z"
+updated: "2026-05-18T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -45,7 +45,7 @@ These choices unblock scope, CI, and transliteration priority. **Do not** move *
 ### bootstrap and retirement
 
 - **End state:** compiler **fully in sv0**; **SML** removed from the **default** developer and CI path.
-- **Git tag on sv0c:** **`bootstrap-sml-final`** — last revision where SML is the authoritative bootstrap **before** legacy layout (exact repo: **sv0c**; meta-repo may mirror with a note if you tag both).
+- **Git tag (sv0c only):** **`bootstrap-sml-final`** on the **sv0c** repository — last revision where SML is the authoritative bootstrap **before** **`sml/`** → **`sml-legacy/`**. Do **not** place this tag on the **sv0-toolchain** meta-repo; document the **sv0c** tag in meta-repo README/tasks for discoverability.
 - **Layout at retirement:** **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; **`make`** / **`./scripts/sv0`** compile SML only via **explicit legacy** targets documented in **sv0c** README.
 - **Cold bootstrap / recovery:** document how to build from **`bootstrap-sml-final` + `sml-legacy/`** if the self-host chain breaks.
 
@@ -69,7 +69,7 @@ These choices unblock scope, CI, and transliteration priority. **Do not** move *
 - **self-compile**: documented recipe: **sv0** compiler builds **sv0** sources end-to-end; cold path from **`bootstrap-sml-final`** / **`sml-legacy/`** documented until optional binary-only bootstrap exists.
 - **VM strict parity v1**: curated **~50–100** programs, **SML golden bytecode**, sv0 matches except **allowlist**.
 - **diagnostics**: behavioral baseline; tighten toward **strict** where practical (see above).
-- **SML retirement**: tag **`bootstrap-sml-final`**; **`sml/`** → **`sml-legacy/`**; default build is **sv0-only**; recovery documented.
+- **SML retirement**: tag **`bootstrap-sml-final`** on **sv0c** (not the meta-repo); **`sml/`** → **`sml-legacy/`**; default build is **sv0-only**; recovery documented.
 
 ## remaining work vs definition of done
 
@@ -100,7 +100,7 @@ Implement **VM strict parity v1**: curated **~50–100** programs, SML-produced 
 
 ### phase 4: archive bootstrap
 
-Apply tag **`bootstrap-sml-final`**; move **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; remove SML from default **make** / **`./scripts/sv0`** paths; document **legacy** build targets, **version pins**, and **recovery** if self-host breaks.
+Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; remove SML from default **make** / **`./scripts/sv0`** paths; document **legacy** build targets, **version pins**, and **recovery** if self-host breaks.
 
 ## refinement log
 
@@ -155,6 +155,7 @@ Apply tag **`bootstrap-sml-final`**; move **`sv0c/sml/`** → **`sv0c/sml-legacy
 - 2026-05-16: YAML **`updated:`** / **`state:`** spacing normalized (graph sync).
 - 2026-04-02: Parent **`verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** on **`task/sv0c-*.Rmd`** hub files (graph-safe).
 - 2026-05-17: **Stakeholder decisions** — retire SML after **feature parity** + **full VM**; **strict** bytecode parity on **curated ~50–100** program VM suite (SML goldens) with allowlist; diagnostics **behavioral → strict** preference; retirement = tag **`bootstrap-sml-final`**, **`sml/`** → **`sml-legacy/`**, sv0-only default build.
+- 2026-05-18: **`bootstrap-sml-final`** lives **only** on **sv0c** (no duplicate tag on **sv0-toolchain** meta-repo).
 
 ## related
 
