@@ -1,0 +1,64 @@
+---
+description: Spec-first rule for language semantics, contracts, typing, memory model, and bytecode behavior
+globs:
+  - "sv0doc/**"
+  - "task/**/*.Rmd"
+alwaysApply: false
+---
+
+The specification is the source of truth for language and bytecode semantics.
+
+## Semantic authority
+
+For any change involving:
+
+- syntax
+- grammar
+- typing rules
+- contract semantics
+- memory model
+- ownership/borrowing rules
+- lowering assumptions that affect language meaning
+- bytecode semantics
+- runtime guarantees exposed as language behavior
+
+first confirm whether the authoritative source belongs in `sv0doc/`.
+
+## Required change order
+
+For semantic work, prefer this order:
+
+1. confirm or update spec/design intent
+2. update milestone/task documents if they track the semantic work
+3. update compiler or VM implementation
+4. validate that implementation matches the documented behavior
+
+## Hard constraints
+
+Do not invent semantics that are not documented or clearly implied.
+Do not let implementation silently become the language definition.
+Do not restate uncertain behavior as settled fact.
+
+When there is ambiguity:
+
+- preserve the distinction between current behavior and intended behavior
+- call out the ambiguity explicitly
+- avoid speculative “helpful” semantic expansions
+
+## Contracts and type system
+
+Respect the project’s design preference that types and contracts serve different roles:
+
+- types express what can be expressed statically in the type system
+- contracts express additional invariants, relationships, and guarantees
+
+Do not collapse those concepts into each other casually.
+
+## Literate/spec style
+
+When editing spec-facing material, preserve a style that remains useful to both humans and tools:
+
+- explicit definitions
+- clearly scoped sections
+- examples when helpful
+- separation of normative behavior from commentary

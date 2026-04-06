@@ -19,6 +19,8 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 this workspace uses the [AI agent workflow structure](http://development.sasankvishnubhatla.net/tcowmbh/note/ai-agent-workflow-structure.html) to organize development work. agent files (`.Rmd`) in `task/` orchestrate implementation through directives and companion scripts.
 
+**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. they sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
+
 ### milestone structure
 
 ```

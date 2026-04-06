@@ -1,0 +1,58 @@
+---
+description: Compiler-local rules and boundaries for sv0c
+globs:
+  - "sv0c/**"
+alwaysApply: false
+---
+
+`sv0c/` owns compiler implementation details.
+
+## Compiler-layer discipline
+
+When changing compiler behavior, identify which compiler layer is affected:
+
+- lexer
+- parser
+- AST
+- name resolution
+- type checking
+- contract analysis
+- intermediate representation
+- lowering
+- C backend
+- VM backend
+- diagnostics
+- tests
+
+Do not make broad compiler edits without understanding which layer owns the behavior.
+
+## Boundary rules
+
+- do not treat compiler implementation details as the normative language definition
+- do not encode speculative semantics that are not grounded in the spec
+- keep parser behavior, type behavior, and lowering behavior conceptually separate
+- keep diagnostics aligned with the actual enforced rule
+
+## Backend discipline
+
+When a change affects code generation:
+
+- distinguish whether it affects the C backend, the VM backend, or shared lowering
+- do not assume a backend-specific workaround is a language-level rule
+- prefer shared semantic consistency before backend-specific special cases
+
+## Documentation and tests
+
+Prefer tests that prove the intended compiler behavior explicitly.
+
+If behavior changes, update:
+
+- relevant compiler-local docs
+- related milestone/task documents when they track the affected area
+- diagnostics or golden outputs if applicable
+
+## Avoid
+
+Do not mix unrelated cleanup with parser/type/lowering behavior changes unless clearly justified.
+Do not hide semantic changes inside refactors.
+Do not change diagnostics in ways that obscure what rule is actually being enforced.

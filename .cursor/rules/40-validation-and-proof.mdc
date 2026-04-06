@@ -1,0 +1,52 @@
+---
+description: Validation discipline, evidence requirements, and truthfulness about what was actually checked
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+Validation statements must be precise.
+
+## Hard requirements
+
+- never claim a command was run unless it was actually run
+- never claim tests passed unless they were actually run and passed
+- never imply validation coverage that did not happen
+- if validation was not run, say so explicitly
+
+## Reporting rules
+
+When reporting validation, name the exact command or class of check used.
+
+Examples of acceptable reporting style:
+
+- “ran targeted compiler check”
+- “ran the relevant pytest target”
+- “updated docs only; no code validation run”
+- “did not run tests in this edit”
+
+Do not use vague statements like “verified” or “confirmed” without saying how.
+
+## Validation strategy
+
+Prefer the narrowest relevant validation first, then broaden only if needed.
+
+Possible categories include:
+
+- targeted unit tests
+- submodule-local compile/check targets
+- integration tests
+- root-level orchestration checks
+- documentation/path consistency checks
+
+## Completeness expectations
+
+For a behavior change, validate behavior.
+For a command or interface change, validate the affected callers and docs.
+For a documentation change, validate that commands, paths, and references remain consistent.
+
+## Honesty over appearance
+
+If some validation could not be run, say that plainly.
+If a change is based on static reasoning only, say that plainly.
+Do not substitute confidence for evidence.

@@ -1,0 +1,52 @@
+---
+description: VM-local rules and runtime boundaries for sv0vm
+globs:
+  - "sv0vm/**"
+alwaysApply: false
+---
+
+`sv0vm/` owns bytecode execution behavior and VM internals.
+
+## VM-layer discipline
+
+When changing VM behavior, identify whether the change affects:
+
+- instruction semantics
+- bytecode decoding/encoding assumptions
+- stack discipline
+- call behavior
+- runtime checks
+- memory/runtime support
+- built-in behavior
+- tracing/debugging facilities
+- tests
+
+## Boundary rules
+
+- VM behavior must agree with documented bytecode semantics
+- do not use the VM as the place where language semantics are invented
+- distinguish runtime implementation details from externally visible guarantees
+- keep failure behavior explicit
+
+## Execution correctness
+
+When changing interpreter behavior:
+
+- reason about the stack effect
+- reason about failure modes
+- reason about whether the change is semantic, representational, or purely internal
+- prefer targeted tests for instruction behavior and edge cases
+
+## Integration discipline
+
+If VM behavior interacts with `sv0c` lowering or bytecode generation:
+
+- preserve the boundary between bytecode producer and bytecode consumer
+- avoid “fixing” a compiler bug only in the VM unless that is explicitly intended
+- surface mismatches between emitted bytecode and VM expectations clearly
+
+## Avoid
+
+Do not silently broaden instruction behavior.
+Do not hide bytecode format changes inside implementation refactors.
+Do not report runtime behavior as authoritative if it conflicts with documented bytecode semantics.

@@ -1,0 +1,69 @@
+---
+description: Writing style for design docs, task docs, and agent-oriented workspace documents
+globs:
+  - "**/*.md"
+  - "**/*.Rmd"
+alwaysApply: false
+---
+
+Write documents in this workspace so they are useful to both humans and AI agents.
+
+## Writing priorities
+
+Prioritize:
+
+- explicit purpose
+- clear scope
+- concrete file and path references
+- named invariants and constraints
+- stepwise implementation guidance
+- explicit validation guidance
+- visible assumptions and open questions
+
+Prefer operational clarity over polished vagueness.
+
+## Document structure
+
+When creating or revising design-oriented documents, prefer a shape that is easy to execute from top to bottom:
+
+1. context
+2. goals
+3. constraints
+4. architecture or design
+5. implementation plan
+6. validation
+7. open questions or follow-ups
+
+## Separation of concerns
+
+Keep these concepts distinct when possible:
+
+- current state
+- desired state
+- normative decisions
+- unresolved proposals
+- implementation steps
+- validation steps
+
+Do not blur a proposal into an accepted design without saying so.
+
+## Style expectations
+
+- prefer concrete nouns over broad abstractions
+- prefer file-level and command-level specificity
+- use lists when they improve execution clarity
+- make cross-repo dependencies explicit
+- preserve machine-consumable structure in agent/workflow docs
+
+## Avoid
+
+Avoid vague instructions such as:
+
+- “clean this up”
+- “refactor as needed”
+- “improve architecture”
+- “make it better”
+
+unless the scope and criteria are made concrete.
+
+Avoid hiding constraints in paragraphs where an agent could miss them.

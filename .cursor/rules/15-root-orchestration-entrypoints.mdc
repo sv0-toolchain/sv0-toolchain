@@ -1,0 +1,55 @@
+---
+description: Rules for root-level orchestration files, aggregate commands, and workspace entrypoints
+globs:
+  - "README.md"
+  - "Makefile"
+  - "scripts/**"
+  - "task/*.Rmd"
+alwaysApply: false
+---
+
+Root-level files coordinate the workspace. They are not the place to duplicate detailed submodule internals unless the information is genuinely cross-cutting.
+
+## Root file role
+
+Keep root-level files focused on:
+
+- workspace-wide developer workflows
+- aggregate commands
+- environment coordination
+- milestone/task navigation
+- cross-submodule integration points
+
+Prefer referencing submodule-local detail instead of re-documenting it extensively in the root.
+
+## Stable interfaces
+
+Treat root entrypoints as stable interfaces unless the task explicitly changes them.
+
+This includes, when relevant:
+
+- `make` targets exposed by the root `Makefile`
+- `./scripts/sv0 ...` subcommands
+- task-document entrypoints in `task/`
+
+If one of these interfaces changes, update all affected root docs and validation steps consistently.
+
+## Command consistency
+
+When editing command docs or orchestration:
+
+- keep command names, intent, and expected sequencing aligned
+- avoid introducing undocumented command aliases casually
+- prefer one canonical root command per workflow where possible
+
+## Task index discipline
+
+Treat top-level task documents as navigation and orchestration artifacts.
+
+They should remain easy to scan and should continue to point a developer or agent toward the correct owning document or submodule.
+
+## Avoid
+
+Do not let root docs become a second spec.
+Do not let root scripts become an undocumented compatibility layer.
+Do not move submodule-local behavior into the root without a clear cross-cutting reason.

@@ -1,0 +1,47 @@
+---
+description: Tooling, MCP, graph, and developer-support rules for sv0-mcp
+globs:
+  - "sv0-mcp/**"
+alwaysApply: false
+---
+
+`sv0-mcp/` provides tooling, graph, synchronization, and MCP-server behavior that supports the development workflow.
+
+## Ownership model
+
+Treat `sv0-mcp/` as developer-support infrastructure, not as the normative source of language semantics.
+
+It may reflect or index information from the rest of the workspace, but it should not silently redefine language, compiler, or VM behavior.
+
+## Boundary rules
+
+- tooling may consume the spec; it does not define the spec
+- graph/schema assumptions must remain explicit
+- derived metadata must be distinguishable from source-of-truth content
+- debugging conveniences must not silently become architectural commitments
+
+## Editing expectations
+
+When changing `sv0-mcp/`, identify whether the work affects:
+
+- MCP server behavior
+- graph sync or ingestion
+- schema/model assumptions
+- query behavior
+- tests
+- developer docs
+- integration with root workflows
+
+## Sync discipline
+
+If the tool mirrors data from other parts of the workspace:
+
+- preserve provenance
+- keep source-of-truth ownership obvious
+- avoid baking fragile assumptions about file layout or semantics unless documented
+
+## Avoid
+
+Do not embed speculative language semantics in tooling logic.
+Do not let convenience queries become the only place where important behavior is described.
+Do not hide cross-repo coupling behind opaque sync logic.

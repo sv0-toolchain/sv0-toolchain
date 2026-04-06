@@ -1,0 +1,56 @@
+---
+description: Global workspace identity and ownership map for the sv0 toolchain meta-repo
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+This repository is the parent development workspace for the sv0 programming language compiler and toolchain.
+
+## Workspace model
+
+Treat this repository as a coordinated meta-repo with submodules and root-level orchestration.
+
+Primary subprojects:
+
+- `sv0doc/` — formal language specification, bytecode specification, roadmap links, and documentation hub
+- `sv0c/` — compiler implementation and compiler-local documentation
+- `sv0vm/` — bytecode VM interpreter and VM-local notes
+- `sv0-mcp/` — MCP server and graph/tooling support for development and debugging
+
+Primary root-level coordination areas:
+
+- `task/` — agent workflow documents and milestone/task orchestration
+- `scripts/` — root helper scripts and top-level developer entrypoints
+- `Makefile` — root orchestration targets
+- `README.md` — workspace map, commands, and developer overview
+- `.agent/` — agent runner support
+- `.cursor/` — Cursor project rules
+
+## Ownership boundaries
+
+Use the following ownership model unless the task explicitly changes architecture:
+
+- language and bytecode semantics belong to `sv0doc/`
+- compiler implementation details belong to `sv0c/`
+- VM execution behavior belongs to `sv0vm/`
+- MCP, graph, and debugging/tooling behavior belong to `sv0-mcp/`
+- workspace-wide orchestration belongs to the root repo
+
+Do not treat root docs or tooling as the normative source of language semantics when `sv0doc/` is the correct authority.
+
+## Default change order
+
+For cross-cutting work, prefer this order:
+
+1. confirm or update the relevant spec or design source
+2. update milestone/task orchestration documents if they track the work
+3. update implementation in the owning submodule
+4. update validation, tests, and root orchestration if needed
+5. update summary documentation
+
+## Root workflow posture
+
+Assume the root repo coordinates work across submodules rather than replacing submodule-local docs and implementation details.
+
+Prefer minimal, scoped edits that preserve this separation.

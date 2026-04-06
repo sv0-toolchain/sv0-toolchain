@@ -1,0 +1,59 @@
+---
+description: Execution discipline for non-trivial work in the sv0 toolchain workspace
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+For non-trivial work, establish an execution plan before making broad edits.
+
+## Planning requirements
+
+Before editing multiple files or multiple subprojects, identify:
+
+- the owning area for the requested change
+- whether the change is spec, implementation, tooling, documentation, or orchestration
+- which files are likely to change
+- why each file needs to change
+- how the change will be validated
+
+## Decomposition rules
+
+Prefer narrow, reversible edits over speculative rewrites.
+
+When work spans multiple layers, use this default order:
+
+1. source-of-truth spec or design
+2. task or milestone tracking documents
+3. implementation
+4. tests and validation artifacts
+5. root orchestration and summaries
+
+## Multi-submodule discipline
+
+If more than one submodule is involved:
+
+- state the intended edit order mentally and follow it consistently
+- keep semantic authority in `sv0doc/`
+- keep implementation details in the owning submodule
+- avoid mixing unrelated refactors into behavior changes
+
+## Ambiguity handling
+
+When requirements are ambiguous:
+
+- preserve current structure
+- surface the ambiguity explicitly
+- do not invent hidden semantics or architecture decisions
+- distinguish current behavior from proposed behavior
+
+## Change style
+
+Prefer edits that are:
+
+- local
+- explicit
+- easy to review
+- consistent with the repository’s milestone and task structure
+
+Do not start with sweeping rewrites when the task can be satisfied with a smaller scoped change.

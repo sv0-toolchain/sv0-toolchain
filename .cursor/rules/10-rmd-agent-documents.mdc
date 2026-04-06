@@ -1,0 +1,82 @@
+---
+description: Rules for operational .Rmd agent documents, directives, and companion script routing
+globs:
+  - "**/*.Rmd"
+alwaysApply: true
+---
+
+`.Rmd` files in this workspace are operational documents. Treat them as structured artifacts that can serve simultaneously as:
+
+1. documentation
+2. orchestration
+3. machine-consumable instruction
+
+## Preserve document structure
+
+Preserve YAML frontmatter unless the edit explicitly changes metadata.
+
+Important frontmatter fields include:
+
+- `created`
+- `updated`
+- `id`
+- `key`
+- `state`
+- `tags`
+- `title`
+- `type`
+
+Do not casually delete, flatten, or rewrite these files into generic markdown.
+
+## Preserve directive semantics
+
+Recognize and preserve directive lines that begin with `/`.
+
+Current directive vocabulary includes:
+
+- `/ai: <prompt>`
+- `/run: <script>`
+- `/run:inline <lang>`
+- `/require: <dependency>`
+- `/assert: <shell-expression>`
+- `/on-error: halt|continue|retry N|fallback <script>`
+- `/if: <shell-expression>`
+- `/else`
+- `/endif`
+- `/capture: VAR`
+- `/prompt: VAR <message>`
+- `/env: KEY=VALUE`
+- `/include: <path>`
+- `/output: <path>`
+
+Do not silently remove directive lines because they look machine-oriented.
+
+If a directive appears stale or questionable, preserve it and mark the issue explicitly rather than deleting it casually.
+
+## Companion script routing
+
+When reasoning about `/run: <script>` in this repository, use the established companion-folder model:
+
+- the companion folder is in the same directory as the `.Rmd` file
+- the companion folder name matches the `.Rmd` file name without the `.Rmd` extension
+- scripts referenced by `/run:` are resolved relative to that companion folder
+
+## Editing expectations
+
+When editing `.Rmd` files:
+
+- keep sections explicit and well-labeled
+- separate current state, target state, implementation plan, and validation
+- prefer additive edits over destructive restructuring
+- preserve folder-pairing conventions between an `.Rmd` file and its companion scripts
+- preserve the role of the document as an executable workflow artifact
+
+## Output handling
+
+Treat generated content beneath directives as part of the living document.
+
+Do not overwrite prior output casually unless the task clearly requires regeneration or cleanup.
+
+## Operational mindset
+
+Assume `.Rmd` files in `task/` are the main orchestration surface for milestone and subtask work across the workspace.

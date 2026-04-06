@@ -1,0 +1,39 @@
+---
+description: Hard guardrails and anti-patterns for edits across the sv0 toolchain workspace
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+## Do not
+
+- invent unstated sv0 language semantics
+- treat implementation behavior as the spec when `sv0doc/` is the right authority
+- silently rename milestone files, task files, root commands, or key workflow entrypoints
+- replace a scoped change with a broad rewrite without clear justification
+- delete `.Rmd` frontmatter casually
+- delete directive lines casually
+- duplicate submodule-local architecture into root docs without a cross-cutting reason
+- report validation that did not happen
+- hide behavior changes inside style-only or cleanup-only edits
+- let tooling assumptions silently become language rules
+
+## When uncertain
+
+Prefer to:
+
+- preserve structure
+- make the ambiguity explicit
+- keep the change narrow
+- defer semantic invention
+- distinguish current behavior from intended behavior
+
+## Review posture
+
+Optimize for edits that are:
+
+- truthful
+- reversible
+- easy to review
+- aligned with submodule ownership
+- consistent with milestone/task orchestration
