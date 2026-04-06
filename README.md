@@ -11,6 +11,8 @@ development workspace for the sv0 programming language compiler and toolchain.
 | [sv0vm](sv0vm/) | bytecode VM interpreter implementation + notes | SML/NJ | **Milestone 2 (task) complete** |
 | [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain | Python | tracked under **`task/sv0-mcp-milestone-0.Rmd`** |
 
+**Design milestones 0–2 (task-tracked)** are **met** at the level described in [`task/sv0-toolchain-roadmap-full.Rmd`](task/sv0-toolchain-roadmap-full.Rmd). **Milestone 3** (self-hosting compiler in **sv0**) is **in progress** — see [`task/sv0-toolchain-milestone-3-self-host.Rmd`](task/sv0-toolchain-milestone-3-self-host.Rmd) for definition of done vs remaining transliteration work; it is **not** closable by documentation alone.
+
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
 ## agent workflow
@@ -54,9 +56,9 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 ### developer commands (toolchain root)
 
 ```bash
-make help             # check, test, test-mcp, doc, fmt, integration-vm, ci, ci-all
+make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
-./scripts/sv0 test    # units + C/VM integration + sv0c/lib bootstrap .sv0 + Markdown doctests
+./scripts/sv0 test    # sv0c units; block-comment guard; sv0doc baseline; task/*.Rmd YAML lint; sv0vm bytecode; C+VM integration; bootstrap .sv0; stage0 golden C; doctests
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
 ./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
 ./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
@@ -67,6 +69,8 @@ make help             # check, test, test-mcp, doc, fmt, integration-vm, ci, ci-
 ./scripts/sv0 ci      # check + full ./scripts/sv0 test (no sv0-mcp)
 ./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
 ```
+
+**Neo4j dev graph (sv0-mcp):** after you change **`task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP **`sync_graph`** tool).
 
 From **sv0c**: `make check` (compile only), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
 

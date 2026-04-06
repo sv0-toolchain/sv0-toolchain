@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated:"2026-04-01T00:00:00Z"
+updated: "2026-04-02T00:00:00Z"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active
@@ -59,7 +59,7 @@ use it to:
 ```
 sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
                     │
-                    ├── milestone-2-prep (tooling + rewrite start)
+                    ├── milestone-2-prep (tooling + lib/ bootstrap seeds)
                     │
                     v
             self-host (milestone 3)
@@ -97,11 +97,25 @@ sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
 
 - `graph_entity_type: roadmap` on this file — Neo4j node label `Roadmap` (not inferred from the key).
 - `roadmap_parent: sv0-toolchain-roadmap-full` on child milestone tasks — creates `PART_OF` edges into this roadmap for `sv0://roadmaps` and `get_roadmap_children`.
+- After you change **task/** milestones, **sv0doc** normative files, or major **sv0c** / **sv0vm** layout, refresh the graph: from **sv0-mcp**, `./scripts/sync-graph.sh all` (or `uv run sv0-mcp sync --scope all`). Cursor agents can also call the **sv0-graph** MCP tool **`sync_graph`** with scope **`all`**. **`./scripts/sv0 test`** runs **`verify_task_rmd_frontmatter.py`** so common YAML typos in **`task/*.Rmd`** (missing space after **`:`**) fail before a bad sync.
+
+## milestones 0–3 — progress snapshot
+
+This is a human-readable summary; detailed criteria stay in each **`task/sv0-*-milestone-*.Rmd`**.
+
+| Design milestone | Status (high level) | What “done” means today |
+|------------------|---------------------|-------------------------|
+| **0** — language spec | **Baseline met** | **sv0doc** holds grammar, types, contracts, memory model, keywords, and **bytecode anchor** docs under **`bytecode/`**. Parent **`./scripts/sv0 test`** runs **`verify_sv0doc_baseline.py`** so required paths cannot disappear silently. Normative prose can still evolve. |
+| **1** — SML bootstrap compiler | **Met** | **sv0c** lexer through C backend; unit + integration tests green under **`./scripts/sv0 test`**. |
+| **2** — self-host prep | **Met** (split: VM vs prep) | **sv0vm** runs bytecode; **sv0c** emits **`.sv0b`**. Prep slice: **`sv0 test`** (includes **sv0doc** baseline, block-comment guard, **`task/*.Rmd`** YAML lint, **stage0** golden C for listed seeds, doctests), **fmt**, **doc**, **bootstrap-in-sv0** programs. |
+| **3** — self-hosting compiler | **Not met** | Compiler still authored primarily in **SML**; **sv0** seeds in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** are **incremental transliterations**, not a full replacement. Completing M3 means the sv0 compiler can build itself and the SML bootstrap is archived. |
+
+**Finishing milestone 3** requires **compiler transliteration and a bootstrap recipe**, not only docs or tests. Use **`task/sv0-toolchain-milestone-3-self-host.Rmd`** (“remaining work vs definition of done”) for the live checklist; **`task/sv0-toolchain-milestone-2-prep.Rmd`** (“quick start”) for the unified test entry.
 
 ## suggested implementation order
 
 1. close **VM + integration parity** (`task/sv0vm-milestone-2.Rmd`) — **complete**
-2. advance **prep** tooling and rewrite entry points (`task/sv0-toolchain-milestone-2-prep.Rmd`) — **complete**
+2. advance **prep** tooling and **`lib/`** bootstrap seeds (`task/sv0-toolchain-milestone-2-prep.Rmd`) — **complete**
 3. **self-hosting** (`task/sv0-toolchain-milestone-3-self-host.Rmd`)
 4. parallel tracks as staffing allows: **verification** (4), **cross-cutting** items that unblock macros/tests, **MCP** polish
 5. **LLVM + crypto** (5), then **kernel** (6)

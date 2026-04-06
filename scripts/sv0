@@ -16,7 +16,10 @@ usage: sv0 <command> [args]
 
   check              compile sv0c (CM) and sv0vm (use) — fast smoke compile
   build              alias for check
-  test               unified: sv0c + sv0vm units, C + VM integration, bootstrap-in-sv0 programs, doctests
+  test               sv0c units; .sv0 block-comment guard; sv0doc baseline; task/*.Rmd YAML lint;
+                       sv0vm bytecode tests; C + VM integration; bootstrap .sv0 on VM; stage0 golden
+                       C vs SML emit (when lib/golden/stage0/<stem>.c exists); Markdown doctests — see
+                       task/sv0-toolchain-milestone-2-prep.Rmd for exact order
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
   doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
   doctest            run Markdown sv0 doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
@@ -86,6 +89,19 @@ run_check() {
 run_test() {
   local ec=0
   (cd "$SV0C" && make test) || ec=1
+  sv0_require_cmd python3
+  sv0_info "sv0 test: .sv0 block-comment nesting guard"
+  if ! python3 "$ROOT/scripts/check_sv0_block_comment_nesting.py"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: sv0doc baseline (milestone 0 paths)"
+  if ! python3 "$ROOT/scripts/verify_sv0doc_baseline.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: task/*.Rmd YAML front matter (graph-safe keys)"
+  if ! python3 "$ROOT/scripts/verify_task_rmd_frontmatter.py" --root "$ROOT"; then
+    ec=1
+  fi
   require_sml
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml";' | sml >/dev/null); then
     ec=1
@@ -113,7 +129,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + stage0 golden + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + stage0 golden + block-comment guard + sv0doc baseline + task YAML + doctests"
 }
 
 run_doctests() {

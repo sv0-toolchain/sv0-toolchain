@@ -26,6 +26,7 @@ milestone 0 is complete when:
 - the contract semantics are specified
 - the memory model (ownership, borrowing, borrows()) is defined
 - the keyword and operator reference is extracted
+- bytecode documentation has anchor files under **sv0doc/bytecode/** (**format** + **instructions**) so **`sv0 doc`**, sv0c VM backend, and sv0vm share a normative location; **`scripts/verify_sv0doc_baseline.py`** (run from **`./scripts/sv0 test`**) asserts those paths plus the other required **sv0doc** files exist and are non-empty
 
 ## dependencies
 
@@ -110,6 +111,8 @@ each sub-agent extracts one section into a formal, implementable format.
 /assert: test -f $SV0DOC_ROOT/contracts/semantics.md
 /assert: test -f $SV0DOC_ROOT/memory-model/ownership.md
 /assert: test -f $SV0DOC_ROOT/keywords/reference.md
+/assert: test -f $SV0DOC_ROOT/bytecode/format.md
+/assert: test -f $SV0DOC_ROOT/bytecode/instructions.md
 
 /ai: review the extracted specifications for completeness and consistency.
      identify any gaps or ambiguities that need resolution before sv0c

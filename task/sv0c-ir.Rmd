@@ -2,7 +2,7 @@
 created: "2026-03-22T00:00:00Z"
 id: task-sv0c-ir
 key: sv0c-ir
-state:done
+state: done
 tags:
     - sv0
     - sv0c

@@ -1,9 +1,9 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated:"2026-04-01T00:00:00Z"
+updated: "2026-04-01T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
-state:active
+state: active
 tags:
   - sv0
   - sv0-toolchain
@@ -43,6 +43,15 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - **full pipeline in sv0**: lexer → parser → name resolution → type check → contracts → IR → **C backend** (minimum); VM backend parity as a stretch or parallel track
 - **self-compile**: documented recipe builds the compiler binary using the previous stage (SML or older sv0)
 - **bootstrap story**: SML sources archived or clearly marked legacy; upgrade path documented
+
+## remaining work vs definition of done
+
+milestone **3** is **not** complete until the bullets above hold. today’s repo state (for orientation only — grows with commits):
+
+- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, and integration tests.
+- **not done (core M3):** most of **`sv0c/sml/`** (full lexer/parser/checker/IR/codegen) still has **no** corresponding **sv0** module; **no** documented **self-compile** loop where **sv0-built** compiler builds **sv0** sources end-to-end; **SML** is still the **authoritative** implementation.
+
+closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -106,6 +115,18 @@ The self-hosting **compiler in sv0** lives entirely inside the **sv0c** reposito
 - 2026-05-03: **`parser/expr_cast_core.sv0`** — **`parse_cast_stub_ok_with_semi`** (**`1 ;`**, **`x ;`**, **`1 as i32 ;`**, **`x as i32 ;`**); **`tok_as_kw` = 61**; golden + list. *Next:* chained **`as`** or **`parseType`** slice.
 - 2026-05-04: **`parse_cast_stub_ok_with_semi6`** — up to **two** **`as`** + **IDENT** type slots (**73**); rejects third **`as`** in six slots. *Next:* **`parseType`** seed or wider window.
 - 2026-05-05: **`parser/type_parse_core.sv0`** — **`parseType`** prefix: **`()`** + **IDENT**; cross-ref **token_delim** **10**/**11**. *Next:* wire into **`expr_cast_core`** or tuple slice.
+- 2026-05-06: **`include`** preprocessor + **`token_type_stub`**; shared **IDENT** / primitive-type helpers; lexer block-comment note in **`sv0c/doc/transliteration-include.md`**; refreshed **`expr_cast_core`** / **`type_parse_core`** stage0 goldens.
+- 2026-05-07: CI guard **`scripts/check_sv0_block_comment_nesting.py`** (nested **`/*`** in **`/* … */`**) wired into **`sv0 test`**.
+- 2026-05-08: guard scans **sv0c** + **sv0doc** + **sv0vm** + **sv0-mcp** roots (present dirs only).
+- 2026-05-09: **`type_parse_prefix`** include; **cast** stub **7**-slot + **`parseType`** unit type; block-comment / comment-snare lines in **`.sv0`** covered by **`check_sv0_block_comment_nesting.py`**.
+- 2026-05-10: **`parser/expr_unary_stub_core.sv0`** — dedicated **`parseUnaryExpr`** transliteration seed (unary chain + atom) vs **`parser.sml`**; **`lib/lower_unop_core.sv0`** — IR unary lowering slice vs **`lowering.sml`** (**Neg**/**Not**/**BitNot** vs **addr-of** path); **`bootstrap-sources.list`** + stage0 goldens; parent-repo **`verify_sv0doc_baseline`** ties **sv0doc** bytecode stubs into the same **`sv0 test`** run as compiler seeds.
+- 2026-05-11: Docs + tracking aligned with **`./scripts/sv0 test`** and milestones **0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**; **sv0-mcp** graph sync run after task/spec doc updates.
+- 2026-05-12: **`sv0-mcp/README.md`** sync subsection; roadmap YAML fix; graph sync.
+- 2026-05-13: **`scripts/sv0 test`** / **`make test`** help text documents **stage0** golden step; **`sv0 self-host-check-golden`** cross-ref unchanged.
+- 2026-05-14: Workspace index documents **`make help`** vs **`./scripts/sv0`**; roadmap YAML spacing.
+- 2026-05-15: **“Remaining work vs definition of done”** — honest gap list (seeds + harness vs full **`sml/`** transliteration + self-compile); YAML **`updated:`** spacing; README links M3 **in progress**.
+- 2026-05-16: YAML **`updated:`** / **`state:`** spacing normalized (graph sync).
+- 2026-04-02: Parent **`verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** on **`task/sv0c-*.Rmd`** hub files (graph-safe).
 
 ## related
 

@@ -66,7 +66,7 @@ use these as entry points for scoped work:
 | formal language spec (extracted) | `task/sv0doc-milestone-0.Rmd` | sv0doc |
 | bootstrap compiler (design M1) | `task/sv0c-milestone-1.Rmd` | sv0c |
 | bytecode VM + backend (design M2 slice) | `task/sv0vm-milestone-2.Rmd` | sv0c + sv0vm |
-| self-hosting **prep** — test, fmt, doc, rewrite (design M2 slice) | `task/sv0-toolchain-milestone-2-prep.Rmd` | parent + sv0c + sv0vm |
+| self-hosting **prep** — test, fmt, doc, **`lib/`** bootstrap seeds (design M2 slice) | `task/sv0-toolchain-milestone-2-prep.Rmd` | parent + sv0c + sv0vm |
 | self-hosting compiler (design M3) | `task/sv0-toolchain-milestone-3-self-host.Rmd` | sv0c (+ future sv0 sources) |
 | advanced verification (design M4) | `task/sv0-toolchain-milestone-4-verification.Rmd` | sv0c + sv0doc |
 | LLVM + crypto (design M5) | `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` | sv0c + sv0doc |
@@ -94,11 +94,13 @@ sv0-mcp (graph + MCP tools) ────────────────┘
 
 from the **sv0-toolchain** root:
 
+- **`make help`** — prints **`Makefile`** targets (**`make test`**, **`make check`**, **`make doc`**, **`ci`**, …). The **`make test`** lines summarize the same unified pipeline as **`./scripts/sv0 test`** (Python guards: block comments, **sv0doc** baseline, **`task/*.Rmd`** YAML; then **sv0vm**, integration, bootstrap, **stage0** golden, doctests); use this when you prefer **`make`** over invoking **`scripts/sv0`** directly.
 - `./scripts/sv0 check` — compile-check **sv0c** + load **sv0vm**
-- `./scripts/sv0 test` — **sv0c** + **sv0vm** tests
+- `./scripts/sv0 test` — **sv0c** `make test`; Python guards (**block-comment nesting**, **sv0doc baseline**, **`verify_task_rmd_frontmatter.py`** on **`task/*.Rmd`**); **sv0vm** bytecode tests; C + VM integration scripts; **bootstrap-build** for **`sv0c/lib/bootstrap-sources.list`**; **stage0** golden C diff when **`sv0c/lib/golden/stage0/<stem>.c`** exists; **doctests** (see **`task/sv0-toolchain-milestone-2-prep.Rmd`** completion criteria for the exact order)
 - `./scripts/sv0 test-mcp` — **sv0-mcp** unit tests (requires `uv`; skips if absent)
 - `./scripts/sv0 doc` — required paths under **sv0doc** (+ **sv0-mcp** README)
 - `make ci` / `./scripts/sv0 ci` — **SML-only** CI: check + test + VM integration script (does **not** run sv0-mcp)
 - `make ci-all` / `./scripts/sv0 ci-all` — same as `ci`, then **sv0-mcp** tests when `uv` is available
+- **Neo4j graph (sv0-mcp)** — after meaningful updates to **`task/`** milestones, **sv0doc** normative files, or compiler/VM layout docs indexed by sync, run **`cd sv0-mcp && ./scripts/sync-graph.sh all`** so MCP tools (**`get_task_status`**, **`get_milestone_progress`**, etc.) stay accurate. Equivalent: **`uv run sv0-mcp sync --scope all`** from **sv0-mcp**, or the **sv0-graph** MCP **`sync_graph`** tool.
 
 /ai: when planning cross-cutting changes, list which submodules need commits and in what order (spec first vs code first).

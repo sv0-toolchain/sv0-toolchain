@@ -1,16 +1,16 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated:"2026-04-01T00:00:00Z"
+updated: "2026-04-02T00:00:00Z"
 id: task-sv0-toolchain-milestone-2-prep
 key: sv0-toolchain-milestone-2-prep
-state:complete
+state: complete
 tags:
   - sv0
   - sv0-toolchain
   - milestone-2
   - self-hosting-prep
   - tooling
-title: "milestone 2 (prep): self-hosting preparation — test, fmt, doc, rewrite entry"
+title: "milestone 2 (prep): self-hosting preparation — test, fmt, doc, lib/ bootstrap seeds"
 type: task
 roadmap_parent: sv0-toolchain-roadmap-full
 ---
@@ -22,6 +22,16 @@ roadmap_parent: sv0-toolchain-roadmap-full
 the [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 2** includes more than the bytecode VM: **test framework** (`sv0 test`, doc tests), **`sv0 fmt`** and **`sv0 doc`** for **sv0 source**, and **beginning the rewrite** of compiler components in sv0.
 
 this task file owns the **non-VM** parts of design milestone 2. the VM stack is **`task/sv0vm-milestone-2.Rmd`**.
+
+## quick start (first time in this repo)
+
+from the **sv0-toolchain** root, after submodules are present:
+
+1. **`make help`** — see **`Makefile`** targets; read the two-line **`make test`** summary (same pipeline as **`./scripts/sv0 test`**).
+2. **`make test`** or **`./scripts/sv0 test`** — full unified harness (see **completion criteria** below for order). requires **SML/NJ**, **python3**, and time for integration stages.
+3. optional: **`./scripts/sv0 doctest`** — Markdown doctests only; **`./scripts/sv0 bootstrap-build`** — VM-compile listed **`.sv0`** seeds.
+
+for the workspace map and **Neo4j** graph refresh after **`task/`** or **sv0doc** edits, see **`task/sv0-toolchain-workspace.Rmd`**.
 
 ## dependencies
 
@@ -43,7 +53,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 
 ## completion criteria (met)
 
-- **`sv0 test`**: `./scripts/sv0 test` runs, in order: **sv0c** `make test`, **sv0vm** bytecode tests, **C** integration (`task/sv0c-milestone-1/02-integration-test.sh`), **VM** integration (`task/sv0vm-milestone-2/02-integration-test.sh`), **`lib/bootstrap-sources.list`** entries on the VM (`bootstrap-build`), and **Markdown doctests** (`scripts/sv0_doctest.py`). Any failure yields a non-zero exit (CI-stable).
+- **`sv0 test`**: `./scripts/sv0 test` runs, in order: **sv0c** `make test`; **Python** block-comment nesting guard (`scripts/check_sv0_block_comment_nesting.py`); **Python** milestone-0 path check (`scripts/verify_sv0doc_baseline.py` — grammar, types, contracts, memory model, keywords, **`sv0doc/bytecode/*`** stubs); **Python** **`task/*.Rmd`** front-matter lint (`scripts/verify_task_rmd_frontmatter.py` — catches missing spaces after **`:`** on **`updated`**, **`title`**, **`state`**, **`roadmap_parent`**, etc., so **sv0-mcp** graph sync does not silently mis-parse tasks); **sv0vm** bytecode tests; **C** integration (`task/sv0c-milestone-1/02-integration-test.sh`); **VM** integration (`task/sv0vm-milestone-2/02-integration-test.sh`); **`lib/bootstrap-sources.list`** on the VM (`bootstrap-build`); **stage0** golden C vs bootstrap emit when `lib/golden/stage0/<stem>.c` exists; **Markdown doctests** (`scripts/sv0_doctest.py`). Any failure yields a non-zero exit (CI-stable).
 - **doc tests**: `task/sv0-toolchain-milestone-2-prep/doctests.md` defines ```sv0 doctest``` fences; policy and runner documented in that file. Run alone via `./scripts/sv0 doctest`.
 - **`sv0 fmt`**: **`scripts/fmt_sv0.py`** normalizes trailing whitespace and final newline for all `*.sv0` under `sv0c/` and `sv0vm/`. Shell-only formatting is **`./scripts/sv0 fmt-shell`**; **`./scripts/sv0 fmt`** runs both.
 - **`sv0 doc`**: **`scripts/gen_sv0_doc.py`** writes **`build/sv0-toolchain-doc/index.md`** (spec pointers + outline of `sv0c/lib/**/*.sv0`). Same command still verifies expected **sv0doc** and **sv0-mcp** README paths.
@@ -93,6 +103,18 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-05-03: **`parser/expr_cast_core.sv0`** — **`parseCastExpr`** stub (**atom `;`** or **`atom as i32 ;`**, **`as`** **61**); bootstrap list + golden.
 - 2026-05-04: **`expr_cast_core`** — **`parse_cast_stub_ok_with_semi6`**: chained **`as`** (**`1 as i32 as u32 ;`** as two **73** type slots); golden refreshed.
 - 2026-05-05: **`parser/type_parse_core.sv0`** — **`parse_type_unit_ok`** (**10**/**11**), **`parse_type_ident_ok`** (**73**); bootstrap list + golden.
+- 2026-05-06: textual **`include "…";`** (see **`sv0c/doc/transliteration-include.md`**) + **`parser/include/token_type_stub.sv0`** shared by **`expr_cast_core`** / **`type_parse_core`**; block-comment **`/*`** nesting pitfall documented; stage0 goldens refreshed.
+- 2026-05-07: **`scripts/check_sv0_block_comment_nesting.py`** + **`sv0 test`** hook — scans **`sv0c/**/*.sv0`** for nested **`/*`** inside block comments (regression guard).
+- 2026-05-08: same guard extended to **`sv0doc/`**, **`sv0vm/`**, **`sv0-mcp/`** when those directories exist (default roots; no **`.sv0`** there yet).
+- 2026-05-09: **`parser/include/type_parse_prefix.sv0`** — shared **`parse_type_unit_ok`** / **`parse_type_ident_ok`** + delim stand-ins; **`expr_cast_core`** gains **`parse_cast_stub_ok_with_semi7`** (**`()`** or **IDENT** after each **`as`**); block-comment guard extended to catch risky **`/*`‑like** sequences in **`.sv0`** lines; stage0 goldens refreshed.
+- 2026-05-10: **`sv0doc/bytecode/format.md`** + **`instructions.md`** (milestone-0 bytecode anchors for **`sv0 doc`**); **`scripts/verify_sv0doc_baseline.py`** + **`sv0 test`** hook; **`parser/expr_unary_stub_core.sv0`** (**`parseUnaryExpr`** five-token window); **`lib/lower_unop_core.sv0`** (**`unopToC`** / **ExprUnop** discriminant slice); stage0 goldens **`expr_unary_stub_core.c`**, **`lower_unop_core.c`**; **`lib/LAYOUT.md`** maps parser §6 / IR §10.
+- 2026-05-11: Human-facing docs: **`README.md`**, **`task/sv0-toolchain-workspace.Rmd`**, **`task/sv0-toolchain-roadmap-full.Rmd`** (milestones **0–3** snapshot table + graph-sync note); **`sv0doc/README.md`** milestone bullet for bytecode + **`verify_sv0doc_baseline`**; **`sv0c/lib/README.md`** entries for **`expr_unary_stub_core`** / **`lower_unop_core`**. **sv0-mcp** graph refreshed (**`sync_graph`** / **`./scripts/sync-graph.sh all`**).
+- 2026-05-12: **`sv0-mcp/README.md`** — **“When to run a full sync”**; **`task/sv0-toolchain-roadmap-full.Rmd`** YAML **`updated:`** spacing fix.
+- 2026-05-13: **`scripts/sv0`** **`test`** usage text + **`Makefile`** **`make test`** help aligned with real pipeline (stage0 golden + Python guards named); roadmap YAML **`updated:`** spacing corrected again for parsers that require a space after **`:`**.
+- 2026-05-14: **`task/sv0-toolchain-workspace.Rmd`** — **`make help`** called out so **`Makefile`** and **`./scripts/sv0`** stay discoverable together; roadmap YAML **`updated:`** fixed (space after colon).
+- 2026-05-15: **Quick start** subsection (**`make help`** → **`make test`** / **`sv0 test`**); YAML **`updated:`** + title (**bootstrap seeds** not “rewrite entry”). Roadmap note: M3 needs engineering, not docs-only.
+- 2026-05-16: YAML front matter normalized (**`updated:`** / **`title:`** / **`state:`** — space after colon) for **sv0-mcp** graph extractors and strict parsers; same for **`task/sv0-toolchain-roadmap-full.Rmd`**, **`task/sv0-toolchain-milestone-3-self-host.Rmd`**, **`task/sv0vm-milestone-2.Rmd`**. **`sv0vm-milestone-2.Rmd`** **`roadmap_parent`** restored to **`sv0-toolchain-roadmap-full`** (was corrupted).
+- 2026-04-02: **`scripts/verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** spacing on **`task/sv0c-*.Rmd`** hub files; regression guard so **`task/`** YAML stays graph-safe.
 
 ## related
 

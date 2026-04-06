@@ -1,9 +1,9 @@
 ---
 created: "2026-03-22T00:00:00Z"
-updated:"2026-04-01T00:00:00Z"
+updated: "2026-04-01T00:00:00Z"
 id: task-sv0vm-milestone-2
 key: sv0vm-milestone-2
-state:complete
+state: complete
 tags:
     - sv0
     - sv0vm
@@ -11,7 +11,7 @@ tags:
     - bytecode
 title: "milestone 2: sv0vm bytecode virtual machine (SML/NJ)"
 type: task
-roadmap_parent:sv0 - toolchain - roadmap - full
+roadmap_parent: sv0-toolchain-roadmap-full
 ---
 
 # milestone 2: sv0vm bytecode virtual machine (SML/NJ)

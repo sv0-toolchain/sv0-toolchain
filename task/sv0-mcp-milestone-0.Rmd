@@ -48,3 +48,13 @@ this milestone is complete when:
 /assert: test -f $SV0_MCP_ROOT/README.md
 /assert: test -f $SV0_MCP_ROOT/pyproject.toml
 /assert: test -d $SV0_MCP_ROOT/src/sv0_mcp
+
+## refinement log
+
+- 2026-05-11: Documented **operational discipline**: when **`task/`** milestones, **sv0doc** normative files, or indexed compiler layout change materially, run **`cd sv0-mcp && ./scripts/sync-graph.sh all`** (or **`uv run sv0-mcp sync --scope all`**, or MCP **`sync_graph`** scope **`all`**) so **Neo4j** and MCP tools reflect current tasks and spec links. Parent **README** and **`task/sv0-toolchain-workspace.Rmd`** now point contributors at this step.
+- 2026-05-12: **`sv0-mcp/README.md`** — subsection **“When to run a full sync”** (what to refresh after, shell commands, MCP **`sync_graph`**, link back to parent README) so submodule-only readers do not need the meta-repo to learn the workflow.
+- 2026-05-13: Parent **`scripts/sv0 test`** usage + **`make test`** help describe **stage0** golden + Python guards; graph sync after **`task/`** edits.
+- 2026-05-14: **`task/sv0-toolchain-workspace.Rmd`** documents **`make help`**; graph sync after **`task/`** edits.
+- 2026-05-15: Graph sync after milestone **2/3** + roadmap README edits (**M3** scope clarity).
+- 2026-05-16: Graph sync after YAML front-matter normalization on roadmap / M2 prep / M3 self-host / **sv0vm** M2 task files.
+- 2026-04-02: Parent **`verify_task_rmd_frontmatter.py`** in **`sv0 test`** keeps **`task/*.Rmd`** parseable for sync extractors; graph sync after this batch of **`task/`** edits.
