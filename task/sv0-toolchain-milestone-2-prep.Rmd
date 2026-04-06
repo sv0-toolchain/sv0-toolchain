@@ -115,6 +115,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-05-15: **Quick start** subsection (**`make help`** → **`make test`** / **`sv0 test`**); YAML **`updated:`** + title (**bootstrap seeds** not “rewrite entry”). Roadmap note: M3 needs engineering, not docs-only.
 - 2026-05-16: YAML front matter normalized (**`updated:`** / **`title:`** / **`state:`** — space after colon) for **sv0-mcp** graph extractors and strict parsers; same for **`task/sv0-toolchain-roadmap-full.Rmd`**, **`task/sv0-toolchain-milestone-3-self-host.Rmd`**, **`task/sv0vm-milestone-2.Rmd`**. **`sv0vm-milestone-2.Rmd`** **`roadmap_parent`** restored to **`sv0-toolchain-roadmap-full`** (was corrupted).
 - 2026-04-02: **`scripts/verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** spacing on **`task/sv0c-*.Rmd`** hub files; regression guard so **`task/`** YAML stays graph-safe.
+- 2026-04-03: **`task/sv0-toolchain-workspace.Rmd`** — one-line **YAML spacing** reminder for editors; re-normalized **`updated:`** / **`title:`** / **`state:`** / **`roadmap_parent`** on roadmap, M2 prep, M3, **sv0vm** M2, and **`task/sv0c-*.Rmd`** after in-tree regression (same shapes **`verify_task_rmd_frontmatter.py`** flags).
 
 ## related
 
