@@ -20,6 +20,8 @@ usage: sv0 <command> [args]
                        sv0vm bytecode tests; C + VM integration; bootstrap .sv0 on VM; stage0 golden
                        C vs SML emit (when lib/golden/stage0/<stem>.c exists); Markdown doctests — see
                        task/sv0-toolchain-milestone-2-prep.Rmd for exact order
+  test-guards        Python only: block-comment nesting, sv0doc baseline paths, task/*.Rmd YAML lint
+                       (no SML — use after editing task/*.Rmd, sv0doc, or .sv0 comments)
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
   doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
   doctest            run Markdown sv0 doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
@@ -86,20 +88,37 @@ run_check() {
   check_sv0vm
 }
 
-run_test() {
+# Python regression guards also run inside run_test; exposed as `sv0 test-guards` for fast iteration.
+run_python_guards() {
+  local label="${1:-sv0}"
   local ec=0
-  (cd "$SV0C" && make test) || ec=1
   sv0_require_cmd python3
-  sv0_info "sv0 test: .sv0 block-comment nesting guard"
+  sv0_info "$label: .sv0 block-comment nesting guard"
   if ! python3 "$ROOT/scripts/check_sv0_block_comment_nesting.py"; then
     ec=1
   fi
-  sv0_info "sv0 test: sv0doc baseline (milestone 0 paths)"
+  sv0_info "$label: sv0doc baseline (milestone 0 paths)"
   if ! python3 "$ROOT/scripts/verify_sv0doc_baseline.py" --root "$ROOT"; then
     ec=1
   fi
-  sv0_info "sv0 test: task/*.Rmd YAML front matter (graph-safe keys)"
+  sv0_info "$label: task/*.Rmd YAML front matter (graph-safe keys)"
   if ! python3 "$ROOT/scripts/verify_task_rmd_frontmatter.py" --root "$ROOT"; then
+    ec=1
+  fi
+  return "$ec"
+}
+
+run_test_guards() {
+  if ! run_python_guards "sv0 test-guards"; then
+    sv0_fail "sv0 test-guards: one or more Python checks failed"
+  fi
+  sv0_ok "sv0 test-guards: block-comment guard + sv0doc baseline + task YAML"
+}
+
+run_test() {
+  local ec=0
+  (cd "$SV0C" && make test) || ec=1
+  if ! run_python_guards "sv0 test"; then
     ec=1
   fi
   require_sml
@@ -501,6 +520,9 @@ case "$cmd" in
     ;;
   test)
     run_test
+    ;;
+  test-guards)
+    run_test_guards
     ;;
   test-mcp)
     run_test_mcp

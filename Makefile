@@ -1,7 +1,7 @@
 # sv0-toolchain — aggregate build, test, and VM integration.
 ROOT := $(abspath .)
 
-.PHONY: help check build test test-mcp doc fmt integration-vm ci ci-all all
+.PHONY: help check build test test-guards test-mcp doc fmt integration-vm ci ci-all all
 
 help:
 	@echo "sv0-toolchain targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make test            — unified harness: sv0c units; Python guards (block comments, sv0doc,"
 	@echo "                         task YAML); sv0vm; C+VM integration; bootstrap .sv0; stage0 golden;"
 	@echo "                         doctests (see task/sv0-toolchain-milestone-2-prep.Rmd)"
+	@echo "  make test-guards     — Python-only: block comments, sv0doc baseline, task/*.Rmd YAML (no SML)"
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
 	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
 	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"
@@ -23,6 +24,9 @@ check build:
 
 test:
 	@"$(ROOT)/scripts/sv0" test
+
+test-guards:
+	@"$(ROOT)/scripts/sv0" test-guards
 
 test-mcp:
 	@"$(ROOT)/scripts/sv0" test-mcp

@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-04T00:00:00Z"
+updated: "2026-04-05T00:00:00Z"
 id: task-sv0-toolchain-milestone-2-prep
 key: sv0-toolchain-milestone-2-prep
 state: complete
@@ -27,9 +27,10 @@ this task file owns the **non-VM** parts of design milestone 2. the VM stack is 
 
 from the **sv0-toolchain** root, after submodules are present:
 
-1. **`make help`** — see **`Makefile`** targets; read the two-line **`make test`** summary (same pipeline as **`./scripts/sv0 test`**).
+1. **`make help`** — see **`Makefile`** targets; read **`make test`** and **`make test-guards`** lines (same as **`./scripts/sv0 test`** / **`test-guards`**).
 2. **`make test`** or **`./scripts/sv0 test`** — full unified harness (see **completion criteria** below for order). requires **SML/NJ**, **python3**, and time for integration stages.
-3. optional: **`./scripts/sv0 doctest`** — Markdown doctests only; **`./scripts/sv0 bootstrap-build`** — VM-compile listed **`.sv0`** seeds.
+3. **`make test-guards`** or **`./scripts/sv0 test-guards`** — **Python only** (block comments, **sv0doc** baseline, **`task/*.Rmd`** YAML). same three checks as the start of **`sv0 test`**, **no SML** — use after **`task/`** or **sv0doc** edits before running the full harness.
+4. optional: **`./scripts/sv0 doctest`** — Markdown doctests only; **`./scripts/sv0 bootstrap-build`** — VM-compile listed **`.sv0`** seeds.
 
 for the workspace map and **Neo4j** graph refresh after **`task/`** or **sv0doc** edits, see **`task/sv0-toolchain-workspace.Rmd`**.
 
@@ -54,6 +55,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 ## completion criteria (met)
 
 - **`sv0 test`**: `./scripts/sv0 test` runs, in order: **sv0c** `make test`; **Python** block-comment nesting guard (`scripts/check_sv0_block_comment_nesting.py`); **Python** milestone-0 path check (`scripts/verify_sv0doc_baseline.py` — grammar, types, contracts, memory model, keywords, **`sv0doc/bytecode/*`** stubs); **Python** **`task/*.Rmd`** front-matter lint (`scripts/verify_task_rmd_frontmatter.py` — catches missing spaces after **`:`** on **`updated`**, **`title`**, **`state`**, **`roadmap_parent`**, etc., so **sv0-mcp** graph sync does not silently mis-parse tasks); **sv0vm** bytecode tests; **C** integration (`task/sv0c-milestone-1/02-integration-test.sh`); **VM** integration (`task/sv0vm-milestone-2/02-integration-test.sh`); **`lib/bootstrap-sources.list`** on the VM (`bootstrap-build`); **stage0** golden C vs bootstrap emit when `lib/golden/stage0/<stem>.c` exists; **Markdown doctests** (`scripts/sv0_doctest.py`). Any failure yields a non-zero exit (CI-stable).
+- **`sv0 test-guards`**: `./scripts/sv0 test-guards` (and **`make test-guards`**) runs **only** the three Python steps above — no **SML**, **sv0c** units, or integration scripts. Intended for fast feedback on **task** / **sv0doc** / **`.sv0`** comment edits.
 - **doc tests**: `task/sv0-toolchain-milestone-2-prep/doctests.md` defines ```sv0 doctest``` fences; policy and runner documented in that file. Run alone via `./scripts/sv0 doctest`.
 - **`sv0 fmt`**: **`scripts/fmt_sv0.py`** normalizes trailing whitespace and final newline for all `*.sv0` under `sv0c/` and `sv0vm/`. Shell-only formatting is **`./scripts/sv0 fmt-shell`**; **`./scripts/sv0 fmt`** runs both.
 - **`sv0 doc`**: **`scripts/gen_sv0_doc.py`** writes **`build/sv0-toolchain-doc/index.md`** (spec pointers + outline of `sv0c/lib/**/*.sv0`). Same command still verifies expected **sv0doc** and **sv0-mcp** README paths.
@@ -117,6 +119,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-04-02: **`scripts/verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** spacing on **`task/sv0c-*.Rmd`** hub files; regression guard so **`task/`** YAML stays graph-safe.
 - 2026-04-03: **`task/sv0-toolchain-workspace.Rmd`** — one-line **YAML spacing** reminder for editors; re-normalized **`updated:`** / **`title:`** / **`state:`** / **`roadmap_parent`** on roadmap, M2 prep, M3, **sv0vm** M2, and **`task/sv0c-*.Rmd`** after in-tree regression (same shapes **`verify_task_rmd_frontmatter.py`** flags).
 - 2026-04-04: **`.cursor/rules/`** — numbered **`.mdc`** modules committed (workspace context, planning, **`.Rmd`** docs, spec-first semantics, **sv0c** / **sv0vm** / **sv0-mcp** boundaries, validation, style, anti-patterns); **`README.md`** agent workflow cross-link from **`00-workspace-context.mdc`**.
+- 2026-04-05: **`./scripts/sv0 test-guards`** + **`make test-guards`** — Python-only entrypoint for the three guards (shared implementation with **`sv0 test`** via **`run_python_guards`**); **README**, **`Makefile`**, **`task/sv0-toolchain-workspace.Rmd`** updated.
 
 ## related
 

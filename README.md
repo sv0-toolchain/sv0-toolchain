@@ -61,6 +61,7 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
 ./scripts/sv0 test    # sv0c units; block-comment guard; sv0doc baseline; task/*.Rmd YAML lint; sv0vm bytecode; C+VM integration; bootstrap .sv0; stage0 golden C; doctests
+./scripts/sv0 test-guards  # Python only: same three guards as in `sv0 test` (fast; no SML)
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
 ./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
 ./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
