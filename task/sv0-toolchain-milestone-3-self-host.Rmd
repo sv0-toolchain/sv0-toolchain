@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-18T00:00:00Z"
+updated: "2026-05-19T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -45,7 +45,7 @@ These choices unblock scope, CI, and transliteration priority. **Do not** move *
 ### bootstrap and retirement
 
 - **End state:** compiler **fully in sv0**; **SML** removed from the **default** developer and CI path.
-- **Git tag (sv0c only):** **`bootstrap-sml-final`** on the **sv0c** repository — last revision where SML is the authoritative bootstrap **before** **`sml/`** → **`sml-legacy/`**. Do **not** place this tag on the **sv0-toolchain** meta-repo; document the **sv0c** tag in meta-repo README/tasks for discoverability.
+- **Git tag (sv0c only):** **`bootstrap-sml-final`** on the **sv0c** repository — last revision where SML is the authoritative bootstrap **before** **`sml/`** → **`sml-legacy/`**. Do **not** place this tag on the **sv0-toolchain** meta-repo. The meta-repo **README** lists the tag next to the **pinned sv0c SHA**; **update that SHA** whenever the **`sv0c`** submodule pointer changes (same commit as the bump).
 - **Layout at retirement:** **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; **`make`** / **`./scripts/sv0`** compile SML only via **explicit legacy** targets documented in **sv0c** README.
 - **Cold bootstrap / recovery:** document how to build from **`bootstrap-sml-final` + `sml-legacy/`** if the self-host chain breaks.
 
@@ -156,6 +156,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-02: Parent **`verify_task_rmd_frontmatter.py`** + **`sv0 test`** hook; **`state: done`** on **`task/sv0c-*.Rmd`** hub files (graph-safe).
 - 2026-05-17: **Stakeholder decisions** — retire SML after **feature parity** + **full VM**; **strict** bytecode parity on **curated ~50–100** program VM suite (SML goldens) with allowlist; diagnostics **behavioral → strict** preference; retirement = tag **`bootstrap-sml-final`**, **`sml/`** → **`sml-legacy/`**, sv0-only default build.
 - 2026-05-18: **`bootstrap-sml-final`** lives **only** on **sv0c** (no duplicate tag on **sv0-toolchain** meta-repo).
+- 2026-05-19: Meta-repo **README** table: tag name + **pinned sv0c SHA**; maintainers update SHA with every **sv0c** submodule bump.
 
 ## related
 

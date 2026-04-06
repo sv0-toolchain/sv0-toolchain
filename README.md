@@ -15,6 +15,17 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
+## bootstrap compiler reference (support)
+
+The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c](https://github.com/sv0-toolchain/sv0c) only** (see [`task/sv0-toolchain-milestone-3-self-host.Rmd`](task/sv0-toolchain-milestone-3-self-host.Rmd)). This meta-repo always records the **pinned sv0c commit** next to that tag name so support and triage can correlate a checkout with the compiler sources.
+
+| | |
+|---|---|
+| **sv0c tag (when cut)** | `bootstrap-sml-final` |
+| **sv0c commit pinned on this branch (`main`)** | `0627b0052f5b82cb2598ec8af5d1d8d79a03ff51` |
+
+**Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink).
+
 ## agent workflow
 
 this workspace uses the [AI agent workflow structure](http://development.sasankvishnubhatla.net/tcowmbh/note/ai-agent-workflow-structure.html) to organize development work. agent files (`.Rmd`) in `task/` orchestrate implementation through directives and companion scripts.
