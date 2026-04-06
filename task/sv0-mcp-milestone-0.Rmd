@@ -61,3 +61,4 @@ this milestone is complete when:
 - 2026-04-03: Workspace **`task/sv0-toolchain-workspace.Rmd`** documents **YAML spacing** for **`task/*.Rmd`**; graph sync after task YAML normalization.
 - 2026-04-04: Parent **`.cursor/rules/`** numbered **`.mdc`** agent modules + **README** cross-link under agent workflow; graph sync after **`task/`** touch.
 - 2026-04-05: **`sv0 test-guards`** / **`make test-guards`** documented in **`task/sv0-toolchain-milestone-2-prep.Rmd`** and workspace; graph sync after **`task/`** touch.
+- 2026-04-06: Roadmap snapshot + **Cursor** **`15-root-orchestration-entrypoints`** rule reference **`test-guards`**; graph sync after **`task/`** + **`.cursor/rules/`** touch.
