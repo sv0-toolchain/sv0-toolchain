@@ -29,7 +29,7 @@ Treat root entrypoints as stable interfaces unless the task explicitly changes t
 This includes, when relevant:
 
 - `make` targets exposed by the root `Makefile` (including `test` and `test-guards`)
-- `./scripts/sv0 ...` subcommands (`test` runs the full harness; `test-guards` runs only the Python guard trio: block comments, sv0doc baseline paths, task `*.Rmd` YAML)
+- `./scripts/sv0 ...` subcommands (`test` runs the full harness; `test-guards` runs only the Python guards: block comments, sv0doc baseline paths, task `*.Rmd` YAML, README `sv0c` gitlink vs bootstrap table)
 - task-document entrypoints in `task/`
 
 If one of these interfaces changes, update all affected root docs and validation steps consistently.

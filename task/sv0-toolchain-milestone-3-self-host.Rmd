@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-19T00:00:00Z"
+updated: "2026-05-20T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -157,6 +157,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-05-17: **Stakeholder decisions** — retire SML after **feature parity** + **full VM**; **strict** bytecode parity on **curated ~50–100** program VM suite (SML goldens) with allowlist; diagnostics **behavioral → strict** preference; retirement = tag **`bootstrap-sml-final`**, **`sml/`** → **`sml-legacy/`**, sv0-only default build.
 - 2026-05-18: **`bootstrap-sml-final`** lives **only** on **sv0c** (no duplicate tag on **sv0-toolchain** meta-repo).
 - 2026-05-19: Meta-repo **README** table: tag name + **pinned sv0c SHA**; maintainers update SHA with every **sv0c** submodule bump.
+- 2026-05-20: **`scripts/verify_readme_sv0c_gitlink.py`** in **`./scripts/sv0 test`** / **`test-guards`** — CI enforces README table vs **`git ls-tree HEAD sv0c`**.
 
 ## related
 

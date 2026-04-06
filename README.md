@@ -24,7 +24,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
 | **sv0c commit pinned on this branch (`main`)** | `0627b0052f5b82cb2598ec8af5d1d8d79a03ff51` |
 
-**Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink).
+**Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and fails if the table and **HEAD** disagree.
 
 ## agent workflow
 
@@ -71,8 +71,8 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 ```bash
 make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
-./scripts/sv0 test    # sv0c units; block-comment guard; sv0doc baseline; task/*.Rmd YAML lint; sv0vm bytecode; C+VM integration; bootstrap .sv0; stage0 golden C; doctests
-./scripts/sv0 test-guards  # Python only: same three guards as in `sv0 test` (fast; no SML)
+./scripts/sv0 test    # sv0c units; block-comment guard; sv0doc baseline; task/*.Rmd YAML; README sv0c SHA; sv0vm; C+VM integration; bootstrap .sv0; stage0 golden C; doctests
+./scripts/sv0 test-guards  # Python only: same four guards as in `sv0 test` (fast; no SML)
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
 ./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
 ./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
