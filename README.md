@@ -15,6 +15,8 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
+**Learning:** small **`.sv0`** sources and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md) (paths in commands are relative to **`sv0c/`**).
+
 ## bootstrap compiler reference (support)
 
 The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c](https://github.com/sv0-toolchain/sv0c) only** (see [`task/sv0-toolchain-milestone-3-self-host.Rmd`](task/sv0-toolchain-milestone-3-self-host.Rmd)). This meta-repo always records the **pinned sv0c commit** next to that tag name so support and triage can correlate a checkout with the compiler sources.
@@ -22,7 +24,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `c825bf43cc28119e019d5562e030479522c3f184` |
+| **sv0c commit pinned on this branch (`main`)** | `fc4e7828d4b342691142ec606657322ac214ddaf` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and fails if the table and **HEAD** disagree.
 

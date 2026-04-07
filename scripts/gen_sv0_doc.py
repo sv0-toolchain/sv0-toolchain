@@ -60,6 +60,27 @@ def main() -> int:
     else:
         lines.append("_(no sv0c/lib directory yet)_\n")
 
+    learn = root / "sv0c" / "examples" / "learn"
+    lines.extend(
+        [
+            "",
+            "## Learning examples (`sv0c/examples/learn/`)",
+            "",
+            f"Tutorial sources and README: `{rp(learn / 'README.md')}` (paths for `./scripts/sv0 vm-compile` are relative to `sv0c/`).",
+            "",
+        ]
+    )
+    if learn.is_dir():
+        learn_sv0 = sorted(learn.glob("*.sv0"))
+        if not learn_sv0:
+            lines.append("_(no `*.sv0` under examples/learn yet)_\n")
+        for sv0 in learn_sv0:
+            lines.append(f"### `{rp(sv0)}`")
+            lines.extend(outline_sv0(sv0) or ["- _(no top-level items detected)_"])
+            lines.append("")
+    else:
+        lines.append("_(no sv0c/examples/learn directory yet)_\n")
+
     index = out_dir / "index.md"
     index.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {index}")
