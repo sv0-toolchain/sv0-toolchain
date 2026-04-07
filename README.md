@@ -22,7 +22,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `0627b0052f5b82cb2598ec8af5d1d8d79a03ff51` |
+| **sv0c commit pinned on this branch (`main`)** | `d6d464bc5d1b5891727b211b5e1ba519cb065d2b` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and fails if the table and **HEAD** disagree.
 
@@ -71,7 +71,7 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 ```bash
 make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
-./scripts/sv0 test    # sv0c units; block-comment guard; sv0doc baseline; task/*.Rmd YAML; README sv0c SHA; sv0vm; C+VM integration; bootstrap .sv0; stage0 golden C; doctests
+./scripts/sv0 test    # sv0c units; Python guards; sv0vm; C+VM integration; bootstrap .sv0; VM parity (SML .sv0b vs golden/sml); stage0 golden C; doctests
 ./scripts/sv0 test-guards  # Python only: same four guards as in `sv0 test` (fast; no SML)
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
 ./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
@@ -82,6 +82,7 @@ make help             # lists make targets; "make test" help matches ./scripts/s
 ./scripts/sv0 repl    # line-at-a-time eval (VM): i32 expr or println("...")
 ./scripts/sv0 ci      # check + full ./scripts/sv0 test (no sv0-mcp)
 ./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
+./scripts/capture_vm_parity_goldens.sh   # refresh sv0c/test/vm-parity/golden/sml/*.sv0b (SML --target=vm; needs sml)
 ```
 
 **Neo4j dev graph (sv0-mcp):** after you change **`task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP **`sync_graph`** tool).

@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-20T00:00:00Z"
+updated: "2026-05-21T00:00:00Z"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active

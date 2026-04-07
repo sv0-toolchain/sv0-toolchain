@@ -18,8 +18,9 @@ usage: sv0 <command> [args]
   build              alias for check
   test               sv0c units; .sv0 block-comment guard; sv0doc baseline; task/*.Rmd YAML lint;
                        README sv0c gitlink vs bootstrap table; sv0vm bytecode tests; C + VM integration;
-                       bootstrap .sv0 on VM; stage0 golden C vs SML emit (when lib/golden/stage0/<stem>.c
-                       exists); Markdown doctests — see task/sv0-toolchain-milestone-2-prep.Rmd for order
+                       bootstrap .sv0 on VM; VM parity vs test/vm-parity/golden/sml; stage0 golden C vs SML
+                       emit (when lib/golden/stage0/<stem>.c exists); Markdown doctests — see
+                       task/sv0-toolchain-milestone-2-prep.Rmd for order
   test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA
                        (no SML — use after editing task/*.Rmd, sv0doc, README bootstrap table, or .sv0)
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
@@ -141,6 +142,10 @@ run_test() {
   if ! run_bootstrap_build; then
     ec=1
   fi
+  sv0_info "sv0 test: VM parity (SML bytecode vs golden/sml)"
+  if ! run_vm_parity_sml_goldens; then
+    ec=1
+  fi
   sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
   if ! run_self_host_stage0_golden; then
     ec=1
@@ -152,7 +157,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + stage0 golden + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + vm-parity SML goldens + stage0 golden + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + doctests"
 }
 
 run_doctests() {
@@ -306,6 +311,43 @@ run_bootstrap_build() {
     fi
   done
   sv0_ok "bootstrap-build: all listed (or top-level lib/*.sv0) programs passed on VM"
+  return 0
+}
+
+# Compare build/vm/<stem>.sv0b (from bootstrap-build) to test/vm-parity/golden/sml/<stem>.sv0b.
+run_vm_parity_sml_goldens() {
+  local manifest="$SV0C/test/vm-parity/manifest.txt"
+  if [[ ! -f "$manifest" ]]; then
+    sv0_ok "vm-parity SML goldens: skipped (no manifest)"
+    return 0
+  fi
+  local line rel stem golden built n
+  n=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    rel="${line//[[:space:]]/}"
+    stem=$(basename "$rel" .sv0)
+    golden="$SV0C/test/vm-parity/golden/sml/${stem}.sv0b"
+    built="$SV0C/build/vm/${stem}.sv0b"
+    if [[ ! -f "$golden" ]]; then
+      sv0_fail "vm-parity: missing golden $golden — run ./scripts/capture_vm_parity_goldens.sh from repo root"
+      return 1
+    fi
+    if [[ ! -f "$built" ]]; then
+      sv0_fail "vm-parity: missing $built (expected after bootstrap-build for $rel)"
+      return 1
+    fi
+    if ! cmp -s "$built" "$golden"; then
+      echo "vm-parity: bytecode mismatch for ${stem} ($rel)" >&2
+      echo "  fresh:  $built" >&2
+      echo "  golden: $golden" >&2
+      echo "  refresh: ./scripts/capture_vm_parity_goldens.sh" >&2
+      return 1
+    fi
+    n=$((n + 1))
+  done <"$manifest"
+  sv0_ok "vm-parity SML goldens: $n file(s) match bootstrap VM emit"
   return 0
 }
 

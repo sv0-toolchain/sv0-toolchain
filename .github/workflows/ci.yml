@@ -1,6 +1,7 @@
 # Full sv0-toolchain: submodules + unified scripts/sv0 harness (SML, C, VM, bootstrap-in-sv0, golden,
 # doctests) + sv0-mcp. `sv0 test` includes Python guards: block comments, sv0doc baseline, task/*.Rmd YAML,
-# README pinned sv0c SHA vs git submodule (verify_readme_sv0c_gitlink.py).
+# README pinned sv0c SHA vs git submodule (verify_readme_sv0c_gitlink.py), and VM bytecode parity vs
+# sv0c/test/vm-parity/golden/sml after bootstrap-build.
 name: CI
 
 on:
