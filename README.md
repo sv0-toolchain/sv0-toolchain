@@ -17,6 +17,8 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 **Learning:** small **`.sv0`** sources and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md) (paths in commands are relative to **`sv0c/`**).
 
+**GitHub SSH:** if **`git push`** times out on port 22, use **`./scripts/with-github-ssh443.sh git push …`** (SSH over port 443); see [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd).
+
 ## bootstrap compiler reference (support)
 
 The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c](https://github.com/sv0-toolchain/sv0c) only** (see [`task/sv0-toolchain-milestone-3-self-host.Rmd`](task/sv0-toolchain-milestone-3-self-host.Rmd)). This meta-repo always records the **pinned sv0c commit** next to that tag name so support and triage can correlate a checkout with the compiler sources.

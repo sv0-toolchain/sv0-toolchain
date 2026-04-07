@@ -105,4 +105,8 @@ from the **sv0-toolchain** root:
 - **Neo4j graph (sv0-mcp)** — after meaningful updates to **`task/`** milestones, **sv0doc** normative files, or compiler/VM layout docs indexed by sync, run **`cd sv0-mcp && ./scripts/sync-graph.sh all`** so MCP tools (**`get_task_status`**, **`get_milestone_progress`**, etc.) stay accurate. Equivalent: **`uv run sv0-mcp sync --scope all`** from **sv0-mcp**, or the **sv0-graph** MCP **`sync_graph`** tool.
 - **`task/*.Rmd` YAML** — in front matter, always put a **space after the colon** (e.g. **`updated: "…"`**, **`state: complete`**, **`roadmap_parent: sv0-toolchain-roadmap-full`**). Values jammed as **`updated:"…"`** or **`state:complete`** break strict parsers and **sv0-mcp** sync; **`./scripts/sv0 test`** runs **`scripts/verify_task_rmd_frontmatter.py`** to catch that class of mistake.
 
+## git push to GitHub (SSH port 22 blocked)
+
+If **`git push`** fails with **`connect to host github.com port 22: Operation timed out`**, use **SSH over HTTPS (port 443)**. From the meta-repo root, prefix commands with **`./scripts/with-github-ssh443.sh`** (sets **`GIT_SSH_COMMAND`** per [GitHub’s guide](https://docs.github.com/en/authentication/troubleshooting-ssh/using-ssh-over-the-https-port)). Example: **`./scripts/with-github-ssh443.sh git push origin main`**. Push submodules first, then the meta-repo (see **sv0-mcp/README.md**).
+
 /ai: when planning cross-cutting changes, list which submodules need commits and in what order (spec first vs code first).

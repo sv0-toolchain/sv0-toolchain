@@ -584,6 +584,7 @@ run_fmt_shell() {
   local fmt_targets=(
     "$ROOT/scripts/sv0"
     "$ROOT/scripts/sv0-self-host-emit-c.sh"
+    "$ROOT/scripts/with-github-ssh443.sh"
     "$ROOT/scripts/ci-install-smlnj.sh"
     "$ROOT/lib/shell/common.sh"
     "$ROOT/lib/sml/build-helpers.sh"
