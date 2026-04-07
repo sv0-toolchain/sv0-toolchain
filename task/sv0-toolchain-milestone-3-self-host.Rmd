@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-11T12:00:00Z"
+updated: "2026-04-12T12:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -75,8 +75,8 @@ These choices unblock scope, CI, and transliteration priority. **Do not** move *
 
 milestone **3** is **not** complete until the bullets above hold. today’s repo state (for orientation only — grows with commits):
 
-- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, integration tests, and the **self-host sv0 loop** (**`./scripts/sv0 self-host-sv0-loop`** — deterministic SML→C emit, **`cc`**+run, and **`diff`** of **`scripts/sv0-self-host-emit-c.sh`** vs SML by default; **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** skips the third leg). **VM backend** supports **`break`** / **`continue`**, including **`break`** inside **`for`** (increment **`Store`** included in exit jump distance in **`vm_codegen.sml`**), and the **vm-parity** manifest is **100** SML bytecode goldens (M3 **~50–100** bar met for the v1 corpus).
-- **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **semantic** **sv0→sv0** (**native** compiler output **≡** SML on the pilot list) is **not** done — **`sv0-self-host-emit-c.sh`** is the **bootstrap** stand-in; **feature parity**, full **VM** coverage (**`no_alias`** / **`VAddrOf`** gaps), **SML retirement** (tag + **`sml-legacy/`**), and a second-tier **sv0-emitted** vm-parity check remain open.
+- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, integration tests, and the **self-host sv0 loop** (**`./scripts/sv0 self-host-sv0-loop`** — deterministic SML→C emit, **`cc`**+run, and **`diff`** of **`scripts/sv0-self-host-emit-c.sh`** vs SML by default; **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** skips the third leg). **VM backend** supports **`break`** / **`continue`**, including **`break`** inside **`for`** (increment **`Store`** included in exit jump distance in **`vm_codegen.sml`**), **`Ir.VAddrOf`** / **`no_alias`** via **local slot tokens** + **`CALL_BUILTIN` 1** (see **`sv0c/doc/compiler-passes.md`**), and the **vm-parity** manifest is **100** SML bytecode goldens (M3 **~50–100** bar met for the v1 corpus). **Living transliteration roadmap:** **`sv0c/doc/transliteration-plan.md`**.
+- **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **semantic** **sv0→sv0** (**native** compiler output **≡** SML on the pilot list) is **not** done — **`sv0-self-host-emit-c.sh`** is the **bootstrap** stand-in; **feature parity**, remaining **VM** contract gaps (**`forall` / `exists`** on VM where still C-only), **SML retirement** (tag + **`sml-legacy/`**), and a second-tier **sv0-emitted** vm-parity check remain open.
 
 closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
 
@@ -84,7 +84,7 @@ closing M3 is **sequenced transliteration + parity + bootstrap story** (phases b
 
 ### phase 1: module graph and build order
 
-**Plan (living doc):** `sv0c/lib/LAYOUT.md` — directories, transliteration order, stage0 vs stage1 C compare workflow.
+**Plan (living docs):** `sv0c/lib/LAYOUT.md` — directories, transliteration order, stage0 vs stage1 C compare workflow; **`sv0c/doc/transliteration-plan.md`** — milestone-3-wide SML→sv0 inventory and sequencing.
 
 **Tooling (meta-repo):** `sv0c/lib/bootstrap-sources.list` drives `./scripts/sv0 bootstrap-build`. For C snapshots use `./scripts/sv0 self-host-capture-stage0 <path-relative-to-sv0c/>` and, when stage1 exists, `./scripts/sv0 self-host-compare <stem>`. One-off C to stdout: `./scripts/sv0 emit-c <rel>`. **Self-host loop pilot:** `./scripts/sv0 self-host-sv0-loop` (see **`sv0c/doc/self-host-sv0-loop.md`**).
 
@@ -175,6 +175,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08: **`examples/learn/10_*.sv0`**, **`11_*.sv0`** (generics placeholder, **`requires`/`ensures`**); parent **`scripts/verify_vm_parity_manifest_bootstrap.py`** in **`test-guards`** / **`sv0 test`** Python slice — prevents manifest/bootstrap drift that broke CI. Tags **`examples-learn-v1.1`** (**sv0c**), **`toolchain-examples-learn-v1.1`** (meta).
 - 2026-04-10: **`examples/learn/12_*.sv0`**, **`13_*.sv0`** (logical **`&&`**, chained comparisons); child task **`task/sv0-toolchain-milestone-3-checklist.Rmd`** + **`/include:`** from this file for SML→sv0 phase tracking. Tags **`examples-learn-v1.2`** (**sv0c**), **`toolchain-examples-learn-v1.2`** (meta). **Full M3** (parity + native self-host + SML retirement) **still open**.
 - 2026-04-11: **`examples/learn/14_*.sv0`**–**`16_*.sv0`** — integer **`match`**, enum payload **`match`**, **`?`** try operator with **`main() -> R`**. Tags **`examples-learn-v1.3`** / **`toolchain-examples-learn-v1.3`**. **Full M3** still **not** met.
+- 2026-04-12: **VM `VAddrOf` / `no_alias`** — **`vm_codegen.sml`** + **`sv0vm`** builtin **1**; integration **`no_alias_requires`**; **`doc/transliteration-plan.md`**; learn **`17_no_alias_contract.sv0`**. Tags **`vm-no-alias-v1`** (**sv0c**), **`toolchain-vm-no-alias-v1`** (meta), **`examples-learn-v1.4`** / **`toolchain-examples-learn-v1.4`**. **Full M3** still **not** met.
 
 ## related
 

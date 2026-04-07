@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-11T00:00:00Z"
+updated: "2026-04-12T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -41,7 +41,8 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 | Name resolution | `sml/env.sml`, resolver | `lib/env_core.sv0`, `lib/env_scope_core.sv0`, `lib/resolver_*_core.sv0`, `lib/lookup_*_core.sv0` | Merged lookup order in `lookup_value_core` |
 | Types | `sml/types*` | `lib/type_alias_core.sv0`, `lib/lookup_type_core.sv0`, `lib/lookup_type_alias_core.sv0` | Canonical type / alias path |
 | Lowering (IR) | `sml/lowering.sml` | `lib/lower_unop_core.sv0` | Unary slice; rest in SML |
-| IR, C backend, VM backend | `sml/*` (bulk) | SML authoritative | **Feature parity** and **native self-host** still open |
+| IR → VM encoder | `sml/backend/vm/vm_codegen.sml` | SML (authoritative today) | **`VAddrOf`** → local **slot** **`i32`**; **`sv0_no_alias`** → **`CALL_BUILTIN` 1** in **sv0vm**; C parity unchanged |
+| C backend | `sml/backend/c/*` | SML | **Feature parity** and **native self-host** still open |
 | Contract runtime / VM gaps | `sml/*` | Partial | **`forall` / `exists`** VM lowering; **`no_alias`** / **`VAddrOf`** (see M3 parent) |
 
 ## harness (already in CI)
@@ -58,4 +59,5 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 
 - `task/sv0-toolchain-milestone-3-self-host.Rmd` — stakeholder bar, phases, refinement log
 - `sv0c/lib/LAYOUT.md` — directory layout and commands
+- `sv0c/doc/transliteration-plan.md` — full SML→sv0 inventory and sequencing (milestone 3)
 - `sv0c/doc/self-host-sv0-loop.md` — self-host pilot recipe

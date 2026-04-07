@@ -67,3 +67,4 @@ this milestone is complete when:
 - 2026-04-10: New **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (**`/include:`** from M3 self-host); **`examples/learn/12`**–**`13`**; run **`./scripts/sync-graph.sh all`** (or MCP **`sync_graph`** scope **`all`**) when **Neo4j** is up so the new task node and roadmap edges are visible.
 - 2026-04-10: **`sv0-mcp/README.md`** + **`docker-compose.yml`** — document **custom Bolt host ports** via **`SV0_MCP_NEO4J_URI`** / Cursor **`NEO4J_URI`** alignment; **connection refused** troubleshooting; parent **README** cross-link.
 - 2026-04-11: **`examples/learn/14`–`16`** + roadmap/M3 log; run **`./scripts/sync-graph.sh all`** when **Neo4j** is available so task/roadmap edits are reflected in the graph.
+- 2026-04-12: VM **`no_alias`**, **`transliteration-plan.md`**, learn **`17`**; graph sync when DB is up.

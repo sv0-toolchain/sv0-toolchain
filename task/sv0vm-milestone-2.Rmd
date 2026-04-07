@@ -105,7 +105,7 @@ the pipeline is wired from the toolchain root: `make integration-vm`, `./scripts
 
 - **Bytecode / spec:** format and opcodes documented under `sv0doc/bytecode/`; sv0c VM backend and sv0vm decode/execute align with CI.
 - **VM feature coverage:** matches the **sv0c integration** scenarios exercised by the C path: hello, contracts, pattern match exit codes, structs, monomorphic generics placeholder, multi-file `module`/`use` projects, and golden `println` — all run via `sv0c --target=vm` + sv0vm.
-- **Contracts:** runtime contract checks exercised in integration (`contracts.sv0`) on the VM path.
+- **Contracts:** runtime contract checks exercised in integration (`contracts.sv0`) on the VM path; golden **`no_alias_requires`** also runs on VM (**`no_alias` / `&param`** via slot tokens + **`CALL_BUILTIN` 1**).
 - **REPL:** `./scripts/sv0 repl` evaluates **i32** expressions and **`println("...")`** lines via compile-to-bytecode + `run_sv0b.sml` (sentinel `SV0VM_RUN_BEGIN` keeps loader noise out of the user-visible slice).
 - **Performance:** VM path optimizes for fast iteration (no `cc`); no formal perf parity with C required for this milestone.
 - **Next:** `task/sv0-toolchain-milestone-2-prep.Rmd` (fmt, doc, unified `sv0 test`, rewrite entry) and design milestone 3 (self-host) can proceed; VM + project emit use `sv0c --target=vm --project <dir>` → `build/vm/main.sv0b` when `main.sv0` exists.
