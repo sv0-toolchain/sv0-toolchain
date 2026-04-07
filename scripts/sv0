@@ -21,7 +21,7 @@ usage: sv0 <command> [args]
                        bootstrap .sv0 on VM; VM parity vs test/vm-parity/golden/sml; stage0 golden C vs SML
                        emit (when lib/golden/stage0/<stem>.c exists); self-host sv0 loop (SML→C→native + emit diff);
                        Markdown doctests — see task/sv0-toolchain-milestone-2-prep.Rmd for order
-  test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA
+  test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA, vm-parity manifest ⊆ bootstrap list
                        (no SML — use after editing task/*.Rmd, sv0doc, README bootstrap table, or .sv0)
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
   doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
@@ -113,6 +113,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_readme_sv0c_gitlink.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: vm-parity manifest ⊆ sv0c/lib/bootstrap-sources.list"
+  if ! python3 "$ROOT/scripts/verify_vm_parity_manifest_bootstrap.py" --root "$ROOT"; then
+    ec=1
+  fi
   return "$ec"
 }
 
@@ -120,7 +124,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + README sv0c gitlink"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap"
 }
 
 run_test() {
@@ -164,7 +168,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + vm-parity SML goldens + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + vm-parity SML goldens + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + doctests"
 }
 
 run_doctests() {

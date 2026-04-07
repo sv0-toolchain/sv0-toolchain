@@ -11,7 +11,7 @@ help:
 	@echo "                         task YAML, README sv0c gitlink); sv0vm; C+VM integration; bootstrap .sv0;"
 	@echo "                         VM parity SML goldens; stage0 golden; doctests (see"
 	@echo "                         task/sv0-toolchain-milestone-2-prep.Rmd)"
-	@echo "  make test-guards     — Python-only: block comments, sv0doc baseline, task/*.Rmd YAML, README SHA (no SML)"
+	@echo "  make test-guards     — Python-only: block comments, sv0doc baseline, task YAML, README SHA, vm-parity⊆bootstrap (no SML)"
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
 	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
 	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"

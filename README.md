@@ -26,9 +26,9 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `84493aea59b3b5ff3f5755b8d4e625d556ebd7cd` |
+| **sv0c commit pinned on this branch (`main`)** | `fcff9c0b27efc1babb6baa62f687091ee7eb00d7` |
 
-**Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and fails if the table and **HEAD** disagree.
+**Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and **`scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches **HEAD** and **`test/vm-parity/manifest.txt`** stays a subset of **`sv0c/lib/bootstrap-sources.list`**.
 
 ## agent workflow
 
@@ -76,7 +76,7 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
 ./scripts/sv0 test    # sv0c units; Python guards; sv0vm; C+VM integration; bootstrap .sv0; VM parity (SML .sv0b vs golden/sml); stage0 golden C; doctests
-./scripts/sv0 test-guards  # Python only: same four guards as in `sv0 test` (fast; no SML)
+./scripts/sv0 test-guards  # Python only: same guards as start of `sv0 test` incl. vm-parity manifest ⊆ bootstrap (fast; no SML)
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
 ./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
 ./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
