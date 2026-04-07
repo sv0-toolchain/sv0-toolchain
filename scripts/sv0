@@ -19,7 +19,7 @@ usage: sv0 <command> [args]
   test               sv0c units; .sv0 block-comment guard; sv0doc baseline; task/*.Rmd YAML lint;
                        README sv0c gitlink vs bootstrap table; sv0vm bytecode tests; C + VM integration;
                        bootstrap .sv0 on VM; VM parity vs test/vm-parity/golden/sml; stage0 golden C vs SML
-                       emit (when lib/golden/stage0/<stem>.c exists); self-host sv0 loop pilot (SML→C→native);
+                       emit (when lib/golden/stage0/<stem>.c exists); self-host sv0 loop (SML→C→native + emit diff);
                        Markdown doctests — see task/sv0-toolchain-milestone-2-prep.Rmd for order
   test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA
                        (no SML — use after editing task/*.Rmd, sv0doc, README bootstrap table, or .sv0)
@@ -34,7 +34,8 @@ usage: sv0 <command> [args]
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
   self-host-sv0-loop     pilot sv0→sv0 loop: deterministic SML→C emit, cc+run on lib/self-host-sv0-loop.list;
-                           optional SV0_SELF_HOST_COMPILER diffs sv0-built emit vs SML (see sv0c/doc/self-host-sv0-loop.md)
+                           diffs scripts/sv0-self-host-emit-c.sh vs SML by default (override SV0_SELF_HOST_COMPILER;
+                           SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 to skip); see sv0c/doc/self-host-sv0-loop.md
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
@@ -152,7 +153,7 @@ run_test() {
   if ! run_self_host_stage0_golden; then
     ec=1
   fi
-  sv0_info "sv0 test: self-host sv0 loop pilot (SML→C→native)"
+  sv0_info "sv0 test: self-host sv0 loop (SML→C→native + emit diff)"
   if ! run_self_host_sv0_loop; then
     ec=1
   fi
@@ -309,6 +310,12 @@ run_self_host_sv0_loop() {
     sv0_warn "self-host-sv0-loop: empty pilot list; skipped"
     return 0
   fi
+  local sv0_emit="${SV0_SELF_HOST_COMPILER:-}"
+  local sv0_emit_bootstrap=0
+  if [[ -z "$sv0_emit" && -z "${SV0_SKIP_SELF_HOST_COMPILER_DIFF:-}" && -x "$ROOT/scripts/sv0-self-host-emit-c.sh" ]]; then
+    sv0_emit="$ROOT/scripts/sv0-self-host-emit-c.sh"
+    sv0_emit_bootstrap=1
+  fi
   local rel stem tmp1 tmp2 outdir bindir emitdir bin ec
   outdir="$ROOT/build/self-host-sv0-loop"
   bindir="$outdir/bin"
@@ -351,17 +358,17 @@ run_self_host_sv0_loop() {
     if [[ "$ec" -ne 0 ]]; then
       sv0_fail "self-host-sv0-loop: native run exit $ec for $rel (expected 0)"
     fi
-    if [[ -n "${SV0_SELF_HOST_COMPILER:-}" ]]; then
-      if [[ ! -x "$SV0_SELF_HOST_COMPILER" ]]; then
-        sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER not executable: $SV0_SELF_HOST_COMPILER"
+    if [[ -n "$sv0_emit" ]]; then
+      if [[ ! -x "$sv0_emit" ]]; then
+        sv0_fail "self-host-sv0-loop: compiler script not executable: $sv0_emit"
       fi
       local tmp_sv0 tmp_err tmp_ref d
       tmp_sv0="$emitdir/${stem}.sv0-built.c"
       tmp_err="$(mktemp)"
-      if ! "$SV0_SELF_HOST_COMPILER" "$SV0C/$rel" >"$tmp_sv0" 2>"$tmp_err"; then
+      if ! "$sv0_emit" "$SV0C/$rel" >"$tmp_sv0" 2>"$tmp_err"; then
         cat "$tmp_err" >&2
         rm -f "$tmp_sv0" "$tmp_err"
-        sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER failed for $rel"
+        sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
       fi
       rm -f "$tmp_err"
       tmp_ref="$emitdir/${stem}.ref.c"
@@ -379,10 +386,14 @@ run_self_host_sv0_loop() {
       fi
     fi
   done
-  if [[ -n "${SV0_SELF_HOST_COMPILER:-}" ]]; then
-    sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); deterministic emit, cc+run OK; self-host compiler matched SML"
+  if [[ -n "$sv0_emit" ]]; then
+    if [[ "$sv0_emit_bootstrap" -eq 1 ]]; then
+      sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; bootstrap wrapper matched SML (set SV0_SELF_HOST_COMPILER to native sv0 compiler when ready)"
+    else
+      sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; SV0_SELF_HOST_COMPILER output matched SML"
+    fi
   else
-    sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); deterministic SML emit and cc+run OK (set SV0_SELF_HOST_COMPILER to diff sv0-built compiler)"
+    sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); deterministic SML emit and cc+run OK (SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 skips emit diff)"
   fi
   return 0
 }
@@ -572,6 +583,7 @@ run_fmt_shell() {
   local f
   local fmt_targets=(
     "$ROOT/scripts/sv0"
+    "$ROOT/scripts/sv0-self-host-emit-c.sh"
     "$ROOT/scripts/ci-install-smlnj.sh"
     "$ROOT/lib/shell/common.sh"
     "$ROOT/lib/sml/build-helpers.sh"
