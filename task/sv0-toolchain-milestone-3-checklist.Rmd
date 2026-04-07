@@ -43,7 +43,7 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 | Lowering (IR) | `sml/lowering.sml` | `lib/lower_unop_core.sv0` | Unary slice; rest in SML |
 | IR → VM encoder | `sml/backend/vm/vm_codegen.sml` | SML (authoritative today) | **`VAddrOf`** → local **slot** **`i32`**; **`sv0_no_alias`** → **`CALL_BUILTIN` 1** in **sv0vm**; C parity unchanged |
 | C backend | `sml/backend/c/*` | SML | **Feature parity** and **native self-host** still open |
-| Contract runtime / VM gaps | `sml/*` | Partial | **`forall` / `exists`** VM lowering; **`no_alias`** / **`VAddrOf`** (see M3 parent) |
+| Contract runtime / VM gaps | `sml/*` | Partial | **`forall` / `exists`** VM lowering where still C-only; **`no_alias` / `VAddrOf`** on VM (**2026-04-12**) |
 
 ## harness (already in CI)
 
