@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-02T00:00:00Z"
+updated: "2026-04-02T12:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -75,8 +75,8 @@ These choices unblock scope, CI, and transliteration priority. **Do not** move *
 
 milestone **3** is **not** complete until the bullets above hold. today’s repo state (for orientation only — grows with commits):
 
-- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, and integration tests. **VM backend** supports **`break`**, **`continue`** (including **`for`** / **`forall`**/**`exists`**-shaped loops whose IR body is **`[Block, Store]`**), and the **vm-parity** manifest is **80** SML bytecode goldens (upper **50–100** M3 bar; keep growing). **Gap:** **`break`** inside **`for`** still misbehaves on the VM (stack underflow); **`while`** + **`break`** / **`continue`** paths are covered elsewhere.
-- **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **no** documented **sv0→sv0** self-compile loop; **vm-parity v1** corpus can still **grow** to the **~100** end of the bar; **SML** still **authoritative**; **feature parity**, full **VM** coverage (e.g. **`no_alias`** / **`VAddrOf`** gaps, **`break`** inside **`for`** on VM), and **SML retirement** (tag + **`sml-legacy/`**) are **not** satisfied.
+- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, integration tests, and the **self-host sv0 loop pilot** (**`./scripts/sv0 self-host-sv0-loop`** — deterministic SML→C emit, **`cc`**+run on **`lib/self-host-sv0-loop.list`**). **VM backend** supports **`break`**, **`continue`** (including **`for`** / **`forall`**/**`exists`**-shaped loops whose IR body is **`[Block, Store]`**), and the **vm-parity** manifest is **90** SML bytecode goldens (**50–100** M3 bar; small headroom to **~100**). **Gap:** **`break`** inside **`for`** still misbehaves on the VM (stack underflow); **`while`** + **`break`** / **`continue`** paths are covered elsewhere.
+- **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **sv0→sv0** is **started** (**`sv0c/doc/self-host-sv0-loop.md`**, **`SV0_SELF_HOST_COMPILER`** hook) but **not** closed — no **sv0-built** compiler in the **default** CI path yet; **vm-parity v1** corpus can still **grow** to the **~100** end of the bar; **SML** still **authoritative**; **feature parity**, full **VM** coverage (e.g. **`no_alias`** / **`VAddrOf`** gaps, **`break`** inside **`for`** on VM), and **SML retirement** (tag + **`sml-legacy/`**) are **not** satisfied.
 
 closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
 
@@ -86,9 +86,9 @@ closing M3 is **sequenced transliteration + parity + bootstrap story** (phases b
 
 **Plan (living doc):** `sv0c/lib/LAYOUT.md` — directories, transliteration order, stage0 vs stage1 C compare workflow.
 
-**Tooling (meta-repo):** `sv0c/lib/bootstrap-sources.list` drives `./scripts/sv0 bootstrap-build`. For C snapshots use `./scripts/sv0 self-host-capture-stage0 <path-relative-to-sv0c/>` and, when stage1 exists, `./scripts/sv0 self-host-compare <stem>`. One-off C to stdout: `./scripts/sv0 emit-c <rel>`.
+**Tooling (meta-repo):** `sv0c/lib/bootstrap-sources.list` drives `./scripts/sv0 bootstrap-build`. For C snapshots use `./scripts/sv0 self-host-capture-stage0 <path-relative-to-sv0c/>` and, when stage1 exists, `./scripts/sv0 self-host-compare <stem>`. One-off C to stdout: `./scripts/sv0 emit-c <rel>`. **Self-host loop pilot:** `./scripts/sv0 self-host-sv0-loop` (see **`sv0c/doc/self-host-sv0-loop.md`**).
 
-**CI:** `run test` / `ci` runs `bootstrap-build`, then for each list entry that has `lib/golden/stage0/<stem>.c`, emits C via the SML heap compiler and **`diff`**s against that golden (update the golden intentionally when the C backend output changes). Stage-1 parity remains `./scripts/sv0 self-host-compare <stem>` when `stage1/*.c` exists.
+**CI:** `run test` / `ci` runs `bootstrap-build`, then for each list entry that has `lib/golden/stage0/<stem>.c`, emits C via the SML heap compiler and **`diff`**s against that golden (update the golden intentionally when the C backend output changes); then **`self-host-sv0-loop`** on **`lib/self-host-sv0-loop.list`**. Stage-1 parity remains `./scripts/sv0 self-host-compare <stem>` when `stage1/*.c` exists.
 
 ### phase 2: transliteration completion
 
@@ -165,6 +165,8 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-02: **vm-parity v1.5** — **10** more **`test/vm-parity/programs/*.sv0`** (bitwise, div/mul, shifts, **`==`**/**`!=`**, **`!`**, chained **`||`**, empty range). Manifest + bootstrap **60** goldens. Tags **`vm-parity-v1.5`** / **`toolchain-vm-parity-v1.5`**.
 - 2026-04-02: **vm-parity v1.6** — **10** more smoke programs (**`|`**/**`^`**, **`>>`**, comparison ops, chained **`&&`**, parens arith, **`%`** zero). Manifest + bootstrap **70** goldens. Tags **`vm-parity-v1.6`** / **`toolchain-vm-parity-v1.6`**.
 - 2026-04-02: **vm-parity v1.7** — **10** more smoke programs (chained **`+`**/**`*`**/**`/`**, nested **`if`**, short-circuit booleans, unary stack, helper **`fn`**, nested **`sub`**, sequential **`for`** loops). Manifest + bootstrap **80** goldens. **`break`** in **`for`** excluded (VM stack underflow). Tags **`vm-parity-v1.7`** / **`toolchain-vm-parity-v1.7`**.
+- 2026-04-02: **Self-host sv0 loop pilot** — **`sv0c/doc/self-host-sv0-loop.md`**, **`lib/self-host-sv0-loop.list`**, **`./scripts/sv0 self-host-sv0-loop`** in **`./scripts/sv0 test`** (deterministic SML→C×2, **`cc`**+run; optional **`SV0_SELF_HOST_COMPILER`**). Tag **`self-host-sv0-loop-v1`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v1`**).
+- 2026-04-02: **vm-parity v1.8** — **10** more smoke programs (nested **`for`**, **`while`**+**`break`**, **`else if`**, shift/**`div`**/**`%`** combo, triple call, parens bool, mul/add precedence, **`&|`** mix, comparison chain). Manifest + bootstrap **90** goldens. Tags **`vm-parity-v1.8`** / **`toolchain-vm-parity-v1.8`**.
 
 ## related
 

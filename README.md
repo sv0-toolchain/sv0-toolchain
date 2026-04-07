@@ -22,7 +22,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `d3657e0aef79c8776a1a83174bc04e012dfe0cd7` |
+| **sv0c commit pinned on this branch (`main`)** | `93678107706ddd18602a0d8963b5e23172f0922e` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and fails if the table and **HEAD** disagree.
 
@@ -83,6 +83,7 @@ make help             # lists make targets; "make test" help matches ./scripts/s
 ./scripts/sv0 ci      # check + full ./scripts/sv0 test (no sv0-mcp)
 ./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
 ./scripts/capture_vm_parity_goldens.sh   # refresh sv0c/test/vm-parity/golden/sml/*.sv0b (SML --target=vm; needs sml)
+./scripts/sv0 self-host-sv0-loop       # milestone 3 pilot: SML→C→native on lib/self-host-sv0-loop.list (see sv0c/doc/self-host-sv0-loop.md)
 ```
 
 **Neo4j dev graph (sv0-mcp):** after you change **`task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP **`sync_graph`** tool).
