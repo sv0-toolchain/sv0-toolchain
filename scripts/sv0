@@ -754,6 +754,12 @@ case "$cmd" in
   vm-run)
     sv0b="${1:-}"
     if [[ -z "$sv0b" ]]; then usage; exit 1; fi
+    # run_sv0b.sml opens SV0B relative to sv0vm cwd; resolve repo-root paths (e.g. sv0c/build/vm/foo.sv0b)
+    if [[ "$sv0b" != /* ]] && [[ ! -f "$SV0VM/$sv0b" ]]; then
+      if [[ -f "$ROOT/$sv0b" ]]; then
+        sv0b="$ROOT/$sv0b"
+      fi
+    fi
     (cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml)
     ;;
   repl)

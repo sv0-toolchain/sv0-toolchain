@@ -1,0 +1,60 @@
+---
+created: "2026-04-10T00:00:00Z"
+updated: "2026-04-10T00:00:00Z"
+id: task-sv0-toolchain-milestone-3-checklist
+key: sv0-toolchain-milestone-3-checklist
+state: active
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-3
+  - self-hosting
+title: "milestone 3: SML → sv0 transliteration checklist"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 3: transliteration checklist
+
+## purpose
+
+Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds** under **`sv0c/lib/`**, **`sv0c/lexer/`**, **`sv0c/parser/`**, and future phase directories. This file is a **living index**; it does **not** by itself close milestone 3 (see **`task/sv0-toolchain-milestone-3-self-host.Rmd`** for definition of done).
+
+## how to use
+
+- When a new **`.sv0`** seed lands, add or extend a row (or note it under **harness**).
+- When a major **`sml/`** subtree is fully superseded by sv0 sources in-tree, mark the row **goal met** and point to the canonical sv0 paths.
+- Keep **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/*.c`**, and **`lib/self-host-sv0-loop.list`** aligned with whatever is **compiled and tested** today.
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+
+## compiler phase → status
+
+| Phase / area | SML anchor (representative) | sv0 track (today) | Notes |
+|--------------|----------------------------|-------------------|--------|
+| Diagnostics, spans | `sml/error/*`, `sml/span*` | `lib/diagnostic_core.sv0`, `lib/diagnostic_batch_core.sv0`, `lib/span_core.sv0` | Stage0 goldens + bootstrap list |
+| Lexer | `sml/lexer/*` | `lexer/token_*_core.sv0` | Keyword / delim / op bands aligned with parser seeds |
+| Parser (expr / stmt / item) | `sml/parser/*` | `parser/*_core.sv0` | Pratt, assign, cast, type parse slices |
+| Name resolution | `sml/env.sml`, resolver | `lib/env_core.sv0`, `lib/env_scope_core.sv0`, `lib/resolver_*_core.sv0`, `lib/lookup_*_core.sv0` | Merged lookup order in `lookup_value_core` |
+| Types | `sml/types*` | `lib/type_alias_core.sv0`, `lib/lookup_type_core.sv0`, `lib/lookup_type_alias_core.sv0` | Canonical type / alias path |
+| Lowering (IR) | `sml/lowering.sml` | `lib/lower_unop_core.sv0` | Unary slice; rest in SML |
+| IR, C backend, VM backend | `sml/*` (bulk) | SML authoritative | **Feature parity** and **native self-host** still open |
+| Contract runtime / VM gaps | `sml/*` | Partial | **`forall` / `exists`** VM lowering; **`no_alias`** / **`VAddrOf`** (see M3 parent) |
+
+## harness (already in CI)
+
+| Mechanism | Role |
+|-----------|------|
+| **`./scripts/sv0 bootstrap-build`** | Every path in **`lib/bootstrap-sources.list`** builds (C + VM artifacts as configured). |
+| **`lib/golden/stage0/*.c`** | Reference C for listed seeds vs SML emit. |
+| **`./scripts/sv0 self-host-sv0-loop`** | Pilot **`lib/self-host-sv0-loop.list`**: SML→C×2, **`cc`**+run; optional **`SV0_SELF_HOST_COMPILER`** diff. |
+| **`sv0c/test/vm-parity/`** | SML bytecode goldens; manifest paths must ⊆ **`bootstrap-sources.list`** (meta **`verify_vm_parity_manifest_bootstrap.py`**). |
+
+## related
+
+- `task/sv0-toolchain-milestone-3-self-host.Rmd` — stakeholder bar, phases, refinement log
+- `sv0c/lib/LAYOUT.md` — directory layout and commands
+- `sv0c/doc/self-host-sv0-loop.md` — self-host pilot recipe

@@ -68,6 +68,7 @@ use these as entry points for scoped work:
 | bytecode VM + backend (design M2 slice) | `task/sv0vm-milestone-2.Rmd` | sv0c + sv0vm |
 | self-hosting **prep** — test, fmt, doc, **`lib/`** bootstrap seeds (design M2 slice) | `task/sv0-toolchain-milestone-2-prep.Rmd` | parent + sv0c + sv0vm |
 | self-hosting compiler (design M3) | `task/sv0-toolchain-milestone-3-self-host.Rmd` | sv0c (+ future sv0 sources) |
+| M3 transliteration checklist (child) | `task/sv0-toolchain-milestone-3-checklist.Rmd` | sv0c `sml/` vs `lib/` / `lexer/` / `parser/` seeds |
 | advanced verification (design M4) | `task/sv0-toolchain-milestone-4-verification.Rmd` | sv0c + sv0doc |
 | LLVM + crypto (design M5) | `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` | sv0c + sv0doc |
 | kernel / bare metal (design M6) | `task/sv0-toolchain-milestone-6-kernel.Rmd` | sv0c + sv0doc |
