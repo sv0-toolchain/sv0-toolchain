@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-10T12:00:00Z"
+updated: "2026-04-11T12:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -174,6 +174,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-07: **Self-host pilot expansion** — **`lib/self-host-sv0-loop.list`** grows to **twelve** seeds (**`lib/diagnostic_core`**, **`lexer/token_delim_core`**, **`lexer/token_op_core`**, **`parser/assign_binop_core`**, **`parser/assign_lhs_core`**) verified **`cc`**+run; **`examples/learn/09_struct.sv0`**. Docs (**`self-host-sv0-loop.md`**, **`task/sv0-toolchain-roadmap-full.Rmd`**, this file). Tag **`self-host-sv0-loop-v4`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v4`**). **Semantic** native **`SV0_SELF_HOST_COMPILER`** loop still open.
 - 2026-04-08: **`examples/learn/10_*.sv0`**, **`11_*.sv0`** (generics placeholder, **`requires`/`ensures`**); parent **`scripts/verify_vm_parity_manifest_bootstrap.py`** in **`test-guards`** / **`sv0 test`** Python slice — prevents manifest/bootstrap drift that broke CI. Tags **`examples-learn-v1.1`** (**sv0c**), **`toolchain-examples-learn-v1.1`** (meta).
 - 2026-04-10: **`examples/learn/12_*.sv0`**, **`13_*.sv0`** (logical **`&&`**, chained comparisons); child task **`task/sv0-toolchain-milestone-3-checklist.Rmd`** + **`/include:`** from this file for SML→sv0 phase tracking. Tags **`examples-learn-v1.2`** (**sv0c**), **`toolchain-examples-learn-v1.2`** (meta). **Full M3** (parity + native self-host + SML retirement) **still open**.
+- 2026-04-11: **`examples/learn/14_*.sv0`**–**`16_*.sv0`** — integer **`match`**, enum payload **`match`**, **`?`** try operator with **`main() -> R`**. Tags **`examples-learn-v1.3`** / **`toolchain-examples-learn-v1.3`**. **Full M3** still **not** met.
 
 ## related
 
