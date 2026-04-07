@@ -65,3 +65,4 @@ this milestone is complete when:
 - 2026-05-20: Parent **`verify_readme_sv0c_gitlink.py`** in **`sv0 test`** / **`test-guards`**; task doc updates (M2 prep, workspace, roadmap); graph sync after **`task/`** touch.
 - 2026-05-21: **VM parity v1** in **sv0c** + parent harness; **`vm-parity-v1`** tag on **sv0c**; graph sync after **`task/`** touch.
 - 2026-04-10: New **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (**`/include:`** from M3 self-host); **`examples/learn/12`**–**`13`**; run **`./scripts/sync-graph.sh all`** (or MCP **`sync_graph`** scope **`all`**) when **Neo4j** is up so the new task node and roadmap edges are visible.
+- 2026-04-10: **`sv0-mcp/README.md`** + **`docker-compose.yml`** — document **custom Bolt host ports** via **`SV0_MCP_NEO4J_URI`** / Cursor **`NEO4J_URI`** alignment; **connection refused** troubleshooting; parent **README** cross-link.

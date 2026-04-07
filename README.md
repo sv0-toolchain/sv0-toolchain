@@ -91,7 +91,7 @@ make help             # lists make targets; "make test" help matches ./scripts/s
 ./scripts/sv0-self-host-emit-c.sh /abs/path/file.sv0   # bootstrap C emit (stdout); same contract as SV0_SELF_HOST_COMPILER
 ```
 
-**Neo4j dev graph (sv0-mcp):** after you change **`task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP **`sync_graph`** tool).
+**Neo4j dev graph (sv0-mcp):** after you change **`task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP **`sync_graph`** tool). If Bolt is not on the default host port **`7688`**, set **`SV0_MCP_NEO4J_URI`** (and the cypher MCP **`NEO4J_URI`**) — see [`sv0-mcp/README.md`](sv0-mcp/README.md) (*custom host ports*).
 
 From **sv0c**: `make check` (compile only), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
 
