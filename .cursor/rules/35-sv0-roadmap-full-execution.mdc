@@ -1,0 +1,44 @@
+---
+description: Executing task/sv0-toolchain-roadmap-full.Rmd (full toolchain index, option C)
+globs:
+  - "task/sv0-toolchain-roadmap-full.Rmd"
+  - ".cursor/commands/thoroughly-execute-document.md"
+alwaysApply: false
+---
+
+## What this document is
+
+`task/sv0-toolchain-roadmap-full.Rmd` is the **parent-repo roadmap index** for design milestones **0–6** plus **cross-cutting** work. It maps vision milestones to owning **`task/*.Rmd`** files and records a **0–3 progress snapshot**. It is **not** a single finite checklist that closes **M3** or later milestones by itself.
+
+## Executable verification (the `/run` hook)
+
+From **`task/sv0-toolchain-roadmap-full/`**, run:
+
+- **`01-verify-roadmap-artifacts.sh`** — asserts that linked milestone task files exist under **`task/`**.
+
+## Where implementation work lives
+
+- **M3 (self-hosting) bar, phases, stakeholder decisions:** **`task/sv0-toolchain-milestone-3-self-host.Rmd`**
+- **SML → sv0 transliteration inventory:** **`task/sv0-toolchain-milestone-3-checklist.Rmd`**
+- **Milestones 4–6 and cross-cutting:** **`task/sv0-toolchain-milestone-4-verification.Rmd`**, **`…-5-llvm-crypto.Rmd`**, **`…-6-kernel.Rmd`**, **`…-cross-cutting.Rmd`**
+- **MCP / graph discipline:** **`task/sv0-mcp-milestone-0.Rmd`**
+
+Prefer **`33-continue-development-workflow.mdc`** for day-to-day navigation from this roadmap.
+
+## Validation reporting
+
+After substantive toolchain changes, prefer **`./scripts/sv0 test-guards`** (Python guards only) or **`./scripts/sv0 test`** (full harness including SML). When reporting results, name the exact command (**`40-validation-and-proof.mdc`**). After a **meta-repo push**, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and cite the workflow run you inspected.
+
+## Git, tags, and submodules
+
+- **Do not** create **`bootstrap-sml-final`** or move **`sv0c/sml/`** to legacy from roadmap hygiene alone — see **`28-sml-retirement-and-self-host-bar.mdc`** and **`29-submodule-git-visibility.mdc`**.
+- **Submodule pushes** matter when submodule **commits** exist; a clean **`main...origin/main`** in each submodule needs no push.
+- Prefer **atomic commits** and **Conventional Commits** with a **verbose body** when integrating submodule pointer bumps (**`29-submodule-git-visibility.mdc`**).
+
+## Graph sync (sv0-mcp / Neo4j)
+
+After edits to **`task/*.Rmd`** milestones or normative **`sv0doc/`** layout, refresh the dev graph per **`task/sv0-mcp-milestone-0.Rmd`** (e.g. **`sv0-mcp`**: `./scripts/sync-graph.sh all`). **Cursor rule-only** or **`.mdc`** edits that do not change task or spec content usually **do not** require a sync (**`32-sv0-mcp-tooling-boundaries.mdc`**).
+
+## Vision vs normative semantics
+
+The [compiler vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) explains intent; **implementable** language and bytecode behavior belong in **`sv0doc/`** (**`20-spec-first-language-semantics.mdc`**, **`25-sv0-design-invariants-vision.mdc`**).
