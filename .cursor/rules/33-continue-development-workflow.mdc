@@ -1,0 +1,32 @@
+---
+description: Orientation for the continue-development Cursor command and milestone-scoped "completion"
+globs:
+  - ".cursor/commands/continue-development.md"
+  - "task/sv0-toolchain-roadmap-full.Rmd"
+alwaysApply: false
+---
+
+## Navigation
+
+- Start from **`task/sv0-toolchain-roadmap-full.Rmd`** for **which milestone owns** each slice and the **0–3 snapshot** vs later milestones (**4–6**, cross-cutting).
+- For **bootstrap compiler completion through self-hosting (design milestone 3)**, the live bar and sequencing live in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** and **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included there). **Do not** treat documentation-only work as closing **M3**.
+
+## Semantics and examples
+
+- **Normative language and bytecode** behavior: **`sv0doc/`** first; vision HTML explains intent but does not override the spec (**`20-spec-first-language-semantics.mdc`**, **`25-sv0-design-invariants-vision.mdc`**).
+- **Contracts:** clause authority and change order in **`26-sv0-contracts-clauses.mdc`**.
+- **Learn tutorials vs bootstrap seeds:** **`27-examples-libraries-boundary.mdc`** — educational trees are not **`sv0c/lib/`** unless a task explicitly promotes them.
+
+## Git and integration
+
+- Submodule history and meta-repo pointer bumps: **`29-submodule-git-visibility.mdc`**.
+- **Self-host pilot CI** vs **SML retirement**: **`28-sml-retirement-and-self-host-bar.mdc`**.
+
+## MCP / graph
+
+- After material edits to **`task/*.Rmd`** milestones or normative **`sv0doc/`** layout, refresh the dev graph per **`task/sv0-mcp-milestone-0.Rmd`** (submodule **`sv0-mcp`**, or **sv0-graph** **`sync_graph`**). Cursor-only or rule-only edits usually **do not** require a sync.
+
+## Validation honesty
+
+- Prefer **`./scripts/sv0 test-guards`** for a fast Python pass; use **`./scripts/sv0 test`** / **`make ci-all`** when behavior or cross-submodule integration changed.
+- After pushing the meta-repo, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and name the run you used in your report (**`40-validation-and-proof.mdc`**).
