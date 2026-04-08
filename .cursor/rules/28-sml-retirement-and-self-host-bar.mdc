@@ -1,0 +1,32 @@
+---
+description: Milestone 3 self-host loop vs SML retirement — do not conflate pilot CI with bootstrap-sml-final
+globs:
+  - "sv0c/sml/**"
+  - "sv0c/lib/**"
+  - "sv0c/doc/self-host*.md"
+  - "task/**/*milestone-3*.Rmd"
+  - "scripts/sv0-self-host*.sh"
+alwaysApply: false
+---
+
+## Two different “done” signals
+
+| Signal | Meaning |
+|--------|---------|
+| **`lib/self-host-sv0-loop.list` green** | Each listed **`.sv0`** seed: SML emits C twice deterministically, **`cc`**+**`run`** exits **0**, and (unless skipped) **`sv0-self-host-emit-c.sh`** stdout **`diff`**s SML — **harness health**, not full compiler self-host. |
+| **`bootstrap-sml-final` + `sml-legacy/`** | **Stakeholder bar** from **`task/sv0-toolchain-milestone-3-self-host.Rmd`**: feature parity, VM policy, **then** tag on **sv0c only**, move **`sml/`** → **`sml-legacy/`**, default build **sv0-only**. |
+
+Growing the pilot list **is** real progress toward M3 (more transliterated surface is exercised end-to-end on the C path). It **does not** satisfy SML retirement by itself.
+
+## Agent discipline
+
+- Never tag **`bootstrap-sml-final`** or rename **`sml/`** because the self-host **pilot** list grew — retirement follows the **completion criteria** in the M3 task.
+- When adding paths to **`self-host-sv0-loop.list`**, verify **`./scripts/sv0 emit-c <rel>`** + **`cc`** + **`./a.out`** (exit **0**) locally first; keep CI time in mind.
+- Prefer **`SV0_SELF_HOST_COMPILER`** documentation and **`doc/self-host-sv0-loop.md`** updates when changing loop semantics or pilot counts.
+- Normative language semantics still come from **`sv0doc/`**; self-host work does not redefine the language.
+
+## Related
+
+- **`task/sv0-toolchain-milestone-3-self-host.Rmd`** — definition of done, stakeholder decisions.
+- **`25-sv0-design-invariants-vision.mdc`** — milestones 0–3 snapshot pointer.
+- **`27-examples-libraries-boundary.mdc`** — **`examples/libs`** vs **`sv0c/lib/`** seeds.

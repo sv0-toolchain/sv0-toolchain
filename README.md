@@ -26,7 +26,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `7c5f1a4398d40c4bf1b8cfe63c1afb76458a5b19` |
+| **sv0c commit pinned on this branch (`main`)** | `a52cea0e5b9dd494f3b95bd79f8463ab1ec16f50` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and **`scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches **HEAD** and **`test/vm-parity/manifest.txt`** stays a subset of **`sv0c/lib/bootstrap-sources.list`**.
 
@@ -34,7 +34,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 
 this workspace uses the [AI agent workflow structure](http://development.sasankvishnubhatla.net/tcowmbh/note/ai-agent-workflow-structure.html) to organize development work. agent files (`.Rmd`) in `task/` orchestrate implementation through directives and companion scripts.
 
-**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. **`25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), **`sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**. **`26-sv0-contracts-clauses.mdc`** scopes **`requires`/`ensures`/`loop_invariant`**, quantifiers, and aliasing contracts to **`sv0doc/`** + implementation discipline. **`27-examples-libraries-boundary.mdc`** separates **`sv0c/examples/libs/`** (pedagogy) from **`sv0c/lib/`** (bootstrap transliteration). they sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
+**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. **`25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), **`sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**. **`26-sv0-contracts-clauses.mdc`** scopes **`requires`/`ensures`/`loop_invariant`**, quantifiers, and aliasing contracts to **`sv0doc/`** + implementation discipline. **`27-examples-libraries-boundary.mdc`** separates **`sv0c/examples/libs/`** (pedagogy) from **`sv0c/lib/`** (bootstrap transliteration). **`28-sml-retirement-and-self-host-bar.mdc`** states that **`self-host-sv0-loop.list`** CI is not **`bootstrap-sml-final`**. they sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
 
 ### milestone structure
 

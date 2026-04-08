@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T06:05:00Z"
+updated: "2026-04-07T23:04:51-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -183,6 +183,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-07: Learn **`22_native_c_path.sv0`** (documented **`emit-c`** + **`cc`** + **`sv0_runtime.c`** path); meta-repo **`.cursor/rules/25-sv0-design-invariants-vision.mdc`** + **README** pointer — vision/design principles vs **`sv0doc/`** authority and milestones **0–3** snapshot. Tag **`examples-learn-v1.9`** (**sv0c** + meta). **M3** bar unchanged.
 - 2026-04-08: Learn **`examples/learn/23_project_minimal/`** (`module` + **`use`**); **`./scripts/sv0 vm-project-compile`**; **`scripts/gen_sv0_doc.py`** uses **`rglob`** for nested learn **`.sv0`**; **`.cursor/rules/26-sv0-contracts-clauses.mdc`**. Tag **`examples-learn-v1.10`** (**sv0c** + meta). **M3** bar unchanged.
 - 2026-04-08: **`sv0c/examples/libs/`** — **`edu_clamp`**, **`edu_bits`** (documented “future std” pedagogy, not **`lib/`** seeds); **`gen_sv0_doc.py`** index section; **`.cursor/rules/27-examples-libraries-boundary.mdc`**. Tag **`examples-libs-v1`** (**sv0c** + meta). **M3** bar unchanged.
+- 2026-04-07 (**America/Denver −06:00**): **Self-host pilot expansion (v5)** — **`lib/self-host-sv0-loop.list`** grows from **12** to **22** entries (**`lower_lit`**, **`lower_binop`**, **`checker_mut_assign`**, **`link_strip`**, five parser stub / cast / unary / assign paths); each verified **`emit-c`** + **`cc`** + exit **0** before listing. **`sv0c/doc/self-host-sv0-loop.md`** table updated. Meta: **`task/sv0-toolchain-roadmap-full.Rmd`** M3 progress row; **`.cursor/rules/28-sml-retirement-and-self-host-bar.mdc`** (pilot list ≠ **`bootstrap-sml-final`**). Tag **`self-host-sv0-loop-v5`** (**sv0c**), **`toolchain-self-host-sv0-loop-v5`** (meta). **SML retirement** and **semantic** **`SV0_SELF_HOST_COMPILER`** loop **still open**.
 
 ## related
 
