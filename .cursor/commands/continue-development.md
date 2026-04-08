@@ -14,4 +14,6 @@ ensure that all tests and the CI/CD pipelines are passing after every push. use 
 
 ensure that there are no hanging execution threads during your debugging.
 
+provide a detailed status of the work with timeline estimates of number of implementation slices left.
+
 when you must ask the user something, keep it **design-related or high-impact** (semantics, milestone scope, irreversible ops); see `.cursor/rules/34-user-prompts-design-only.mdc`. otherwise proceed using the repo, tasks, and scripts.
