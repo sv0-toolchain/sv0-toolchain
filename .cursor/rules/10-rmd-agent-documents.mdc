@@ -28,6 +28,8 @@ Important frontmatter fields include:
 
 Do not casually delete, flatten, or rewrite these files into generic markdown.
 
+For **`task/*.Rmd`** (and any file validated by **`scripts/verify_task_rmd_frontmatter.py`**), keep **valid YAML**: a **space** after **`:`** in mapping entries (e.g. **`updated: "2026-04-08T12:00:00-06:00"`**, not **`updated:"…"`**). Broken frontmatter fails **`./scripts/sv0 test-guards`**.
+
 ## Preserve directive semantics
 
 Recognize and preserve directive lines that begin with `/`.
