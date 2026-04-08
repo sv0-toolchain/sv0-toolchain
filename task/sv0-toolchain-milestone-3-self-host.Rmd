@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T17:25:49-06:00"
+updated: "2026-04-08T17:37:46-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -91,6 +91,18 @@ Planning ranges only — not schedule commitments. Granularity and staffing domi
 | **`lib/self-host-sv0-loop.list`** pilots | see **`sv0c/doc/self-host-sv0-loop.md`** | Grows as **`emit-c`** + **`cc`** + run is verified per path. |
 | More **curated seeds** to cover most of **`sml/`** at today’s slice size | **~50–200+** (wide band) | Parser, checker, **`lowering.sml`**, contract analyzer, and backends drive the tail; horizontal **`lowering.sml`** cuts alone can be **~10–30+** before a unified **`lowerExpr`**. |
 | **M3 “done”** (parity + **native** self-host + **SML** retirement) | **multi-quarter** typical | See **completion criteria** above; **semantic** loop and **retirement** are not implied by pilot list growth alone (**`28-sml-retirement-and-self-host-bar.mdc`**). |
+
+## large task decomposition (handoff)
+
+M3 is **several parallel tracks**, not one queue. When a goal is too large to finish in one pass, **write the split** here (or in **`task/sv0-toolchain-milestone-3-checklist.Rmd`**) *before* deep implementation, and add a **refinement-log** line when the decomposition itself changes.
+
+1. **Transliteration (SML → sv0):** target **one** SML module or **one** named helper cluster; add **`sv0c/lib/`** (or **`lexer/`** / **`parser/`**) seed, **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/<stem>.c`** when applicable, and **`lib/self-host-sv0-loop.list`** when **`emit-c`** + **`cc`** + exit **0** is in scope. Track rows in **`sv0c/doc/transliteration-plan.md`** and the checklist.
+2. **Lowering / IR tables:** prefer **small harness** seeds that stand in for SML **`raise`** vs success until real IR surface is wired end-to-end (see **`lower_enum_tag_core`**, **`lower_struct_fields_core`** and **`33-continue-development-workflow.mdc`**).
+3. **VM strict parity v1:** grow **`sv0c/test/vm-parity/`** manifest + SML goldens; document **allowlist** deltas in this file or **`task/sv0c-milestone-1.Rmd`** as appropriate.
+4. **Native self-host (`SV0_SELF_HOST_COMPILER`):** separate from the **pilot** **`cc`**+run list; prerequisites and swap-in steps stay in **`sv0c/doc/self-host-sv0-loop.md`**.
+5. **SML retirement:** **`bootstrap-sml-final`**, **`sml/`** → **`sml-legacy/`**, default **sv0-only** build — only after parity + documented recovery; see **`28-sml-retirement-and-self-host-bar.mdc`**.
+
+**Handoff contract:** each decomposition update should leave **actionable substeps** (whoever picks up next should not need to re-derive the split from **`sv0c/sml/`** alone). Cursor rule **`36-large-task-decomposition.mdc`** restates this for agents.
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -205,6 +217,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_callee_ret_cty_core.sv0`** — **`calleeRetCty`** (**`ItemFn`** lookup, explicit return → **`astTyToCString`** class, else **`int`**); lists + golden; self-host pilots **29**. Tag **`self-host-sv0-loop-v9`** (**sv0c**), **`toolchain-self-host-sv0-loop-v9`** (meta). **Transliteration throughput** subsection (order-of-magnitude slice / calendar bands). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_enum_tag_core.sv0`** — **`enumTag`** (enum + variant table hits → discriminant **`k`**; harness codes **254**/**255** vs SML **`raise`**); lists + **`lib/golden/stage0/lower_enum_tag_core.c`**; self-host pilots **30**. Tag **`self-host-sv0-loop-v10`** (**sv0c**), **`toolchain-self-host-sv0-loop-v10`** (meta). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_struct_fields_core.sv0`** — **`structFields`** (**`structFieldOrder`** hit → field **count** harness; miss → **255** vs SML **`raise`**); lists + golden; self-host pilots **31**. Tag **`self-host-sv0-loop-v11`** (**sv0c**), **`toolchain-self-host-sv0-loop-v11`** (meta). **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **Large-task decomposition** — new **## large task decomposition (handoff)**; **`.cursor/rules/36-large-task-decomposition.mdc`**; slash commands **continue-development** / **thoroughly-execute-document** require documented breakdowns for oversized slices; **`33`** / **`35`** cross-refs.
 
 ## related
 
