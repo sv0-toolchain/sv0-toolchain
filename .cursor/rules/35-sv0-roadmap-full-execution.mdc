@@ -25,6 +25,10 @@ From **`task/sv0-toolchain-roadmap-full/`**, run:
 
 Prefer **`33-continue-development-workflow.mdc`** for day-to-day navigation from this roadmap.
 
+## Transliteration throughput (planning)
+
+Order-of-magnitude **slice counts** and **calendar** bands for milestone **3** transliteration (not commitments) live in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** under **## transliteration throughput (order-of-magnitude)**. Use that table when slash commands ask for remaining-work estimates.
+
 ## Validation reporting
 
 After substantive toolchain changes, prefer **`./scripts/sv0 test-guards`** (Python guards only) or **`./scripts/sv0 test`** (full harness including SML). When reporting results, name the exact command (**`40-validation-and-proof.mdc`**). After a **meta-repo push**, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and cite the workflow run you inspected.
