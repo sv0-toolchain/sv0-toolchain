@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T08:05:24-06:00"
+updated: "2026-04-08T08:16:02-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -185,6 +185,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08: **`sv0c/examples/libs/`** — **`edu_clamp`**, **`edu_bits`** (documented “future std” pedagogy, not **`lib/`** seeds); **`gen_sv0_doc.py`** index section; **`.cursor/rules/27-examples-libraries-boundary.mdc`**. Tag **`examples-libs-v1`** (**sv0c** + meta). **M3** bar unchanged.
 - 2026-04-07 (**America/Denver −06:00**): **Self-host pilot expansion (v5)** — **`lib/self-host-sv0-loop.list`** grows from **12** to **22** entries (**`lower_lit`**, **`lower_binop`**, **`checker_mut_assign`**, **`link_strip`**, five parser stub / cast / unary / assign paths); each verified **`emit-c`** + **`cc`** + exit **0** before listing. **`sv0c/doc/self-host-sv0-loop.md`** table updated. Meta: **`task/sv0-toolchain-roadmap-full.Rmd`** M3 progress row; **`.cursor/rules/28-sml-retirement-and-self-host-bar.mdc`** (pilot list ≠ **`bootstrap-sml-final`**). Tag **`self-host-sv0-loop-v5`** (**sv0c**), **`toolchain-self-host-sv0-loop-v5`** (meta). **SML retirement** and **semantic** **`SV0_SELF_HOST_COMPILER`** loop **still open**.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_assign_lhs_core.sv0`** — transliteration slice for **`lowering.sml`** **`classifyAssignLhs`** (simple name vs one-level field vs unsupported); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_assign_lhs_core.c`**, **`lib/self-host-sv0-loop.list`** (**23** pilots); **`sv0c/doc/self-host-sv0-loop.md`** pilot count. **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_ast_ty_cstring_core.sv0`** — **`astTyToCString`** shape classes (**`TyUnit`**, primitive **`TyName`**, passthrough name, **`_ => int`**); lists + stage0 golden; self-host pilots **24**. **Full M3** still **not** met.
 
 ## related
 
