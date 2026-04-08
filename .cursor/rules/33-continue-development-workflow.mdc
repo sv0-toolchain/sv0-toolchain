@@ -30,3 +30,7 @@ alwaysApply: false
 
 - Prefer **`./scripts/sv0 test-guards`** for a fast Python pass; use **`./scripts/sv0 test`** / **`make ci-all`** when behavior or cross-submodule integration changed.
 - After pushing the meta-repo, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and name the run you used in your report (**`40-validation-and-proof.mdc`**).
+
+## User prompts
+
+- When a slash command asks you to question the user, **limit prompts to design-level or high-impact decisions**; routine execution should not stall on the user (**`34-user-prompts-design-only.mdc`**).

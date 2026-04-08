@@ -25,7 +25,7 @@ Primary root-level coordination areas:
 - `Makefile` — root orchestration targets
 - `README.md` — workspace map, commands, and developer overview
 - `.agent/` — agent runner support
-- `.cursor/` — Cursor project rules
+- `.cursor/` — Cursor project rules and slash commands (e.g. **`continue-development`**); agent orientation **`33-continue-development-workflow.mdc`**; **design-only user prompts** **`34-user-prompts-design-only.mdc`**
 
 ## Ownership boundaries
 

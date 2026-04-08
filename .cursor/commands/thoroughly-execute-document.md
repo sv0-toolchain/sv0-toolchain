@@ -23,4 +23,6 @@ ensure that all tests and the CI/CD pipelines are passing after every push. use 
 
 ensure that there are no hanging execution threads during your debugging.
 
+when you must ask the user something, keep it **design-related or high-impact**; see `.cursor/rules/34-user-prompts-design-only.mdc`. otherwise proceed using the repo, tasks, and scripts.
+
 /ask-questions

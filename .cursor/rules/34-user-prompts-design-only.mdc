@@ -1,0 +1,34 @@
+---
+description: When agents should ask the user vs proceed autonomously (design-only prompts)
+globs:
+  - "**/*"
+alwaysApply: true
+---
+
+## Default
+
+Proceed **without** stopping for the user on routine work: reading the repo, following **`task/*.Rmd`** and **`sv0doc/`**, editing code or docs, running **`./scripts/sv0`** / **`make`** targets, submodule pointer bumps per **`29-submodule-git-visibility.mdc`**, **`gh`** CI checks, and small rule updates.
+
+## Ask the user (design and high-impact decisions)
+
+Use **one question at a time** when the answer **changes normative intent** or **commits the project** to a path that **`sv0doc/`** and existing tasks do not settle. Typical cases:
+
+- **Language or bytecode semantics** not specified (or spec vs [vision](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) conflict) and you would otherwise **invent** behavior.
+- **Milestone scope or acceptance** reinterpretation that redefines “done” for a tracked **`task/sv0-*-milestone-*.Rmd`**.
+- **Public contract** changes (tooling CLI, stable file layouts, submodule boundaries) where multiple reasonable designs exist and tasks are silent.
+- **Irreversible or risky operations** the user did not request (e.g. force-push, mass history rewrite, destructive data migration) — treat as **user-owned**, not agent-owned.
+
+## Do not use the user as a substitute for the repo
+
+- Prefer **`sv0doc/`**, **`task/`**, submodule **README / doc/**, and **`./scripts/sv0 test-guards`** (then broader tests when needed) over asking **“what should I run?”** or **“which file?”** when the answer is discoverable.
+- When requirements are ambiguous but **non-normative**, follow **`05-planning-and-execution.mdc`**: preserve structure, state the ambiguity in prose or a task note, and choose the **narrowest** reversible step — **without** a user ping unless that step would still pick **new semantics**.
+
+## Slash commands that mention asking questions
+
+If a command includes **ask-questions** style instructions, interpret them through this rule: **prompts to the user should be design-level** (or high-impact as above), not procedural trivia.
+
+## Related
+
+- **`05-planning-and-execution.mdc`** — ambiguity without hidden semantics.
+- **`20-spec-first-language-semantics.mdc`** — no invention beyond the spec.
+- **`33-continue-development-workflow.mdc`** — milestone navigation and validation reporting.

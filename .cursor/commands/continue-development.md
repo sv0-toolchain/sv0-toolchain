@@ -13,3 +13,5 @@ ensure all timestamp updates are actually accurate to my current time and timezo
 ensure that all tests and the CI/CD pipelines are passing after every push. use the gh tool to check that all pipelines are passing. if any fail, fix them immediately and then continue development towards completion.
 
 ensure that there are no hanging execution threads during your debugging.
+
+when you must ask the user something, keep it **design-related or high-impact** (semantics, milestone scope, irreversible ops); see `.cursor/rules/34-user-prompts-design-only.mdc`. otherwise proceed using the repo, tasks, and scripts.
