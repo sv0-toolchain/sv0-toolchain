@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-07T18:30:00Z"
+updated: "2026-04-08T05:15:00Z"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -54,7 +54,7 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 | **`lib/golden/stage0/*.c`** | Reference C for listed seeds vs SML emit. |
 | **`./scripts/sv0 self-host-sv0-loop`** | Pilot **`lib/self-host-sv0-loop.list`**: SML→C×2, **`cc`**+run; optional **`SV0_SELF_HOST_COMPILER`** diff. |
 | **`sv0c/test/vm-parity/`** | SML bytecode goldens; manifest paths must ⊆ **`bootstrap-sources.list`** (meta **`verify_vm_parity_manifest_bootstrap.py`**). |
-| **`sv0c/examples/learn/*.sv0`** | Informal tutorials (**not** on bootstrap/vm-parity lists); teach **`vm-compile`** / **`vm-run`** / **`emit-c`**. |
+| **`sv0c/examples/learn/*.sv0`** (and nested dirs) | Informal tutorials (**not** on bootstrap/vm-parity lists); teach **`vm-compile`** / **`vm-project-compile`** / **`vm-run`** / **`emit-c`**. |
 
 ## related
 

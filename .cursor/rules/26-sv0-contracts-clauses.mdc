@@ -1,0 +1,32 @@
+---
+description: Contract clauses (requires, ensures, loop_invariant, quantifiers, no_alias) — align with sv0doc; do not invent clause semantics
+globs:
+  - "sv0doc/**"
+  - "sv0c/sml/contract_analyzer/**"
+  - "sv0c/sml/type_checker/**"
+  - "sv0c/examples/learn/**"
+  - "task/**/*.Rmd"
+alwaysApply: false
+---
+
+## Authority
+
+- **Normative** definitions and allowed positions for contract syntax live in **`sv0doc/`** (grammar + typing/contract sections).
+- The [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) explains *why* contracts exist; it does not override **`sv0doc/`** for what the bootstrap compiler accepts today.
+
+## Clause families (conceptual)
+
+- **`requires` / `ensures` / `loop_invariant`** — boolean conditions; some forms lower to runtime checks in the SML bootstrap (see **`sv0c/doc/compiler-passes.md`**).
+- **`forall` / `exists`** — quantified contract expressions; valid only in contract positions per spec. VM support may lag C for some shapes; check **`sv0doc/`** and vm-parity policy before assuming parity.
+- **`no_alias` / `borrows` / `old` / `result`** — memory and call contracts; lowering is backend-sensitive (**C** vs **VM**). Do not generalize from one backend to the other without tests and spec alignment.
+
+## Agent rules
+
+- When adding or changing contract **syntax**, **checking**, or **lowering**, update **`sv0doc/`** first if behavior is meant to be normative, then tasks, then **`sv0c/`**, then validation (unit, integration, vm-parity where applicable).
+- Do not introduce new contract keywords or clause meanings from the vision doc alone.
+- Prefer **behavioral** diagnostic parity when tightening messages; see **`task/sv0-toolchain-milestone-3-self-host.Rmd`** (stakeholder decisions).
+
+## Related workspace rules
+
+- **`20-spec-first-language-semantics.mdc`** — semantic change order.
+- **`25-sv0-design-invariants-vision.mdc`** — design principles (types first, contracts second).

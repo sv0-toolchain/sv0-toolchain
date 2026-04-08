@@ -38,6 +38,7 @@ usage: sv0 <command> [args]
                            SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 to skip); see sv0c/doc/self-host-sv0-loop.md
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
+  vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
   ci                 check + full ./scripts/sv0 test (no sv0-mcp; same as \`make ci\`)
@@ -750,6 +751,15 @@ case "$cmd" in
     rel="${1:-}"
     if [[ -z "$rel" ]]; then usage; exit 1; fi
     (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"$rel\"]);" | sml)
+    ;;
+  vm-project-compile)
+    rel="${1:-}"
+    if [[ -z "$rel" ]]; then usage; exit 1; fi
+    if [[ ! -d "$SV0C/$rel" ]]; then
+      echo "sv0: vm-project-compile: not a directory under sv0c: $rel" >&2
+      exit 1
+    fi
+    (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"--project\", \"$rel\"]);" | sml)
     ;;
   vm-run)
     sv0b="${1:-}"

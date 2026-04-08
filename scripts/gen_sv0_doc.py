@@ -66,12 +66,12 @@ def main() -> int:
             "",
             "## Learning examples (`sv0c/examples/learn/`)",
             "",
-            f"Tutorial sources and README: `{rp(learn / 'README.md')}` (paths for `./scripts/sv0 vm-compile` are relative to `sv0c/`).",
+            f"Tutorial sources and README: `{rp(learn / 'README.md')}` (paths for `./scripts/sv0 vm-compile` / `vm-project-compile` are relative to `sv0c/`).",
             "",
         ]
     )
     if learn.is_dir():
-        learn_sv0 = sorted(learn.glob("*.sv0"))
+        learn_sv0 = sorted(learn.rglob("*.sv0"))
         if not learn_sv0:
             lines.append("_(no `*.sv0` under examples/learn yet)_\n")
         for sv0 in learn_sv0:

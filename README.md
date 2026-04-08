@@ -15,7 +15,7 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
-**Learning:** small **`.sv0`** sources (numbered tutorials through **`22_native_c_path.sv0`**) and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **`vm-compile`** and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
+**Learning:** small **`.sv0`** sources (numbered tutorials through **`22_*`**, plus multi-file **`examples/learn/23_project_minimal/`**) and commands for **`vm-compile`**, **`vm-project-compile`**, **`vm-run`**, and **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **`vm-compile`**, **`vm-project-compile`**, and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
 
 **GitHub SSH:** if **`git push`** times out on port 22, use **`./scripts/with-github-ssh443.sh git push …`** (SSH over port 443); see [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd).
 
@@ -26,7 +26,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `bf544a9fe38d03f2b69943740f5d1b7fb391e1a2` |
+| **sv0c commit pinned on this branch (`main`)** | `a79088723485745698dc62cd19c45583f77f0c25` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and **`scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches **HEAD** and **`test/vm-parity/manifest.txt`** stays a subset of **`sv0c/lib/bootstrap-sources.list`**.
 
@@ -34,7 +34,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 
 this workspace uses the [AI agent workflow structure](http://development.sasankvishnubhatla.net/tcowmbh/note/ai-agent-workflow-structure.html) to organize development work. agent files (`.Rmd`) in `task/` orchestrate implementation through directives and companion scripts.
 
-**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. **`25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), **`sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**. they sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
+**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. **`25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), **`sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**. **`26-sv0-contracts-clauses.mdc`** scopes **`requires`/`ensures`/`loop_invariant`**, quantifiers, and aliasing contracts to **`sv0doc/`** + implementation discipline. they sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
 
 ### milestone structure
 
