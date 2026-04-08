@@ -1,0 +1,28 @@
+---
+description: Distinguish sv0c/examples/libs (educational, future std-shaped) from sv0c/lib (compiler bootstrap seeds)
+globs:
+  - "sv0c/examples/libs/**"
+  - "sv0c/examples/learn/**"
+  - "sv0c/lib/**"
+  - "task/**/*.Rmd"
+alwaysApply: false
+---
+
+## Two different `lib` meanings
+
+| Tree | Role |
+|------|------|
+| **`sv0c/lib/`** | **Compiler-in-sv0** transliteration seeds, **`bootstrap-sources.list`**, **`golden/stage0/`**, CI **bootstrap-build** and **self-host** pilots. Changes here require manifest / golden discipline. |
+| **`sv0c/examples/libs/`** | **Educational** multi-file packages that look like future **`std`/`core`** snippets. **Not** on bootstrap or vm-parity lists unless a task explicitly adds them. Heavily documented README + comments; safe place for pedagogy. |
+
+## Editing rules
+
+- Do **not** move **`examples/libs`** sources into **`sv0c/lib/`** (or vice versa) without updating **`lib/bootstrap-sources.list`**, goldens, and **`task/`** milestones — that is a **compiler** change, not a doc tweak.
+- New **shipped** standard-library layout will be defined in **`sv0doc/`** and tasks; **`examples/libs`** remains **non-normative** until promoted explicitly.
+- Prefer **`vm-project-compile`** for **`examples/libs/<pkg>/`**; keep one **`module lib`** per package unless the resolver story for multi-module projects is extended elsewhere.
+
+## Related
+
+- **`15-root-orchestration-entrypoints.mdc`** — `./scripts/sv0` commands.
+- **`25-sv0-design-invariants-vision.mdc`** — contracts / types philosophy.
+- **`26-sv0-contracts-clauses.mdc`** — contract clause authority.

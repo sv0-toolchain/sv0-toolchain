@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T05:20:00Z"
+updated: "2026-04-08T06:05:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -182,6 +182,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08: Learn **`21_mut_i32_compound.sv0`** (**`+=`**/**`-=`**/**`*=`** on **`let mut`** **`i32`**); **done-ish** paragraph above corrected (**101** vm-parity goldens, not **100**). **`sv0-mcp/README.md`** — full-sync bullet for paths under **`sv0c/examples/learn/`**. Tag **`examples-learn-v1.8`** (**sv0c** + meta). **M3** bar unchanged.
 - 2026-04-07: Learn **`22_native_c_path.sv0`** (documented **`emit-c`** + **`cc`** + **`sv0_runtime.c`** path); meta-repo **`.cursor/rules/25-sv0-design-invariants-vision.mdc`** + **README** pointer — vision/design principles vs **`sv0doc/`** authority and milestones **0–3** snapshot. Tag **`examples-learn-v1.9`** (**sv0c** + meta). **M3** bar unchanged.
 - 2026-04-08: Learn **`examples/learn/23_project_minimal/`** (`module` + **`use`**); **`./scripts/sv0 vm-project-compile`**; **`scripts/gen_sv0_doc.py`** uses **`rglob`** for nested learn **`.sv0`**; **`.cursor/rules/26-sv0-contracts-clauses.mdc`**. Tag **`examples-learn-v1.10`** (**sv0c** + meta). **M3** bar unchanged.
+- 2026-04-08: **`sv0c/examples/libs/`** — **`edu_clamp`**, **`edu_bits`** (documented “future std” pedagogy, not **`lib/`** seeds); **`gen_sv0_doc.py`** index section; **`.cursor/rules/27-examples-libraries-boundary.mdc`**. Tag **`examples-libs-v1`** (**sv0c** + meta). **M3** bar unchanged.
 
 ## related
 

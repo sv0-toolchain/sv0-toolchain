@@ -81,6 +81,27 @@ def main() -> int:
     else:
         lines.append("_(no sv0c/examples/learn directory yet)_\n")
 
+    libs = root / "sv0c" / "examples" / "libs"
+    lines.extend(
+        [
+            "",
+            "## Example libraries (`sv0c/examples/libs/`)",
+            "",
+            f"Educational packages (not bootstrap seeds): `{rp(libs / 'README.md')}`.",
+            "",
+        ]
+    )
+    if libs.is_dir():
+        libs_sv0 = sorted(libs.rglob("*.sv0"))
+        if not libs_sv0:
+            lines.append("_(no `*.sv0` under examples/libs yet)_\n")
+        for sv0 in libs_sv0:
+            lines.append(f"### `{rp(sv0)}`")
+            lines.extend(outline_sv0(sv0) or ["- _(no top-level items detected)_"])
+            lines.append("")
+    else:
+        lines.append("_(no sv0c/examples/libs directory yet)_\n")
+
     index = out_dir / "index.md"
     index.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {index}")
