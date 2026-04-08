@@ -1,8 +1,9 @@
 ---
 created: "2026-03-25T00:00:00Z"
+updated: "2026-04-07T18:00:00Z"
 id: task-sv0-mcp-milestone-0
 key: sv0-mcp-milestone-0
-state: draft
+state: complete
 tags:
   - sv0
   - sv0-mcp
@@ -10,6 +11,7 @@ tags:
   - neo4j
 title: "milestone 0: sv0-mcp server, sync, and documentation alignment"
 type: task
+roadmap_parent: sv0-toolchain-roadmap-full
 ---
 
 # milestone 0: sv0-mcp (graph memory + MCP)
@@ -68,3 +70,4 @@ this milestone is complete when:
 - 2026-04-10: **`sv0-mcp/README.md`** + **`docker-compose.yml`** — document **custom Bolt host ports** via **`SV0_MCP_NEO4J_URI`** / Cursor **`NEO4J_URI`** alignment; **connection refused** troubleshooting; parent **README** cross-link.
 - 2026-04-11: **`examples/learn/14`–`16`** + roadmap/M3 log; run **`./scripts/sync-graph.sh all`** when **Neo4j** is available so task/roadmap edits are reflected in the graph.
 - 2026-04-12: VM **`no_alias`**, **`transliteration-plan.md`**, learn **`17`**; graph sync when DB is up.
+- 2026-04-07: Marked **complete** — package tests (**`./scripts/sv0 test-mcp`**), **`README.md`** + cross-links, parent workspace index, and **`roadmap_parent`** for graph **`PART_OF`** into **`sv0-toolchain-roadmap-full`**.

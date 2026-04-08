@@ -9,13 +9,13 @@ development workspace for the sv0 programming language compiler and toolchain.
 | [sv0doc](sv0doc/) | **documentation hub**: formal language spec, bytecode spec, roadmap links to vision doc | markdown | **Milestone 0 (task) complete**; bytecode under `bytecode/`; hub text in [sv0doc/README.md](sv0doc/README.md) |
 | [sv0c](sv0c/) | compiler implementation + in-repo docs (`doc/`) | SML/NJ | **Milestones 1–2 (task) complete** — C backend + VM backend (`--target=vm`, `--target=vm --project`) |
 | [sv0vm](sv0vm/) | bytecode VM interpreter implementation + notes | SML/NJ | **Milestone 2 (task) complete** |
-| [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain | Python | tracked under **`task/sv0-mcp-milestone-0.Rmd`** |
+| [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain | Python | **Milestone 0 (task) complete** — see **`task/sv0-mcp-milestone-0.Rmd`** |
 
 **Design milestones 0–2 (task-tracked)** are **met** at the level described in [`task/sv0-toolchain-roadmap-full.Rmd`](task/sv0-toolchain-roadmap-full.Rmd). **Milestone 3** (self-hosting compiler in **sv0**) is **in progress** — see [`task/sv0-toolchain-milestone-3-self-host.Rmd`](task/sv0-toolchain-milestone-3-self-host.Rmd) for definition of done vs remaining transliteration work; it is **not** closable by documentation alone.
 
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
-**Learning:** small **`.sv0`** sources (numbered tutorials through **`17_no_alias_contract.sv0`**) and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **`vm-compile`** and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
+**Learning:** small **`.sv0`** sources (numbered tutorials through **`19_loop_invariant.sv0`**) and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **`vm-compile`** and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
 
 **GitHub SSH:** if **`git push`** times out on port 22, use **`./scripts/with-github-ssh443.sh git push …`** (SSH over port 443); see [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd).
 
@@ -26,7 +26,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `1798d25b0a8deb61571b8443752b74d8e6b25d0b` |
+| **sv0c commit pinned on this branch (`main`)** | `88f8ae0d34d8440077e6da00972249795f668d3f` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and **`scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches **HEAD** and **`test/vm-parity/manifest.txt`** stays a subset of **`sv0c/lib/bootstrap-sources.list`**.
 
