@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T14:04:52-06:00"
+updated: "2026-04-08T16:24:29-06:00"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active
@@ -95,6 +95,7 @@ sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
 - 2026-04-08: **sv0c** — **`lib/lower_ast_ty_cstring_core.sv0`** (**`astTyToCString`** class slice) + golden; self-host pilots **24**. **M3** still **not** met.
 - 2026-04-08: **sv0c** — **`lib/lower_value_to_expr_core.sv0`** (**`valueToExpr`**) + golden; self-host pilots **25**. **M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **sv0c** — **`lib/lower_ast_binop_to_c_core.sv0`** (**`astBinopToC`** → single- vs two-character C operator width classes) + stage0 golden; self-host pilots **26**. **M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **sv0c** — **`lib/lower_expr_init_cty_core.sv0`** (**`exprInitCty`** expr-shape → C initializer type decision classes) + stage0 golden; self-host pilots **27**. Tags **`self-host-sv0-loop-v7`** / **`toolchain-self-host-sv0-loop-v7`**. **M3** still **not** met.
 
 **YAML `state` convention** (optional but recommended)
 
@@ -118,7 +119,7 @@ This is a human-readable summary; detailed criteria stay in each **`task/sv0-*-m
 | **0** — language spec | **Baseline met** | **sv0doc** holds grammar, types, contracts, memory model, keywords, and **bytecode anchor** docs under **`bytecode/`**. Parent **`./scripts/sv0 test`** runs **`verify_sv0doc_baseline.py`** so required paths cannot disappear silently. Normative prose can still evolve. |
 | **1** — SML bootstrap compiler | **Met** | **sv0c** lexer through C backend; unit + integration tests green under **`./scripts/sv0 test`**. |
 | **2** — self-host prep | **Met** (split: VM vs prep) | **sv0vm** runs bytecode; **sv0c** emits **`.sv0b`**. Prep slice: **`sv0 test`** (includes **sv0doc** baseline, block-comment guard, **`task/*.Rmd`** YAML lint, **README** **sv0c** gitlink check, **vm-parity manifest ⊆ bootstrap-sources** guard, **stage0** golden C for listed seeds, doctests), **`sv0 test-guards`** / **`make test-guards`** for the same Python checks without **SML**, **fmt**, **doc**, **bootstrap-in-sv0** programs. |
-| **3** — self-hosting compiler | **Not met** | **Bar (see `task/sv0-toolchain-milestone-3-self-host.Rmd`):** **sv0** at **feature parity** with SML; **VM** fully functional; **strict** bytecode vs SML on a **curated ~50–100** program suite (allowlist only); diagnostics **behavioral** first, **tighten to strict**. **Retirement:** tag **`bootstrap-sml-final`** (**sv0c** repo only), **`sv0c/sml/`** → **`sml-legacy/`**, default build **sv0-only**. **Progress:** VM **`break`/`continue`** including **`for`**+**`break`**; **`no_alias`/`VAddrOf`** on VM (**slot tokens** + builtin **`1`**); **vm-parity** **101** SML bytecode goldens (**`vm-parity-v2.1`**); **`sv0c/examples/learn/`** through **`21_mut_i32_compound`**; **`sv0c/doc/transliteration-plan.md`**; **self-host loop interface** in CI (**twenty-six** pilot seeds **`cc`**+run; **`sv0-self-host-emit-c.sh`** vs SML **`diff`** by default; swap for native sv0 compiler when ready); transliteration **checklist** in **`task/sv0-toolchain-milestone-3-checklist.Rmd`**; mut **field** assign + **compound** assign in **SML** pipeline; **semantic** self-host, **`forall`/`exists`** VM gaps, and SML retirement **not** done. |
+| **3** — self-hosting compiler | **Not met** | **Bar (see `task/sv0-toolchain-milestone-3-self-host.Rmd`):** **sv0** at **feature parity** with SML; **VM** fully functional; **strict** bytecode vs SML on a **curated ~50–100** program suite (allowlist only); diagnostics **behavioral** first, **tighten to strict**. **Retirement:** tag **`bootstrap-sml-final`** (**sv0c** repo only), **`sv0c/sml/`** → **`sml-legacy/`**, default build **sv0-only**. **Progress:** VM **`break`/`continue`** including **`for`**+**`break`**; **`no_alias`/`VAddrOf`** on VM (**slot tokens** + builtin **`1`**); **vm-parity** **101** SML bytecode goldens (**`vm-parity-v2.1`**); **`sv0c/examples/learn/`** through **`21_mut_i32_compound`**; **`sv0c/doc/transliteration-plan.md`**; **self-host loop interface** in CI (**twenty-seven** pilot seeds **`cc`**+run; **`sv0-self-host-emit-c.sh`** vs SML **`diff`** by default; swap for native sv0 compiler when ready); transliteration **checklist** in **`task/sv0-toolchain-milestone-3-checklist.Rmd`**; mut **field** assign + **compound** assign in **SML** pipeline; **semantic** self-host, **`forall`/`exists`** VM gaps, and SML retirement **not** done. |
 
 **Finishing milestone 3** requires **compiler transliteration and a bootstrap recipe**, not only docs or tests. Use **`task/sv0-toolchain-milestone-3-self-host.Rmd`** (“remaining work vs definition of done”) for the live checklist; **`task/sv0-toolchain-milestone-2-prep.Rmd`** (“quick start”) for the unified test entry.
 
