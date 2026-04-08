@@ -15,7 +15,7 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 **Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
 
-**Learning:** small **`.sv0`** sources (numbered tutorials through **`20_struct_mut_field_assign.sv0`**) and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **`vm-compile`** and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
+**Learning:** small **`.sv0`** sources (numbered tutorials through **`21_mut_i32_compound.sv0`**) and commands for **`vm-compile`** / **`vm-run`** / **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **`vm-compile`** and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
 
 **GitHub SSH:** if **`git push`** times out on port 22, use **`./scripts/with-github-ssh443.sh git push …`** (SSH over port 443); see [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd).
 
@@ -26,7 +26,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `337f207e50f08bca2ce1b0c94802db1c1d3576ee` |
+| **sv0c commit pinned on this branch (`main`)** | `2f3265fd20510bfe1cb91294942c1a8bcaa70ce1` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and **`scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches **HEAD** and **`test/vm-parity/manifest.txt`** stays a subset of **`sv0c/lib/bootstrap-sources.list`**.
 
