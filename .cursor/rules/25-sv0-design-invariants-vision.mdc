@@ -1,0 +1,42 @@
+---
+description: Align agent work with sv0 vision/design principles, contracts-vs-types, and milestones 0–3 roadmap expectations
+alwaysApply: true
+---
+
+## Canonical references
+
+- **Vision and narrative design** (goals, philosophy, long-range milestones): [sv0 compiler vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html)
+- **Normative language + bytecode** (grammar, semantics, bytecode): `sv0doc/` — not the HTML vision doc alone
+- **Workspace milestone snapshot (what “done” means in-repo)**: `task/sv0-toolchain-roadmap-full.Rmd` — especially the **milestones 0–3** table
+
+When the vision doc and `sv0doc/` disagree on **normative behavior**, treat **`sv0doc/`** as authoritative for implementable semantics unless a task explicitly updates the spec first.
+
+## Design principles (from vision; keep implementation honest)
+
+1. **Contracts are the interface** — pre/post/loop contracts document intent; runtime-checked where the bootstrap compiler implements them; static verification is a later milestone.
+2. **Safety has a floor** — language and compiler enforce baseline rules (no null as `Option`, bounds, ownership/borrowing direction per spec); contracts raise expressive power on top.
+3. **Immutability by default** — `mut` is explicit for locals and fields where supported.
+4. **Expressions over statements** — `if`, `match`, blocks as expressions where the grammar allows.
+5. **Explicit over implicit** — no hidden conversions or surprise allocations in the design intent; match what `sv0doc/` actually promises for the current milestone.
+6. **Documentation is code** — doc tests and literate `.sv0.md` are part of the long-term shape; do not assume every vision feature exists in the SML bootstrap.
+7. **Types first, contracts second** — do not restate in contracts what types already guarantee; use contracts for cross-value and state-dependent invariants.
+
+## Contracts and memory model (high level)
+
+- Contracts use `requires`, `ensures`, `loop_invariant`, and (where implemented) features like `no_alias`, `forall` / `exists` in contract positions only — see **`sv0doc/`** for what is implemented vs planned.
+- **Hybrid memory model** in the vision: Rust-style ownership/borrowing plus explicit contracts for tricky cases. Implementation details live in **`sv0doc/`** and **`sv0c/`**; do not invent aliasing or lifetime rules.
+
+## Milestones 0–3 (toolchain meaning)
+
+| Area | Role |
+|------|------|
+| **M0** | Formal spec extracted and maintained under **`sv0doc/`**; baseline paths guarded by **`./scripts/sv0 test`**. |
+| **M1** | SML/NJ bootstrap compiler in **`sv0c/sml/`** through C and VM backends — see **`task/sv0c-milestone-1.Rmd`**. |
+| **M2** | VM + bytecode iteration (**`sv0vm/`**), unified **`sv0 test`**, fmt/doc, **`sv0c/lib/`** seeds — see **`task/sv0vm-milestone-2.Rmd`**, **`task/sv0-toolchain-milestone-2-prep.Rmd`**. |
+| **M3** | Self-hosting in **sv0** with parity, VM corpus discipline, and eventual SML retirement — **`task/sv0-toolchain-milestone-3-self-host.Rmd`**. **Not complete** until that task’s completion criteria hold; partial progress (transliteration seeds, vm-parity harness, self-host pilot loop) is **not** the same as M3 done. |
+
+## Agent discipline
+
+- Do **not** treat the vision HTML as a license to add semantics that **`sv0doc/`** does not support.
+- Prefer **narrow** compiler or VM changes with tests and, when behavior is user-visible, **`sv0doc/`** or task updates in the usual order (spec → task → code → validation).
+- After material changes to **`task/`** milestones, **`sv0doc/`** layout, or indexed compiler structure, graph sync for MCP is expected — see **`task/sv0-mcp-milestone-0.Rmd`** and **`sv0-mcp/README.md`**.

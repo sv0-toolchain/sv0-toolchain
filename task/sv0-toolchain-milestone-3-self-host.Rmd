@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T12:00:00Z"
+updated: "2026-04-07T18:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -180,6 +180,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08: **Checker + lowering:** **`let mut`** carries assignability in **`Checker`** env; **`ExprAssign`** to a simple name → **`Ir.Store`**; **E0448**/**E0449**. Seed **`lib/checker_mut_assign_core.sv0`** + stage0 golden; learn **`18`** uses **`while`** + **`let mut`**. **Full M3** still **not** met.
 - 2026-04-07: **Field + compound assign** — checker allows **`p.f =`** / **`p.f +=`** (one field, **`let mut p`**); **`ExprAssignOp`** (arithmetic assign-op class) on **`x`** or **`p.f`**; **E0450** for non-arithmetic assign-op class; lowering **`StoreField`** + **`Binop`/`VMember`**. Integration **`test/integration/field_assign/field_assign.sv0`**; vm-parity manifest **101** programs + golden **`field_assign.sv0b`**. Learn **`20_struct_mut_field_assign.sv0`**. Tags **`checker-field-compound-v1`** (**sv0c**), **`toolchain-checker-field-compound-v1`** (meta), **`examples-learn-v1.7`** (**sv0c**), **`toolchain-examples-learn-v1.7`** (meta), **`vm-parity-v2.1`** (**sv0c**), **`toolchain-vm-parity-v2.1`** (meta). **Full M3** (native self-host + SML retirement + full **`sml/`** transliteration) still **not** met.
 - 2026-04-08: Learn **`21_mut_i32_compound.sv0`** (**`+=`**/**`-=`**/**`*=`** on **`let mut`** **`i32`**); **done-ish** paragraph above corrected (**101** vm-parity goldens, not **100**). **`sv0-mcp/README.md`** — full-sync bullet for paths under **`sv0c/examples/learn/`**. Tag **`examples-learn-v1.8`** (**sv0c** + meta). **M3** bar unchanged.
+- 2026-04-07: Learn **`22_native_c_path.sv0`** (documented **`emit-c`** + **`cc`** + **`sv0_runtime.c`** path); meta-repo **`.cursor/rules/25-sv0-design-invariants-vision.mdc`** + **README** pointer — vision/design principles vs **`sv0doc/`** authority and milestones **0–3** snapshot. Tag **`examples-learn-v1.9`** (**sv0c** + meta). **M3** bar unchanged.
 
 ## related
 
