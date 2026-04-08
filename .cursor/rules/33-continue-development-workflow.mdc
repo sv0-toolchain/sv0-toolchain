@@ -10,6 +10,7 @@ alwaysApply: false
 
 - Start from **`task/sv0-toolchain-roadmap-full.Rmd`** for **which milestone owns** each slice and the **0–3 snapshot** vs later milestones (**4–6**, cross-cutting).
 - For slash commands or prompts that ask to **thoroughly execute** that roadmap file (companion verify script, validation commands, what “done” means), use **`35-sv0-roadmap-full-execution.mdc`**.
+- When work is **too large to execute as one step**, decompose it in **`task/*.Rmd`** and cross-link inventories — **`36-large-task-decomposition.mdc`**.
 - For **bootstrap compiler completion through self-hosting (design milestone 3)**, the live bar and sequencing live in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** and **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included there). **Do not** treat documentation-only work as closing **M3**.
 - **Lowering table lookups** in **`sml/ir/lowering.sml`** (e.g. **`enumTag`**, **`structFields`**) have **harness** seeds under **`sv0c/lib/`** (**`lower_enum_tag_core`**, **`lower_struct_fields_core`**) that model hit/miss vs SML **`raise`** with integer stand-ins — not full string-list IR yet.
 

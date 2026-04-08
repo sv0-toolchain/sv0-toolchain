@@ -1,0 +1,46 @@
+---
+description: Decompose oversized milestone work and record the plan in task docs for handoff
+globs:
+  - "task/sv0-toolchain-milestone-3-self-host.Rmd"
+  - "task/sv0-toolchain-milestone-3-checklist.Rmd"
+  - "task/sv0-toolchain-roadmap-full.Rmd"
+  - ".cursor/commands/continue-development.md"
+  - ".cursor/commands/thoroughly-execute-document.md"
+alwaysApply: false
+---
+
+## When to use this rule
+
+Use when a milestone slice (especially **M3 self-hosting**) is described as one large goal — e.g. “finish lowering”, “finish parser”, “close M3” — and the next concrete steps are unclear for a future agent or human.
+
+## What to produce
+
+1. **A written decomposition** in an owning **`task/*.Rmd`** file:
+   - **Numbered or clearly nested** substeps (each completable in a small number of commits).
+   - **Pointers** to living inventories: **`task/sv0-toolchain-milestone-3-checklist.Rmd`**, **`sv0c/doc/transliteration-plan.md`**, **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**.
+   - **Explicit “not in this slice”** boundaries when ambiguity would otherwise invite scope creep.
+
+2. **A refinement-log line** (or new subsection) in the same task when the decomposition **changes** the plan of record — not for every tiny commit.
+
+3. **Alignment with execution order** in **`05-planning-and-execution.mdc`**: spec or task truth first, then implementation, then tests and orchestration.
+
+## M3 workstreams (default buckets)
+
+Split parallel tracks instead of collapsing them:
+
+- **SML → sv0 transliteration:** one helper cluster or vertical per seed; **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/*.c`**, and **`lib/self-host-sv0-loop.list`** when **`emit-c`** + **`cc`** + run is part of the slice.
+- **Lowering / IR tables:** small **harness** seeds that model SML **`raise`** vs success until full IR types exist (see **`33-continue-development-workflow.mdc`** lowering note).
+- **VM parity:** manifest + SML goldens under **`sv0c/test/vm-parity/`**; allowlist documented in milestone task text.
+- **Native self-host:** distinct from the **pilot** **`cc`**+run list; prerequisites live in **`sv0c/doc/self-host-sv0-loop.md`**.
+- **SML retirement:** gated on parity and bootstrap story — **`28-sml-retirement-and-self-host-bar.mdc`**.
+
+## Graph and validation
+
+- After edits to **`task/*.Rmd`** that change milestones or decomposition, run **`user-sv0-graph`** **`sync_graph`** with scope **`tasks`** (or the full **`sv0-mcp`** sync per **`task/sv0-mcp-milestone-0.Rmd`**).
+- Name the exact validation command in reports (**`40-validation-and-proof.mdc`**): e.g. **`./scripts/sv0 test-guards`** or **`./scripts/sv0 test`**.
+
+## Related
+
+- **`task/sv0-toolchain-milestone-3-self-host.Rmd`** — **## large task decomposition (handoff)**
+- **`33-continue-development-workflow.mdc`** — day-to-day milestone navigation
+- **`35-sv0-roadmap-full-execution.mdc`** — executing the roadmap index task
