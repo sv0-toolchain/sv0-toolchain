@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-08T17:12:50-06:00"
+updated: "2026-04-08T17:20:24-06:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -40,7 +40,7 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 | Parser (expr / stmt / item) | `sml/parser/*` | `parser/*_core.sv0` | Pratt, assign, cast, type parse slices |
 | Name resolution | `sml/env.sml`, resolver | `lib/env_core.sv0`, `lib/env_scope_core.sv0`, `lib/resolver_*_core.sv0`, `lib/lookup_*_core.sv0` | Merged lookup order in `lookup_value_core` |
 | Types | `sml/types*` | `lib/type_alias_core.sv0`, `lib/lookup_type_core.sv0`, `lib/lookup_type_alias_core.sv0`, `lib/checker_mut_assign_core.sv0` | Canonical type / alias path; **`let mut`** assignment to **`x`** or one-level **`p.f`**, compound **`+=`** (arithmetic assign-ops), **E0448**/**E0449**/**E0450** |
-| Lowering (IR) | `sml/lowering.sml` | `lib/lower_unop_core.sv0`, `lib/lower_lit_core.sv0`, `lib/lower_binop_core.sv0`, `lib/lower_assign_lhs_core.sv0`, `lib/lower_ast_ty_cstring_core.sv0`, `lib/lower_value_to_expr_core.sv0`, `lib/lower_ast_binop_to_c_core.sv0`, `lib/lower_expr_init_cty_core.sv0`, `lib/lower_match_scrut_cty_core.sv0`, `lib/lower_callee_ret_cty_core.sv0` | Unary + literal-kind + **Ir.Binop** + **`classifyAssignLhs`** + **`astTyToCString`** + **`valueToExpr`** + **`astBinopToC`** (C op width classes) + **`exprInitCty`** + **`matchScrutCty`** + **`calleeRetCty`** slices; in SML today: **`Store`/`StoreField`**, compound assign via **`Binop` + `VMember`**; rest in SML |
+| Lowering (IR) | `sml/lowering.sml` | `lib/lower_unop_core.sv0`, `lib/lower_lit_core.sv0`, `lib/lower_binop_core.sv0`, `lib/lower_assign_lhs_core.sv0`, `lib/lower_ast_ty_cstring_core.sv0`, `lib/lower_value_to_expr_core.sv0`, `lib/lower_ast_binop_to_c_core.sv0`, `lib/lower_expr_init_cty_core.sv0`, `lib/lower_match_scrut_cty_core.sv0`, `lib/lower_callee_ret_cty_core.sv0`, `lib/lower_enum_tag_core.sv0` | Unary + literal-kind + **Ir.Binop** + **`classifyAssignLhs`** + **`astTyToCString`** + **`valueToExpr`** + **`astBinopToC`** (C op width classes) + **`exprInitCty`** + **`matchScrutCty`** + **`calleeRetCty`** + **`enumTag`** slices; in SML today: **`Store`/`StoreField`**, compound assign via **`Binop` + `VMember`**; rest in SML |
 | Link | `sml/link/link.sml` | `lib/link_strip_core.sv0` | **`stripLinkDirectives`** filter; full linker still SML |
 | IR → VM encoder | `sml/backend/vm/vm_codegen.sml` | SML (authoritative today) | **`VAddrOf`** → local **slot** **`i32`**; **`sv0_no_alias`** → **`CALL_BUILTIN` 1** in **sv0vm**; C parity unchanged |
 | C backend | `sml/backend/c/*` | SML | **Feature parity** and **native self-host** still open |
