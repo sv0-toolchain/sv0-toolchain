@@ -2,6 +2,8 @@
 
 continue development that leads us to milestone 0-3 completion but ensure both are completed.
 
+always ensure that you make progress on self-hosting and SML retirement.
+
 create helpful mdc files and Cursor rules to develop towards the design invariants and contracts defined here: <http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html> and all throughout sv0-toolchain and sv0doc.
 
 make the necessary commits (without GPG signing, ensure that the commit messages are verbose, ensure that each commit is an atomic change) and tags, and then push all subrepos.
