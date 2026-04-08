@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T17:37:46-06:00"
+updated: "2026-04-08T17:49:27-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -218,6 +218,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_enum_tag_core.sv0`** — **`enumTag`** (enum + variant table hits → discriminant **`k`**; harness codes **254**/**255** vs SML **`raise`**); lists + **`lib/golden/stage0/lower_enum_tag_core.c`**; self-host pilots **30**. Tag **`self-host-sv0-loop-v10`** (**sv0c**), **`toolchain-self-host-sv0-loop-v10`** (meta). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_struct_fields_core.sv0`** — **`structFields`** (**`structFieldOrder`** hit → field **count** harness; miss → **255** vs SML **`raise`**); lists + golden; self-host pilots **31**. Tag **`self-host-sv0-loop-v11`** (**sv0c**), **`toolchain-self-host-sv0-loop-v11`** (meta). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **Large-task decomposition** — new **## large task decomposition (handoff)**; **`.cursor/rules/36-large-task-decomposition.mdc`**; slash commands **continue-development** / **thoroughly-execute-document** require documented breakdowns for oversized slices; **`33`** / **`35`** cross-refs.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_fn_callee_core.sv0`** — **`resolveFnCallee`** (**`importAliases`** hit + **`splitQName`** simple target vs **`raise`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_resolve_fn_callee_core.c`**, **`lib/self-host-sv0-loop.list`** (**32** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**. Tag **`self-host-sv0-loop-v12`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v12`**). **Full M3** still **not** met.
 
 ## related
 
