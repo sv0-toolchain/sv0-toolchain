@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-12T00:00:00Z"
+updated: "2026-04-08T00:00:00Z"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -39,7 +39,7 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 | Lexer | `sml/lexer/*` | `lexer/token_*_core.sv0` | Keyword / delim / op bands aligned with parser seeds |
 | Parser (expr / stmt / item) | `sml/parser/*` | `parser/*_core.sv0` | Pratt, assign, cast, type parse slices |
 | Name resolution | `sml/env.sml`, resolver | `lib/env_core.sv0`, `lib/env_scope_core.sv0`, `lib/resolver_*_core.sv0`, `lib/lookup_*_core.sv0` | Merged lookup order in `lookup_value_core` |
-| Types | `sml/types*` | `lib/type_alias_core.sv0`, `lib/lookup_type_core.sv0`, `lib/lookup_type_alias_core.sv0` | Canonical type / alias path |
+| Types | `sml/types*` | `lib/type_alias_core.sv0`, `lib/lookup_type_core.sv0`, `lib/lookup_type_alias_core.sv0`, `lib/checker_mut_assign_core.sv0` | Canonical type / alias path; **`let mut`** assignment rules (**E0448**/**E0449**) |
 | Lowering (IR) | `sml/lowering.sml` | `lib/lower_unop_core.sv0`, `lib/lower_lit_core.sv0` | Unary + literal-kind slices; rest in SML |
 | Link | `sml/link/link.sml` | `lib/link_strip_core.sv0` | **`stripLinkDirectives`** filter; full linker still SML |
 | IR → VM encoder | `sml/backend/vm/vm_codegen.sml` | SML (authoritative today) | **`VAddrOf`** → local **slot** **`i32`**; **`sv0_no_alias`** → **`CALL_BUILTIN` 1** in **sv0vm**; C parity unchanged |

@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-07T18:45:00Z"
+updated: "2026-04-08T12:00:00Z"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -177,6 +177,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-11: **`examples/learn/14_*.sv0`**–**`16_*.sv0`** — integer **`match`**, enum payload **`match`**, **`?`** try operator with **`main() -> R`**. Tags **`examples-learn-v1.3`** / **`toolchain-examples-learn-v1.3`**. **Full M3** still **not** met.
 - 2026-04-12: **VM `VAddrOf` / `no_alias`** — **`vm_codegen.sml`** + **`sv0vm`** builtin **1**; integration **`no_alias_requires`**; **`doc/transliteration-plan.md`**; learn **`17_no_alias_contract.sv0`**. Tags **`vm-no-alias-v1`** (**sv0c**), **`toolchain-vm-no-alias-v1`** (meta), **`examples-learn-v1.4`** / **`toolchain-examples-learn-v1.4`**. **Full M3** still **not** met.
 - 2026-04-07: Learn **`18_continue_in_loop.sv0`** (**`continue`** in **`for`**) and **`19_loop_invariant.sv0`** (**`loop_invariant`** + **`emit-c`** note). Tags **`examples-learn-v1.5`** (**sv0c**), **`toolchain-examples-learn-v1.5`** (meta). **Full M3** still **not** met.
+- 2026-04-08: **Checker + lowering:** **`let mut`** carries assignability in **`Checker`** env; **`ExprAssign`** to a simple name → **`Ir.Store`**; **E0448**/**E0449**. Seed **`lib/checker_mut_assign_core.sv0`** + stage0 golden; learn **`18`** uses **`while`** + **`let mut`**. **Full M3** still **not** met.
 
 ## related
 
