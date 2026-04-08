@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T16:24:29-06:00"
+updated: "2026-04-08T16:57:06-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -189,6 +189,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_value_to_expr_core.sv0`** — **`valueToExpr`** (**`VVar`** → **`Load`**, else **`Literal`**); lists + golden; self-host pilots **25**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_ast_binop_to_c_core.sv0`** — **`astBinopToC`** transliteration slice (C operator **width** classes vs **`Ast.binop`** tag order); lists + stage0 golden; self-host pilots **26**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_expr_init_cty_core.sv0`** — **`exprInitCty`** transliteration slice (struct name vs enum path vs callee return vs tuple unwrap vs **`int`** default); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_expr_init_cty_core.c`**, **`lib/self-host-sv0-loop.list`** (**27** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**. Tag **`self-host-sv0-loop-v7`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v7`**). **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_match_scrut_cty_core.sv0`** — **`matchScrutCty`** (enum scrutinee, **`scrutLocals`** / param **`astTyToCString`** harness, callee return, one-tuple recursion, lits); lists + **`lib/golden/stage0/lower_match_scrut_cty_core.c`**; self-host pilots **28**. Tag **`self-host-sv0-loop-v8`** (**sv0c**), **`toolchain-self-host-sv0-loop-v8`** (meta). **YAML** on **`task/sv0-toolchain-milestone-3-self-host.Rmd`**: fixed **`updated:`** spacing (graph-safe). **Full M3** still **not** met.
 
 ## related
 
