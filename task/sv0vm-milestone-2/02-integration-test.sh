@@ -91,6 +91,7 @@ run_exit_case "contracts" "test/integration/contracts/contracts.sv0" 0
 run_exit_case "no_alias_requires" "test/data/golden/pass/no_alias_requires.sv0" 0
 run_exit_case "patterns" "test/integration/patterns/patterns.sv0" 0
 run_exit_case "structs" "test/integration/structs/structs.sv0" 0
+run_exit_case "field_assign" "test/integration/field_assign/field_assign.sv0" 0
 run_exit_case "generics" "test/integration/generics/generics.sv0" 0
 run_exit_case "call_arg_order" "test/integration/call_arg_order/call_arg_order.sv0" 0
 

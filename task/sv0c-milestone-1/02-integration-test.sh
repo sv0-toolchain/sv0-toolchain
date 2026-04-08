@@ -81,6 +81,7 @@ run_case "hello world" one "$IT/hello/hello.sv0" 0
 run_case "contracts" one "$IT/contracts/contracts.sv0" 0
 run_case "pattern matching" one "$IT/patterns/patterns.sv0" 0
 run_case "structs (free fn)" one "$IT/structs/structs.sv0" 0
+run_case "field assign and +=" one "$IT/field_assign/field_assign.sv0" 0
 run_case "generics placeholder (monomorphic id)" one "$IT/generics/generics.sv0" 0
 run_case "modules (multi-file project)" project "$IT/modules" 42
 
