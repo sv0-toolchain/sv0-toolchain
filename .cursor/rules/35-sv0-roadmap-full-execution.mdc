@@ -42,3 +42,7 @@ After edits to **`task/*.Rmd`** milestones or normative **`sv0doc/`** layout, re
 ## Vision vs normative semantics
 
 The [compiler vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) explains intent; **implementable** language and bytecode behavior belong in **`sv0doc/`** (**`20-spec-first-language-semantics.mdc`**, **`25-sv0-design-invariants-vision.mdc`**).
+
+## Slash command alignment
+
+**`.cursor/commands/thoroughly-execute-document.md`** and **`.cursor/commands/continue-development.md`** both defer user prompts to **`34-user-prompts-design-only.mdc`**. Do not append standalone **`/ask-questions`** lines to those commands — they contradict the “proceed without stalling” default for routine toolchain work.

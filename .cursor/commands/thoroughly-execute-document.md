@@ -7,7 +7,7 @@ thoroughly read the input document to this command. do the following in parallel
 1. thoroughly study and digest the state of all repos and subrepos
 2. thoroughly understand the current state of progress in relation to the document.
 
-then intensely prepare yourself to continue implementation, documentation, testing, verificaiton, and validation towards complete and comprehensive execution of the document.
+then intensely prepare yourself to continue implementation, documentation, testing, verification, and validation towards complete and comprehensive execution of the document.
 
 once you are prepared, start working.
 
@@ -24,5 +24,3 @@ ensure that all tests and the CI/CD pipelines are passing after every push. use 
 ensure that there are no hanging execution threads during your debugging.
 
 when you must ask the user something, keep it **design-related or high-impact**; see `.cursor/rules/34-user-prompts-design-only.mdc`. otherwise proceed using the repo, tasks, and scripts.
-
-/ask-questions
