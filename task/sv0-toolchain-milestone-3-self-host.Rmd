@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T16:57:06-06:00"
+updated: "2026-04-08T17:12:50-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -79,6 +79,18 @@ milestone **3** is **not** complete until the bullets above hold. today’s repo
 - **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **semantic** **sv0→sv0** (**native** compiler output **≡** SML on the pilot list) is **not** done — **`sv0-self-host-emit-c.sh`** is the **bootstrap** stand-in; **feature parity**, remaining **VM** contract gaps (**`forall` / `exists`** on VM where still C-only), **SML retirement** (tag + **`sml-legacy/`**), and a second-tier **sv0-emitted** vm-parity check remain open. **Progress (2026-04-07):** assignment to **one-level** struct fields and **arithmetic** compound assignment (**`+=`**, …) on **`i32`** slots are implemented in **SML** checker + lowering + C/VM backends; vm-parity corpus **101** programs.
 
 closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
+
+## transliteration throughput (order-of-magnitude)
+
+Planning ranges only — not schedule commitments. Granularity and staffing dominate.
+
+| Measure | Rough value | Notes |
+|---------|-------------|--------|
+| **`sv0c/sml/**/*.sml`** units (excluding **`.cm`**) | ~20 files | Large files; seeds usually subdivide by helper or vertical slice. |
+| **`lib/bootstrap-sources.list`** | ~110+ program lines | Includes **vm-parity**, integration smokes, and **`lib/`** / **`parser/`** / **`lexer/`** seeds. |
+| **`lib/self-host-sv0-loop.list`** pilots | see **`sv0c/doc/self-host-sv0-loop.md`** | Grows as **`emit-c`** + **`cc`** + run is verified per path. |
+| More **curated seeds** to cover most of **`sml/`** at today’s slice size | **~50–200+** (wide band) | Parser, checker, **`lowering.sml`**, contract analyzer, and backends drive the tail; horizontal **`lowering.sml`** cuts alone can be **~10–30+** before a unified **`lowerExpr`**. |
+| **M3 “done”** (parity + **native** self-host + **SML** retirement) | **multi-quarter** typical | See **completion criteria** above; **semantic** loop and **retirement** are not implied by pilot list growth alone (**`28-sml-retirement-and-self-host-bar.mdc`**). |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -190,6 +202,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_ast_binop_to_c_core.sv0`** — **`astBinopToC`** transliteration slice (C operator **width** classes vs **`Ast.binop`** tag order); lists + stage0 golden; self-host pilots **26**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_expr_init_cty_core.sv0`** — **`exprInitCty`** transliteration slice (struct name vs enum path vs callee return vs tuple unwrap vs **`int`** default); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_expr_init_cty_core.c`**, **`lib/self-host-sv0-loop.list`** (**27** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**. Tag **`self-host-sv0-loop-v7`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v7`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_match_scrut_cty_core.sv0`** — **`matchScrutCty`** (enum scrutinee, **`scrutLocals`** / param **`astTyToCString`** harness, callee return, one-tuple recursion, lits); lists + **`lib/golden/stage0/lower_match_scrut_cty_core.c`**; self-host pilots **28**. Tag **`self-host-sv0-loop-v8`** (**sv0c**), **`toolchain-self-host-sv0-loop-v8`** (meta). **YAML** on **`task/sv0-toolchain-milestone-3-self-host.Rmd`**: fixed **`updated:`** spacing (graph-safe). **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_callee_ret_cty_core.sv0`** — **`calleeRetCty`** (**`ItemFn`** lookup, explicit return → **`astTyToCString`** class, else **`int`**); lists + golden; self-host pilots **29**. Tag **`self-host-sv0-loop-v9`** (**sv0c**), **`toolchain-self-host-sv0-loop-v9`** (meta). **Transliteration throughput** subsection (order-of-magnitude slice / calendar bands). **Full M3** still **not** met.
 
 ## related
 
