@@ -13,6 +13,8 @@ once you are prepared, start working.
 
 create and update helpful mdc files and Cursor rules to develop towards the design invariants and contracts defined here: <http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html> and all throughout sv0-toolchain and sv0doc.
 
+thoroughly decompose large tasks and document the decomposition so that future work can continue.
+
 make the necessary commits (without GPG signing, ensure that the commit messages are verbose, ensure that each commit is an atomic change) and tags, and then push all subrepos.
 
 ensure all options are completed. ensure all documentation is updated and that the mcp server is updated.
