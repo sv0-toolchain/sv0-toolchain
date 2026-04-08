@@ -1,0 +1,34 @@
+---
+description: Submodule and meta-repo Git practices for legible history and integration visibility
+globs:
+  - ".gitmodules"
+  - "task/**/*.Rmd"
+  - "README.md"
+alwaysApply: false
+---
+
+## Intent
+
+**Easier development** and **high-fidelity history** mean: detailed work lives in **submodule repositories** with clear branches and CI; the **meta-repo** records **exact integrated revisions** with **explainable** pointer bumps—not opaque “big bang” updates.
+
+## Submodule repositories (sv0c, sv0vm, sv0doc, sv0-mcp)
+
+- Use **named branches** for multi-commit arcs (integration, experiments, long fixes). **Push those branches to `origin` regularly** so teammates, agents, and `git branch -r --contains <sha>` can see where a commit lives.
+- Prefer **small, scoped commits** inside the submodule so bisect and code review stay meaningful. On the submodule default branch, avoid habitually squashing away milestones you may need to bisect later unless the team explicitly chooses that tradeoff.
+- When a line of work is ready for everyone: **merge or fast-forward the submodule’s `main`**, then bump the **meta-repo gitlink** to that revision.
+
+## Meta-repository (sv0-toolchain)
+
+- Treat **gitlink changes** as first-class: **prefer one submodule pointer bump per commit**, or one commit whose body **names every submodule** moved and why—so `git bisect` on the meta-repo maps to toolchain behavior.
+- Use **Conventional Commits** with a **verbose body** when it helps: submodule name, short SHA range or summary, motivation (feature, fix, sync), and any follow-up (graph sync, README table).
+- When **`sv0c`** moves, update the **README.md** pinned **sv0c** SHA table in the **same** meta-repo commit (`verify_readme_sv0c_gitlink.py` enforces alignment with `git ls-tree HEAD sv0c`).
+- **Tags:** do **not** invent **`bootstrap-sml-final`** or other release tags unless the relevant **`task/*.Rmd`** completion criteria are met (**`bootstrap-sml-final`** is **sv0c-only**, per **`task/sv0-toolchain-milestone-3-self-host.Rmd`**).
+
+## After task or spec edits
+
+- If you change **`task/*.Rmd`** milestones or normative **`sv0doc/`** files, refresh the dev graph per **`task/sv0-mcp-milestone-0.Rmd`** (e.g. **`sv0-mcp`**: `./scripts/sync-graph.sh all`, or **sv0-graph** MCP **`sync_graph`**). Mention graph sync in the commit or PR when it matters for reviewers.
+
+## Related
+
+- **`15-root-orchestration-entrypoints.mdc`** — root commands and stable entrypoints.
+- **`00-workspace-context.mdc`** — submodule ownership map.
