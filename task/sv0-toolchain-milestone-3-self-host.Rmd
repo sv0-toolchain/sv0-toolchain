@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-11T10:00:00-06:00"
+updated: "2026-04-09T16:45:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -126,7 +126,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`reqInstrs`** | **`lower_req_instrs_core`**: **`req_clause_ir_count`**, **`req_instrs_uniform`** (**`List.concat`** over **`reqs`**) |
 | **Seeded** | **`lowerEnsuresClause`** / **`injectEnsuresAndRetSlot`** | **`lower_ens_glue_inject_core`**: **`ensGlue`** / **`ens_clause_ir_count`**, **`inject_skip_transform`**, **`inject_return_expand_len`** |
 | **Seeded** | **`storeValueToSlot`** | **`lower_store_value_to_slot_core`**: **`VVar`** **`same_slot`** **0/1** instr; non-**`VVar`** **→ 1** |
-| **Next** | **`lowerReturn`** / **`lowerBody`** | Expr / block tail into **`Return`** after **`lowerFn`** scaffolding (**`lowering.sml`**) |
+| **Seeded** | **`lowerReturn`** / block tail into **`Return`** | **`lower_return_body_core`**: **`lower_return_ir_len`** (**`NONE`**/**`SOME`**); **`lower_body_block_tail_len`** (**`tail_kind`** 0/1/2) |
+| **Next** | **`lowerFn`** / statement lowering glue | Wire seeds into **`lowerFn`** scaffolding and grow **`lowerExprWithInstrs`** coverage (**`lowering.sml`**) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -142,7 +143,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`storeValueToSlot`** (**`lower_store_value_to_slot_core`**); **next** **`lowerReturn`** / **`lowerBody`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`lowerReturn`** / block-tail (**`lower_return_body_core`**); **next** **`lowerFn`** / **`lowerExprWithInstrs`** glue under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -156,6 +157,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-09 (**America/Denver −06:00**): **`lib/lower_return_body_core.sv0`** — **`lowerReturn`** + **`lower_body_block_tail_len`** harness; pilots **50**, stage0 goldens **60**, bootstrap list **133** lines; decomposition **next** → **`lowerFn`** / **`lowerExprWithInstrs`** glue.
 - 2026-03-25: initial scaffold from design milestone 3.
 - 2026-04-01: compiler-in-sv0 sources stay in **sv0c** (extend **`lib/`** and/or add further dirs under `sv0c/`); no separate meta-repo `sv0-compiler/` root.
 - 2026-04-01: phase 1 scaffold — `LAYOUT.md`, source list + golden C, `scripts/sv0` commands `emit-c`, `self-host-capture-stage0`, `self-host-compare`.
