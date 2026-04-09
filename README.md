@@ -26,7 +26,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on this branch (`main`)** | `8c3adb4bc248a4f332156c35fe1aca79da9821b3` |
+| **sv0c commit pinned on this branch (`main`)** | `5cd97aa00ab9032429029e5a7f99027f596564fa` |
 
 **Maintainers:** whenever you bump the **`sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-tree HEAD sv0c` (submodule gitlink). **CI / local:** **`./scripts/sv0 test-guards`** runs **`scripts/verify_readme_sv0c_gitlink.py`** and **`scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches **HEAD** and **`test/vm-parity/manifest.txt`** stays a subset of **`sv0c/lib/bootstrap-sources.list`**.
 
