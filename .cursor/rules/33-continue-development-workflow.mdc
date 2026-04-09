@@ -12,7 +12,7 @@ alwaysApply: false
 - For slash commands or prompts that ask to **thoroughly execute** that roadmap file (companion verify script, validation commands, what “done” means), use **`35-sv0-roadmap-full-execution.mdc`**.
 - When work is **too large to execute as one step**, decompose it in **`task/*.Rmd`** and cross-link inventories — **`36-large-task-decomposition.mdc`**.
 - For **bootstrap compiler completion through self-hosting (design milestone 3)**, the live bar and sequencing live in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** and **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included there). **Do not** treat documentation-only work as closing **M3**.
-- **Lowering table lookups** in **`sml/ir/lowering.sml`** (e.g. **`enumTag`**, **`structFields`**, **`resolveFnCallee`**, **`resolveEnumCtorPath`**) have **harness** seeds under **`sv0c/lib/`** (**`lower_enum_tag_core`**, **`lower_struct_fields_core`**, **`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`**) that model hit/miss vs SML **`raise`** (or pair fallbacks) with integer stand-ins — not full string-list IR yet.
+- **Lowering table lookups** in **`sml/ir/lowering.sml`** (e.g. **`enumTag`**, **`structFields`**, **`resolveFnCallee`**, **`resolveEnumCtorPath`**, **`splitQName`**) have **harness** seeds under **`sv0c/lib/`** (**`lower_enum_tag_core`**, **`lower_struct_fields_core`**, **`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`**, **`lower_split_qname_core`**) that model hit/miss vs SML **`raise`** (or pair fallbacks) or bounded string stand-ins — not full IR types yet.
 
 ## Semantics and examples
 
@@ -31,8 +31,10 @@ alwaysApply: false
 
 ## Validation honesty
 
-- Prefer **`./scripts/sv0 test-guards`** for a fast Python pass; use **`./scripts/sv0 test`** / **`make ci-all`** when behavior or cross-submodule integration changed.
+- **Default tiering** (same table as **`.cursor/commands/continue-development.md`** and **`thoroughly-execute-document.md`** → **Fast validation loop**): **`task/*.Rmd`**-only edits → **`./scripts/sv0 test-guards`**; one **`sv0c/`** bootstrap **`.sv0`** → **`./scripts/sv0 vm-compile <rel>`** / **`emit-c <rel>`** (`<rel>` relative to **`sv0c/`**); bootstrap lists, goldens, **`sml/`**, or cross-cutting integration → **`test-guards`** then **`./scripts/sv0 test`** before merge or “done.”
+- Self-host inner loop: **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** (see **`sv0c/doc/self-host-sv0-loop.md`**); do not claim semantic closure with it still set.
 - After pushing the meta-repo, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and name the run you used in your report (**`40-validation-and-proof.mdc`**).
+- Broader CI locally: **`./scripts/sv0 test`** / **`make ci-all`** when behavior or multi-submodule integration changed.
 
 ## User prompts
 

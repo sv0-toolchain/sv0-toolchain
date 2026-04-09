@@ -77,6 +77,8 @@ make help             # lists make targets; "make test" help matches ./scripts/s
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
 ./scripts/sv0 test    # sv0c units; Python guards; sv0vm; C+VM integration; bootstrap .sv0; VM parity (SML .sv0b vs golden/sml); stage0 golden C; doctests
 ./scripts/sv0 test-guards  # Python only: same guards as start of `sv0 test` incl. vm-parity manifest ⊆ bootstrap (fast; no SML)
+# Inner loop (one file; paths relative to sv0c/): ./scripts/sv0 vm-compile <rel>  # --target=vm
+# Inner loop: ./scripts/sv0 emit-c <rel>   # C to stdout via SML heap — see .cursor/commands/continue-development.md (Fast validation loop)
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
 ./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
 ./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
