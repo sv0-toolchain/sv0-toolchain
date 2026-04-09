@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T11:00:00-06:00"
+updated: "2026-04-09T15:00:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -114,7 +114,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`enumStorePayload`** + **`valueToExpr`** | **`lower_enum_store_payload_core`** (**`p{i}`** suffix + payload length + **`value_to_expr_class`** per slot); **`lower_value_to_expr_core`** remains the standalone **`valueToExpr`** slice |
 | **Seeded** | **`findVariantAst`** | **`lower_find_variant_ast_core`** (**`enum_ast_hit`** / **`variant_ast_hit`** + **1/2/3** variant shape vs **`enumTag`** error band **254/255**) |
 | **Seeded** | **`okPayloadCty`** | **`lower_ok_payload_cty_core`** (**`Ok`** = tuple arity **1** + **`payload_ty_shape_tag`** → **`c_ty_void`/`c_ty_int`**; errors **255/254/253**) |
-| **Next** | **`scanLets`** | **`StmtLet`** + **`PatBind`** + optional type / init → **`(name, cty)`** pairs harness (**`astTyToCString`** / **`exprInitCty`** branches) |
+| **Seeded** | **`scanLets`** | **`lower_scan_lets_core`** (one **`StmtLet`/`PatBind`/`SOME init`** arm; **1000+** explicit **`astTyToCString`** vs **2000+** **`exprInitCty`**) |
+| **Next** | **`withScrutLocals`** | **`scrutLocals`** save / prepend **`extra`** / restore (exception-safe restore surrogate in harness) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -130,7 +131,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`okPayloadCty`** (**`lower_ok_payload_cty_core`**); **next** **`scanLets`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`scanLets`** (**`lower_scan_lets_core`**); **next** **`withScrutLocals`** under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -240,6 +241,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_enum_store_payload_core.sv0`** — **`enumStorePayload`** (**`pName`/`StoreField`** count + **`valueToExpr`** RHS class harness); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_enum_store_payload_core.c`**, **`lib/self-host-sv0-loop.list`** (**35** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**, checklist, **## large task decomposition** table (**`findVariantAst`** next). Tag **`self-host-sv0-loop-v15`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v15`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_find_variant_ast_core.sv0`** — **`findVariantAst`** lookup harness (enum/variant hits + unit/tuple/struct shape **1/2/3**); lists + **`lib/golden/stage0/lower_find_variant_ast_core.c`**; self-host pilots **36**; docs + checklist; decomposition **next** **`okPayloadCty`**. **`./scripts/sv0 test`** green locally. **No remote push** in this slice (per maintainer preference). **Full M3** still **not** met.
 - 2026-04-09 (**America/Denver −06:00**): **`task/sv0-toolchain-milestone-3-self-host.Rmd`** — **`updated:`** frontmatter YAML repaired (**space after colon**; **`verify_task_rmd_frontmatter`** / graph-safe). **`lib/lower_ok_payload_cty_core.sv0`** — **`okPayloadCty`** (**`Ok`** = **`VariantTuple`** arity **1** + payload **`astTyToCString`** subset); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_ok_payload_cty_core.c`**, **`lib/self-host-sv0-loop.list`** (**37** pilots); docs + checklist; decomposition **next** **`scanLets`**. **`./scripts/sv0 test`** green locally. **No `git push`** (per maintainer preference). **Full M3** still **not** met.
+- 2026-04-09 (**America/Denver −06:00**): **`lib/lower_scan_lets_core.sv0`** — **`scanLets`** binding C-ty harness (**packed** **1000+** / **2000+**); lists + **`lib/golden/stage0/lower_scan_lets_core.c`**; self-host pilots **38**; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **`updated:`** spacing kept valid; decomposition **next** **`withScrutLocals`**. **`./scripts/sv0 test`** green locally. **Full M3** still **not** met.
 
 ## related
 
