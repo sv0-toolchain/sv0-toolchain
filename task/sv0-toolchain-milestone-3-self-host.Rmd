@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T17:54:21-06:00"
+updated: "2026-04-08T17:57:28-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -103,6 +103,17 @@ M3 is **several parallel tracks**, not one queue. When a goal is too large to fi
 5. **SML retirement:** **`bootstrap-sml-final`**, **`sml/`** → **`sml-legacy/`**, default **sv0-only** build — only after parity + documented recovery; see **`28-sml-retirement-and-self-host-bar.mdc`**.
 
 **Handoff contract:** each decomposition update should leave **actionable substeps** (whoever picks up next should not need to re-derive the split from **`sv0c/sml/`** alone). Cursor rule **`36-large-task-decomposition.mdc`** restates this for agents.
+
+### next lowering import-path harnesses (rolling)
+
+Order is suggestive; adjust as **`lowering.sml`** evolves.
+
+| Status | SML helper cluster | Next seed direction |
+|--------|--------------------|---------------------|
+| **Seeded** | **`resolveFnCallee`**, **`resolveEnumCtorPath`** | **`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`** |
+| **Next** | **`splitQName`** + string tables | Stay **integer harness** until **`lib/`** has shared string slices, or model segment **count** only |
+| **Next** | **`enumStorePayload`** + **`valueToExpr`** | Length-driven **`StoreField`** **`p0`…`p{n}`** harness (no **`Ir`** structs yet) |
+| **Next** | **`findVariantAst`** | Enum hit / variant hit / **`raise`** (mirror **`enumTag`** style) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -220,6 +231,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **Large-task decomposition** — new **## large task decomposition (handoff)**; **`.cursor/rules/36-large-task-decomposition.mdc`**; slash commands **continue-development** / **thoroughly-execute-document** require documented breakdowns for oversized slices; **`33`** / **`35`** cross-refs.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_fn_callee_core.sv0`** — **`resolveFnCallee`** (**`importAliases`** hit + **`splitQName`** simple target vs **`raise`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_resolve_fn_callee_core.c`**, **`lib/self-host-sv0-loop.list`** (**32** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**. Tag **`self-host-sv0-loop-v12`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v12`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **YAML** — frontmatter **`updated:`** line restored (space required after colon before the quoted timestamp) so **`verify_task_rmd_frontmatter`** / graph ingest stay valid.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_enum_ctor_path_core.sv0`** — **`resolveEnumCtorPath`** (alias miss or non-pair **`splitQName`** → **`(en,vn)`**; alias + pair → **`(e2,v2)`**); lists + **`lib/golden/stage0/lower_resolve_enum_ctor_path_core.c`**; self-host pilots **33**. **## large task decomposition** adds **next lowering import-path harnesses (rolling)** table. Tag **`self-host-sv0-loop-v13`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v13`**). **Full M3** still **not** met.
 
 ## related
 
