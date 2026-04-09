@@ -16,7 +16,7 @@ This file is the **cross-repo rollup** and **session run log** for the **sv0-too
 | Area | Source | Done | Total | % |
 |------|--------|------|-------|---|
 | Specification (`sv0doc`) | `sv0doc/PROGRESS.md` | 0 | 4 | 0% |
-| Compiler (`sv0c`) | `sv0c/PROGRESS.md` | 4 | 6 | 67% |
+| Compiler (`sv0c`) | `sv0c/PROGRESS.md` | 5 | 6 | 83% |
 | VM (`sv0vm`) | `sv0vm/PROGRESS.md` | 0 | 3 | 0% |
 | MCP / graph (`sv0-mcp`) | `sv0-mcp/PROGRESS.md` | 0 | 3 | 0% |
 | Meta orchestration | ## Meta-repository checklist below | 5 | 5 | 100% |
@@ -41,6 +41,7 @@ Set **Done** to `1` when true. Expand the table as new cross-cutting gates appea
 
 | ISO date (timezone) | Charter / focus | Areas touched | Metric delta (before → after) | Validation commands (exact) |
 |---------------------|-----------------|---------------|------------------------------|-----------------------------|
+| 2026-04-09 (America/Denver) | **`continue-development`** — close **sv0c C-5** + fix roadmap YAML | **sv0c:** `doc/self-host-sv0-loop.md` (pilot vs **`SV0_SELF_HOST_COMPILER`**), `PROGRESS.md` (**C-5**=1); **meta:** `task/sv0-toolchain-roadmap-full.Rmd` **`updated:`** YAML space; Summary + run log | sv0c checklist **4/6→5/6** (**67%→83%**) | `./scripts/sv0 milestone-orient show M3`, `./scripts/sv0 test-guards` |
 | 2026-04-09 (America/Denver) | **`thoroughly-execute-document`** — `task/sv0-toolchain-roadmap-full.Rmd` | **meta:** roadmap Rmd snapshot + `/ai` resolution; **`01-verify-roadmap-artifacts.sh`** now checks **M0/M1/M2/M3-checklist/MCP** paths; progress run log | Submodule **%** unchanged (sv0c **4/6**); **META-2** roadmap hygiene | `bash task/sv0-toolchain-roadmap-full/01-verify-roadmap-artifacts.sh`, `./scripts/sv0 milestone-orient list`, `./scripts/sv0 test-guards` |
 | 2026-04-09 (America/Denver) | **`continue-development`** — close **sv0c C-4** (transliteration plan + LAYOUT living map) | **sv0c:** `doc/transliteration-plan.md` (C-4 contract + snapshot), `lib/LAYOUT.md` (C-4 cross-link), `PROGRESS.md` (**C-4**=1); **meta:** Summary + run log | sv0c checklist **3/6→4/6** (**50%→67%**); snapshot: bootstrap ~132 lines, pilots **49**, stage0 **59**, vm-parity **101** | `./scripts/sv0 milestone-orient show M3`, `./scripts/sv0 test-guards` |
 | 2026-04-09 (America/Denver) | **`continue-development`** — close **sv0c C-3** (VM parity v1 allowlist + docs) | **sv0c:** `test/vm-parity/README.md`, `lib/LAYOUT.md`, `PROGRESS.md` (**C-3**=1); **meta:** this rollup Summary + run log | sv0c checklist **2/6→3/6** (**33%→50%**); vm-parity manifest **101** paths (unchanged) | `./scripts/sv0 milestone-orient show M3`, `./scripts/sv0 test-guards` |
