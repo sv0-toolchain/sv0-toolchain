@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T19:31:00-06:00"
+updated: "2026-04-08T19:38:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -118,7 +118,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`withScrutLocals`** | **`lower_with_scrut_locals_core`** (**`old_n` + `extra_n`** enter depth; exit always **`old_n`** — success or exception surrogate) |
 | **Seeded** | **`mentionsResult`** | **`lower_mentions_result_core`** (**`expr_shape_tag`** **1–17** vs **`ExprPath(["result"])`** leaf **`a`**, child **`a`/`b`/`c`** OR-surrogates) |
 | **Seeded** | **`retSyntaxIsUnit`** + **`useRetSlot`** gate | **`lower_ret_syntax_is_unit_core`** (**`has_ret`** + **`ret_ty_class`** **1/2/3** vs **`TyUnit`** / **`TyName(["unit"])`**; **`use_ret_slot`**) |
-| **Next** | **`oldSlot`** | **`_sv0old_` ^ `x`** length surrogate (**`8 + |x|`**) ahead of **`lowerFn`** **`oldInstrs`** / contract snapshots |
+| **Seeded** | **`oldSlot`** | **`lower_old_slot_core`** (**`old_slot_prefix_len`** **8** + **`old_slot_total_len(|x|)`**) |
+| **Next** | **`allOldNames`** | **`old(x)`** param extraction from contract **`Ast.expr`** (recursive **`ExprCall`/`ExprPath`** harness vs **`mentionsResult`**-style OR) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -134,7 +135,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`retSyntaxIsUnit`** / **`useRetSlot`** (**`lower_ret_syntax_is_unit_core`**); **next** **`oldSlot`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`oldSlot`** (**`lower_old_slot_core`**); **next** **`allOldNames`** under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -248,6 +249,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_with_scrut_locals_core.sv0`** — **`withScrutLocals`** depth surrogate (**`old_n + extra_n`** enter, **`old_n`** exit / exception-safe restore noted in comments); lists + **`lib/golden/stage0/lower_with_scrut_locals_core.c`**; self-host pilots **39**; decomposition **next** **`mentionsResult`**. **`./scripts/sv0 test`** green locally; **`sv0c`** + meta-repo **`git push`**; **GitHub Actions** verified via **`gh run watch`**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_mentions_result_core.sv0`** — **`mentionsResult`** (**`expr_shape_tag`** **1–17** + **`a`/`b`/`c`** child **0/1** flags, **`mr_or2`**/**`mr_or3`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_mentions_result_core.c`**, **`lib/self-host-sv0-loop.list`** (**40** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**, checklist; decomposition **next** **`retSyntaxIsUnit`**. Tag **`self-host-sv0-loop-v16`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v16`**). **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_ret_syntax_is_unit_core.sv0`** — **`retSyntaxIsUnit`** (**`has_ret`**, **`ret_ty_class`** **1=TyUnit** / **2=TyName unit** / **3=other**) + **`use_ret_slot`** (**`not` unit ∧ ensures-mentions** surrogate); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_ret_syntax_is_unit_core.c`**, **`lib/self-host-sv0-loop.list`** (**41** pilots); docs + checklist; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **`updated:`** YAML spacing restored. Decomposition **next** **`oldSlot`**. Tag **`self-host-sv0-loop-v17`** on **sv0c**. **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_old_slot_core.sv0`** — **`oldSlot`** snapshot slot naming (**`8 + |x|`** length surrogate for **`_sv0old_" ^ x`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_old_slot_core.c`**, **`lib/self-host-sv0-loop.list`** (**42** pilots); docs + checklist; decomposition **next** **`allOldNames`**. Tag **`self-host-sv0-loop-v18`** on **sv0c**. **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
 
 ## related
 
