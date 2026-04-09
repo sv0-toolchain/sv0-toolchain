@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T22:45:00-06:00"
+updated: "2026-04-08T23:30:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -121,7 +121,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`oldSlot`** | **`lower_old_slot_core`** (**`old_slot_prefix_len`** **8** + **`old_slot_total_len(|x|)`**) |
 | **Seeded** | **`allOldNames`** | **`lower_all_old_names_core`** (**`expr_shape_tag`** **1–17** + child **count** **`a`/`b`/`c`**, **`aon_add`**/**`aon_add3`**) |
 | **Seeded** | **`uniqOldNames`** | **`lower_uniq_old_names_core`** (**`uon_acc_has`** / **`uon_name_eq`**, up to **four** input tags + **`in_len`**, **`uniq_old_names_final_len`**) |
-| **Next** | **`oldTargets`** | Filter **`#params`** to **`PatBind`** names present in **`oldMentions`** (**`List.exists`** vs **`String.compare`**) — hit-count surrogate |
+| **Seeded** | **`oldTargets`** | **`lower_old_targets_core`** (**`pat_kind`** **1** = **`PatBind`**, **`ot_mentions_has`**, **`old_targets_hits`**) |
+| **Next** | **`oldInstrs`** | **`map`** over **`oldTargets`**: **`DeclVar`/`DeclNamed` + `Store`** per param — **2×** hit-count surrogate (or per-**`cty`** branch) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -137,7 +138,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`uniqOldNames`** (**`lower_uniq_old_names_core`**); **next** **`oldTargets`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`oldTargets`** (**`lower_old_targets_core`**); **next** **`oldInstrs`** under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -254,6 +255,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_old_slot_core.sv0`** — **`oldSlot`** snapshot slot naming (**`8 + |x|`** length surrogate for **`_sv0old_" ^ x`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_old_slot_core.c`**, **`lib/self-host-sv0-loop.list`** (**42** pilots); docs + checklist; decomposition **next** **`allOldNames`**. Tag **`self-host-sv0-loop-v18`** on **sv0c**. **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_all_old_names_core.sv0`** — **`allOldNames`** (**`go`**/**`goStmt`** count surrogate: **`old(x)`** hit **1**, leaves **0**, recursive **+**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_all_old_names_core.c`**, **`lib/self-host-sv0-loop.list`** (**43** pilots); docs + checklist; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **`updated:`** YAML spacing; decomposition **next** **`uniqOldNames`**. Tag **`self-host-sv0-loop-v19`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v19`**). **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_uniq_old_names_core.sv0`** — **`uniqOldNames`** (**`uon_acc_has`** / **`uon_name_eq`**, **four**-tag pipeline + **`in_len`**, **`uniq_old_names_final_len`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_uniq_old_names_core.c`**, **`lib/self-host-sv0-loop.list`** (**44** pilots); docs + checklist; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **`updated:`** YAML spacing restored; decomposition **next** **`oldTargets`**. Tag **`self-host-sv0-loop-v20`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v20`**). **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_old_targets_core.sv0`** — **`oldTargets`** (**`pat_kind`** **`PatBind`** vs other, **`ot_mentions_has`**, **`old_targets_hits`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_old_targets_core.c`**, **`lib/self-host-sv0-loop.list`** (**45** pilots); docs + checklist; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **`updated:`** YAML spacing; decomposition **next** **`oldInstrs`**. Tag **`self-host-sv0-loop-v21`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v21`**). **`./scripts/sv0 test`** green locally; **`sv0c`** + meta **`git push`**; **GitHub Actions** via **`gh run watch`**. **Full M3** still **not** met.
 
 ## related
 
