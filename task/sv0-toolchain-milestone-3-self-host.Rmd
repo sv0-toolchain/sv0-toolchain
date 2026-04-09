@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T18:07:59-06:00"
+updated: "2026-04-08T19:25:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -110,9 +110,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 | Status | SML helper cluster | Next seed direction |
 |--------|--------------------|---------------------|
-| **Seeded** | **`resolveFnCallee`**, **`resolveEnumCtorPath`** | **`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`** |
-| **Next** | **`splitQName`** + string tables | Stay **integer harness** until **`lib/`** has shared string slices, or model segment **count** only |
-| **Next** | **`enumStorePayload`** + **`valueToExpr`** | Length-driven **`StoreField`** **`p0`…`p{n}`** harness (no **`Ir`** structs yet) |
+| **Seeded** | **`resolveFnCallee`**, **`resolveEnumCtorPath`**, **`splitQName`** | **`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`**, **`lower_split_qname_core`** (bounded ASCII slots → segment **count**) |
+| **Next** | **`enumStorePayload`** + **`valueToExpr`** | Length-driven **`StoreField`** **`p0`…`p{n}`** harness (no **`Ir`** structs yet); **`valueToExpr`** already has **`lower_value_to_expr_core`** — extend toward **`enumStorePayload`** pairing |
 | **Next** | **`findVariantAst`** | Enum hit / variant hit / **`raise`** (mirror **`enumTag`** style) |
 
 ## phases (add `/include:` child tasks as modules migrate)
@@ -129,7 +128,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering import-path harnesses now cover **`resolveFnCallee`** and **`resolveEnumCtorPath`** (**`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`**) with the **next** candidates listed under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering import-path harnesses cover **`resolveFnCallee`**, **`resolveEnumCtorPath`**, and **`splitQName`** (**`lower_split_qname_core`**) with the **next** candidates listed under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -234,6 +233,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_fn_callee_core.sv0`** — **`resolveFnCallee`** (**`importAliases`** hit + **`splitQName`** simple target vs **`raise`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_resolve_fn_callee_core.c`**, **`lib/self-host-sv0-loop.list`** (**32** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**. Tag **`self-host-sv0-loop-v12`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v12`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **YAML** — frontmatter **`updated:`** line restored (space required after colon before the quoted timestamp) so **`verify_task_rmd_frontmatter`** / graph ingest stay valid.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_enum_ctor_path_core.sv0`** — **`resolveEnumCtorPath`** (alias miss or non-pair **`splitQName`** → **`(en,vn)`**; alias + pair → **`(e2,v2)`**); lists + **`lib/golden/stage0/lower_resolve_enum_ctor_path_core.c`**; self-host pilots **33**. **## large task decomposition** adds **next lowering import-path harnesses (rolling)** table. Tag **`self-host-sv0-loop-v13`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v13`**). **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_split_qname_core.sv0`** — transliteration of **`splitQName`** (**`::`** scan + recursive split from **`sml/ir/lowering.sml`**); bounded **eight-slot** ASCII harness → **`split_qname_segment_count`**; **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_split_qname_core.c`**, **`lib/self-host-sv0-loop.list`** (**34** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**, checklist. **## large task decomposition** table: **`splitQName`** row **Seeded**; **next** **`enumStorePayload`**. Tag **`self-host-sv0-loop-v14`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v14`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **Phase 2 `/ai`** — rolling **Agent** paragraph under transliteration completion points at checklist + **`transliteration-plan.md`** and the lowering import-path harness queue.
 
 ## related
