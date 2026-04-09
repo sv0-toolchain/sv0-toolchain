@@ -16,7 +16,7 @@ This file is the **cross-repo rollup** and **session run log** for the **sv0-too
 | Area | Source | Done | Total | % |
 |------|--------|------|-------|---|
 | Specification (`sv0doc`) | `sv0doc/PROGRESS.md` | 0 | 4 | 0% |
-| Compiler (`sv0c`) | `sv0c/PROGRESS.md` | 2 | 6 | 33% |
+| Compiler (`sv0c`) | `sv0c/PROGRESS.md` | 3 | 6 | 50% |
 | VM (`sv0vm`) | `sv0vm/PROGRESS.md` | 0 | 3 | 0% |
 | MCP / graph (`sv0-mcp`) | `sv0-mcp/PROGRESS.md` | 0 | 3 | 0% |
 | Meta orchestration | ## Meta-repository checklist below | 5 | 5 | 100% |
@@ -41,6 +41,7 @@ Set **Done** to `1` when true. Expand the table as new cross-cutting gates appea
 
 | ISO date (timezone) | Charter / focus | Areas touched | Metric delta (before → after) | Validation commands (exact) |
 |---------------------|-----------------|---------------|------------------------------|-----------------------------|
+| 2026-04-09 (America/Denver) | **`continue-development`** — close **sv0c C-3** (VM parity v1 allowlist + docs) | **sv0c:** `test/vm-parity/README.md`, `lib/LAYOUT.md`, `PROGRESS.md` (**C-3**=1); **meta:** this rollup Summary + run log | sv0c checklist **2/6→3/6** (**33%→50%**); vm-parity manifest **101** paths (unchanged) | `./scripts/sv0 milestone-orient show M3`, `./scripts/sv0 test-guards` |
 | 2026-04-09 (America/Denver) | **`continue-development`** — ship slice (YAML hygiene, stage0 golden EOF, commits); **push blocked** (SSH timeout to `github.com:22` from agent env) | **meta:** task `updated:` YAML spacing; **sv0c:** golden `lower_store_value_to_slot_core.c` trailing newline; local commits on `sv0c` **7b6232f** + **9e0b8e7** | *(metrics unchanged vs prior row)* | `./scripts/sv0 test-guards`, `./scripts/sv0 test` |
 | 2026-04-11 (America/Denver) | **`continue-development`** — sv0c checklist **2/6** + **`storeValueToSlot`** seed | **sv0c:** `PROGRESS.md` (**C-1**, **C-2**); `lib/lower_store_value_to_slot_core.sv0`, lists + golden, `doc/transliteration-plan.md`, `lib/LAYOUT.md`, `doc/self-host-sv0-loop.md`; **meta:** M3 task + checklist, rollup Summary | sv0c checklist **0/6→2/6** (**33%**); pilots **48→49**; stage0 **58→59** | `./scripts/sv0 milestone-orient show M3`, `./scripts/sv0 test-guards`, `./scripts/sv0 self-host-check-golden`, `./scripts/sv0 test` |
 | 2026-04-10 (America/Denver) | M3 / **`continue-development`** — **`ensGlue`** + **`injectEnsuresAndRetSlot`** harness | **sv0c:** `lib/lower_ens_glue_inject_core.sv0`, lists + `lib/golden/stage0/lower_ens_glue_inject_core.c`, `doc/transliteration-plan.md`, `lib/LAYOUT.md`, `doc/self-host-sv0-loop.md`, `PROGRESS.md`; **meta:** M3 task + checklist `.Rmd` | Self-host pilots **47→48**; stage0 goldens **57→58**; sv0c **0/6** unchanged | `./scripts/sv0 test-guards`, `./scripts/sv0 self-host-check-golden`, `./scripts/sv0 test` |
