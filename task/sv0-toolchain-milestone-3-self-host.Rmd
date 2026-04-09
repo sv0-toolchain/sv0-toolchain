@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T20:15:00-06:00"
+updated: "2026-04-09T16:30:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -129,7 +129,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`lowerReturn`** / block tail into **`Return`** | **`lower_return_body_core`**: **`lower_return_ir_len`** (**`NONE`**/**`SOME`**); **`lower_body_block_tail_len`** (**`tail_kind`** 0/1/2) |
 | **Seeded** | **`lowerFn`** IR prefix **`decl` @ `oldInstrs` @ `reqInstrs`** | **`lower_fn_prefix_core`**: **`lower_fn_prefix_len`** (**`use_ret_slot`** + **`old_instrs_total`** + **`req_instrs_total`**) |
 | **Seeded** | **`lowerBody`** / **`lowerBlock`** | **`lower_body_dispatch_core`**: **`lower_body_total_len`** (**`is_block`**, **`stmt_instr_len`**, optional block tail **`lowerReturn`** vs direct **`lowerReturn`**) |
-| **Next** | **`lowerExprWithInstrs`** / **`lowerStmt`** | Expr-to-IR discriminant cluster or statement **`lowerStmt`** path vs existing return/body seeds (**`lowering.sml`**) |
+| **Seeded** | **`lowerStmt`** (return + effect slice) | **`lower_stmt_dispatch_core`**: **`lower_stmt_total_len`** (**`stmt_kind`**: return **`NONE`** **1**, return **`SOME`** **`ret_value_lower_len+1`**, else **`lowerExprForEffect`** surrogate) |
+| **Next** | **`lowerExprWithInstrs`** / **`StmtLet`** init | Expr-to-IR discriminant cluster or **`StmtLet`** **`PatBind`** init arms vs existing seeds (**`lowering.sml`**) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -145,7 +146,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`lowerFn`** prefix (**`lower_fn_prefix_core`**) + **`lowerBody`** / **`lowerBlock`** (**`lower_body_dispatch_core`**) + return/body-tail (**`lower_return_body_core`**); **next** **`lowerExprWithInstrs`** / **`lowerStmt`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`lowerFn`** prefix (**`lower_fn_prefix_core`**) + **`lowerBody`** / **`lowerBlock`** (**`lower_body_dispatch_core`**) + **`lowerStmt`** dispatch (**`lower_stmt_dispatch_core`**) + return/body-tail (**`lower_return_body_core`**); **next** **`lowerExprWithInstrs`** / **`StmtLet`** init under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
