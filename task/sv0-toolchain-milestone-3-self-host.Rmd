@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T21:05:00-06:00"
+updated: "2026-04-08T22:30:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -112,7 +112,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 |--------|--------------------|---------------------|
 | **Seeded** | **`resolveFnCallee`**, **`resolveEnumCtorPath`**, **`splitQName`** | **`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`**, **`lower_split_qname_core`** (bounded ASCII slots → segment **count**) |
 | **Seeded** | **`enumStorePayload`** + **`valueToExpr`** | **`lower_enum_store_payload_core`** (**`p{i}`** suffix + payload length + **`value_to_expr_class`** per slot); **`lower_value_to_expr_core`** remains the standalone **`valueToExpr`** slice |
-| **Next** | **`findVariantAst`** | Enum hit / variant hit / **`raise`** (mirror **`enumTag`** style) |
+| **Seeded** | **`findVariantAst`** | **`lower_find_variant_ast_core`** (**`enum_ast_hit`** / **`variant_ast_hit`** + **1/2/3** variant shape vs **`enumTag`** error band **254/255**) |
+| **Next** | **`okPayloadCty`** | **`findVariantAst`** **`en` `"Ok"`** → **`VariantTuple`** with exactly one payload type → **`astTyToCString`**; else **`raise`** (harness: shape + arity vs C-string class) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -128,7 +129,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering import-path harnesses cover **`resolveFnCallee`**, **`resolveEnumCtorPath`**, **`splitQName`** (**`lower_split_qname_core`**), and **`enumStorePayload`** (**`lower_enum_store_payload_core`**) with the **next** candidate **`findVariantAst`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`findVariantAst`** (**`lower_find_variant_ast_core`**); **next** **`okPayloadCty`** under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -236,6 +237,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_split_qname_core.sv0`** — transliteration of **`splitQName`** (**`::`** scan + recursive split from **`sml/ir/lowering.sml`**); bounded **eight-slot** ASCII harness → **`split_qname_segment_count`**; **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_split_qname_core.c`**, **`lib/self-host-sv0-loop.list`** (**34** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**, checklist. **## large task decomposition** table: **`splitQName`** row **Seeded**; **next** **`enumStorePayload`**. Tag **`self-host-sv0-loop-v14`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v14`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **Phase 2 `/ai`** — rolling **Agent** paragraph under transliteration completion points at checklist + **`transliteration-plan.md`** and the lowering import-path harness queue.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_enum_store_payload_core.sv0`** — **`enumStorePayload`** (**`pName`/`StoreField`** count + **`valueToExpr`** RHS class harness); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_enum_store_payload_core.c`**, **`lib/self-host-sv0-loop.list`** (**35** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**, checklist, **## large task decomposition** table (**`findVariantAst`** next). Tag **`self-host-sv0-loop-v15`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v15`**). **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **`lib/lower_find_variant_ast_core.sv0`** — **`findVariantAst`** lookup harness (enum/variant hits + unit/tuple/struct shape **1/2/3**); lists + **`lib/golden/stage0/lower_find_variant_ast_core.c`**; self-host pilots **36**; docs + checklist; decomposition **next** **`okPayloadCty`**. **`./scripts/sv0 test`** green locally. **No remote push** in this slice (per maintainer preference). **Full M3** still **not** met.
 
 ## related
 
