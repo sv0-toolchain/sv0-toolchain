@@ -53,4 +53,4 @@ The [compiler vision and design](http://development.sasankvishnubhatla.net/tcowm
 
 ## Slash command alignment
 
-**`.cursor/commands/thoroughly-execute-document.md`** and **`.cursor/commands/continue-development.md`** both defer user prompts to **`34-user-prompts-design-only.mdc`**. Do not append standalone **`/ask-questions`** lines to those commands — they contradict the “proceed without stalling” default for routine toolchain work.
+**`.cursor/commands/thoroughly-execute-document.md`** and **`.cursor/commands/continue-development.md`** defer **design-level** user prompts to **`34-user-prompts-design-only.mdc`** (including the **built-in ask-questions discipline** — no slash command required). They **require** the **progress ledger** (`task/sv0-toolchain-progress.md` + submodule `PROGRESS.md`) to move forward each run: baseline **`%`**, updates, and a **run log** row (or an explicit blocker entry). Waiting on a **design** answer: use a **blocker** run log row; do not invent semantics meanwhile.

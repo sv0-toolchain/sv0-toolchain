@@ -3,11 +3,15 @@ description: Orientation for the continue-development Cursor command and milesto
 globs:
   - ".cursor/commands/continue-development.md"
   - "task/sv0-toolchain-roadmap-full.Rmd"
+  - "task/sv0-toolchain-progress.md"
 alwaysApply: false
 ---
 
 ## Navigation
 
+- **Progress ledger (hybrid):** submodule **`PROGRESS.md`** files plus meta **`task/sv0-toolchain-progress.md`** — see **`.cursor/commands/continue-development.md`** (**## Progress ledger**).
+- **Design questions:** **`34-user-prompts-design-only.mdc`** includes the built-in **ask-questions discipline** (one question at a time; no dependent commits on unsettled semantics). You do **not** need to paste **`/ask-questions`** for that behavior.
+- **Milestone-driven development:** **`37-llm-milestone-driven-workflow.mdc`** + **`./scripts/sv0 milestone-orient`** + **`task/milestone-orientation.json`** — orient before large slices; do not equate CI green with milestone closure without the owning **`task/*.Rmd`**.
 - Start from **`task/sv0-toolchain-roadmap-full.Rmd`** for **which milestone owns** each slice and the **0–3 snapshot** vs later milestones (**4–6**, cross-cutting).
 - For slash commands or prompts that ask to **thoroughly execute** that roadmap file (companion verify script, validation commands, what “done” means), use **`35-sv0-roadmap-full-execution.mdc`**.
 - When work is **too large to execute as one step**, decompose it in **`task/*.Rmd`** and cross-link inventories — **`36-large-task-decomposition.mdc`**.

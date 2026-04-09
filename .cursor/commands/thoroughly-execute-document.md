@@ -6,7 +6,16 @@ You are the **orchestrator** agent. Follow a **phased** workflow and use **subag
 
 ## Input
 
-Treat the **document passed into this command** (the slash-command input) as the governing charter. Parse it for scope, acceptance criteria, owning **`task/*.Rmd`** links, and validation hooks (**`/run:`** companion scripts, **`./scripts/sv0`**, **`make`** targets).
+Treat the **document passed into this command** (the slash-command input) as the governing charter. Parse it for scope, acceptance criteria, owning **`task/*.Rmd`** links, and validation hooks (**`/run:`** companion scripts, **`./scripts/sv0`**, **`make`** targets). If the charter is (or maps to) a **design milestone** listed in **`task/milestone-orientation.json`**, run **`./scripts/sv0 milestone-orient show <id>`** once for **closure authority** and **anti-patterns** (**`37-llm-milestone-driven-workflow.mdc`**).
+
+## Progress ledger (mandatory each run)
+
+**Hybrid tracking:** submodule roots **`sv0doc/PROGRESS.md`**, **`sv0c/PROGRESS.md`**, **`sv0vm/PROGRESS.md`**, **`sv0-mcp/PROGRESS.md`** own local checklists; **`task/sv0-toolchain-progress.md`** owns the cross-repo **Summary**, **Meta** checklist, and **run log**.
+
+1. **Start:** read **`task/sv0-toolchain-progress.md`** and every **`PROGRESS.md`** for submodules the charter is likely to touch (if unclear, read **all four**).
+2. **Baseline (status report):** for each touched area, quote **`done` / `total` / `%`** *before* edits.
+3. **End:** update submodule **`PROGRESS.md`** when that subtree changed; then refresh the meta **Summary** and append a **run log** row naming the **governing document**, slices closed, **metric deltas**, and **exact** validation commands (**`40-validation-and-proof.mdc`**). Meta-only charters update the **Meta-repository checklist** + run log.
+4. **Progress contract:** same as **`continue-development.md`** — **higher `done`**, justified **`total`** change, or run-log **blocker / recon / decomposition** with a **next step**.
 
 ## Phase 1 — Parallel recon (read-mostly)
 
@@ -45,7 +54,7 @@ Use **narrow checks during iteration**; escalate only when the charter or change
 | **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/`**, **`lib/self-host-sv0-loop.list`**, **`sml/`** compiler, cross-submodule | **`./scripts/sv0 test-guards`** then **`./scripts/sv0 test`** before declaring the document slice **integrated** |
 | After **meta-repo** push | **`gh run list`** / **`gh run watch`** (or **`gh run view <id>`**) on **CI** |
 
-**`./scripts/sv0 test-guards`** — Python-only: block-comment guard, **sv0doc** baseline paths, **`task/*.Rmd`** YAML, **README** sv0c gitlink, vm-parity manifest ⊆ bootstrap (fast; no full SML suite).
+**`./scripts/sv0 test-guards`** — Python-only: block-comment guard, **sv0doc** baseline paths, **`task/*.Rmd`** YAML, **README** sv0c gitlink, vm-parity manifest ⊆ bootstrap, **`milestone-orientation.json`** + bidirectional workspace milestone-table check (fast; no full SML suite).
 
 **`./scripts/sv0 test`** — full orchestration: sv0c unit tests, integration, **`bootstrap-build`**, stage0 C goldens, self-host loop, vm-parity, doctests (use when the governing **`task/*.Rmd`** / charter touches integration or multiple lists).
 
@@ -65,8 +74,8 @@ Follow **## Fast validation loop** for default tiering. Run the **narrowest** ch
 
 **Process hygiene:** do not leave **hanging** shells or background jobs without monitoring; prefer bounded waits and explicit completion.
 
-**Status report:** what changed, what remains, and **order-of-magnitude slice count** (see **`task/sv0-toolchain-milestone-3-self-host.Rmd`** throughput table when estimating M3 transliteration).
+**Status report:** what changed, what remains, **before → after** **`%`** per touched area (progress ledger), and **order-of-magnitude slice count** (see **`task/sv0-toolchain-milestone-3-self-host.Rmd`** throughput table when estimating M3 transliteration). When the charter slice is **non-trivial**, add **For learners (read next):** 2–4 links tied to the governing document’s scope (**`50-writing-style-and-document-shape.mdc`**).
 
-**User prompts:** only for **design-level or high-impact** decisions; otherwise proceed (**`.cursor/rules/34-user-prompts-design-only.mdc`**).
+**User prompts:** follow **`34-user-prompts-design-only.mdc`** — includes the **built-in ask-questions discipline** (one design question at a time; do not integrate commits that assume an unsettled answer). **`/ask-questions`** is optional and redundant with that rule.
 
 Create or refine **`.mdc`** rules only when it **reduces ambiguity** for future runs (**`.cursor/rules/50-writing-style-and-document-shape.mdc`**); avoid duplicating **`sv0doc/`** normative text in rules.

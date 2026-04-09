@@ -9,6 +9,16 @@ alwaysApply: true
 
 Proceed **without** stopping for the user on routine work: reading the repo, following **`task/*.Rmd`** and **`sv0doc/`**, editing code or docs, running **`./scripts/sv0`** / **`make`** targets, submodule pointer bumps per **`29-submodule-git-visibility.mdc`**, **`gh`** CI checks, and small rule updates.
 
+## Ask-questions discipline (built in — no slash command required)
+
+This replaces ad-hoc **`/ask-questions`** usage: the same behavior is **always** in effect via this rule (**`alwaysApply: true`**).
+
+- **One question at a time** when user input is required (see **## Ask the user** below). Prefer a **single focused question** with **concrete options** (A / B / short tradeoff) when that speeds the decision.
+- **Halt dependent work** in the **current turn** after asking: do **not** guess the answer, stack multiple unrelated questions, or commit / merge changes whose **normative** or **irreversible** shape depends on the missing reply.
+- **Routine work** still proceeds without pings (**## Default**). The **progress ledger** (**`task/sv0-toolchain-progress.md`**, submodule **`PROGRESS.md`**) still advances each session per **`.cursor/commands/continue-development.md`** — a blocker-only run log row satisfies the contract when you are waiting on the user.
+
+Optional reminder: **`.cursor/commands/ask-questions.md`** exists as a **thin alias** that points back here; it adds no extra semantics.
+
 ## Ask the user (design and high-impact decisions)
 
 Use **one question at a time** when the answer **changes normative intent** or **commits the project** to a path that **`sv0doc/`** and existing tasks do not settle. Typical cases:
@@ -25,7 +35,7 @@ Use **one question at a time** when the answer **changes normative intent** or *
 
 ## Slash commands that mention asking questions
 
-If a command includes **ask-questions** style instructions, interpret them through this rule: **prompts to the user should be design-level** (or high-impact as above), not procedural trivia.
+If a command includes **ask-questions** style instructions, interpret them through this rule: **prompts to the user should be design-level** (or high-impact as above), not procedural trivia — and follow **## Ask-questions discipline** (one question, no dependent commits until answered when semantics are at stake).
 
 ## Related
 

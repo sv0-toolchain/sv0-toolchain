@@ -28,8 +28,8 @@ Treat root entrypoints as stable interfaces unless the task explicitly changes t
 
 This includes, when relevant:
 
-- `make` targets exposed by the root `Makefile` (including `test` and `test-guards`)
-- `./scripts/sv0 ...` subcommands (`test` runs the full harness; `test-guards` runs only the Python guards: block comments, sv0doc baseline paths, task `*.Rmd` YAML, README `sv0c` gitlink vs bootstrap table; `vm-project-compile` builds `--project` trees under `sv0c/`)
+- `make` targets exposed by the root `Makefile` (including `test`, `test-guards`, `milestone-orient`, and `milestone-orient-show ID=<id>`)
+- `./scripts/sv0 ...` subcommands (`test` runs the full harness; `test-guards` runs the Python guards including milestone-orientation + workspace-table consistency; `vm-project-compile` builds `--project` trees under `sv0c/`; `milestone-orient` prints owning `task/*.Rmd` and validation hints from `task/milestone-orientation.json`)
 - task-document entrypoints in `task/`
 
 If one of these interfaces changes, update all affected root docs and validation steps consistently.

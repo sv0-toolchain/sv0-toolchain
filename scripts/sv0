@@ -21,7 +21,8 @@ usage: sv0 <command> [args]
                        bootstrap .sv0 on VM; VM parity vs test/vm-parity/golden/sml; stage0 golden C vs SML
                        emit (when lib/golden/stage0/<stem>.c exists); self-host sv0 loop (SML→C→native + emit diff);
                        Markdown doctests — see task/sv0-toolchain-milestone-2-prep.Rmd for order
-  test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA, vm-parity manifest ⊆ bootstrap list
+  test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA, vm-parity manifest ⊆ bootstrap list,
+                       task/milestone-orientation.json (primary_tasks exist + bidirectional sync with workspace milestone table)
                        (no SML — use after editing task/*.Rmd, sv0doc, README bootstrap table, or .sv0)
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
   doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
@@ -43,6 +44,8 @@ usage: sv0 <command> [args]
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
   ci                 check + full ./scripts/sv0 test (no sv0-mcp; same as \`make ci\`)
   ci-all             after ci, run test-mcp when uv is available (full toolchain smoke)
+  milestone-orient [list | show <id> | <id>]  LLM/human orientation from task/milestone-orientation.json
+                       (ids: M0, M1, M2, M2-prep, M3, …, cross-cutting, mcp-0, roadmap; <id> alone means show)
 
 EOF
 }
@@ -118,6 +121,14 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_vm_parity_manifest_bootstrap.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: task/milestone-orientation.json (schema + primary_tasks exist)"
+  if ! python3 "$ROOT/scripts/verify_milestone_orientation.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: workspace milestone table cites all milestone-orientation primary_tasks"
+  if ! python3 "$ROOT/scripts/verify_workspace_milestone_table.py" --root "$ROOT"; then
+    ec=1
+  fi
   return "$ec"
 }
 
@@ -125,7 +136,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table"
 }
 
 run_test() {
@@ -631,6 +642,42 @@ run_ci_all() {
   sv0_ok "ci-all: SML ci + sv0-mcp (pytest when uv is available)"
 }
 
+run_milestone_orient() {
+  sv0_require_cmd python3
+  local sub="${1:-}"
+  if [[ -z "$sub" ]]; then
+    python3 "$ROOT/scripts/milestone_orient.py" list
+    return 0
+  fi
+  if [[ "$sub" == "list" ]]; then
+    python3 "$ROOT/scripts/milestone_orient.py" list
+    return 0
+  fi
+  if [[ "$sub" == "show" ]]; then
+    shift || true
+    local mid="${1:-}"
+    if [[ -z "$mid" ]]; then
+      echo "sv0 milestone-orient show: missing milestone id (e.g. M3, mcp-0)" >&2
+      exit 1
+    fi
+    python3 "$ROOT/scripts/milestone_orient.py" show "$mid"
+    return 0
+  fi
+  if [[ "$sub" == "-h" || "$sub" == "--help" ]]; then
+    cat >&2 <<'EOF'
+usage: sv0 milestone-orient [list | show <id> | <id>]
+
+  list          print all milestone ids and owning task/*.Rmd entrypoints
+  show <id>     print tasks, validation hints, closure authority, anti-patterns
+  <id>          shorthand for show <id>
+
+Data: task/milestone-orientation.json — completion criteria remain in the linked task files.
+EOF
+    return 0
+  fi
+  python3 "$ROOT/scripts/milestone_orient.py" show "$sub"
+}
+
 run_repl() {
   require_sml
   mkdir -p "$SV0C/build/vm"
@@ -780,6 +827,9 @@ case "$cmd" in
     ;;
   ci-all)
     run_ci_all
+    ;;
+  milestone-orient)
+    run_milestone_orient "$@"
     ;;
   ""|-h|--help)
     usage

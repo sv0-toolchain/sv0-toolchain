@@ -1,5 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
+updated: "2026-04-09T12:00:00-06:00"
 id: task-sv0-toolchain-workspace
 key: sv0-toolchain-workspace
 state: active
@@ -75,6 +76,8 @@ use these as entry points for scoped work:
 | cross-cutting backlog | `task/sv0-toolchain-milestone-cross-cutting.Rmd` | multi |
 | MCP server + graph | `task/sv0-mcp-milestone-0.Rmd` | sv0-mcp |
 
+**Milestone orientation (LLMs / agents):** [`AGENTS.md`](../AGENTS.md); `./scripts/sv0 milestone-orient list` and `./scripts/sv0 milestone-orient show <id>`; data [`task/milestone-orientation.json`](milestone-orientation.json). Cursor **`.cursor/rules/37-llm-milestone-driven-workflow.mdc`**. **Progress rollup + run log:** [`task/sv0-toolchain-progress.md`](sv0-toolchain-progress.md).
+
 finer-grained tasks remain as existing `task/sv0c-*.Rmd`, `task/sv0vm-*.Rmd`, `task/sv0doc-*.Rmd` files included from those milestones.
 
 ## dependency flow
@@ -97,8 +100,9 @@ from the **sv0-toolchain** root:
 
 - **`make help`** — prints **`Makefile`** targets (**`make test`**, **`make test-guards`**, **`make check`**, **`make doc`**, **`ci`**, …). The **`make test`** lines summarize the full pipeline as **`./scripts/sv0 test`**; **`make test-guards`** matches **`./scripts/sv0 test-guards`** (Python-only slice). use **`make`** when you prefer it over **`scripts/sv0`** directly.
 - `./scripts/sv0 check` — compile-check **sv0c** + load **sv0vm**
-- `./scripts/sv0 test` — **sv0c** `make test`; Python guards (**block-comment nesting**, **sv0doc baseline**, **`verify_task_rmd_frontmatter.py`** on **`task/*.Rmd`**, **`verify_readme_sv0c_gitlink.py`** on **README** bootstrap table); **sv0vm** bytecode tests; C + VM integration scripts; **bootstrap-build** for **`sv0c/lib/bootstrap-sources.list`**; **stage0** golden C diff when **`sv0c/lib/golden/stage0/<stem>.c`** exists; **doctests** (see **`task/sv0-toolchain-milestone-2-prep.Rmd`** completion criteria for the exact order)
-- `./scripts/sv0 test-guards` — **Python only**: the same Python guards as the start of **`sv0 test`** (no **SML**), including **vm-parity manifest ⊆ `sv0c/lib/bootstrap-sources.list`**. Use after editing **`task/*.Rmd`**, **sv0doc**, **README** bootstrap table, **manifest/bootstrap** lists, or **`.sv0`** comments before running the full harness. **`make test-guards`** is the same command.
+- `./scripts/sv0 test` — **sv0c** `make test`; Python guards (**block-comment nesting**, **sv0doc baseline**, **`verify_task_rmd_frontmatter.py`** on **`task/*.Rmd`**, **`verify_readme_sv0c_gitlink.py`** on **README** bootstrap table, **`verify_milestone_orientation.py`**, **`verify_workspace_milestone_table.py`**); **sv0vm** bytecode tests; C + VM integration scripts; **bootstrap-build** for **`sv0c/lib/bootstrap-sources.list`**; **stage0** golden C diff when **`sv0c/lib/golden/stage0/<stem>.c`** exists; **doctests** (see **`task/sv0-toolchain-milestone-2-prep.Rmd`** completion criteria for the exact order)
+- `./scripts/sv0 test-guards` — **Python only**: the same Python guards as the start of **`sv0 test`** (no **SML**), including **vm-parity manifest ⊆ `sv0c/lib/bootstrap-sources.list`**, **`task/milestone-orientation.json`** schema + **`primary_tasks`** paths, and **bidirectional** workspace milestone table vs JSON (**`verify_workspace_milestone_table.py`**). Use after editing **`task/*.Rmd`**, **sv0doc**, **README** bootstrap table, **manifest/bootstrap** lists, **`milestone-orientation.json`**, or **`.sv0`** comments before running the full harness. **`make test-guards`** is the same command.
+- `./scripts/sv0 milestone-orient list` / `./scripts/sv0 milestone-orient show <id>` — LLM/human pointers from **`task/milestone-orientation.json`** (**`make milestone-orient`** / **`make milestone-orient-show ID=M3`**).
 - `./scripts/sv0 test-mcp` — **sv0-mcp** unit tests (requires `uv`; skips if absent)
 - `./scripts/sv0 doc` — required paths under **sv0doc** (+ **sv0-mcp** README)
 - `make ci` / `./scripts/sv0 ci` — **SML-only** CI: check + test + VM integration script (does **not** run sv0-mcp)

@@ -1,7 +1,10 @@
 # Full sv0-toolchain: submodules + unified scripts/sv0 harness (SML, C, VM, bootstrap-in-sv0, golden,
-# doctests) + sv0-mcp. `sv0 test` includes Python guards: block comments, sv0doc baseline, task/*.Rmd YAML,
-# README pinned sv0c SHA vs git submodule (verify_readme_sv0c_gitlink.py), and VM bytecode parity vs
-# sv0c/test/vm-parity/golden/sml after bootstrap-build.
+# doctests) + sv0-mcp. `sv0 test` / `test-guards` include Python checks: block comments, sv0doc baseline,
+# task/*.Rmd YAML, README pinned sv0c SHA vs git submodule (verify_readme_sv0c_gitlink.py), VM bytecode
+# parity manifest ⊆ bootstrap, milestone-orientation JSON + primary_tasks path existence
+# (verify_milestone_orientation.py), and JSON primary_tasks cited in sv0-toolchain-workspace.Rmd
+# (verify_workspace_milestone_table.py: forward + reverse vs `## milestone and area tasks`).
+# Early CI step runs those Python checks before SML install.
 name: CI
 
 on:
@@ -33,6 +36,12 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Milestone orientation + workspace index consistency (no SML)
+        run: |
+          python3 scripts/verify_milestone_orientation.py --root .
+          python3 scripts/verify_workspace_milestone_table.py --root .
+          python3 scripts/milestone_orient.py list
+
       - name: Cache SML/NJ install
         uses: actions/cache@v4
         id: smlnj-cache
@@ -50,5 +59,11 @@ jobs:
           cache-dependency-glob: |
             **/uv.lock
 
-      - name: Check + test + MCP (same as make ci-all)
-        run: ./scripts/sv0 ci-all
+      - name: Compile smoke (sv0c + sv0vm)
+        run: ./scripts/sv0 check
+
+      - name: Full sv0 test harness (./scripts/sv0 test)
+        run: ./scripts/sv0 test
+
+      - name: sv0-mcp tests (pytest when uv available)
+        run: ./scripts/sv0 test-mcp

@@ -13,7 +13,7 @@ development workspace for the sv0 programming language compiler and toolchain.
 
 **Design milestones 0–2 (task-tracked)** are **met** at the level described in [`task/sv0-toolchain-roadmap-full.Rmd`](task/sv0-toolchain-roadmap-full.Rmd). **Milestone 3** (self-hosting compiler in **sv0**) is **in progress** — see [`task/sv0-toolchain-milestone-3-self-host.Rmd`](task/sv0-toolchain-milestone-3-self-host.Rmd) for definition of done vs remaining transliteration work; it is **not** closable by documentation alone.
 
-**Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks.
+**Tracking:** start from [`task/sv0-toolchain-workspace.Rmd`](task/sv0-toolchain-workspace.Rmd) for the full workspace map, env vars, and submodule checks. **Progress rollup / run log:** [`task/sv0-toolchain-progress.md`](task/sv0-toolchain-progress.md). **LLM/agent on-ramp:** [`AGENTS.md`](AGENTS.md) and `./scripts/sv0 milestone-orient` (see [`task/milestone-orientation.json`](task/milestone-orientation.json)).
 
 **Learning:** small **`.sv0`** sources (numbered tutorials through **`22_*`**, plus multi-file **`examples/learn/23_project_minimal/`**) and commands for **`vm-compile`**, **`vm-project-compile`**, **`vm-run`**, and **`emit-c`** are under [`sv0c/examples/learn/`](sv0c/examples/learn/README.md). **Educational library-shaped packages** (future **`std`/`core` pedagogy**, not compiler bootstrap seeds) are under [`sv0c/examples/libs/`](sv0c/examples/libs/README.md). **`vm-compile`**, **`vm-project-compile`**, and **`emit-c`** take paths relative to **`sv0c/`**; **`vm-run`** accepts **`sv0c/build/vm/<stem>.sv0b`** relative to this **meta-repo root** (or an absolute path).
 
@@ -34,7 +34,7 @@ The SML bootstrap retirement tag **`bootstrap-sml-final`** is defined on **[sv0c
 
 this workspace uses the [AI agent workflow structure](http://development.sasankvishnubhatla.net/tcowmbh/note/ai-agent-workflow-structure.html) to organize development work. agent files (`.Rmd`) in `task/` orchestrate implementation through directives and companion scripts.
 
-**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. **`25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), **`sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**. **`26-sv0-contracts-clauses.mdc`** scopes **`requires`/`ensures`/`loop_invariant`**, quantifiers, and aliasing contracts to **`sv0doc/`** + implementation discipline. **`27-examples-libraries-boundary.mdc`** separates **`sv0c/examples/libs/`** (pedagogy) from **`sv0c/lib/`** (bootstrap transliteration). **`28-sml-retirement-and-self-host-bar.mdc`** states that **`self-host-sv0-loop.list`** CI is not **`bootstrap-sml-final`**. they sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
+**Cursor IDE:** numbered rule modules under **`.cursor/rules/`** (start with **`00-workspace-context.mdc`**) spell out boundaries for **sv0c**, **sv0vm**, **sv0-mcp**, spec-first work, and **`.Rmd`** tasks. **`25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), **`sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in **`task/sv0-toolchain-roadmap-full.Rmd`**. **`26-sv0-contracts-clauses.mdc`** scopes **`requires`/`ensures`/`loop_invariant`**, quantifiers, and aliasing contracts to **`sv0doc/`** + implementation discipline. **`27-examples-libraries-boundary.mdc`** separates **`sv0c/examples/libs/`** (pedagogy) from **`sv0c/lib/`** (bootstrap transliteration). **`28-sml-retirement-and-self-host-bar.mdc`** states that **`self-host-sv0-loop.list`** CI is not **`bootstrap-sml-final`**. They sit alongside **`.cursor/rules/agent-directives.mdc`**, which defines how to execute **`task/*.Rmd`** directives.
 
 ### milestone structure
 
@@ -74,9 +74,13 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 
 ```bash
 make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
+make milestone-orient # same as ./scripts/sv0 milestone-orient list
+make milestone-orient-show ID=M3  # ./scripts/sv0 milestone-orient show M3
 ./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
 ./scripts/sv0 test    # sv0c units; Python guards; sv0vm; C+VM integration; bootstrap .sv0; VM parity (SML .sv0b vs golden/sml); stage0 golden C; doctests
-./scripts/sv0 test-guards  # Python only: same guards as start of `sv0 test` incl. vm-parity manifest ⊆ bootstrap (fast; no SML)
+./scripts/sv0 test-guards  # Python only: same guards as start of `sv0 test` incl. vm-parity manifest ⊆ bootstrap, milestone-orientation JSON ↔ workspace milestone table (bidirectional; fast; no SML)
+./scripts/sv0 milestone-orient list   # milestone id → owning task/*.Rmd + validation hints (for humans and agents)
+./scripts/sv0 milestone-orient show M3   # example: M3 self-host guardrails (anti-patterns, closure authority)
 # Inner loop (one file; paths relative to sv0c/): ./scripts/sv0 vm-compile <rel>  # --target=vm
 # Inner loop: ./scripts/sv0 emit-c <rel>   # C to stdout via SML heap — see .cursor/commands/continue-development.md (Fast validation loop)
 ./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)

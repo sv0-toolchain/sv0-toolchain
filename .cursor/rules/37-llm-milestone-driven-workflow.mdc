@@ -1,0 +1,51 @@
+---
+description: Milestone-driven loop for LLMs — orient, slice, validate, ledger — until task-defined completion
+globs:
+  - "task/**/*.Rmd"
+  - "task/milestone-orientation.json"
+  - "task/sv0-toolchain-progress.md"
+  - ".cursor/commands/continue-development.md"
+  - ".cursor/commands/thoroughly-execute-document.md"
+  - "AGENTS.md"
+  - "scripts/sv0"
+  - "scripts/milestone_orient.py"
+  - "scripts/verify_milestone_orientation.py"
+  - "scripts/verify_workspace_milestone_table.py"
+alwaysApply: false
+---
+
+## What this rule fixes
+
+**Scripts** (`./scripts/sv0 test`, `test-guards`, …) enforce **technical** gates. **Milestone “done”** lives in **`task/*.Rmd`** prose (completion criteria, stakeholder bars). Without an explicit loop, an LLM can confuse **green CI** with **closed milestone** (especially **M3** — see **`28-sml-retirement-and-self-host-bar.mdc`**).
+
+This rule ties **orientation data** (`task/milestone-orientation.json` + **`./scripts/sv0 milestone-orient`**) to the **progress ledger** and existing slash-command phases.
+
+## Milestone loop (repeat until the owning task says otherwise)
+
+1. **Orient** — Know which milestone you are driving (from user message, open charter, or **`task/sv0-toolchain-roadmap-full.Rmd`**). Run **`./scripts/sv0 milestone-orient show <id>`** (or **`list`**) and open every **`primary_tasks`** file listed. Read **completion criteria** / **definition of done** sections there; treat **`closure_authority`** and **`anti_patterns`** from the JSON as **hard guardrails**.
+2. **Decompose** — If the remaining work is still a wall, write substeps in the owning **`task/*.Rmd`** (**`36-large-task-decomposition.mdc`**).
+3. **Slice** — Implement **one** completable vertical (spec → task → code → tests per **`05-planning-and-execution.mdc`**). Respect submodule boundaries (**`00-workspace-context.mdc`**, **`30-sv0c-compiler-boundaries.mdc`**, **`31-sv0vm-vm-boundaries.mdc`**).
+4. **Validate** — Use the **Fast validation loop** table (**`.cursor/commands/continue-development.md`**). Prefer **`pre_merge_validation`** from **`milestone-orientation.json`** before declaring a slice **integrated** or the milestone **advanced**; **name exact commands** (**`40-validation-and-proof.mdc`**).
+5. **Record** — Update submodule **`PROGRESS.md`**, meta **`task/sv0-toolchain-progress.md`**, and (when needed) task decomposition (**`continue-development.md`** **## Progress ledger**).
+
+## Claiming milestone completion
+
+You may say a **design milestone is complete** only when **all** hold:
+
+- The **owning** **`task/*.Rmd`** (and **`sv0doc/`** if semantics moved) explicitly supports the claim.
+- **`anti_patterns`** in **`milestone-orientation.json`** for that id are **not** violated.
+- **Integration** validation appropriate to the slice has been **run and named** (not assumed).
+- **`task/*.Rmd` frontmatter** `state` / narrative (if used) matches reality — update with the user’s **actual** timestamp when you change milestone metadata (**`10-rmd-agent-documents.mdc`**).
+
+## Adequacy vs “run until milestone complete”
+
+Fully **autonomous** closure of a large milestone (e.g. **M3**) is **not** reducible to scripts: it requires **judgment** against task criteria and often **multi-session** transliteration. This rule makes the **workflow adequate** by: (a) fixing **entrypoints** and **anti-patterns**, (b) **mandating** the progress ledger each session, (c) tying validation **tiering** to milestone ids. Remaining gap: **human/stakeholder** sign-off for bars that tasks label as such — document that in the task file, not here.
+
+## Related
+
+- **`task/sv0-toolchain-workspace.Rmd`** — milestone task index table
+- **`33-continue-development-workflow.mdc`** — day-to-day navigation
+- **`25-sv0-design-invariants-vision.mdc`** — milestones 0–3 snapshot vs **`sv0doc/`**
+- **`34-user-prompts-design-only.mdc`** — when to stop for design answers
+- **`scripts/verify_milestone_orientation.py`** — runs under **`./scripts/sv0 test-guards`**; ensures **`task/milestone-orientation.json`** parses and every **`primary_tasks`** file exists.
+- **`scripts/verify_workspace_milestone_table.py`** — same guard bundle; **forward** (JSON **`primary_tasks`** ⊆ workspace) and **reverse** (every **`task/*.Rmd`** under **`## milestone and area tasks`** ⊆ JSON union, optional **`workspace_milestone_table_allowlist`**). CI runs both Python checks before SML install; **`./scripts/sv0 test`** is a **separate explicit step** after SML so the GitHub log shows full harness verification.

@@ -1,0 +1,111 @@
+{
+  "description": "LLM/human orientation index: maps design-milestone-style work to owning task/*.Rmd files and suggested validation. Completion criteria always live in those task files and sv0doc/ — not in this JSON.",
+  "workspace_milestone_table_allowlist": [],
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Formal language spec (sv0doc hub)",
+      "primary_tasks": ["task/sv0doc-milestone-0.Rmd"],
+      "submodules_hint": ["sv0doc"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards"],
+      "closure_authority": "Completion/story in task/sv0doc-milestone-0.Rmd; normative text in sv0doc/.",
+      "anti_patterns": ["Treat README or rules as normative semantics over sv0doc/"]
+    },
+    {
+      "id": "M1",
+      "title": "Bootstrap SML compiler (through C/VM backends)",
+      "primary_tasks": ["task/sv0c-milestone-1.Rmd"],
+      "submodules_hint": ["sv0c", "sv0vm"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0c-milestone-1.Rmd and linked child tasks.",
+      "anti_patterns": []
+    },
+    {
+      "id": "M2",
+      "title": "Bytecode VM + sv0c VM backend",
+      "primary_tasks": ["task/sv0vm-milestone-2.Rmd", "task/sv0c-milestone-1.Rmd"],
+      "submodules_hint": ["sv0vm", "sv0c"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0vm-milestone-2.Rmd (VM) + compiler backend linkage in sv0c tasks.",
+      "anti_patterns": []
+    },
+    {
+      "id": "M2-prep",
+      "title": "Toolchain prep: unified test, doctest, fmt, doc, lib/ bootstrap track",
+      "primary_tasks": ["task/sv0-toolchain-milestone-2-prep.Rmd"],
+      "submodules_hint": ["sv0c", "sv0vm"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0-toolchain-milestone-2-prep.Rmd.",
+      "anti_patterns": []
+    },
+    {
+      "id": "M3",
+      "title": "Self-hosting compiler in sv0 (parity + bootstrap story)",
+      "primary_tasks": [
+        "task/sv0-toolchain-milestone-3-self-host.Rmd",
+        "task/sv0-toolchain-milestone-3-checklist.Rmd"
+      ],
+      "submodules_hint": ["sv0c", "sv0vm", "sv0doc"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "Stakeholder completion criteria in task/sv0-toolchain-milestone-3-self-host.Rmd (feature parity, VM policy, native self-host, SML retirement) — not pilot list growth alone.",
+      "anti_patterns": [
+        "Claim M3 complete because lib/self-host-sv0-loop.list is green",
+        "Tag bootstrap-sml-final or move sml/ to sml-legacy/ before that task allows it"
+      ]
+    },
+    {
+      "id": "M4",
+      "title": "Advanced verification",
+      "primary_tasks": ["task/sv0-toolchain-milestone-4-verification.Rmd"],
+      "submodules_hint": ["sv0c", "sv0doc"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0-toolchain-milestone-4-verification.Rmd.",
+      "anti_patterns": []
+    },
+    {
+      "id": "M5",
+      "title": "LLVM + production crypto",
+      "primary_tasks": ["task/sv0-toolchain-milestone-5-llvm-crypto.Rmd"],
+      "submodules_hint": ["sv0c", "sv0doc"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0-toolchain-milestone-5-llvm-crypto.Rmd.",
+      "anti_patterns": []
+    },
+    {
+      "id": "M6",
+      "title": "Kernel / bare metal",
+      "primary_tasks": ["task/sv0-toolchain-milestone-6-kernel.Rmd"],
+      "submodules_hint": ["sv0c", "sv0doc"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0-toolchain-milestone-6-kernel.Rmd.",
+      "anti_patterns": []
+    },
+    {
+      "id": "cross-cutting",
+      "title": "Cross-cutting backlog (macros, literate, std, packaging)",
+      "primary_tasks": ["task/sv0-toolchain-milestone-cross-cutting.Rmd"],
+      "submodules_hint": ["sv0c", "sv0doc", "sv0vm", "sv0-mcp"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "closure_authority": "task/sv0-toolchain-milestone-cross-cutting.Rmd.",
+      "anti_patterns": []
+    },
+    {
+      "id": "mcp-0",
+      "title": "MCP server + dev graph",
+      "primary_tasks": ["task/sv0-mcp-milestone-0.Rmd"],
+      "submodules_hint": ["sv0-mcp"],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test-mcp"],
+      "closure_authority": "task/sv0-mcp-milestone-0.Rmd.",
+      "anti_patterns": []
+    },
+    {
+      "id": "roadmap",
+      "title": "Full roadmap index (option C)",
+      "primary_tasks": ["task/sv0-toolchain-roadmap-full.Rmd"],
+      "submodules_hint": [],
+      "pre_merge_validation": ["./scripts/sv0 test-guards", "bash task/sv0-toolchain-roadmap-full/01-verify-roadmap-artifacts.sh"],
+      "closure_authority": "Roadmap is an index — milestone closure is per owning task/*.Rmd, not this file alone.",
+      "anti_patterns": ["Declare design milestone 3 closed from roadmap hygiene only"]
+    }
+  ]
+}

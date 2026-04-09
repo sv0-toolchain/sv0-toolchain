@@ -67,3 +67,14 @@ Avoid vague instructions such as:
 unless the scope and criteria are made concrete.
 
 Avoid hiding constraints in paragraphs where an agent could miss them.
+
+## Educational and onboarding value
+
+When writing or editing **`task/*.Rmd`**, submodule **`README.md`**, **`doc/*.md`**, or **`PROGRESS.md`** notes, bias toward **teaching** without duplicating **`sv0doc/`** normatively:
+
+- **Read-next trail:** after non-obvious changes, add 2–4 links (spec path, owning milestone **`task/*.Rmd`**, one implementation anchor such as **`sv0c/doc/`** or **`sv0vm/`** notes).
+- **Why, not only what:** one short paragraph or bullet on **invariant** or **risk** (e.g. bootstrap list discipline, parity policy) when a future reader could otherwise reverse the right fix.
+- **Jargon:** define or link the first use of toolchain-specific terms (e.g. **stage0**, **vm-parity v1**, **pilot list**) to the file that owns the definition.
+- **Assumptions:** keep **open questions** visible (**## Separation of concerns**) so learners see what is unsettled vs shipped.
+
+Normative language semantics still belong in **`sv0doc/`** — teach *where* and *why to read*, do not invent rules here.

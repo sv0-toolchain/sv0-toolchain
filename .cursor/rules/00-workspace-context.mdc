@@ -24,8 +24,9 @@ Primary root-level coordination areas:
 - `scripts/` — root helper scripts and top-level developer entrypoints
 - `Makefile` — root orchestration targets
 - `README.md` — workspace map, commands, and developer overview
+- `AGENTS.md` — LLM/agent on-ramp (milestone orientation, rules, validation tiering)
 - `.agent/` — agent runner support
-- `.cursor/` — Cursor project rules and slash commands (e.g. **`continue-development`**); agent orientation **`33-continue-development-workflow.mdc`**; **design-only user prompts** **`34-user-prompts-design-only.mdc`**
+- `.cursor/` — Cursor project rules and slash commands (e.g. **`continue-development`**); agent orientation **`33-continue-development-workflow.mdc`**; **user prompts + built-in ask-questions discipline** **`34-user-prompts-design-only.mdc`**
 
 ## Ownership boundaries
 

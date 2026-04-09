@@ -17,6 +17,8 @@ Before editing multiple files or multiple subprojects, identify:
 - why each file needs to change
 - how the change will be validated
 
+For **non-trivial** task or milestone edits, consider a **short “for learners”** line: which **`sv0doc/`** sections and which owning **`task/*.Rmd`** explain the change — see **`50-writing-style-and-document-shape.mdc`** (**## Educational and onboarding value**).
+
 ## Decomposition rules
 
 Prefer narrow, reversible edits over speculative rewrites.

@@ -15,7 +15,7 @@ Use when a milestone slice (especially **M3 self-hosting**) is described as one 
 
 ## What to produce
 
-1. **A written decomposition** in an owning **`task/*.Rmd`** file:
+1. **A written decomposition** in an owning **`task/*.Rmd`** file (and reflect major closure in submodule **`PROGRESS.md`** + meta **`task/sv0-toolchain-progress.md`** when a slice completes — see **`.cursor/commands/continue-development.md`** **## Progress ledger**):
    - **Numbered or clearly nested** substeps (each completable in a small number of commits).
    - **Pointers** to living inventories: **`task/sv0-toolchain-milestone-3-checklist.Rmd`**, **`sv0c/doc/transliteration-plan.md`**, **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**.
    - **Explicit “not in this slice”** boundaries when ambiguity would otherwise invite scope creep.
