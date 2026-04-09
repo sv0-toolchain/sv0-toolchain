@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T16:50:00-06:00"
+updated: "2026-04-09T17:25:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -131,7 +131,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`lowerBody`** / **`lowerBlock`** | **`lower_body_dispatch_core`**: **`lower_body_total_len`** (**`is_block`**, **`stmt_instr_len`**, optional block tail **`lowerReturn`** vs direct **`lowerReturn`**) |
 | **Seeded** | **`lowerStmt`** (return + effect slice) | **`lower_stmt_dispatch_core`**: **`lower_stmt_total_len`** (**`stmt_kind`**: return **`NONE`** **1**, return **`SOME`** **`ret_value_lower_len+1`**, else **`lowerExprForEffect`** surrogate) |
 | **Seeded** | **`StmtLet`** **`PatBind`** **`SOME init`** | **`lower_stmt_let_init_core`**: **`lower_stmt_let_init_total_len`** (**`init_kind`**: **`ExprStruct`** **1+fields**, enum ctor pack surrogate, generic **`rhs_pre_len`** + **`cty_is_int`** suffix **1/2**) |
-| **Next** | **`lowerExprWithInstrs`** / **`lowerExprToValue`** | Expr-to-IR discriminant cluster or value lowering vs existing seeds (**`lowering.sml`**) |
+| **Seeded** | **`lowerExprWithInstrs`** / **`lowerExprToValue`** (tag cluster) | **`lower_expr_wi_tv_cluster_core`**: **`lower_expr_with_instrs_len`** (**`wi_tag`**: block, lit, tuple, path, binop, unop, default, quant passthrough) + **`lower_expr_to_value_len`** (**`tv_tag`**: lit, path, tuple, block, struct, enum, field, binop, unop, cast, **`wi+Assign`** default) |
+| **Next** | **`lowerExprForEffect`** / **`lowerIntoVarInstrs`** | Effect-position and **`lowerIntoVar`** dispatch vs **`lowerExprWithInstrs`** (**`lowering.sml`**) |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -147,7 +148,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`lowerFn`** prefix (**`lower_fn_prefix_core`**) + **`lowerBody`** / **`lowerBlock`** (**`lower_body_dispatch_core`**) + **`lowerStmt`** dispatch (**`lower_stmt_dispatch_core`**) + **`StmtLet`** init (**`lower_stmt_let_init_core`**) + return/body-tail (**`lower_return_body_core`**); **next** **`lowerExprWithInstrs`** / **`lowerExprToValue`** under **## large task decomposition** → **next lowering import-path harnesses**.
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`lowerFn`** prefix (**`lower_fn_prefix_core`**) + **`lowerBody`** / **`lowerBlock`** (**`lower_body_dispatch_core`**) + **`lowerStmt`** dispatch (**`lower_stmt_dispatch_core`**) + **`StmtLet`** init (**`lower_stmt_let_init_core`**) + **`lowerExprWithInstrs`** / **`lowerExprToValue`** (**`lower_expr_wi_tv_cluster_core`**) + return/body-tail (**`lower_return_body_core`**); **next** **`lowerExprForEffect`** / **`lowerIntoVarInstrs`** under **## large task decomposition** → **next lowering import-path harnesses**.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -162,6 +163,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 ## refinement log
 
 - 2026-04-09 (**America/Denver −06:00**): **Scope guardrail:** growing **`lib/`** / pilot counts advances **transliteration throughput** only. **M3 “mostly complete”** in the **stakeholder bar** sense (**full sv0 pipeline**, **native** **`SV0_SELF_HOST_COMPILER`** semantic loop, **`bootstrap-sml-final`** + **`sml-legacy/`**) is **not** implied by seed list growth — see **## completion criteria** and **`./scripts/sv0 milestone-orient show M3`** anti-patterns.
+- 2026-04-09 (**America/Denver −06:00**): **`lib/lower_expr_wi_tv_cluster_core.sv0`** — **`lowerExprWithInstrs`** / **`lowerExprToValue`** surrogate length cluster (mutual default bridge); pilots **55**, stage0 **65**, bootstrap **138**; **next** → **`lowerExprForEffect`** / **`lowerIntoVarInstrs`**.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_stmt_let_init_core.sv0`** — **`StmtLet`** **`PatBind`** **`SOME init`** dispatch (**`ExprStruct`** / enum ctor / generic **`int`** vs **store**); pilots **54**, stage0 **64**, bootstrap **137**; **next** → **`lowerExprWithInstrs`** / **`lowerExprToValue`** head.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_fn_prefix_core.sv0`** — **`lowerFn`** **`decl` @ `oldInstrs` @ `reqInstrs`** prefix length harness; pilots **51**, stage0 **61**, bootstrap **134**; decomposition **next** → **`lowerExprWithInstrs`** / **`lowerBody`**.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_return_body_core.sv0`** — **`lowerReturn`** + **`lower_body_block_tail_len`** harness; pilots **50**, stage0 goldens **60**, bootstrap list **133** lines.
