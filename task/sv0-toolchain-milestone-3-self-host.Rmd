@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T17:57:28-06:00"
+updated: "2026-04-08T18:07:59-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -129,6 +129,8 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering import-path harnesses now cover **`resolveFnCallee`** and **`resolveEnumCtorPath`** (**`lower_resolve_fn_callee_core`**, **`lower_resolve_enum_ctor_path_core`**) with the **next** candidates listed under **## large task decomposition** → **next lowering import-path harnesses**.
+
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
 ### phase 3: parity and regression
@@ -232,6 +234,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_fn_callee_core.sv0`** — **`resolveFnCallee`** (**`importAliases`** hit + **`splitQName`** simple target vs **`raise`**); **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/lower_resolve_fn_callee_core.c`**, **`lib/self-host-sv0-loop.list`** (**32** pilots); **`sv0c/doc/self-host-sv0-loop.md`**, **`sv0c/lib/LAYOUT.md`**, **`sv0c/doc/transliteration-plan.md`**. Tag **`self-host-sv0-loop-v12`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v12`**). **Full M3** still **not** met.
 - 2026-04-08 (**America/Denver −06:00**): **YAML** — frontmatter **`updated:`** line restored (space required after colon before the quoted timestamp) so **`verify_task_rmd_frontmatter`** / graph ingest stay valid.
 - 2026-04-08 (**America/Denver −06:00**): **`lib/lower_resolve_enum_ctor_path_core.sv0`** — **`resolveEnumCtorPath`** (alias miss or non-pair **`splitQName`** → **`(en,vn)`**; alias + pair → **`(e2,v2)`**); lists + **`lib/golden/stage0/lower_resolve_enum_ctor_path_core.c`**; self-host pilots **33**. **## large task decomposition** adds **next lowering import-path harnesses (rolling)** table. Tag **`self-host-sv0-loop-v13`** on **sv0c** (toolchain **`toolchain-self-host-sv0-loop-v13`**). **Full M3** still **not** met.
+- 2026-04-08 (**America/Denver −06:00**): **Phase 2 `/ai`** — rolling **Agent** paragraph under transliteration completion points at checklist + **`transliteration-plan.md`** and the lowering import-path harness queue.
 
 ## related
 
