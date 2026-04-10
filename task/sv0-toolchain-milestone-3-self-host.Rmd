@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T21:50:00-06:00"
+updated:"2026-04-10T00:00:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -138,7 +138,31 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 | **Seeded** | **`lowerMatchArms`** (one step) | **`lower_match_one_arm_core`** — **`cpre` + `IfElse`** + optional guard + **`rest`** |
 | **Seeded** | **`matchArmSetup`** | **`lower_match_arm_setup_core`** — **`pat_kind`** / **`scr_is_int`** / enum tuple bind count; error band **254/255** |
 | **Seeded** | **`enumConstructInstrs`** | **`lower_enum_construct_instrs_core`** — **`args_iv_total + 1 + arg_count`** (IV prelude + **`.tag`** + **`enumStorePayload`**) |
-| **Next** | **`ExprMatch`** in **`lowerExprToValue`** / multi-arm glue | Compose **`lowerMatchArms`** with real **`Ast`** match trees beyond per-arm length surrogates |
+| **Seeded** | **`ExprMatch`** in **`lowerExprToValue`** | **`lower_expr_match_core`** — **`bindScrutVar`** + **`DeclVar out`** + **`lowerMatchArms`** composition |
+| **Seeded** | **`ExprCall`** dispatch in **`lowerExprToValue`** | **`lower_expr_call_core`** — println / old / no_alias / generic fn / enum ctor call / unit enum path |
+| **Seeded** | **`ExprTry`** (**`?`** operator) | **`lower_expr_try_core`** — **`DeclNamed` + `Store` + `declOut` + `IfElse`** (wi_pre + 4); error band **254** for int/void scrutinee |
+| **Seeded** | **`fnRetCty`** | **`lower_fn_ret_cty_core`** — return-type C-string class (**`NONE`** → "int", **`SOME at`** → **`astTyToCString`** delegate) |
+| **Seeded** | **`paramName`** | **`lower_param_name_core`** — **`PatBind`** → success tag **1**; other → error **255** |
+| **Seeded** | **`variantSlots`** | **`lower_variant_slots_core`** — **`VariantUnit`** 0, **`VariantTuple`** / **`VariantStruct`** → field count |
+| **Seeded** | **`emitStructTd`** | **`lower_emit_struct_td_core`** — C struct typedef section count (**field_count + 2**) |
+| **Seeded** | **`emitEnumTd`** | **`lower_emit_enum_td_core`** — C enum typedef section count (**2 + max_payload** when > 0) |
+| **Seeded** | **`collectTypedefs`** | **`lower_collect_typedefs_core`** — program scan: **struct_count + enum_count** typedef blocks |
+| **Seeded** | **`buildStructOrder`** | **`lower_build_struct_order_core`** — **`ItemStruct`** → field-order list length |
+| **Seeded** | **`buildEnumVariants`** | **`lower_build_enum_variants_core`** — **`ItemEnum`** → tag-list + **`tagl`** sequential tags + **`oneEnum`** max payload |
+| **Seeded** | **`lower`** (entry point) | **`lower_entry_core`** — init tables + **`mapPartial lowerFn`** block count + typedef count |
+| **Seeded** | C backend: **`emitValue`** dispatch | **`codegen_emit_value_core`** — IR value kind → C output segment count (VInt/VBool/VVar/VUnit/VString/VMember/VAddrOf) + **`emitCallArgs`** + **`cEscapeString`** length |
+| **Seeded** | C backend: **`emitExpr`** / **`emitParamList`** / **`emitFnProto`** | **`codegen_emit_expr_core`** — expr kind → segment count + param list + fn proto helpers |
+| **Seeded** | C backend: **`emitInstr`** dispatch | **`codegen_emit_instr_core`** — all 17 Ir.instr kinds → line count + **`emitBlockBody`** / **`emitBlockDefn`** + **`Return`** void/value class |
+| **Seeded** | C backend: **`splitMain`** / **`emit`** / **`intLit`** | **`codegen_split_main_emit_core`** — `splitMain` partition + `emit` section count + `intLit` digit length + forward decl / static defn / main section counts |
+| **Seeded** | VM backend: **`binopToInsn`** | **`vm_codegen_binop_core`** — op tag → insn tag + unop dispatch |
+| **Seeded** | VM backend: **`widthOfCty`** / **`indexOfField`** / **`enumFieldNames`** / **`valueWidth`** | **`vm_codegen_width_core`** — slot width computation helpers |
+| **Seeded** | VM backend: **`emitValue`** / **`emitExpr`** | **`vm_codegen_emit_value_core`** — bytecode insn count per value/expr kind |
+| **Seeded** | VM backend: **`emitInstr`** / **`localCountAndEnv`** | **`vm_codegen_emit_instr_core`** — bytecode insn count per instr kind + local slot delta |
+| **Seeded** | VM backend: **`emitFn`** / **`emit`** / **`poolAdd`** | **`vm_codegen_emit_fn_core`** — func entry assembly + top-level emit + string pool |
+| **Seeded** | Bytecode: **`encodeInsn`** sizes | **`bytecode_encode_core`** — insn byte lengths by class + file/string/func entry sizes |
+| **Seeded** | Driver: **`compileProgram`** pipeline / CLI | **`driver_pipeline_core`** — pass count + `baseNameSv0` + CLI dispatch + `projectVmEntryStem` |
+| **Seeded** | Include expansion: **`pathOk`** / **`parseIncludeLine`** | **`include_expand_core`** — path validation + include parsing + cycle detection |
+| **Next** | End-to-end pipeline composition | Compose lowering + C backend + VM backend into pipeline modules that can be tested against SML output; then full driver wiring |
 
 ## phases (add `/include:` child tasks as modules migrate)
 
@@ -154,7 +178,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; lowering harness queue through **`lowerFn`** prefix (**`lower_fn_prefix_core`**) + **`lowerBody`** / **`lowerBlock`** (**`lower_body_dispatch_core`**) + **`lowerStmt`** dispatch (**`lower_stmt_dispatch_core`**) + **`StmtLet`** init (**`lower_stmt_let_init_core`**) + **`lowerExprWithInstrs`** / **`lowerExprToValue`** (**`lower_expr_wi_tv_cluster_core`**) + **`lowerExprForEffect`** / **`lowerIntoVarInstrs`** (**`lower_expr_effect_iv_cluster_core`**) + **`lowerQuant`** / **`bindScrutVar`** / **`lowerMatchArms`** / **`matchArmSetup`** / **`enumConstructInstrs`** seeds + return/body-tail (**`lower_return_body_core`**); **next** under **## large task decomposition** → **`ExprMatch`** composition in **`lowerExprToValue`** (see table **Next** row).
+**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; **all ~20 SML modules now have at least one surrogate seed** (84 `lib/*_core.sv0` files total). Coverage: lowering (54 seeds), C backend (4 seeds), VM backend (5 seeds), bytecode (1), types (1), unify (1), checker (2), driver (1), include expansion (1), pipeline composition (1), plus parser/lexer/env/resolver/span/diagnostic seeds. **Self-host pilots 172/172** — all bootstrap-listed programs pass `emit-c` + `cc` + run. **Next** → deepen coverage of `checker.sml` (1024 lines, only 2 seeds) and `resolver.sml` (404 lines, 3 seeds); then compose real pipeline modules that produce actual IR/bytecode/C against SML reference output toward native self-host.
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -168,6 +192,11 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-10 (**America/Denver −06:00**): **VM backend + bytecode + driver + include expansion seeded; C backend `splitMain`/`emit` complete** — 9 new seeds: **`codegen_split_main_emit_core`** (`splitMain` + `emit` + `intLit`), **`vm_codegen_binop_core`** (`binopToInsn`), **`vm_codegen_width_core`** (`widthOfCty`/`indexOfField`/`enumFieldNames`/`valueWidth`), **`vm_codegen_emit_value_core`** (`emitValue`/`emitExpr` insn counts), **`vm_codegen_emit_instr_core`** (`emitInstr`/`localCountAndEnv`), **`vm_codegen_emit_fn_core`** (`emitFn`/`emit`/`poolAdd`), **`bytecode_encode_core`** (insn byte lengths), **`driver_pipeline_core`** (pipeline + CLI), **`include_expand_core`** (`pathOk`/`parseIncludeLine`/cycle). Pilots **159→168**; stage0 **86→95**; bootstrap **159→168**. All major SML modules now have at least one surrogate seed. **Next** → end-to-end pipeline composition.
+- 2026-04-10 (**America/Denver −06:00**): **Self-host pilots 159/159** — fixed remaining 10 programs. (1) **`lowering.sml` for-loop `continue` fix:** moved increment before body inside `While` IR block so `continue` cannot skip the counter (fixed infinite loop in `test/integration/continue_loops/continue_loops.sv0`). (2) **9 struct-return seed restructures:** `env_core`, `env_scope_core`, `lookup_type_core`, `lookup_type_alias_core`, `lookup_value_core`, `resolver_arity_core`, `resolver_call_core`, `resolver_value_core`, `type_alias_core` — replaced early `return Struct{…}` in all branches with `let mut out: Struct = default; if … { out = …; }; return out;` to eliminate dead-code `return int` from struct-returning functions. Pilots **149→159**, vm-parity goldens refreshed. All bootstrap-listed programs are now self-host pilots.
+- 2026-04-10 (**America/Denver −06:00**): **Self-host pilots 149/159** — added 73 bootstrap-listed programs to `self-host-sv0-loop.list` after per-file `emit-c` + `cc` + run verification: 1 lib seed (`diagnostic_batch_core`), 4 golden-pass (`exists_requires`, `forall_requires`, `old_ensures`, `println_ok`), 7 integration tests (`call_arg_order`, `contracts`, `field_assign`, `generics`, `hello`, `patterns`, `structs`), 61 vm-parity programs. Pilots **76→149** / 159 bootstrap. YAML `updated:` spacing fixed.
+- 2026-04-10 (**America/Denver −06:00**): **C backend transliteration started** — 3 new `codegen.sml` seeds: **`codegen_emit_value_core`** (`emitValue` dispatch + `emitCallArgs` + `cEscapeString`), **`codegen_emit_expr_core`** (`emitExpr` + `emitParamList` + `emitFnProto`), **`codegen_emit_instr_core`** (`emitInstr` all 17 kinds + `emitBlockBody`/`emitBlockDefn`/`Return` class). Pilots **73→76**; stage0 **83→86**; bootstrap **156→159**. First sv0 seeds for `sml/backend/c/codegen.sml`. YAML `updated:` spacing fixed in M3 task + checklist.
+- 2026-04-10 (**America/Denver −06:00**): **Complete `lowering.sml` transliteration** — 12 new seeds covering all remaining named helpers: **`lower_expr_match_core`** (`ExprMatch` composition), **`lower_expr_call_core`** (`ExprCall` dispatch), **`lower_expr_try_core`** (`ExprTry` / `?`), **`lower_fn_ret_cty_core`** (`fnRetCty`), **`lower_param_name_core`** (`paramName`), **`lower_variant_slots_core`** (`variantSlots`), **`lower_emit_struct_td_core`** (`emitStructTd`), **`lower_emit_enum_td_core`** (`emitEnumTd`), **`lower_collect_typedefs_core`** (`collectTypedefs`), **`lower_build_struct_order_core`** (`buildStructOrder`), **`lower_build_enum_variants_core`** (`buildEnumVariants`), **`lower_entry_core`** (`lower` entry). Pilots **61→73**; stage0 **71→83**; bootstrap **144→156**. Decomposition table: all rows **Seeded**; **next** → full end-to-end pipeline module composition.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_match_arm_setup_core.sv0`**, **`lib/lower_enum_construct_instrs_core.sv0`** — **`matchArmSetup`**, **`enumConstructInstrs`** IR-length surrogates; pilots **59→61**, stage0 **69→71**, bootstrap **142→144**; decomposition table: **`lowerQuant`**/**`bindScrutVar`**/**`lowerMatchArms`** (one step) marked **Seeded**, **next** → **`ExprMatch`** / multi-arm glue in **`lowerExprToValue`**. **`sv0c/doc/tooling-formatter-linter.md`** — design sketch for **`sv0-formatter`** / **`sv0-linter`** vs today’s **`fmt_sv0.py`** / compiler diagnostics.
 - 2026-04-09 (**America/Denver −06:00**): **Scope guardrail:** growing **`lib/`** / pilot counts advances **transliteration throughput** only. **M3 “mostly complete”** in the **stakeholder bar** sense (**full sv0 pipeline**, **native** **`SV0_SELF_HOST_COMPILER`** semantic loop, **`bootstrap-sml-final`** + **`sml-legacy/`**) is **not** implied by seed list growth — see **## completion criteria** and **`./scripts/sv0 milestone-orient show M3`** anti-patterns.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_quant_core.sv0`**, **`lib/lower_bind_scrut_core.sv0`**, **`lib/lower_match_one_arm_core.sv0`** — **`lowerQuant`**, **`bindScrutVar`**, **`lowerMatchArms`** (one-arm + **`rest`**) IR-length surrogates; pilots **59**, stage0 **69**, bootstrap **142**; **next** → **`matchArmSetup`** pattern-kind / enum-tuple bind rows (or **`enumConstructInstrs`** payload packing).
