@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T18:35:00-06:00"
+updated: "2026-04-09T20:20:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -164,6 +164,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 ## refinement log
 
 - 2026-04-09 (**America/Denver −06:00**): **Scope guardrail:** growing **`lib/`** / pilot counts advances **transliteration throughput** only. **M3 “mostly complete”** in the **stakeholder bar** sense (**full sv0 pipeline**, **native** **`SV0_SELF_HOST_COMPILER`** semantic loop, **`bootstrap-sml-final`** + **`sml-legacy/`**) is **not** implied by seed list growth — see **## completion criteria** and **`./scripts/sv0 milestone-orient show M3`** anti-patterns.
+- 2026-04-09 (**America/Denver −06:00**): **`lib/lower_quant_core.sv0`**, **`lib/lower_bind_scrut_core.sv0`**, **`lib/lower_match_one_arm_core.sv0`** — **`lowerQuant`**, **`bindScrutVar`**, **`lowerMatchArms`** (one-arm + **`rest`**) IR-length surrogates; pilots **59**, stage0 **69**, bootstrap **142**; **next** → **`matchArmSetup`** pattern-kind / enum-tuple bind rows (or **`enumConstructInstrs`** payload packing).
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_expr_effect_iv_cluster_core.sv0`** — **`lowerExprForEffect`** / **`lowerIntoVarInstrs`** tag lengths; pilots **56**, stage0 **66**, bootstrap **139**; **next** → **`lowerQuant`**.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_expr_wi_tv_cluster_core.sv0`** — **`lowerExprWithInstrs`** / **`lowerExprToValue`** surrogate length cluster (mutual default bridge); pilots **55**, stage0 **65**, bootstrap **138**; **next** → **`lowerExprForEffect`** / **`lowerIntoVarInstrs`**.
 - 2026-04-09 (**America/Denver −06:00**): **`lib/lower_stmt_let_init_core.sv0`** — **`StmtLet`** **`PatBind`** **`SOME init`** dispatch (**`ExprStruct`** / enum ctor / generic **`int`** vs **store**); pilots **54**, stage0 **64**, bootstrap **137**; **next** → **`lowerExprWithInstrs`** / **`lowerExprToValue`** head.
