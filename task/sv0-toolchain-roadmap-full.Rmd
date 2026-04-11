@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T20:20:00-06:00"
+updated: "2026-04-10T18:00:00-06:00"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active
@@ -88,6 +88,7 @@ sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
 
 **recent roadmap notes**
 
+- 2026-04-10 (**America/Denver −06:00**): **PROGRESS ledger reconciliation** — sv0doc **0/4→4/4**, sv0vm **0/3→3/3**, sv0-mcp **0/3→3/3** (aligned with owning milestone task `state: complete`); M0 `state: done` → `state: complete` for vocabulary consistency. **M3 decomposition** gains **§ language surface gap** and **§ dependency-ordered completion phases** — documents the blocking prerequisite (language extensions: String API, Vec, Box, file I/O, full enum match, generics, impl) before surrogate seeds can become real compiler modules. SML source inventory: **20 files / 6797 lines / 99 seeds**. Process-gate rollup **100%**; **M3** still **not met**.
 - 2026-04-07: **`task/sv0-mcp-milestone-0.Rmd`** → **`state: complete`** + **`roadmap_parent: sv0-toolchain-roadmap-full`**; **`sv0c/examples/learn/`** adds **`18`**/**`19`**. **Design milestone 3** (self-hosting) is still **not met** — see **`task/sv0-toolchain-milestone-3-self-host.Rmd`**.
 - 2026-04-07: **sv0c** — mut struct field **`=`** / **`+=`** and **`ExprAssignOp`** in checker + lowering; vm-parity **101**; learn **`20_struct_mut_field_assign.sv0`**. **M3** bar unchanged (full transliteration + native self-host + SML retirement).
 - 2026-04-08: Learn **`21_mut_i32_compound.sv0`**; **M3** self-host doc **done-ish** vm-parity count fixed to **101**; **sv0-mcp** README sync guidance for **`examples/learn/`**.

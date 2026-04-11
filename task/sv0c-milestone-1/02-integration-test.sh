@@ -83,6 +83,12 @@ run_case "pattern matching" one "$IT/patterns/patterns.sv0" 0
 run_case "structs (free fn)" one "$IT/structs/structs.sv0" 0
 run_case "field assign and +=" one "$IT/field_assign/field_assign.sv0" 0
 run_case "generics placeholder (monomorphic id)" one "$IT/generics/generics.sv0" 0
+run_case "enum tuple match" one "$IT/enum_tuple_match/enum_tuple_match.sv0" 0
+run_case "string API" one "$IT/string_api/string_api.sv0" 0
+run_case "enum struct match" one "$IT/enum_struct_match/enum_struct_match.sv0" 0
+run_case "vec API" one "$IT/vec_api/vec_api.sv0" 0
+run_case "option/result" one "$IT/option_result/option_result.sv0" 0
+run_case "box expr" one "$IT/box_expr/box_expr.sv0" 0
 run_case "modules (multi-file project)" project "$IT/modules" 42
 
 echo ""

@@ -2,7 +2,7 @@
 created: "2026-03-22T00:00:00Z"
 id: task-sv0doc-milestone-0
 key: sv0doc-milestone-0
-state: done
+state: complete
 tags:
     - sv0
     - sv0doc

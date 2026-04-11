@@ -94,6 +94,12 @@ run_exit_case "structs" "test/integration/structs/structs.sv0" 0
 run_exit_case "field_assign" "test/integration/field_assign/field_assign.sv0" 0
 run_exit_case "generics" "test/integration/generics/generics.sv0" 0
 run_exit_case "call_arg_order" "test/integration/call_arg_order/call_arg_order.sv0" 0
+run_exit_case "enum_tuple_match" "test/integration/enum_tuple_match/enum_tuple_match.sv0" 0
+run_exit_case "string_api" "test/integration/string_api/string_api.sv0" 0
+run_exit_case "enum_struct_match" "test/integration/enum_struct_match/enum_struct_match.sv0" 0
+run_exit_case "vec_api" "test/integration/vec_api/vec_api.sv0" 0
+run_exit_case "option_result" "test/integration/option_result/option_result.sv0" 0
+run_exit_case "box_expr" "test/integration/box_expr/box_expr.sv0" 0
 
 echo -n "  modules (project)... "
 if compile_vm_project "test/integration/modules" && [[ -f "$SV0C_ROOT/build/vm/main.sv0b" ]]; then

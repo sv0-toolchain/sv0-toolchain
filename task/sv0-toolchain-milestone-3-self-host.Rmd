@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-10T00:00:00-06:00"
+updated: "2026-04-10T22:00:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -104,6 +104,152 @@ M3 is **several parallel tracks**, not one queue. When a goal is too large to fi
 
 **Handoff contract:** each decomposition update should leave **actionable substeps** (whoever picks up next should not need to re-derive the split from **`sv0c/sml/`** alone). Cursor rule **`36-large-task-decomposition.mdc`** restates this for agents.
 
+### language surface gap (blocking prerequisite for real modules)
+
+The sv0 language as implemented in the M1 bootstrap is **not** sufficient to write a compiler in sv0. Current surrogate seeds use integer return codes precisely because of this gap. A real compiler-in-sv0 requires features that `sv0c/doc/compiler-passes.md` ("Deferred — not Phase 6") and `sv0doc/milestone-1-complete.md` ("Intentional limitations") explicitly defer:
+
+- **String runtime API** — `println` is literal-only; no `len()`, `char_at()`, `substr()`, `concat()`, `eq()`
+- **`Vec<T>`** / dynamic arrays — needed for AST node lists, IR instruction lists, token streams
+- **`Box<T>`** / heap indirection — needed for recursive enum variants (e.g. `Expr::Call(Box<Expr>, Vec<Expr>)`)
+- **File I/O** — no user-program `read_file` / `write_file`; SML driver uses `TextIO`
+- **Full enum `match`** — struct-payload variants and `PatOr` not supported
+- **Generic instantiation** — monomorphic placeholder only; needed for `Vec<T>`, `Option<T>`, `Result<T,E>`
+- **`impl` blocks / method dispatch** — deferred; convenience for compiler code
+
+Each feature is a **vertical slice** through spec (`sv0doc/`) + checker + lowering + C backend + VM backend + tests, following `20-spec-first-language-semantics.mdc`. **These extensions are the true long pole for M3**, not transliteration of logic. `sv0doc/` has aspirational descriptions (Vec, Box, String in ownership/typing docs) but normative spec may need tightening before implementation.
+
+### dependency-ordered M3 completion phases
+
+```
+Phase 0: Language Surface Extensions (BLOCKING)
+    |
+    v
+Phase 1: Real sv0 Type Definitions (ast.sv0, ir.sv0, types.sv0)
+    |
+    v
+Phase 2: Real Module Transliteration (replaces surrogates)
+    |
+    v
+Phase 3: Pipeline Composition + Self-Compile
+    |
+    v
+Phase 4: Parity Proof (VM sv0-emitted tier + diagnostics)
+    |
+    v
+Phase 5: SML Retirement (tag + sml-legacy/ + sv0-only default)
+```
+
+**Phase 0 (language extensions)** and **Track A (surrogate deepening)** proceed in parallel: surrogates validate SML logic structure even without language extensions. **Phase 1+** is gated on Phase 0 producing at least `Vec<T>`, `Box<T>`, full enum match, and string APIs.
+
+**SML source inventory** (20 files, 6797 lines total):
+
+| SML file | Lines | Surrogate seeds | Coverage gap |
+|----------|------:|:---------------:|:-------------|
+| `parser/parser.sml` | 1406 | 12 (`parser/`) | Largest file; needs full parse tracks |
+| `ir/lowering.sml` | 1117 | 54 (`lib/`) | Most thorough; needs composition |
+| `type_checker/checker.sml` | 1024 | 2 (`lib/`) | **Highest priority** — only 2 seeds for 1024 lines |
+| `backend/vm/vm_codegen.sml` | 516 | 5 (`lib/`) | VM bytecode emission |
+| `backend/vm/bytecode.sml` | 503 | 1 (`lib/`) | Encode/decode |
+| `lexer/lexer.sml` | 410 | 3 (`lexer/`) | Full tokenizer |
+| `name_resolution/resolver.sml` | 404 | 3 (`lib/`) | Name resolution |
+| `link/link.sml` | 328 | 1 (`lib/`) | Linker |
+| `name_resolution/env.sml` | 203 | 5 (`lib/`) | Environment/scope |
+| `error/diagnostic.sml` | 149 | 2 (`lib/`) | Error reporting |
+| `backend/c/codegen.sml` | 148 | 4 (`lib/`) | C code emission |
+| `main.sml` | 132 | 1 (`lib/`) | Driver/pipeline |
+| `ast/ast.sml` | 111 | 0 | **No seeds** — data type definitions |
+| `include_expand.sml` | 102 | 1 (`lib/`) | File preprocessing |
+| `lexer/token.sml` | 91 | 0 | Token type definitions |
+| `ir/ir.sml` | 49 | 0 | **No seeds** — IR data types |
+| `type_checker/unify.sml` | 38 | 1 (`lib/`) | Type unification |
+| `error/span.sml` | 32 | 1 (`lib/`) | Source spans |
+| `type_checker/types.sml` | 29 | 1 (`lib/`) | Type representation |
+| `contract_analyzer/analyzer.sml` | 5 | 0 | Pass-through (no-op) |
+
+**Total seeds:** 99 (84 `lib/` + 3 `lexer/` + 12 `parser/`). **Next priority:** deepen `checker.sml` (1024 lines, 2 seeds) and `resolver.sml` (404 lines, 3 seeds); then compose real pipeline modules.
+
+### Track 0 execution tiers (language surface extensions)
+
+Each item is a **vertical slice** through spec (`sv0doc/`) + checker + lowering + C backend + VM backend + tests. Items within a tier are ordered by dependency; items across tiers are ordered by unlock value. **Done criterion** per item prevents scope creep.
+
+**Tier 1 — minimum for any real compiler module:**
+
+| ID | Feature | Complexity | Dependency | Done criterion |
+|----|---------|:----------:|:----------:|----------------|
+| T0-1 | **String runtime API** — extend `println` to accept string variables; then `len()`, `eq()`, `concat()`, `char_at()`, `substr()` as intrinsics | medium | none | `.sv0` program creates string variable, calls `println(s)`, `string_len(s)`, `string_eq(a,b)` — correct on C + VM |
+| T0-2 | **Generic instantiation** (minimum viable) — single `<T>` on functions and structs; monomorphization in lowering; NO where clauses / GATs / const generics | **HIGH** | none (keystone) | `fn id<T>(x: T) -> T` and `struct Wrap<T> { val: T }` compile + run on both backends |
+| T0-3 | **Full enum `match`** — tuple-payload, then struct-payload, then nested patterns, then `_` on payloads *(elevated from Tier 2; gates every AST-dispatching module)* | medium | independent of T0-2 | enum with tuple + struct payloads matched exhaustively — correct on C + VM |
+| T0-4 | **`Vec<T>`** — `new`, `push`, `len`, `get`/index, iterate; free functions acceptable if `impl` deferred | high | T0-2 (generics) | `Vec<i32>` push/get/iterate with `for` — correct on both backends |
+| T0-5 | **`Option<T>` / `Result<T,E>`** — generic std enums + generalized `?` operator | medium | T0-2 + T0-3 | `Option<i32>` and `Result<i32,i32>` with `match` and `?` — correct on both backends |
+| T0-6 | **`Box<T>`** — heap indirection for recursive enum variants | medium-high | T0-2 | `enum Expr { Lit(i32), Add(Box<Expr>, Box<Expr>) }` traversed with match — correct on both backends |
+
+**Tier 2 — needed for full transliteration (evaluate after Tier 1):**
+
+| ID | Feature | Notes |
+|----|---------|-------|
+| T0-7 | **Higher-order functions / closures** | likely **deferrable** — explicit loops over Vec replace SML `List.map`/`foldl`/`filter` (see idiom guide below) |
+| T0-8 | **File I/O** — `read_file`, `write_file`, `read_dir` as runtime builtins | needed by `main.sml`, `link.sml`, `include_expand.sml` |
+| T0-9 | **`impl` blocks / method syntax** | deferrable — free functions (`vec_len(v)`, `string_eq(a,b)`) suffice |
+
+**Tier 3 — polish (can follow Track C):** `println` format args, byte/word ops (bytecode), pattern `|` alternatives, multi-element tuples, mutable refs beyond struct fields.
+
+**Execution lanes (parallel):**
+
+- **Lane A (critical path):** T0-2 (generics) → T0-4 (Vec) + T0-6 (Box) → T0-5 (Option/Result) → Track B (real types)
+- **Lane B (independent):** T0-1 (string API) → T0-8 (file I/O)
+- **Lane C (independent):** T0-3 (full enum match) — can start immediately; feeds T0-5
+
+**Recommended first session:** T0-1 first slice (println string variables — smallest end-to-end proof) **and** T0-3 first slice (tuple-payload matching — independent, high value) in parallel. T0-2 spec audit concurrent.
+
+### exception and error translation strategy
+
+The SML compiler uses **250 exception sites** (246 `raise Fail` + 4 `raise Diagnostic.Diag`) and **14 `handle` sites** across 10 files. sv0 has **no try/catch** — only `?` for `Result`/`Option`. This mismatch must be resolved before real module transliteration (Track C).
+
+**Exception usage by pattern:**
+
+| Pattern | Count | Top files | sv0 translation |
+|---------|------:|-----------|-----------------|
+| Unrecoverable error (`raise Fail "E0xxx: ..."`) | ~230 | checker (96), parser (80), lowering (27), vm_codegen (15), env (9) | `Result<T, CompileError>` + `?` propagation; top-level match in driver |
+| Speculative backtracking (`handle Fail _ => NONE`) | 2 | parser | `Option<T>` return; caller matches `None` to try alternatives |
+| Cleanup / restore (`handle ex => (restore; raise ex)`) | 6 | checker (3), lowering (1), resolver (2) | explicit save/restore (already modeled in `lower_with_scrut_locals_core`) |
+| Exception bridging (`handle Fail msg => Diagnostic.Diag ...`) | 4 | resolver | match + re-wrap into `CompileError` |
+| Top-level handler (`handle Diagnostic.Diag ...`) | 2 | main | match on `Result` at pipeline entry |
+
+**`CompileError` type** (Track B prerequisite): unified error enum replacing both `Fail of string` and `Diagnostic.Diag`. Minimal shape: `enum CompileError { Error(string, Span) }`.
+
+**Memory management for M3:** recommended to **leak all allocations** (compiler is short-lived; OS reclaims). Avoids GC/RC complexity during bootstrap. Same approach as Rust's `rustboot` and Go's initial bootstrap.
+
+### SML-to-sv0 idiom translation (closures deferred)
+
+These patterns replace common SML idioms without closures (T0-7 deferred). All assume `Vec` (T0-4) is available.
+
+| SML pattern | sv0 equivalent |
+|-------------|---------------|
+| `List.map (fn x => f x) xs` | `let mut r: Vec<B> = vec_new(); for i in 0..vec_len(xs) { vec_push(r, f(vec_get(xs,i))); }` |
+| `List.foldl (fn (x,a) => ...) init xs` | `let mut acc = init; for i in 0..vec_len(xs) { acc = step(vec_get(xs,i), acc); }` |
+| `List.find (fn x => p x) xs` | `for i in 0..vec_len(xs) { if p(vec_get(xs,i)) { return Some(vec_get(xs,i)); } } return None;` |
+| `List.exists (fn x => p x) xs` | `for i in 0..vec_len(xs) { if p(vec_get(xs,i)) { return true; } } return false;` |
+| `raise Fail "msg"` | `return Err(compile_error("msg"));` |
+| `f () handle Fail _ => NONE` | `match try_f() { Ok(v) => Some(v), Err(_) => None }` |
+| `val r = ref 0; r := 1; !r` | `let mut r: i32 = 0; r = 1; r` |
+| `val s = ref []; s := x :: !s` | `let mut s: Vec<T> = vec_new(); vec_push(s, x);` |
+| `#field record` | `record.field` |
+| `withX (fn () => body)` | `let old = state.x; state.x = new; let r = body(state); state.x = old; r` |
+
+### Track A deepening priorities (surrogate seeds, parallel with Track 0)
+
+**ROI:** surrogates will be replaced by real modules in Track C, but they (1) uncover SML compiler bugs (e.g. lowering `continue` fix), (2) validate understanding before harder real transliteration, (3) stress-test the sv0 compiler on progressively complex programs.
+
+| Priority | Module | Lines | Seeds | Ratio | Target seeds | Key functions to model |
+|:--------:|--------|------:|------:|------:|:------------:|------------------------|
+| **P1** | `checker.sml` | 1024 | 2 | 512:1 | 6–8 | `synthExpr` dispatch, `checkFn`, `synthExprCall`, `checkBlock`/`checkStmt`, `binopClass`, `variantShape`, `withContractExpr`/`withLoop` |
+| **P2** | `resolver.sml` | 404 | 3 | 135:1 | 4–5 | `resolveExpr`, `resolveTy`, `resolvePatShape`, `resolveItem`, `applyUseClause` |
+| **P3** | `link.sml` | 328 | 1 | 328:1 | 3–4 | `mapExpr`, `mapStmt`/`mapItem`, `linkProjectDir`, `use`-clause mangling |
+| **P4** | `parser.sml` | 1406 | 12 | 117:1 | 3–4 | `parsePat` dispatch, `parseBlock` composition, `parseFnItem` |
+| **P5** | `bytecode.sml` | 503 | 1 | 503:1 | 2–3 | decoder dispatch, opcode map |
+| **P5** | `lexer.sml` | 410 | 3 | 137:1 | 2–3 | `scanNumber`, `scanString`, main char dispatch |
+| **P6** | `vm_codegen.sml` | 516 | 5 | 103:1 | 1–2 | loop emission (`emitWhileLoop`/`emitLoopSeq`) |
+
 ### next lowering import-path harnesses (rolling)
 
 Order is suggestive; adjust as **`lowering.sml`** evolves.
@@ -192,6 +338,10 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-10 (**America/Denver −06:00**): **T0-4 Vec\<T\> complete** — handle-based dynamic array as built-in type, full vertical slice through all 6 compiler layers + VM interpreter. **C runtime:** `sv0_runtime.h` gains `sv0_vec_table` global pool + `sv0_vec_new`/`push`/`len`/`get`/`set` (intptr_t elements, handle-based — no struct return, fits existing IR model). **Resolver:** `Vec` added to prelude types; `vec_new`/`push`/`len`/`get`/`set` registered as intrinsics. **Checker:** `astTyToTy` handles `Vec<T>` → `TyNamed("Vec", [T])`; vec functions typed with TyVar wildcards in `modEnvFromProg`. **Lowering:** `astTyToCString(Vec)` → `"int"` (handle); 5 new `ExprCall` patterns for vec operations → `Ir.Call` to C runtime. **VM codegen:** CALL_BUILTIN 7-11 for vec operations. **VM interpreter:** `dynVecs` pool + 5 builtin handlers. Tests: 2 checker + 1 golden pass/compile/run; C integration + VM integration. `Vec<i32>` push/get/set/len/iterate with `for` — correct on both backends. Unit tests **221→224**; C integration **10→11**; VM integration **13→14**. **T0-1 + T0-3 + T0-2a/b/c + T0-4** = **4 of 6 Tier-1 features complete**. Remaining: T0-5 (Option/Result), T0-6 (Box). **M3 still not met.**
+- 2026-04-10 (**America/Denver −06:00**): **T0-2 Generics (AST + Parser + Checker) complete** — three substeps landed: **(T0-2a)** spec audit → minimum viable subset (single `<T>`, monomorphization, no bounds); **(T0-2b)** AST + parser: `TyName` extended to `path * ty list * Span.span`, `type_params : ident list` added to `ItemFn`/`ItemStruct`/`ItemEnum`, `parseGenericParams` for definition sites, inline `tyArgLoop` for type-argument positions; all downstream passes (`resolver`, `checker`, `lowering`, `link`) updated for new record shapes; **(T0-2c)** checker: `withTypeParams` allocates `TyVar` for each generic param, `currentTypeParams` ref threaded through `astTyToTy`/`resolveFieldTy`/`structOne`/`enumOne`/`checkFn`/`itemFnTy`; resolver registers type params as module types; `Unify.unify` treats `TyVar` as wildcard. 3 new checker tests (`generic fn id<T>`, `generic struct Wrap<T>`, `generic enum Maybe<T>`). `fn id<T>(x: T) -> T { x }` + `struct Wrap<T> { value: T }` + `enum Maybe<T> { Just(T), Nothing }` now parse + resolve + type-check. Unit tests **218→221**; full suite green. **T0-2d** (monomorphization in lowering) **deferred** — M3 will use built-in generic types (`Vec`, `Option`, `Result`, `Box`) with specialized handling. **T0-1 + T0-3 + T0-2a/b/c** = 3 of 6 Tier-1 features complete (String API, full enum match, generics foundation). **M3 still not met.**
+- 2026-04-10 (**America/Denver −06:00**): **M3 execution plan materialized** — four new subsections in **§ large task decomposition**: **§ Track 0 execution tiers** (6 Tier-1 language features — String API, generics, full match, Vec, Option/Result, Box — with done criteria, dependency graph, and execution lanes); **§ exception and error translation strategy** (250 SML exception sites mapped to `Result`/`Option`/`?` patterns, `CompileError` type, memory leak-all decision); **§ SML-to-sv0 idiom translation** (10 common patterns: map/fold/find/exists via explicit `Vec` loops, raise→`Err`, handle→match, refs→`mut`); **§ Track A deepening priorities** (P1–P6 by coverage-gap ratio: `checker.sml` 512:1 → target 6–8 seeds, `resolver.sml` 135:1 → 4–5, `link.sml` 328:1 → 3–4). First execution session targets T0-1 (`println` string variables) and T0-3 (tuple-payload enum match) as parallel vertical-slice proofs. **M3 still not met.**
+- 2026-04-10 (**America/Denver −06:00**): **M3 dependency-aware decomposition** — new **§ language surface gap** and **§ dependency-ordered M3 completion phases** in the large-task decomposition section. Documents the **blocking prerequisite**: sv0 language extensions (String API, `Vec<T>`, `Box<T>`, file I/O, full enum `match`, generic instantiation, `impl` blocks) are needed before surrogate seeds can evolve into real compiler modules. **SML source inventory** table (20 files, 6797 lines, 99 total seeds; coverage gap priority: `checker.sml` 1024 lines / 2 seeds, `resolver.sml` 404 / 3). Dependency chain: language extensions → real types → real modules → pipeline composition → self-compile → parity → SML retirement. Reconciled M0/M1/M2/MCP-0 PROGRESS ledgers (sv0doc 0→4/4, sv0vm 0→3/3, sv0-mcp 0→3/3); normalized M0 `state: done` → `complete`. **M3 still not met** — completion requires language surface work beyond transliteration.
 - 2026-04-10 (**America/Denver −06:00**): **VM backend + bytecode + driver + include expansion seeded; C backend `splitMain`/`emit` complete** — 9 new seeds: **`codegen_split_main_emit_core`** (`splitMain` + `emit` + `intLit`), **`vm_codegen_binop_core`** (`binopToInsn`), **`vm_codegen_width_core`** (`widthOfCty`/`indexOfField`/`enumFieldNames`/`valueWidth`), **`vm_codegen_emit_value_core`** (`emitValue`/`emitExpr` insn counts), **`vm_codegen_emit_instr_core`** (`emitInstr`/`localCountAndEnv`), **`vm_codegen_emit_fn_core`** (`emitFn`/`emit`/`poolAdd`), **`bytecode_encode_core`** (insn byte lengths), **`driver_pipeline_core`** (pipeline + CLI), **`include_expand_core`** (`pathOk`/`parseIncludeLine`/cycle). Pilots **159→168**; stage0 **86→95**; bootstrap **159→168**. All major SML modules now have at least one surrogate seed. **Next** → end-to-end pipeline composition.
 - 2026-04-10 (**America/Denver −06:00**): **Self-host pilots 159/159** — fixed remaining 10 programs. (1) **`lowering.sml` for-loop `continue` fix:** moved increment before body inside `While` IR block so `continue` cannot skip the counter (fixed infinite loop in `test/integration/continue_loops/continue_loops.sv0`). (2) **9 struct-return seed restructures:** `env_core`, `env_scope_core`, `lookup_type_core`, `lookup_type_alias_core`, `lookup_value_core`, `resolver_arity_core`, `resolver_call_core`, `resolver_value_core`, `type_alias_core` — replaced early `return Struct{…}` in all branches with `let mut out: Struct = default; if … { out = …; }; return out;` to eliminate dead-code `return int` from struct-returning functions. Pilots **149→159**, vm-parity goldens refreshed. All bootstrap-listed programs are now self-host pilots.
 - 2026-04-10 (**America/Denver −06:00**): **Self-host pilots 149/159** — added 73 bootstrap-listed programs to `self-host-sv0-loop.list` after per-file `emit-c` + `cc` + run verification: 1 lib seed (`diagnostic_batch_core`), 4 golden-pass (`exists_requires`, `forall_requires`, `old_ensures`, `println_ok`), 7 integration tests (`call_arg_order`, `contracts`, `field_assign`, `generics`, `hello`, `patterns`, `structs`), 61 vm-parity programs. Pilots **76→149** / 159 bootstrap. YAML `updated:` spacing fixed.
