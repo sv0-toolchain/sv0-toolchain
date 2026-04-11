@@ -89,6 +89,7 @@ run_case "enum struct match" one "$IT/enum_struct_match/enum_struct_match.sv0" 0
 run_case "vec API" one "$IT/vec_api/vec_api.sv0" 0
 run_case "option/result" one "$IT/option_result/option_result.sv0" 0
 run_case "box expr" one "$IT/box_expr/box_expr.sv0" 0
+run_case "ast types (Phase 1 pattern)" one "$IT/ast_types/ast_types.sv0" 0
 run_case "modules (multi-file project)" project "$IT/modules" 42
 
 echo ""

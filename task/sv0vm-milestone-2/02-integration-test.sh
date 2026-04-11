@@ -100,6 +100,7 @@ run_exit_case "enum_struct_match" "test/integration/enum_struct_match/enum_struc
 run_exit_case "vec_api" "test/integration/vec_api/vec_api.sv0" 0
 run_exit_case "option_result" "test/integration/option_result/option_result.sv0" 0
 run_exit_case "box_expr" "test/integration/box_expr/box_expr.sv0" 0
+run_exit_case "ast_types" "test/integration/ast_types/ast_types.sv0" 0
 
 echo -n "  modules (project)... "
 if compile_vm_project "test/integration/modules" && [[ -f "$SV0C_ROOT/build/vm/main.sv0b" ]]; then

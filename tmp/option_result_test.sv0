@@ -1,0 +1,68 @@
+enum Option<T> { Some(T), None }
+enum Result<T, E> { Ok(T), Err(E) }
+
+fn try_get_option(o: Option) -> Option {
+    let val: i32 = o?;
+    return Option::Some(val + 1);
+}
+
+fn try_get_result(r: Result) -> Result {
+    let val: i32 = r?;
+    return Result::Ok(val * 2);
+}
+
+fn main() -> i32 {
+    let s: Option = Option::Some(10);
+    let n: Option = Option::None;
+
+    let v1: i32 = match s {
+        Option::Some(x) => x,
+        Option::None => 0,
+    };
+    if v1 != 10 { return 1; };
+
+    let v2: i32 = match n {
+        Option::Some(x) => x,
+        Option::None => 99,
+    };
+    if v2 != 99 { return 2; };
+
+    let r1: Option = try_get_option(s);
+    let r1v: i32 = match r1 {
+        Option::Some(x) => x,
+        Option::None => 0,
+    };
+    if r1v != 11 { return 3; };
+
+    let r2: Option = try_get_option(n);
+    let r2v: i32 = match r2 {
+        Option::Some(x) => x,
+        Option::None => 0,
+    };
+    if r2v != 0 { return 4; };
+
+    let ok: Result = Result::Ok(21);
+    let err: Result = Result::Err(42);
+
+    let rv1: i32 = match ok {
+        Result::Ok(x) => x,
+        Result::Err(e) => e,
+    };
+    if rv1 != 21 { return 5; };
+
+    let rr1: Result = try_get_result(ok);
+    let rr1v: i32 = match rr1 {
+        Result::Ok(x) => x,
+        Result::Err(e) => e,
+    };
+    if rr1v != 42 { return 6; };
+
+    let rr2: Result = try_get_result(err);
+    let rr2v: i32 = match rr2 {
+        Result::Ok(x) => x,
+        Result::Err(e) => e,
+    };
+    if rr2v != 42 { return 7; };
+
+    return 0;
+}
