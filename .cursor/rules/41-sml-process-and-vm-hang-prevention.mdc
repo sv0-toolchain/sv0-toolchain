@@ -1,0 +1,45 @@
+---
+description: Invariants for preventing SML process hangs and VM infinite loops
+globs: scripts/sv0,scripts/*.sh,sv0c/sml/backend/vm/vm_codegen.sml,sv0vm/scripts/*.sml,sv0c/Makefile
+alwaysApply: false
+---
+
+## SML process termination
+
+Every `echo '...' | sml` invocation must end with an explicit `OS.Process.exit` call.
+
+- `CM.make` and `use` invocations: append `OS.Process.exit OS.Process.success;`
+- `Main.main` invocations: wrap as `OS.Process.exit(Main.main (...));` to propagate exit status
+
+Without explicit exit, SML/NJ may not terminate after piped stdin reaches EOF, leaving orphaned processes at high CPU.
+
+SML scripts executed via `sml < script.sml` must also include `OS.Process.exit` at the end of the script (see `sv0vm/scripts/run_sv0b.sml`).
+
+Heap-image invocations (`sml @SMLload=...`) are not affected — they exit on their own.
+
+## VM bytecode codegen: IfElse inside loops
+
+In `sv0c/sml/backend/vm/vm_codegen.sml`, the `emitLoopStmt` handler for `I.IfElse` must use a **flat layout** where the continuation code appears **after** both branches, not merged into the else branch via CPS.
+
+The correct pattern:
+
+```
+condition | JUMP_IF_NOT(skip-then) | then-code | JUMP(skip-else) | else-code | continuation
+```
+
+The **incorrect** (previous) pattern merged continuation into `elC`, causing the else-false path to skip the continuation entirely. This produced infinite loops when:
+- A function with a `while` loop and nested `if` statements was called multiple times
+- The inner `if` condition evaluated to false, skipping the continuation (which included the loop increment)
+
+When editing loop codegen, verify with a minimal `.sv0` program that contains nested `if` inside `while` with multiple call sites exercising both true and false inner paths.
+
+## Validation after codegen changes
+
+After any change to `vm_codegen.sml`:
+
+1. Run `./scripts/sv0 test-guards` (fast, no SML)
+2. Run `./scripts/sv0 bootstrap-build` (compiles and runs all bootstrap `.sv0` on VM)
+3. Refresh VM parity goldens: `bash scripts/capture_vm_parity_goldens.sh`
+4. Run `./scripts/sv0 test` (full suite including self-host loop)
+
+If `bootstrap-build` or `test` hangs (no progress for >30 seconds on a single file), kill the SML process and isolate the failing file by adding debug output.

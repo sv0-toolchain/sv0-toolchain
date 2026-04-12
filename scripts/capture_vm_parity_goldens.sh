@@ -29,7 +29,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
     exit 1
   fi
   log="$(mktemp)"
-  if ! (cd "$SV0C" && echo "CM.make \"sources.cm\"; Main.main ((), [\"--target=vm\", \"$rel\"]);" | sml >"$log" 2>&1); then
+  if ! (cd "$SV0C" && echo "CM.make \"sources.cm\"; OS.Process.exit(Main.main ((), [\"--target=vm\", \"$rel\"]));" | sml >"$log" 2>&1); then
     tail -40 "$log"
     rm -f "$log"
     exit 1
