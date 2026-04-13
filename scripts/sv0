@@ -31,6 +31,7 @@ usage: sv0 <command> [args]
   fmt-shell          bash -n on shell scripts; shfmt -w if shfmt is in PATH
   bootstrap-build    VM-compile programs listed in sv0c/lib/bootstrap-sources.list (fallback: lib/*.sv0)
   emit-c <rel>       print C for one .sv0 (path relative to sv0c/; uses make heap + SML bootstrap)
+  compile-run <rel>  emit-c + cc + run for one .sv0 (exit 0 = pass; non-zero = fail)
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
@@ -512,6 +513,45 @@ run_emit_c() {
   (cd "$SV0C" && sml "@SMLload=build/sv0c" "$rel")
 }
 
+run_compile_run() {
+  local rel="${1:-}"
+  if [[ -z "$rel" ]]; then
+    echo "usage: sv0 compile-run <path-relative-to-sv0c/>" >&2
+    exit 1
+  fi
+  if [[ ! -f "$SV0C/$rel" ]]; then
+    sv0_fail "compile-run: not found: $SV0C/$rel"
+  fi
+  local stem
+  stem="$(basename "$rel" .sv0)"
+  local tmpdir
+  tmpdir="$(mktemp -d)"
+  local c_file="$tmpdir/${stem}.c"
+  local bin_file="$tmpdir/${stem}"
+  local _cc="${CC:-cc}"
+
+  if ! run_emit_c "$rel" > "$c_file" 2>/dev/null; then
+    rm -rf "$tmpdir"
+    sv0_fail "compile-run: emit-c failed for $rel"
+  fi
+
+  local clog="$tmpdir/cc.log"
+  if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin_file" "$c_file" >"$clog" 2>&1; then
+    echo "compile-run: cc failed for $rel:" >&2
+    cat "$clog" >&2
+    rm -rf "$tmpdir"
+    exit 1
+  fi
+
+  local ec=0
+  "$bin_file" || ec=$?
+  rm -rf "$tmpdir"
+  if [[ "$ec" -ne 0 ]]; then
+    sv0_fail "compile-run: $rel exited $ec (expected 0)"
+  fi
+  sv0_ok "compile-run: $rel"
+}
+
 run_self_host_capture_stage0() {
   local rel="${1:-}"
   if [[ -z "$rel" ]]; then
@@ -775,6 +815,11 @@ case "$cmd" in
     rel="${1:-}"
     if [[ -z "$rel" ]]; then usage; exit 1; fi
     run_emit_c "$rel"
+    ;;
+  compile-run)
+    rel="${1:-}"
+    if [[ -z "$rel" ]]; then usage; exit 1; fi
+    run_compile_run "$rel"
     ;;
   self-host-capture-stage0)
     rel="${1:-}"
