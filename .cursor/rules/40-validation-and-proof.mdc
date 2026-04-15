@@ -45,6 +45,18 @@ For a behavior change, validate behavior.
 For a command or interface change, validate the affected callers and docs.
 For a documentation change, validate that commands, paths, and references remain consistent.
 
+## CI verification after push
+
+After pushing to the remote (meta-repo or submodule), verify that GitHub Actions CI passes:
+
+1. Run `gh run list --limit 3` to find the triggered workflow run.
+2. If the run is still in progress, use `gh run watch <id>` or poll with `gh run view <id>` until it completes.
+3. If the run **fails**, inspect with `gh run view <id> --log-failed`, diagnose the failure, fix it, and push again.
+4. Do **not** declare a session complete while CI is red on the latest push.
+5. When reporting, name the run id and its final status (e.g. "CI run 24430687052: success").
+
+This invariant applies to every push that includes code or test changes. Documentation-only pushes may skip CI verification if no workflow is triggered.
+
 ## Honesty over appearance
 
 If some validation could not be run, say that plainly.
