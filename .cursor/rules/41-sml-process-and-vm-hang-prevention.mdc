@@ -1,8 +1,27 @@
 ---
-description: Invariants for preventing SML process hangs and VM infinite loops
+description: Invariants for preventing SML process hangs, VM infinite loops, and agent command hang detection
 globs: scripts/sv0,scripts/*.sh,sv0c/sml/backend/vm/vm_codegen.sml,sv0vm/scripts/*.sml,sv0c/Makefile
-alwaysApply: false
+alwaysApply: true
 ---
+
+## Agent command hang detection
+
+Before launching a long-running shell command (`./scripts/sv0 test`, `make`, `cc`, etc.):
+
+1. **Set a bounded `block_until_ms`** — use a value appropriate to the command's expected runtime plus buffer. Typical guidance:
+   - `./scripts/sv0 test-guards`: 15 s
+   - `./scripts/sv0 vm-compile <file>` or `compile-run <file>`: 10 s
+   - `./scripts/sv0 test` (full suite): 120 s
+   - `cc` compilation of a single generated C file: 15 s
+   - `gh run watch`: 300 s (CI can be slow)
+
+2. **Monitor backgrounded commands** — if a command exceeds `block_until_ms` and moves to background, immediately check its terminal output file. Poll with `Await` at exponential intervals (2 s → 4 s → 8 s → max 30 s). Do **not** leave a backgrounded command unmonitored.
+
+3. **Kill hung processes** — if a command shows no new output for **>60 seconds** and the expected runtime has elapsed, kill it via the pid in the terminal file header. Report the hang in your response.
+
+4. **Check for stale terminals** — before starting new processes of the same kind (e.g. `./scripts/sv0 test`), read terminal file headers to see if an earlier instance is still running. Kill stale duplicates before launching a new one.
+
+5. **Never launch `cc` linking against a runtime header without verifying the include path first** — missing `-I` flags cause the compilation to fail instantly but prior commands may have already backgrounded.
 
 ## SML process termination
 
@@ -32,6 +51,34 @@ The **incorrect** (previous) pattern merged continuation into `elC`, causing the
 - The inner `if` condition evaluated to false, skipping the continuation (which included the loop increment)
 
 When editing loop codegen, verify with a minimal `.sv0` program that contains nested `if` inside `while` with multiple call sites exercising both true and false inner paths.
+
+## C backend while-loop condition hoisting
+
+The SML bootstrap compiler's C backend hoists `while` condition expressions containing **function calls** into a temporary variable that is evaluated **once** before the loop. This means `while f(x) == val { ... }` compiles to:
+
+```c
+int tmp = f(x);
+while ((tmp == val)) { /* tmp never re-evaluated */ }
+```
+
+This is an infinite loop if `f(x)` was truthy initially.
+
+**Safe pattern:** use a mutable boolean flag checked in the while condition, with the real condition tested inside the loop body:
+
+```sv0
+let mut done: bool = false;
+while done != true {
+    if f(x) != val {
+        done = true;
+    } else {
+        /* loop body */
+    }
+}
+```
+
+Mutable variable references (e.g. `while done != true`, `while depth > 0`) work correctly because the C backend keeps them as direct variable checks that the C compiler re-evaluates each iteration.
+
+**Never** write `while ps_peek(tags, p) == SOME_TAG { ... }` or any while condition with a function call in sv0 code that targets the C backend.
 
 ## Validation after codegen changes
 
