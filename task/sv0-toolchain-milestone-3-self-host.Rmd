@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-16T12:30:00-06:00"
+updated: "2026-04-16T13:00:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -338,6 +338,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-16 (**America/Denver −06:00**): **Deep-function transliteration batch 32 — VM codegen `emit_fn`.** `vm_codegen.sv0`: 2 new functions (`compute_arity` — sum of param widths, `emit_fn` — function-level orchestration: env setup via `local_count_and_env`, code generation via `emit_instrs`, arity computation, label pooling, stride-4 func entry output). 2 new test groups (26 assertions). Remaining: top-level `emit` (program orchestration).
 - 2026-04-16 (**America/Denver −06:00**): **Deep-function transliteration batch 31 — VM codegen `local_count_and_env`.** `vm_codegen.sv0`: 4 new functions (`ensure_var_int` — add scalar slot if absent, `scan_instr_env` — recursive single-instruction env scan for DeclVar/DeclNamed/Assign/Call/IfElse/WhileLoop/BlockInstr, `scan_instrs_env` — iterate Box<Instr> Vec, `local_count_and_env` — bind params via `width_of_cty` then scan all body instructions, return total local slot count). `env_field_starts` populated with placeholder entries; real field data deferred to `emitFn` when struct field name storage is added. 1 new test group (`test_local_count_and_env` 38 assertions). Remaining: `emitFn`/top-level `emit`.
 - 2026-04-16 (**America/Denver −06:00**): **Deep-function transliteration batch 30 — VM codegen StoreField/Requires/Ensures (final emit_instr cases).** `vm_codegen.sv0`: 2 new helpers (`index_of_field_range` — field lookup within flat per-slot fields, `contract_pool_key` — negative key encoding for requires/ensures contract pool entries), 3 emit_instr cases (StoreField — emit expr + STORE_LOCAL(base + field offset) via env_field_starts/env_fields_flat; Requires — emit condition + CONTRACT_CHECK with requires pool key; Ensures — same with ensures pool key). `emit_instr`/`emit_instrs` signatures extended with `env_field_starts`/`env_fields_flat` parameters. **All 16 of 16 Instr cases now implemented.** 2 new test groups (`test_emit_store_field` 20 assertions, `test_emit_contract` 22 assertions). Remaining: `emitFn`/top-level `emit` (function-level orchestration).
 - 2026-04-16 (**America/Denver −06:00**): **Deep-function transliteration batch 29 — VM codegen WhileLoop/Break/Continue.** `vm_codegen.sv0`: 3 new helpers (`loop_break_sentinel`/`is_loop_break_sentinel`, `patch_break_jumps` — scan flat Vec for break sentinels, patch forward to end-of-loop), 3 emit_instr cases (WhileLoop — cond + JUMP_IF_NOT forward + body + JUMP back-edge, with post-assembly sentinel patching for break and continue; Break — JUMP with break sentinel; Continue — JUMP with continue sentinel). 1 new test group (`test_emit_while_loop` 38 assertions). 13 of 16 Instr cases now implemented. Remaining: StoreField, Requires/Ensures, plus emitFn/top-level emit. For-loop continue optimization deferred (no bootstrap code uses continue in loops).
