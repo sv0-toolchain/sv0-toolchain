@@ -1,8 +1,33 @@
 ---
-description: Invariants for preventing SML process hangs, VM infinite loops, and agent command hang detection
-globs: scripts/sv0,scripts/*.sh,sv0c/sml/backend/vm/vm_codegen.sml,sv0vm/scripts/*.sml,sv0c/Makefile
+description: Invariants for preventing SML process hangs, VM infinite loops, bootstrap compiler workarounds, and agent command hang detection
+globs: scripts/sv0,scripts/*.sh,sv0c/sml/backend/vm/vm_codegen.sml,sv0vm/scripts/*.sml,sv0c/Makefile,sv0c/lib/*.sv0
 alwaysApply: true
 ---
+
+## Bootstrap compiler expression-depth limits
+
+The SML/NJ bootstrap compiler crashes silently (exit code 1, no output) when a single sv0 function contains deeply nested expressions. This is **not** a function-count limit — `parser.sv0` has 288 functions. The limit is **per-function expression depth**.
+
+**Always flatten nested calls into sequential assignments:**
+
+```sv0
+// BAD — crashes the bootstrap on large files
+return string_concat(a, string_concat(b, string_concat(c, d)));
+
+// GOOD — each expression is flat
+let mut r: string = a;
+r = string_concat(r, b);
+r = string_concat(r, c);
+r = string_concat(r, d);
+```
+
+**Decompose large SML functions into per-tag helpers** when transliterating. A monolithic 200-line `case` expression becomes a thin dispatcher calling per-tag helper functions, each with a shallow expression tree. See **`sv0c/doc/bootstrap-compiler-workarounds.md`** §2 for the pattern.
+
+**Keep test functions under ~10 `Vec<i32>` locals.** The generated C allocates vectors on the stack — too many in one frame causes SIGKILL 137.
+
+**Split files when needed.** Each `.sv0` file compiles independently. If a file exceeds ~120 functions or adding code triggers bootstrap issues, move loosely-coupled functions to a new file. See **`sv0c/doc/bootstrap-compiler-workarounds.md`** §4.
+
+Full catalog: **`sv0c/doc/bootstrap-compiler-workarounds.md`**.
 
 ## Agent command hang detection
 

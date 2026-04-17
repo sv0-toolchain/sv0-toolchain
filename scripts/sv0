@@ -7,6 +7,12 @@ SV0VM="$ROOT/sv0vm"
 SV0DOC="$ROOT/sv0doc"
 SV0_MCP="$ROOT/sv0-mcp"
 
+# SML/NJ uses the C stack for recursive AST walks.  The default macOS
+# stack (≈8 MB) can overflow on deeply nested expressions in large .sv0
+# files.  Raise the soft limit to the hard limit so the bootstrap
+# compiler has maximum headroom.
+ulimit -s "$(ulimit -Hs)" 2>/dev/null || true
+
 # shellcheck disable=SC1091
 source "$ROOT/lib/shell/common.sh"
 
