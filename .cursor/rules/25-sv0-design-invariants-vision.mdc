@@ -37,6 +37,7 @@ When the vision doc and `sv0doc/` disagree on **normative behavior**, treat **`s
 
 ## Agent discipline
 
+- **This is significantly harder than it looks** — every milestone phase (spec, compiler, VM, tooling) has hidden complexity that compounds. See **`42-transliteration-complexity-invariant.mdc`**.
 - Do **not** treat the vision HTML as a license to add semantics that **`sv0doc/`** does not support.
 - Prefer **narrow** compiler or VM changes with tests and, when behavior is user-visible, **`sv0doc/`** or task updates in the usual order (spec → task → code → validation).
 - After material changes to **`task/`** milestones, **`sv0doc/`** layout, or indexed compiler structure, graph sync for MCP is expected — see **`task/sv0-mcp-milestone-0.Rmd`** and **`sv0-mcp/README.md`**.

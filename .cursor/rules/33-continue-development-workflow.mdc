@@ -7,6 +7,10 @@ globs:
 alwaysApply: false
 ---
 
+## Core invariant
+
+**This is significantly harder than it looks.** Every phase of sv0-toolchain development has hidden complexity that compounds — see **`42-transliteration-complexity-invariant.mdc`**.
+
 ## Navigation
 
 - **Progress ledger (hybrid):** submodule **`PROGRESS.md`** files plus meta **`task/sv0-toolchain-progress.md`** — see **`.cursor/commands/continue-development.md`** (**## Progress ledger**).

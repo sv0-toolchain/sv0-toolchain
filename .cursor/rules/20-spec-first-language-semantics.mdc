@@ -6,7 +6,7 @@ globs:
 alwaysApply: false
 ---
 
-The specification is the source of truth for language and bytecode semantics.
+The specification is the source of truth for language and bytecode semantics. **This is significantly harder than it looks** — spec changes ripple through grammar, parser, checker, lowering, codegen, tests, and task docs; see **`42-transliteration-complexity-invariant.mdc`**.
 
 ## Semantic authority
 

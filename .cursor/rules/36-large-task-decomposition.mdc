@@ -11,6 +11,8 @@ alwaysApply: false
 
 ## When to use this rule
 
+**This is significantly harder than it looks** — see **`42-transliteration-complexity-invariant.mdc`**. Decomposition is not optional for large slices.
+
 Use when a milestone slice (especially **M3 self-hosting**) is described as one large goal — e.g. “finish lowering”, “finish parser”, “close M3” — and the next concrete steps are unclear for a future agent or human.
 
 ## What to produce

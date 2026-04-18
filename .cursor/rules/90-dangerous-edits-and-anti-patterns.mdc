@@ -5,8 +5,13 @@ globs:
 alwaysApply: true
 ---
 
+## Core invariant
+
+**This is significantly harder than it looks.** Apply this assumption to every phase — spec, compiler, VM, tooling, orchestration. See **`42-transliteration-complexity-invariant.mdc`**.
+
 ## Do not
 
+- underestimate remaining work — hidden dependencies, infrastructure gaps, and SML compiler limitations compound
 - invent unstated sv0 language semantics
 - treat implementation behavior as the spec when `sv0doc/` is the right authority
 - silently rename milestone files, task files, root commands, or key workflow entrypoints

@@ -1,16 +1,19 @@
 ---
-description: M3 SML-to-sv0 transliteration is significantly harder than it looks — arena model gaps, SML compiler limits, and architectural mismatches compound
-globs:
-  - "sv0c/lib/**"
-  - "sv0c/sml/**"
-  - "sv0c/doc/transliteration-plan.md"
-  - "task/**/*milestone-3*.Rmd"
-alwaysApply: false
+description: "This is significantly harder than it looks" — every phase of sv0-toolchain development has hidden complexity that compounds; apply this invariant to all estimation, planning, and execution
+alwaysApply: true
 ---
 
 ## Core invariant
 
-**The SML-to-sv0 transliteration is significantly harder than it looks.**
+**This is significantly harder than it looks.**
+
+This invariant applies to **every phase** of sv0-toolchain development — spec authoring, compiler implementation, VM work, tooling, and orchestration — not just transliteration. Each layer has its own class of hidden complexity that compounds.
+
+Do not estimate effort based on line counts, function counts, or superficial similarity to prior work. The architectural distance between what a task *appears* to require and what it *actually* requires is consistently larger than expected.
+
+## Why it applies across the toolchain
+
+### SML-to-sv0 transliteration (M3)
 
 Do not estimate effort based on SML line counts or function counts alone. The architectural distance between the SML recursive-ADT model and the sv0 flat-arena model creates compounding obstacles that are not visible until you are inside the function.
 
@@ -43,13 +46,30 @@ SML's `and` keyword enables mutual recursion (`lowerExprToValue` / `lowerExprWit
 
 Each "simple" function depends on infrastructure that may not exist yet. Example: `ExprStruct` lowering needs `sf_names` (struct field names from the parser), which is not stored in the expression arena. `ExprCall` with builtins needs a name-mapping layer from token positions to `sv0_`-prefixed runtime names. These dependencies cascade.
 
-## Agent discipline
+### Spec and design (`sv0doc/`)
 
-- **Do not underestimate remaining slices.** When the transliteration plan says "~5 remaining forms", each form may require 1–3 new helper functions or architectural workarounds.
-- **Prefer completing infrastructure before attempting complex forms.** If a form needs a helper that does not exist, implement the helper first in a separate batch.
-- **Document workarounds.** When an SML compiler limitation forces a code pattern (e.g., named discard variables instead of `_`), document it in `sv0c/doc/bootstrap-compiler-workarounds.md`.
+Spec changes that seem like "just adding a paragraph" often require updating grammar tables, bytecode layouts, cross-references between sections, and downstream task acceptance criteria. A single semantic addition (e.g. a new expression form) ripples through parser, checker, lowering, codegen (C + VM), and test corpus.
+
+### VM and bytecode (`sv0vm/`)
+
+Opcode additions or layout changes cascade through encoding, decoding, golden files, and the parity harness. "Simple" bytecode changes can invalidate the entire golden corpus.
+
+### Tooling and orchestration (`scripts/`, `task/`, `.cursor/`)
+
+Build scripts, CI, golden file management, and submodule pointer discipline have their own compounding interactions. A "one-line script fix" can break the self-host loop, vm-parity, or stage0 golden checks.
+
+### Cross-submodule integration
+
+Changes that span `sv0doc/` + `sv0c/` + `sv0vm/` multiply the complexity of each individual change. Submodule pointer bumps, SHA pins, golden file refreshes, and progress ledger updates are all required and easy to forget.
+
+## Agent discipline (all phases)
+
+- **Do not underestimate remaining slices.** When a plan says "~5 remaining items", each item may require 1–3 new helper functions, architectural workarounds, or infrastructure that does not exist yet.
+- **Prefer completing infrastructure before attempting complex forms.** If a task needs a helper, data structure, or pipeline stage that does not exist, implement that first in a separate batch.
+- **Document workarounds.** When a toolchain limitation forces a code pattern (e.g., named discard variables instead of `_`, sequential assignment to avoid `string_concat` nesting), document it in `sv0c/doc/bootstrap-compiler-workarounds.md` or the relevant area's docs.
 - **Test each batch independently.** Do not accumulate untested changes across batches — the compounding error surface makes debugging exponentially harder.
-- **Track architectural blockers explicitly.** When a form cannot be implemented without new infrastructure (synthetic names, parser enrichment, etc.), record it in the transliteration plan's "Remaining" column rather than implementing a broken stub.
+- **Track architectural blockers explicitly.** When a task cannot be completed without new infrastructure (synthetic names, parser enrichment, spec additions, etc.), record it in the relevant plan's "Remaining" section rather than implementing a broken stub.
+- **Estimate conservatively.** Multiply initial effort estimates by 2–3x for any task touching more than one submodule or requiring new infrastructure.
 
 ## Related
 
@@ -57,3 +77,5 @@ Each "simple" function depends on infrastructure that may not exist yet. Example
 - **`sv0c/doc/bootstrap-compiler-workarounds.md`** — SML compiler limitation catalog.
 - **`28-sml-retirement-and-self-host-bar.mdc`** — pilot loop vs retirement distinction.
 - **`41-sml-process-and-vm-hang-prevention.mdc`** — process-level SML constraints.
+- **`05-planning-and-execution.mdc`** — planning discipline (references this invariant).
+- **`90-dangerous-edits-and-anti-patterns.mdc`** — anti-patterns (references this invariant).

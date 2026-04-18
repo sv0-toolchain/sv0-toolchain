@@ -5,7 +5,7 @@ globs:
 alwaysApply: true
 ---
 
-Validation statements must be precise.
+Validation statements must be precise. **This is significantly harder than it looks** — validation gaps compound; see **`42-transliteration-complexity-invariant.mdc`**.
 
 ## Hard requirements
 

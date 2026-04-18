@@ -9,7 +9,9 @@ globs:
 alwaysApply: false
 ---
 
-## Two different “done” signals
+**This is significantly harder than it looks** — retirement gates are more demanding than they appear; see **`42-transliteration-complexity-invariant.mdc`**.
+
+## Two different "done" signals
 
 | Signal | Meaning |
 |--------|---------|

@@ -5,7 +5,7 @@ globs:
 alwaysApply: false
 ---
 
-`sv0vm/` owns bytecode execution behavior and VM internals.
+`sv0vm/` owns bytecode execution behavior and VM internals. **This is significantly harder than it looks** — opcode and bytecode changes cascade through encoding, decoding, golden files, and the parity harness; see **`42-transliteration-complexity-invariant.mdc`**.
 
 ## VM-layer discipline
 

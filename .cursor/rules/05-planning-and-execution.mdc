@@ -5,7 +5,7 @@ globs:
 alwaysApply: true
 ---
 
-For non-trivial work, establish an execution plan before making broad edits.
+For non-trivial work, establish an execution plan before making broad edits. **This is significantly harder than it looks** — see **`42-transliteration-complexity-invariant.mdc`** for why effort estimates consistently undercount hidden complexity across all phases of sv0-toolchain development.
 
 ## Planning requirements
 
@@ -59,3 +59,7 @@ Prefer edits that are:
 - consistent with the repository’s milestone and task structure
 
 Do not start with sweeping rewrites when the task can be satisfied with a smaller scoped change.
+
+## Effort estimation
+
+**This is significantly harder than it looks.** Multiply initial effort estimates by 2–3x for tasks touching more than one submodule or requiring new infrastructure. See **`42-transliteration-complexity-invariant.mdc`** for the full catalog of compounding factors.

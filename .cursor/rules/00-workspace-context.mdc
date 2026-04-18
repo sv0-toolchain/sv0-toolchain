@@ -55,3 +55,7 @@ For cross-cutting work, prefer this order:
 Assume the root repo coordinates work across submodules rather than replacing submodule-local docs and implementation details.
 
 Prefer minimal, scoped edits that preserve this separation.
+
+## Complexity invariant
+
+**This is significantly harder than it looks.** Every phase of sv0-toolchain development — spec, compiler, VM, tooling, orchestration — has hidden complexity that compounds. Apply this assumption to all estimation, planning, and execution. See **`42-transliteration-complexity-invariant.mdc`**.

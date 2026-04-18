@@ -5,7 +5,7 @@ globs:
 alwaysApply: false
 ---
 
-`sv0c/` owns compiler implementation details.
+`sv0c/` owns compiler implementation details. **This is significantly harder than it looks** — each compiler layer has hidden complexity that compounds; see **`42-transliteration-complexity-invariant.mdc`**.
 
 ## Compiler-layer discipline
 

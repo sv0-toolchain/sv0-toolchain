@@ -6,6 +6,8 @@ globs:
 alwaysApply: false
 ---
 
+**This is significantly harder than it looks** — see **`42-transliteration-complexity-invariant.mdc`**.
+
 ## What this document is
 
 `task/sv0-toolchain-roadmap-full.Rmd` is the **parent-repo roadmap index** for design milestones **0–6** plus **cross-cutting** work. It maps vision milestones to owning **`task/*.Rmd`** files and records a **0–3 progress snapshot**. It is **not** a single finite checklist that closes **M3** or later milestones by itself.

@@ -16,6 +16,8 @@ alwaysApply: false
 
 ## What this rule fixes
 
+**This is significantly harder than it looks** — see **`42-transliteration-complexity-invariant.mdc`**. Apply this assumption at every milestone loop iteration.
+
 **Scripts** (`./scripts/sv0 test`, `test-guards`, …) enforce **technical** gates. **Milestone “done”** lives in **`task/*.Rmd`** prose (completion criteria, stakeholder bars). Without an explicit loop, an LLM can confuse **green CI** with **closed milestone** (especially **M3** — see **`28-sml-retirement-and-self-host-bar.mdc`**).
 
 This rule ties **orientation data** (`task/milestone-orientation.json` + **`./scripts/sv0 milestone-orient`**) to the **progress ledger** and existing slash-command phases.
