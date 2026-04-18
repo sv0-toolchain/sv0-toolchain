@@ -1,0 +1,59 @@
+---
+description: M3 SML-to-sv0 transliteration is significantly harder than it looks — arena model gaps, SML compiler limits, and architectural mismatches compound
+globs:
+  - "sv0c/lib/**"
+  - "sv0c/sml/**"
+  - "sv0c/doc/transliteration-plan.md"
+  - "task/**/*milestone-3*.Rmd"
+alwaysApply: false
+---
+
+## Core invariant
+
+**The SML-to-sv0 transliteration is significantly harder than it looks.**
+
+Do not estimate effort based on SML line counts or function counts alone. The architectural distance between the SML recursive-ADT model and the sv0 flat-arena model creates compounding obstacles that are not visible until you are inside the function.
+
+## Why it compounds
+
+### 1. Arena model vs recursive ADT
+
+SML stores AST nodes as nested algebraic datatypes — pattern matching is direct. The sv0 transliteration uses parallel `Vec<i32>` arrays (`et`, `ed1`–`ed4`, `pp`) where children precede parents. Every SML pattern match becomes index arithmetic, tag dispatch, and manual child offset computation.
+
+### 2. Per-function expression arenas are ephemeral
+
+The parser creates a **fresh** expression arena (`et`, `ed1`–`ed4`) for each function body and **discards** it after parsing. There is no persistent cross-function expression arena. This means the lowering pass cannot look at another function's body — it must re-parse or use the token stream (re-scanning strategy).
+
+### 3. Synthetic names have no token positions
+
+SML IR uses string names directly (`"tag"`, `"p0"`, `"sv0_println"`). The sv0 IR uses integer handles referencing the token stream. Synthetic names that never appear in source (struct field `"tag"`, payload fields `"p0"`–`"pN"`, builtin prefixes `"sv0_"`) have no token position — they require either a string pool extension or a name-synthesis layer that does not yet exist.
+
+### 4. SML bootstrap compiler limitations
+
+The SML/NJ bootstrap compiler imposes constraints that do not exist in the language spec:
+- **Stack depth limits** (Class 1): deep recursion in large files crashes the SML compiler. Mitigated by `ulimit -s`.
+- **Local variable limits** (Class 2): too many locals in one function causes silent failures. Mitigated by sequential assignment to flatten expressions.
+- **Semantic bugs** (Class 3): wildcards `_` in `let` bindings cause `E0407`; nested `string_concat` causes silent crashes. Each requires a workaround in the sv0 source.
+
+### 5. Mutual recursion without mutual recursion
+
+SML's `and` keyword enables mutual recursion (`lowerExprToValue` / `lowerExprWithInstrs` / `lowerExprForEffect` / `lowerStmt`). sv0 does not have mutual recursion — the workaround is to inline or factor the recursion into a single direction, which changes the function decomposition.
+
+### 6. Missing infrastructure compounds across functions
+
+Each "simple" function depends on infrastructure that may not exist yet. Example: `ExprStruct` lowering needs `sf_names` (struct field names from the parser), which is not stored in the expression arena. `ExprCall` with builtins needs a name-mapping layer from token positions to `sv0_`-prefixed runtime names. These dependencies cascade.
+
+## Agent discipline
+
+- **Do not underestimate remaining slices.** When the transliteration plan says "~5 remaining forms", each form may require 1–3 new helper functions or architectural workarounds.
+- **Prefer completing infrastructure before attempting complex forms.** If a form needs a helper that does not exist, implement the helper first in a separate batch.
+- **Document workarounds.** When an SML compiler limitation forces a code pattern (e.g., named discard variables instead of `_`), document it in `sv0c/doc/bootstrap-compiler-workarounds.md`.
+- **Test each batch independently.** Do not accumulate untested changes across batches — the compounding error surface makes debugging exponentially harder.
+- **Track architectural blockers explicitly.** When a form cannot be implemented without new infrastructure (synthetic names, parser enrichment, etc.), record it in the transliteration plan's "Remaining" column rather than implementing a broken stub.
+
+## Related
+
+- **`sv0c/doc/transliteration-plan.md`** — living map of what is done vs remaining.
+- **`sv0c/doc/bootstrap-compiler-workarounds.md`** — SML compiler limitation catalog.
+- **`28-sml-retirement-and-self-host-bar.mdc`** — pilot loop vs retirement distinction.
+- **`41-sml-process-and-vm-hang-prevention.mdc`** — process-level SML constraints.
