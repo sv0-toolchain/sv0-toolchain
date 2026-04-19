@@ -61,7 +61,13 @@ Use **narrow checks during iteration**; escalate only when the change class warr
 
 ## Phase 4 — Validate, integrate, ship
 
-Follow **## Fast validation loop** for default tiering. Validate with the **narrowest** relevant commands that still match the change class, then broaden; **name them** in the report (**`.cursor/rules/40-validation-and-proof.mdc`**). After pushes, verify **GitHub Actions** with **`gh`**.
+Follow **## Fast validation loop** for default tiering. Validate with the **narrowest** relevant commands that still match the change class, then broaden; **name them** in the report (**`.cursor/rules/40-validation-and-proof.mdc`**).
+
+**GitHub (routine closure):** when the slice produced **commits intended for **`origin`**, treat **push + CI** as part of this phase:
+
+1. **Push** submodule(s) with new commits first, then the **meta-repo** (pointer bumps + **README** **sv0c** SHA when **`sv0c`** moved) — **`29-submodule-git-visibility.mdc`** (**`.cursor/rules/29-submodule-git-visibility.mdc`**).
+2. **Watch CI** — **`gh run list`** → **`gh run watch <id>`** (or **`gh run view`**) until **success**; on failure, **`gh run view <id> --log-failed`**, fix, push again — **`.cursor/rules/40-validation-and-proof.mdc`** (**Routine GitHub ship loop**).
+3. **Session complete** only when CI is green for the latest integration push, or you explicitly record that no workflow ran / CI was not applicable.
 
 **Commits:** no GPG signing; **Conventional Commits** with **verbose** bodies; **atomic** commits; push **meta-repo and submodules** when needed (**`.cursor/rules/29-submodule-git-visibility.mdc`**). **Tags** only when a task explicitly requires them.
 

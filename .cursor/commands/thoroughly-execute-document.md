@@ -64,7 +64,13 @@ Use **narrow checks during iteration**; escalate only when the charter or change
 
 ## Phase 4 — Validate, integrate, ship
 
-Follow **## Fast validation loop** for default tiering. Run the **narrowest** checks first, then broaden as needed; **name the exact command** in your report (**`.cursor/rules/40-validation-and-proof.mdc`**). After pushes, check **GitHub Actions** with **`gh`** and fix failures before declaring progress.
+Follow **## Fast validation loop** for default tiering. Run the **narrowest** checks first, then broaden as needed; **name the exact command** in your report (**`.cursor/rules/40-validation-and-proof.mdc`**).
+
+**GitHub (routine closure):** when the charter ends with **commits on **`origin`**, include **push + CI** here:
+
+1. **Push** submodule repositories first when their SHAs changed, then the **meta-repo** — **`29-submodule-git-visibility.mdc`** (**`.cursor/rules/29-submodule-git-visibility.mdc`**).
+2. **Verify Actions** with **`gh run list`** / **`gh run watch`** (or **`gh run view`**) until green; on red use **`gh run view <id> --log-failed`** — **Routine GitHub ship loop** in **`.cursor/rules/40-validation-and-proof.mdc`**.
+3. Do **not** declare the charter slice **shipped** or the session **finished** while the latest relevant push has red CI (unless no workflow ran—state that explicitly).
 
 **Commits:** no GPG signing; **Conventional Commits** with a **verbose body**; **atomic** commits; push **meta-repo and submodules** when submodule commits exist. **Tags** only when the governing document or task explicitly calls for them.
 

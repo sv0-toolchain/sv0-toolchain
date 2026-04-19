@@ -45,11 +45,22 @@ For a behavior change, validate behavior.
 For a command or interface change, validate the affected callers and docs.
 For a documentation change, validate that commands, paths, and references remain consistent.
 
+## Routine GitHub ship loop (integration work)
+
+Treat **push + green CI** as part of the default closure for work that is meant to land on **`origin`** (not optional polish after the fact):
+
+1. **Local validation first** — run the narrowest commands appropriate to the change class (see **`.cursor/commands/continue-development.md`** **Fast validation loop**), then broaden before push when lists, goldens, **`sml/`**, or cross-submodule boundaries moved.
+2. **Push order** — when **submodule** commits exist, **push the submodule repository first**, then the **meta-repo** (gitlink + README **sv0c** table if applicable). See **`29-submodule-git-visibility.mdc`**.
+3. **CI verification** — immediately after each push that can trigger workflows, follow **## CI verification after push** below. Repeat until the latest run for that push is **success** (or document a **blocker** in the progress run log if you cannot reach green).
+4. **Session reporting** — do not describe an integration session as finished if you pushed code or tests and have **not** yet confirmed CI for that push (naming the run id), unless no workflow ran and you state that explicitly.
+
+**Doc-only or rule-only** pushes that do not trigger Actions may skip CI verification; say so in the report.
+
 ## CI verification after push
 
 After pushing to the remote (meta-repo or submodule), verify that GitHub Actions CI passes:
 
-1. Run `gh run list --limit 3` to find the triggered workflow run.
+1. Run `gh run list --limit 3` to find the triggered workflow run (use `--workflow <name>` if the repo has multiple workflows and the default list is noisy).
 2. If the run is still in progress, use `gh run watch <id>` or poll with `gh run view <id>` until it completes.
 3. If the run **fails**, inspect with `gh run view <id> --log-failed`, diagnose the failure, fix it, and push again.
 4. Do **not** declare a session complete while CI is red on the latest push.

@@ -35,6 +35,7 @@ Use this file as the **first** on-ramp when automating work in this meta-repo. N
 | **`task/*.Rmd`** YAML / docs only | `./scripts/sv0 test-guards` |
 | One **`sv0c/`** bootstrap **`.sv0`** | `./scripts/sv0 vm-compile <rel>` and/or `./scripts/sv0 emit-c <rel>` |
 | Lists, goldens, **`sml/`**, integration | `./scripts/sv0 test-guards` then `./scripts/sv0 test` |
+| After **push** to GitHub (code or tests) | `gh run list --limit 3` then `gh run watch <id>` until success (see **`40-validation-and-proof.mdc`**) |
 
 See **`task/milestone-orientation.json`** **`pre_merge_validation`** for milestone-specific defaults.
 

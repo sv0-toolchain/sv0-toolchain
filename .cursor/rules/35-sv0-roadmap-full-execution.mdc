@@ -37,7 +37,7 @@ Slash commands **continue-development** and **thoroughly-execute-document** ask 
 
 ## Validation reporting
 
-After substantive toolchain changes, follow the **Fast validation loop** table in **`.cursor/commands/continue-development.md`** (same section in **`thoroughly-execute-document.md`**): **`test-guards`** for doc/YAML-only work; **`vm-compile` / `emit-c`** for a single **`sv0c/`** path; full **`./scripts/sv0 test`** when lists, goldens, **`sml/`**, or integration boundaries move. When reporting results, name the exact command (**`40-validation-and-proof.mdc`**). After a **meta-repo push**, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and cite the workflow run you inspected.
+After substantive toolchain changes, follow the **Fast validation loop** table in **`.cursor/commands/continue-development.md`** (same section in **`thoroughly-execute-document.md`**): **`test-guards`** for doc/YAML-only work; **`vm-compile` / `emit-c`** for a single **`sv0c/`** path; full **`./scripts/sv0 test`** when lists, goldens, **`sml/`**, or integration boundaries move. When reporting results, name the exact command (**`40-validation-and-proof.mdc`**). After a **meta-repo push**, check **GitHub Actions** with **`gh run list`** / **`gh run watch`** and cite the workflow run you inspected. For agent-driven integration work, treat **push + green CI** as the default session closure (**`40-validation-and-proof.mdc`** **Routine GitHub ship loop**).
 
 ## Git, tags, and submodules
 

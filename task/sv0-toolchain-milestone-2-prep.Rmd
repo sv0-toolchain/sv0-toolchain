@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T00:00:00Z"
+updated: "2026-04-19T12:00:00Z"
 id: task-sv0-toolchain-milestone-2-prep
 key: sv0-toolchain-milestone-2-prep
 state: complete
@@ -67,6 +67,10 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - **`sv0 doc`** is an **index / outline**, not a full API reference with contracts; link to **sv0doc** and the vision doc for normative prose.
 - Some **`main`** control-flow shapes still **omit IR lowering** in the bootstrap compiler; **`span_core.sv0`** uses straight-line code so **VM** emits `main` (see `lib/README.md`).
 
+## future: sv0-formatter and sv0-linter (design)
+
+Milestone **2 prep** shipped **`./scripts/sv0 fmt`** (**`scripts/fmt_sv0.py`**) as **phase 0** (trailing whitespace + final newline on **`.sv0`** under **`sv0c/`** and **`sv0vm/`**; see **completion criteria** above). **AST-driven** layout and a dedicated **`sv0-linter`** are **out of scope** for declaring this task complete; they live in **`sv0c/doc/tooling-formatter-linter.md`** (project-configurable **style profile**, **`L####`** lint tiers, CI gates—numeric layout defaults deferred until the first formatter PR). When the compiler is largely in **sv0** (**`task/sv0-toolchain-milestone-3-self-host.Rmd`**), the formatter may reuse parser/AST surfaces from **`sv0c/lib/`** instead of a parallel grammar.
+
 ## refinement log
 
 - 2026-03-25: initial scaffold; criteria copied from design milestone 2; VM split documented.
@@ -127,8 +131,11 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - 2026-05-21: **VM parity v1** — **`sv0c/test/vm-parity/`** (**`manifest.txt`**, **`golden/sml/*.sv0b`**), **`./scripts/capture_vm_parity_goldens.sh`**, **`run_vm_parity_sml_goldens`** after **`bootstrap-build`** in **`./scripts/sv0 test`**; **`lib/LAYOUT.md`** row; **README** capture one-liner.
 - 2026-05-22: Bootstrap list + vm-parity manifest + **32** goldens — add **`hello`**, **`contracts`**, **`call_arg_order`**, **`println_ok`** (**`test/integration`** / **`test/data/golden/pass`**).
 - 2026-04-08: **`scripts/verify_vm_parity_manifest_bootstrap.py`** — **`test/vm-parity/manifest.txt`** must be ⊆ **`lib/bootstrap-sources.list`** (CI regression after v2.0 smokes); wired into **`run_python_guards`**. **`test-guards`** / docs (**README**, workspace, roadmap, this file, **`scripts/sv0`** usage).
+- 2026-04-18: **`sv0c/doc/tooling-formatter-linter.md`** — expanded design for **sv0-formatter** / **sv0-linter** (formatting rules + lint tiers); this task still owns only **`fmt_sv0.py`**-class **phase 0**; future phases cross-link from **`task/sv0-toolchain-milestone-3-self-host.Rmd`**.
+- 2026-04-18: Formatter **style profile** — stakeholder choice **C**: indent/width/brace defaults are **project-configurable** (checked-in profile); **no** repo-wide numeric defaults until the first formatter implementation PR (**`tooling-formatter-linter.md`**).
 
 ## related
 
 - `task/sv0-toolchain-roadmap-full.Rmd` — full option C index
 - `task/sv0vm-milestone-2.Rmd` — VM backend + interpreter + REPL slice
+- `sv0c/doc/tooling-formatter-linter.md` — formatter/linter roadmap beyond **`fmt_sv0.py`**

@@ -31,6 +31,7 @@ alwaysApply: false
 ## Git and integration
 
 - Submodule history and meta-repo pointer bumps: **`29-submodule-git-visibility.mdc`**.
+- **Routine push + CI:** integration work that is pushed to **`origin`** should end with **GitHub Actions** green for that push (**`gh run watch`** / **`gh run view`**) — full loop in **`40-validation-and-proof.mdc`** (**Routine GitHub ship loop**). Slash commands **continue-development** and **thoroughly-execute-document** repeat this in **Phase 4**.
 - **Self-host pilot CI** vs **SML retirement**: **`28-sml-retirement-and-self-host-bar.mdc`**.
 
 ## MCP / graph
