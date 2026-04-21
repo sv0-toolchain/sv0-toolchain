@@ -75,6 +75,10 @@ class ParseResult:
 def split_front_matter(text: str) -> tuple[str | None, str, int]:
     """Return (front_matter_block_without_delimiters, body, body_start_line_1_indexed).
 
+    ``body_start_line`` is the 1-based source line of the first character of ``body``
+    (after the closing ``---`` delimiter). It is ``text.count('\\n', 0, end + 5) + 1``,
+    not ``fm.count(...) + c``, so line numbers match the file for typical multi-line YAML.
+
     If no closing ``---``, body is full text and fm is None.
     """
     if not text.startswith("---\n"):
@@ -84,8 +88,9 @@ def split_front_matter(text: str) -> tuple[str | None, str, int]:
         return None, text, 1
     fm = text[4:end]
     body = text[end + 5 :]
-    fm_lines = fm.count("\n") + 2
-    return fm, body, fm_lines + 1
+    body_start_idx = end + 5
+    body_start_line = text.count("\n", 0, body_start_idx) + 1
+    return fm, body, body_start_line
 
 
 def _parse_json_object(
@@ -577,6 +582,10 @@ x: y
     r7 = parse_task_rmd_text(t7, path="<selftest>")
     if r7.checklist_items and r7.checklist_items[0].track_ids != ["prev.bind"]:
         errs.append("prev-line binding mismatch")
+    if r7.checklist_items and r7.checklist_items[0].line != 6:
+        errs.append(
+            f"expected t7 checklist on source line 6, got line {r7.checklist_items[0].line}"
+        )
 
     # Blank line between standalone anchor and checklist still binds (prev_line)
     t7b = """---
@@ -667,5 +676,22 @@ x: y
         errs.append(f"unexpected errors for end optional JSON: {r13.errors}")
     if not any("unknown JSON key" in w for w in r13.warnings):
         errs.append("expected unknown JSON key warning on sv0-track:end payload")
+
+    # split_front_matter: body_start_line matches real file (prefix newline count)
+    _e, _b, bsl_a = split_front_matter("---\nk: v\n---\nfirst-body-line\n")
+    if bsl_a != 4:
+        errs.append(f"split_front_matter one-line yaml: expected body_start 4, got {bsl_a}")
+    _e2, _b2, bsl_b = split_front_matter("---\n# x\n---\nbody-only\n")
+    if bsl_b != 4:
+        errs.append(
+            f"split_front_matter one-line comment yaml: expected body_start 4, got {bsl_b}"
+        )
+
+    t_err_ln = "---\na: 1\nb: 2\n---\n<!-- sv0-track: {nojson -->\n"
+    r_err_ln = parse_task_rmd_text(t_err_ln, path="<selftest>")
+    if not r_err_ln.errors or ":5:" not in r_err_ln.errors[0]:
+        errs.append(
+            f"expected malformed track error on line 5 (two-line yaml fm), got {r_err_ln.errors!r}"
+        )
 
     return errs
