@@ -115,7 +115,8 @@ def _json_error_detail(raw: str, path: str, line: int, ctx: str) -> str:
         return f"{path}:{line}: {ctx}: invalid JSON ({e.msg})"
     if not isinstance(obj, dict):
         return f"{path}:{line}: {ctx}: JSON must be an object {{...}}"
-    return f"{path}:{line}: {ctx}: invalid JSON"
+    # json.loads produced an object — callers only append this string when parse failed
+    return f"{path}:{line}: {ctx}: internal error (expected JSON failure detail)"
 
 
 def _validate_payload_keys(
@@ -193,7 +194,7 @@ def parse_track_comment_line(
         if tid is None:
             fail(
                 'sv0-track:begin JSON must include a non-empty string "id" matching '
-                + RE_TRACK_ID.pattern
+                + repr(RE_TRACK_ID.pattern)
             )
             return None
         anchor = TrackAnchor(line=line_no, form="begin", payload=obj)
@@ -213,8 +214,8 @@ def parse_track_comment_line(
             if obj is None:
                 result.errors.append(detail)
                 return None
-                _validate_payload_keys(obj, path=path, line=line_no, result=result)
-                _validate_semantic_fields(obj, path=path, line=line_no, result=result)
+            _validate_payload_keys(obj, path=path, line=line_no, result=result)
+            _validate_semantic_fields(obj, path=path, line=line_no, result=result)
         anchor = TrackAnchor(line=line_no, form="end", payload=obj)
         result.anchors.append(anchor)
         return anchor
@@ -555,16 +556,7 @@ x: y
 """
     errs.extend(check(t5, want_errors=1))
 
-    # `-->` inside JSON string triggers safety error
-    t6 = r"""---
-x: y
----
-
-<!-- sv0-track: {"id":"bad","title":"a--\u003e"} -->
-""".replace(
-        r"\u003e", ">"
-    )
-    # Actually use literal --> in title - should error
+    # `-->` inside JSON string triggers safety error (literal `-->` in title)
     t6b = """---
 x: y
 ---
@@ -661,5 +653,19 @@ x: y
     r12 = parse_task_rmd_text(t12, path="<selftest>")
     if not r12.warnings:
         errs.append("expected warning for unknown JSON key")
+
+    # sv0-track:end JSON is validated (unknown keys warn) — regression guard
+    t13 = """---
+x: y
+---
+
+<!-- sv0-track:begin {"id":"e13.open"} -->
+<!-- sv0-track:end {"id":"e13.open","extra_end_key": true} -->
+"""
+    r13 = parse_task_rmd_text(t13, path="<selftest>")
+    if r13.errors:
+        errs.append(f"unexpected errors for end optional JSON: {r13.errors}")
+    if not any("unknown JSON key" in w for w in r13.warnings):
+        errs.append("expected unknown JSON key warning on sv0-track:end payload")
 
     return errs

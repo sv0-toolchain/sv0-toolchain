@@ -17,6 +17,7 @@ import json
 import sys
 import threading
 import time
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -58,7 +59,7 @@ class _JsonBodyCache:
         self._built_at: float = 0.0
         self._body: bytes = b""
 
-    def get_bytes(self, build) -> bytes:
+    def get_bytes(self, build: Callable[[], object]) -> bytes:
         with self._lock:
             now = time.monotonic()
             if self._body and (now - self._built_at) < self._ttl:
