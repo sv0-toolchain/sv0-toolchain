@@ -53,6 +53,7 @@ usage: sv0 <command> [args]
   ci-all             after ci, run test-mcp when uv is available (full toolchain smoke)
   milestone-orient [list | show <id> | <id>]  LLM/human orientation from task/milestone-orientation.json
                        (ids: M0, M1, M2, M2-prep, M3, …, cross-cutting, mcp-0, roadmap; <id> alone means show)
+  progress-dashboard [port]  local browser UI for milestone + sv0-track digest (default port 8765; 127.0.0.1 only; SV0_PROGRESS_DASHBOARD_REFRESH sec TTL)
 
 EOF
 }
@@ -120,6 +121,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_task_rmd_frontmatter.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: task/*.Rmd optional sv0-track anchors + checklist ingestion"
+  if ! python3 "$ROOT/scripts/verify_task_rmd_tracking.py" --root "$ROOT"; then
+    ec=1
+  fi
   sv0_info "$label: README.md sv0c pinned SHA vs git submodule (HEAD)"
   if ! python3 "$ROOT/scripts/verify_readme_sv0c_gitlink.py" --root "$ROOT"; then
     ec=1
@@ -143,7 +148,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table"
 }
 
 run_test() {
@@ -725,6 +730,14 @@ EOF
   python3 "$ROOT/scripts/milestone_orient.py" show "$sub"
 }
 
+run_progress_dashboard() {
+  sv0_require_cmd python3
+  local port="${1:-8765}"
+  local refresh="${SV0_PROGRESS_DASHBOARD_REFRESH:-120}"
+  exec python3 "$ROOT/scripts/progress_dashboard_server.py" \
+    --root "$ROOT" --port "$port" --refresh-seconds "$refresh"
+}
+
 run_repl() {
   require_sml
   mkdir -p "$SV0C/build/vm"
@@ -882,6 +895,9 @@ case "$cmd" in
     ;;
   milestone-orient)
     run_milestone_orient "$@"
+    ;;
+  progress-dashboard)
+    run_progress_dashboard "$@"
     ;;
   ""|-h|--help)
     usage

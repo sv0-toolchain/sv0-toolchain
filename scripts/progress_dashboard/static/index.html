@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>sv0 toolchain — local progress</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <header>
+    <h1>sv0 toolchain progress</h1>
+    <p class="meta">
+      Local dev view · data from <code>/api/digest</code> and <code>/api/milestones</code>
+      · the page reloads digest/milestones on a gentle timer (server caches disk scans)
+    </p>
+    <p id="refresh-status" class="meta subtle"></p>
+  </header>
+  <main>
+    <section id="milestones">
+      <h2>Milestones</h2>
+      <div id="milestone-cards" class="cards"></div>
+    </section>
+    <section id="digest">
+      <h2>Task tracking digest</h2>
+      <p id="digest-summary" class="summary"></p>
+      <div class="table-wrap">
+        <table id="digest-table">
+          <thead>
+            <tr>
+              <th>File</th>
+              <th>Anchors</th>
+              <th>Checklist</th>
+              <th>Errors</th>
+              <th>Warnings</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <details id="digest-raw">
+        <summary>Raw JSON (digest)</summary>
+        <pre id="digest-pre"></pre>
+      </details>
+    </section>
+  </main>
+  <footer>
+    <p>
+      Run <code>./scripts/sv0 progress-dashboard</code> from the repo root, or start
+      <code>uv run sv0-mcp serve</code> (dashboard starts as a sidecar by default).
+    </p>
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+
+</html>

@@ -1,6 +1,6 @@
 # Full sv0-toolchain: submodules + unified scripts/sv0 harness (SML, C, VM, bootstrap-in-sv0, golden,
 # doctests) + sv0-mcp. `sv0 test` / `test-guards` include Python checks: block comments, sv0doc baseline,
-# task/*.Rmd YAML, README pinned sv0c SHA vs git submodule (verify_readme_sv0c_gitlink.py), VM bytecode
+# task/*.Rmd YAML + optional sv0-track anchors (verify_task_rmd_tracking.py), README pinned sv0c SHA vs git submodule (verify_readme_sv0c_gitlink.py), VM bytecode
 # parity manifest ⊆ bootstrap, milestone-orientation JSON + primary_tasks path existence
 # (verify_milestone_orientation.py), and JSON primary_tasks cited in sv0-toolchain-workspace.Rmd
 # (verify_workspace_milestone_table.py: forward + reverse vs `## milestone and area tasks`).

@@ -1,7 +1,7 @@
 # sv0-toolchain — aggregate build, test, and VM integration.
 ROOT := $(abspath .)
 
-.PHONY: help check build test test-guards test-mcp doc fmt integration-vm ci ci-all all milestone-orient milestone-orient-show
+.PHONY: help check build test test-guards test-mcp doc fmt integration-vm ci ci-all all milestone-orient milestone-orient-show progress-dashboard
 
 help:
 	@echo "sv0-toolchain targets:"
@@ -14,6 +14,7 @@ help:
 	@echo "  make test-guards     — Python-only: block comments, sv0doc baseline, task YAML, README SHA, vm-parity⊆bootstrap, milestone JSON + workspace table (no SML)"
 	@echo "  make milestone-orient — ./scripts/sv0 milestone-orient list"
 	@echo "  make milestone-orient-show ID=M3 — ./scripts/sv0 milestone-orient show <ID>"
+	@echo "  make progress-dashboard — ./scripts/sv0 progress-dashboard (local browser UI)"
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
 	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
 	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"
@@ -37,6 +38,9 @@ milestone-orient:
 milestone-orient-show:
 	@test -n "$(ID)" || (echo "usage: make milestone-orient-show ID=M3   (or ID=mcp-0, ID=M2-prep, …)" >&2; exit 1)
 	@"$(ROOT)/scripts/sv0" milestone-orient show "$(ID)"
+
+progress-dashboard:
+	@"$(ROOT)/scripts/sv0" progress-dashboard
 
 test-mcp:
 	@"$(ROOT)/scripts/sv0" test-mcp

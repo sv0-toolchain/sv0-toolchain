@@ -30,6 +30,19 @@ Do not casually delete, flatten, or rewrite these files into generic markdown.
 
 For **`task/*.Rmd`** (and any file validated by **`scripts/verify_task_rmd_frontmatter.py`**), keep **valid YAML**: a **space** after **`:`** in mapping entries (e.g. **`updated: "2026-04-08T12:00:00-06:00"`**, not **`updated:"…"`**). Broken frontmatter fails **`./scripts/sv0 test-guards`**.
 
+### Optional machine anchors (`sv0-track`)
+
+You may add **single-line** HTML comments so dashboards and future tooling can bind prose to stable ids **without** replacing human narrative:
+
+- **Standalone:** `<!-- sv0-track: {"id":"m3.slice.foo","title":"…"} -->` — JSON object on one line; required string **`id`** (pattern like `m3.validation.sequence`); optional keys: **`title`**, **`kind`**, **`milestone`**, **`refs`**, **`ingest`**, **`role`**, **`done`**.
+- **Region:** `<!-- sv0-track:begin {"id":"…","ingest":"numbered"} -->` … `<!-- sv0-track:end {"id":"…"} -->` — **`end`** with no **`id`** closes the innermost open region. Nested regions must use distinct open **`id`**s (no duplicate open ids).
+- **GFM checklists:** `- [ ]` / `- [x]` lines bind to the **innermost open region**, an **inline** trailer `<!-- sv0-track: {"id":"…"} -->` on the same line, or a **standalone** anchor on the previous non-empty line (blank lines between anchor and item are allowed).
+- **Numbered lists:** only when a region’s JSON sets **`ingest`** to **`numbered`** or **`both`**; lines must match `1.` … with text after the marker.
+
+Malformed anchors (bad JSON, unclosed **`begin`**, **`end`** without **`begin`**, duplicate standalone **`id`**, literal **`-->`** inside JSON) fail **`scripts/verify_task_rmd_tracking.py`** (part of **`./scripts/sv0 test-guards`**). Unknown JSON keys produce **warnings** unless you pass **`--strict`**.
+
+**Local browser view:** **`./scripts/sv0 progress-dashboard`** (stdlib server + static page under **`scripts/progress_dashboard/static/`**; reads the live checkout).
+
 ## Preserve directive semantics
 
 Recognize and preserve directive lines that begin with `/`.
