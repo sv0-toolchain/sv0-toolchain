@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-03-25T00:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-toolchain-milestone-4-verification
 key: sv0-toolchain-milestone-4-verification
 state: draft
@@ -20,6 +20,16 @@ roadmap_parent: sv0-toolchain-roadmap-full
 ## purpose
 
 match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 4**: **SMT-backed** static reasoning where possible, **refinement types**, **`sv0 verify`**, and using verification on **real libraries** (e.g. crypto-oriented examples in the design).
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m4.verify.dashboard","title":"M4 verification — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M4"} -->
+- [ ] **sv0doc/** contract / verification prose aligned before claiming new tool behavior
+- [ ] Solver or **`sv0 verify`** harness notes updated when experiments land
+- [ ] `./scripts/sv0 test-guards` after **`task/`** edits; broader **`./scripts/sv0 test`** when implementation touched
+<!-- sv0-track:end {"id":"m4.verify.dashboard"} -->
 
 ## dependencies
 

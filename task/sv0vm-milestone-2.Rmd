@@ -1,6 +1,6 @@
 ---
 created: "2026-03-22T00:00:00Z"
-updated: "2026-04-01T00:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0vm-milestone-2
 key: sv0vm-milestone-2
 state: complete
@@ -34,6 +34,17 @@ milestone 2 is complete when:
 - contract checks work at runtime in the VM
 - the REPL can evaluate expressions interactively
 - sv0vm passes the same test suite as the C backend
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m2.vm.dashboard","title":"M2 VM + bytecode — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M2"} -->
+- [ ] **sv0vm/** or VM-facing **sv0c/** change documented in this task or child docs
+- [ ] Bytecode-visible change has goldens / parity plan noted when applicable
+- [ ] `./scripts/sv0 test-guards` and `./scripts/sv0 test` per **`task/milestone-orientation.json`** **M2**
+- [ ] `sv0vm/PROGRESS.md` (and **sv0c/** if shared) updated when behavior moved
+<!-- sv0-track:end {"id":"m2.vm.dashboard"} -->
 
 ## dependencies
 

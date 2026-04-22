@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-08T12:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-mcp-milestone-0
 key: sv0-mcp-milestone-0
 state: complete
@@ -26,6 +26,16 @@ this milestone is complete when:
 - **sv0doc** describes where toolchain and MCP documentation live (hub role; see `sv0doc/README.md`)
 - unit tests pass via `uv run pytest` from **sv0-mcp** (or `./scripts/sv0 test-mcp` from the parent repo)
 - parent **sv0-toolchain** references this milestone from `task/sv0-toolchain-workspace.Rmd`
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"mcp0.graph.dashboard","title":"MCP-0 — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"mcp-0"} -->
+- [ ] **`sv0-mcp/README.md`** or setup docs match any CLI / compose change
+- [ ] `./scripts/sv0 test-guards` and **`./scripts/sv0 test-mcp`** when **sv0-mcp/** or parent **`scripts/sv0`** wiring changed
+- [ ] Graph sync run logged when **`task/`** or **sv0doc/** normative layout required it
+<!-- sv0-track:end {"id":"mcp0.graph.dashboard"} -->
 
 ## dependencies
 

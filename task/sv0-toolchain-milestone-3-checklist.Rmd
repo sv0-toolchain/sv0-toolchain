@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-10T00:00:00-06:00"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -25,6 +25,16 @@ Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds
 - When a new **`.sv0`** seed lands, add or extend a row (or note it under **harness**).
 - When a major **`sml/`** subtree is fully superseded by sv0 sources in-tree, mark the row **goal met** and point to the canonical sv0 paths.
 - Keep **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/*.c`**, and **`lib/self-host-sv0-loop.list`** aligned with whatever is **compiled and tested** today.
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m3.checklist.session","title":"M3 transliteration checklist — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"M3"} -->
+- [ ] Table rows or harness notes updated when a new **`.sv0`** seed or **SML** subtree status changed
+- [ ] **`lib/bootstrap-sources.list`** / **`lib/golden/stage0/`** / **`lib/self-host-sv0-loop.list`** consistency checked after list edits
+- [ ] **`./scripts/sv0 test-guards`** (manifest ⊆ bootstrap) after vm-parity or list churn
+<!-- sv0-track:end {"id":"m3.checklist.session"} -->
 
 ## configuration
 

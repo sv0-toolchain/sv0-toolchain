@@ -6,7 +6,8 @@ Use this file as the **first** on-ramp when automating work in this meta-repo. N
 
 1. **`task/sv0-toolchain-workspace.Rmd`** — submodule map, env vars, milestone task table.
 2. **`task/sv0-toolchain-roadmap-full.Rmd`** — which design milestone owns which **`task/*.Rmd`** (index only; not a substitute for per-milestone completion criteria).
-3. **`./scripts/sv0 milestone-orient list`** then **`./scripts/sv0 milestone-orient show <id>`** — machine-readable pointers to **owning tasks**, **suggested validation**, **closure authority**, and **anti-patterns** (`task/milestone-orientation.json`). **Make:** `make milestone-orient` and `make milestone-orient-show ID=M3`.
+3. **`./scripts/sv0 milestone-orient list`** then **`./scripts/sv0 milestone-orient show <id>`** — machine-readable pointers to **owning tasks**, **suggested validation**, **closure authority**, **anti-patterns**, and optional **automation / ground-truth / human-checkpoint** depth (`task/milestone-orientation.json`). **Make:** `make milestone-orient` and `make milestone-orient-show ID=M3`.
+4. **`task/agent-workflow-and-milestone-tracking.md`** — how this repo’s phased workflows relate to common agentic patterns (workflows vs agents, gates, routing) and how optional JSON fields deepen tracking **without** replacing owning-task prose.
 
 **Index consistency:** `verify_workspace_milestone_table.py` (inside **`./scripts/sv0 test-guards`**) enforces **bidirectional** alignment: JSON **`primary_tasks`** ⊆ workspace file, and every **`task/*.Rmd`** under **`## milestone and area tasks`** ⊆ JSON **`primary_tasks`** (union across milestones). Rare exceptions: top-level **`workspace_milestone_table_allowlist`** in **`milestone-orientation.json`**.
 
@@ -33,7 +34,7 @@ Use this file as the **first** on-ramp when automating work in this meta-repo. N
 | Situation | Typical command |
 |-----------|-----------------|
 | **`task/*.Rmd`** YAML / docs only | `./scripts/sv0 test-guards` (includes **`verify_task_rmd_frontmatter.py`** + optional **`sv0-track`** anchors via **`verify_task_rmd_tracking.py`**) |
-| **Local progress UI** (milestones + digest) | `./scripts/sv0 progress-dashboard` then open **<http://127.0.0.1:8765/>** (optional port arg; **`SV0_PROGRESS_DASHBOARD_REFRESH`** sec server TTL). **`uv run sv0-mcp serve`** also spawns the same server by default (**`SV0_MCP_PROGRESS_DASHBOARD=0`** to disable; see **`sv0-mcp/README.md`**) |
+| **Local progress UI** (milestones + digest) | `./scripts/sv0 progress-dashboard` then open **<http://127.0.0.1:8765/>** (optional port arg; **`SV0_PROGRESS_DASHBOARD_REFRESH`** sec server TTL). UI: summary strip, per-task **collapsible cards** (checklists inside), **issues-only** filter, raw JSON under **Developer**. **`uv run sv0-mcp serve`** also spawns the same server by default (**`SV0_MCP_PROGRESS_DASHBOARD=0`** to disable; see **`sv0-mcp/README.md`**) |
 | One **`sv0c/`** bootstrap **`.sv0`** | `./scripts/sv0 vm-compile <rel>` and/or `./scripts/sv0 emit-c <rel>` |
 | Lists, goldens, **`sml/`**, integration | `./scripts/sv0 test-guards` then `./scripts/sv0 test` |
 | After **push** to GitHub (code or tests) | `gh run list --limit 3` then `gh run watch <id>` until success (see **`40-validation-and-proof.mdc`**) |

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Validate ``task/milestone-orientation.json`` structure and that ``primary_tasks`` paths exist.
+"""Validate ``task/milestone-orientation.json`` structure.
 
-Catches broken links when task files are renamed and keeps milestone orientation data machine-usable.
+Checks ``primary_tasks`` paths exist. Catches broken links when task files
+are renamed and keeps milestone orientation data machine-usable.
 """
 
 from __future__ import annotations
@@ -15,6 +16,34 @@ from typing import Any
 
 def _err(msg: str) -> None:
     print(f"verify_milestone_orientation: {msg}", file=sys.stderr)
+
+
+def _optional_nonempty_str(
+    m: dict[str, Any], mid: str, key: str, errors: list[str]
+) -> None:
+    """Validate optional string field when present."""
+    val = m.get(key)
+    if val is None:
+        return
+    if not isinstance(val, str) or not val.strip():
+        msg = f"milestone {mid!r}: {key} must be a non-empty string when present"
+        errors.append(msg)
+
+
+def _optional_str_list(
+    m: dict[str, Any], mid: str, key: str, errors: list[str]
+) -> None:
+    """Validate optional list[str] field when present."""
+    val = m.get(key)
+    if val is None:
+        return
+    if not isinstance(val, list):
+        errors.append(f"milestone {mid!r}: {key} must be a list when present")
+        return
+    for i, item in enumerate(val):
+        if not isinstance(item, str) or not item.strip():
+            msg = f"milestone {mid!r}: {key}[{i}] must be a non-empty string"
+            errors.append(msg)
 
 
 def _check_milestone(root: Path, m: dict[str, Any], idx: int) -> list[str]:
@@ -47,12 +76,21 @@ def _check_milestone(root: Path, m: dict[str, Any], idx: int) -> list[str]:
     for i, cmd in enumerate(m.get("pre_merge_validation") or []):
         if not isinstance(cmd, str) or not cmd.strip():
             errors.append(f"milestone {mid!r}: pre_merge_validation[{i}] invalid")
+    _optional_nonempty_str(m, mid, "automation_profile", errors)
+    _optional_str_list(m, mid, "ground_truth", errors)
+    _optional_str_list(m, mid, "human_checkpoints", errors)
+    _optional_str_list(m, mid, "success_signals", errors)
     return errors
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--root", type=Path, required=True, help="sv0-toolchain repo root")
+    ap.add_argument(
+        "--root",
+        type=Path,
+        required=True,
+        help="sv0-toolchain repo root",
+    )
     args = ap.parse_args()
     root: Path = args.root.resolve()
     path = root / "task" / "milestone-orientation.json"
@@ -78,7 +116,8 @@ def main() -> int:
         if isinstance(mid, str):
             key = mid.lower()
             if key in seen:
-                all_errors.append(f"duplicate milestone id (case-insensitive): {mid!r}")
+                dup = f"duplicate milestone id (case-insensitive): {mid!r}"
+                all_errors.append(dup)
             seen.add(key)
         all_errors.extend(_check_milestone(root, m, i))
     if all_errors:

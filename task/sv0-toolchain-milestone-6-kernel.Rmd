@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-03-25T00:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-toolchain-milestone-6-kernel
 key: sv0-toolchain-milestone-6-kernel
 state: draft
@@ -20,6 +20,16 @@ roadmap_parent: sv0-toolchain-roadmap-full
 ## purpose
 
 match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 6**: **inline assembly** (`asm!`), **linker scripts** and **boot** support, **HAL-oriented** pieces in `core`, and a **minimal kernel** example that proves the language for OS research.
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m6.kernel.dashboard","title":"M6 kernel — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M6"} -->
+- [ ] Target ISA / boot / **`no_std`** assumptions documented in **sv0doc/** or this task before coding
+- [ ] Freestanding codegen choice (LLVM vs C path) stated when work advances
+- [ ] `./scripts/sv0 test-guards` after **`task/`** edits
+<!-- sv0-track:end {"id":"m6.kernel.dashboard"} -->
 
 ## dependencies
 

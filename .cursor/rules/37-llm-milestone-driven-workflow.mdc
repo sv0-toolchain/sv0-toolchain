@@ -43,11 +43,16 @@ You may say a **design milestone is complete** only when **all** hold:
 
 Fully **autonomous** closure of a large milestone (e.g. **M3**) is **not** reducible to scripts: it requires **judgment** against task criteria and often **multi-session** transliteration. This rule makes the **workflow adequate** by: (a) fixing **entrypoints** and **anti-patterns**, (b) **mandating** the progress ledger each session, (c) tying validation **tiering** to milestone ids. Remaining gap: **human/stakeholder** sign-off for bars that tasks label as such — document that in the task file, not here.
 
+## External framing (workflows vs agents)
+
+For vocabulary and pattern names (prompt chaining, routing, orchestrator–workers, evaluator–optimizer, ground truth from tools), see Anthropic’s [Building effective agents](https://www.anthropic.com/engineering/building-effective-agents) and the repo note **`task/agent-workflow-and-milestone-tracking.md`**. This workspace intentionally stays **workflow-first** (slash-command phases, **`milestone-orient`**, named **`./scripts/sv0`** gates) and uses **tests / CI** as the primary **evaluator** for code slices. Optional JSON fields **`automation_profile`**, **`ground_truth`**, **`human_checkpoints`**, and **`success_signals`** in **`task/milestone-orientation.json`** surface per-milestone depth in **`milestone-orient show`**.
+
 ## Related
 
 - **`task/sv0-toolchain-workspace.Rmd`** — milestone task index table
 - **`33-continue-development-workflow.mdc`** — day-to-day navigation
 - **`25-sv0-design-invariants-vision.mdc`** — milestones 0–3 snapshot vs **`sv0doc/`**
 - **`34-user-prompts-design-only.mdc`** — when to stop for design answers
-- **`scripts/verify_milestone_orientation.py`** — runs under **`./scripts/sv0 test-guards`**; ensures **`task/milestone-orientation.json`** parses and every **`primary_tasks`** file exists.
+- **`task/agent-workflow-and-milestone-tracking.md`** — maps external agentic patterns to this repo’s gates and ledger
+- **`scripts/verify_milestone_orientation.py`** — runs under **`./scripts/sv0 test-guards`**; ensures **`task/milestone-orientation.json`** parses, every **`primary_tasks`** file exists, and optional tracking fields have correct types when present
 - **`scripts/verify_workspace_milestone_table.py`** — same guard bundle; **forward** (JSON **`primary_tasks`** ⊆ workspace) and **reverse** (every **`task/*.Rmd`** under **`## milestone and area tasks`** ⊆ JSON union, optional **`workspace_milestone_table_allowlist`**). CI runs both Python checks before SML install; **`./scripts/sv0 test`** is a **separate explicit step** after SML so the GitHub log shows full harness verification.

@@ -1,5 +1,5 @@
 {
-  "description": "LLM/human orientation index: maps design-milestone-style work to owning task/*.Rmd files and suggested validation. Completion criteria always live in those task files and sv0doc/ — not in this JSON.",
+  "description": "LLM/human orientation index: maps design-milestone-style work to owning task/*.Rmd files and suggested validation. Completion criteria always live in those task files and sv0doc/ — not in this JSON. Optional keys automation_profile, ground_truth, human_checkpoints, and success_signals add agent-workflow depth (see task/agent-workflow-and-milestone-tracking.md); they do not replace closure_authority or owning-task prose.",
   "workspace_milestone_table_allowlist": [],
   "milestones": [
     {
@@ -9,34 +9,100 @@
       "submodules_hint": ["sv0doc"],
       "pre_merge_validation": ["./scripts/sv0 test-guards"],
       "closure_authority": "Completion/story in task/sv0doc-milestone-0.Rmd; normative text in sv0doc/.",
-      "anti_patterns": ["Treat README or rules as normative semantics over sv0doc/"]
+      "anti_patterns": [
+        "Treat README or rules as normative semantics over sv0doc/"
+      ],
+      "automation_profile": "Predefined workflow (prompt chaining in tasks + test-guards); human-in-the-loop for semantics and spec-vs-vision alignment.",
+      "ground_truth": [
+        "sv0doc/ tables and prose (normative)",
+        "./scripts/sv0 test-guards (baseline paths, workspace milestone table)"
+      ],
+      "human_checkpoints": [
+        "New normative behavior not yet stated in sv0doc/",
+        "Resolving contradictions between external vision docs and sv0doc/"
+      ],
+      "success_signals": [
+        "Owning sv0doc milestone task updated with completion evidence",
+        "test-guards passes after spec or task index changes"
+      ]
     },
     {
       "id": "M1",
       "title": "Bootstrap SML compiler (through C/VM backends)",
       "primary_tasks": ["task/sv0c-milestone-1.Rmd"],
       "submodules_hint": ["sv0c", "sv0vm"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0c-milestone-1.Rmd and linked child tasks.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Workflow + evaluator–optimizer loop: implement slice → named local targets (vm-compile / emit-c) → escalate to full test when lists or sml/ move.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test",
+        "sv0c unit/integration harness output"
+      ],
+      "human_checkpoints": [
+        "Bytecode or language semantics change without prior sv0doc/ update (when that is the agreed order)"
+      ],
+      "success_signals": [
+        "Green ./scripts/sv0 test for integration-impacting changes",
+        "sv0c/PROGRESS.md reflects compiler slice reality"
+      ]
     },
     {
       "id": "M2",
       "title": "Bytecode VM + sv0c VM backend",
-      "primary_tasks": ["task/sv0vm-milestone-2.Rmd", "task/sv0c-milestone-1.Rmd"],
+      "primary_tasks": [
+        "task/sv0vm-milestone-2.Rmd",
+        "task/sv0c-milestone-1.Rmd"
+      ],
       "submodules_hint": ["sv0vm", "sv0c"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0vm-milestone-2.Rmd (VM) + compiler backend linkage in sv0c tasks.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Workflow with parallelizable recon (sv0vm vs sv0c paths); goldens and parity harnesses supply ground truth for bytecode-visible changes.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test",
+        "sv0vm/ and sv0c/ test corpora and golden outputs where applicable"
+      ],
+      "human_checkpoints": [
+        "Opcode or loader layout changes that invalidate large golden sets (plan refresh explicitly)"
+      ],
+      "success_signals": [
+        "VM task criteria met with named test commands",
+        "Submodule PROGRESS.md updated when behavior or corpus moved"
+      ]
     },
     {
       "id": "M2-prep",
       "title": "Toolchain prep: unified test, doctest, fmt, doc, lib/ bootstrap track",
       "primary_tasks": ["task/sv0-toolchain-milestone-2-prep.Rmd"],
       "submodules_hint": ["sv0c", "sv0vm"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0-toolchain-milestone-2-prep.Rmd.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Orchestration-heavy workflow: list files, orchestration scripts, and CI wiring — strong fit for transparent, named commands as gates.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test",
+        "lib/bootstrap-sources.list and related manifests when touched"
+      ],
+      "human_checkpoints": [
+        "Changing default developer commands or CI stages (stakeholder-visible)"
+      ],
+      "success_signals": [
+        "Prep task acceptance items checked with evidence",
+        "test + guards green after orchestration edits"
+      ]
     },
     {
       "id": "M3",
@@ -46,11 +112,29 @@
         "task/sv0-toolchain-milestone-3-checklist.Rmd"
       ],
       "submodules_hint": ["sv0c", "sv0vm", "sv0doc"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "Stakeholder completion criteria in task/sv0-toolchain-milestone-3-self-host.Rmd (feature parity, VM policy, native self-host, SML retirement) — not pilot list growth alone.",
       "anti_patterns": [
         "Claim M3 complete because lib/self-host-sv0-loop.list is green",
         "Tag bootstrap-sml-final or move sml/ to sml-legacy/ before that task allows it"
+      ],
+      "automation_profile": "Long-horizon workflow plus orchestrator–workers: slash-command phases, optional Task subagents per submodule, evaluator–optimizer on red tests/CI; judgment against task bars is not fully automatable.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test (and SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 only as a documented intermediate)",
+        "sv0c/lib/golden/stage0/ and sv0c/test/vm-parity/golden/sml/ when those slices move",
+        "gh run watch after integration pushes"
+      ],
+      "human_checkpoints": [
+        "M3 completion or SML retirement scope reinterpretation",
+        "Any commit that assumes new language semantics not in sv0doc/"
+      ],
+      "success_signals": [
+        "M3 task + checklist evidence aligned with anti_patterns unused",
+        "Progress ledger row with exact validation commands (40-validation-and-proof)"
       ]
     },
     {
@@ -58,54 +142,144 @@
       "title": "Advanced verification",
       "primary_tasks": ["task/sv0-toolchain-milestone-4-verification.Rmd"],
       "submodules_hint": ["sv0c", "sv0doc"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0-toolchain-milestone-4-verification.Rmd.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Workflow leaning on extended test and proof artifacts; likely parallel tracks for checker vs runtime proof plumbing once scoped.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test",
+        "Milestone-4 task criteria and any dedicated proof/test subdirs it defines"
+      ],
+      "human_checkpoints": [
+        "What counts as 'verified' for a given language feature (task-level contract)"
+      ],
+      "success_signals": [
+        "M4 task sections explicitly satisfied with cited commands or artifacts"
+      ]
     },
     {
       "id": "M5",
       "title": "LLVM + production crypto",
       "primary_tasks": ["task/sv0-toolchain-milestone-5-llvm-crypto.Rmd"],
       "submodules_hint": ["sv0c", "sv0doc"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0-toolchain-milestone-5-llvm-crypto.Rmd.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Future workflow: spec-first for crypto and backend contracts, then implementation slices with tiered validation (guards → targeted backend tests → full test).",
+      "ground_truth": [
+        "sv0doc/ for algorithms and safety contracts",
+        "./scripts/sv0 test when M5 harness exists",
+        "Upstream toolchain expectations (LLVM, crypto libs) as documented in the task"
+      ],
+      "human_checkpoints": [
+        "Dependency and licensing choices for crypto or LLVM stacks"
+      ],
+      "success_signals": ["M5 task acceptance items met with named evidence"]
     },
     {
       "id": "M6",
       "title": "Kernel / bare metal",
       "primary_tasks": ["task/sv0-toolchain-milestone-6-kernel.Rmd"],
       "submodules_hint": ["sv0c", "sv0doc"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0-toolchain-milestone-6-kernel.Rmd.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Future workflow: spec and platform constraints drive small verified slices; heavy human checkpointing on ABI, boot, and hardware assumptions.",
+      "ground_truth": [
+        "sv0doc/ and M6 task for platform contracts",
+        "Hardware/emulator test commands once defined in the task"
+      ],
+      "human_checkpoints": [
+        "Target ISA, boot protocol, and unsafe boundary policy"
+      ],
+      "success_signals": [
+        "M6 task criteria checked with reproducible command list"
+      ]
     },
     {
       "id": "cross-cutting",
       "title": "Cross-cutting backlog (macros, literate, std, packaging)",
       "primary_tasks": ["task/sv0-toolchain-milestone-cross-cutting.Rmd"],
       "submodules_hint": ["sv0c", "sv0doc", "sv0vm", "sv0-mcp"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test"
+      ],
       "closure_authority": "task/sv0-toolchain-milestone-cross-cutting.Rmd.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Router-first: pick owning submodule and milestone from the backlog item before coding; otherwise use orchestrator–workers with disjoint scopes only.",
+      "ground_truth": [
+        "Owning milestone's pre_merge_validation",
+        "Cross-cutting task decomposition sections"
+      ],
+      "human_checkpoints": [
+        "Public CLI or repo layout changes affecting multiple submodules"
+      ],
+      "success_signals": [
+        "Backlog item tied to a primary milestone id with evidence in that task"
+      ]
     },
     {
       "id": "mcp-0",
       "title": "MCP server + dev graph",
       "primary_tasks": ["task/sv0-mcp-milestone-0.Rmd"],
       "submodules_hint": ["sv0-mcp"],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "./scripts/sv0 test-mcp"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test-mcp"
+      ],
       "closure_authority": "task/sv0-mcp-milestone-0.Rmd.",
-      "anti_patterns": []
+      "anti_patterns": [],
+      "automation_profile": "Service workflow: config + sync commands as gates; optional tools (Neo4j) — document ground truth commands in sv0-mcp/README.md.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "./scripts/sv0 test-mcp",
+        "sv0-mcp/README.md documented checks (e.g. ruff, compose config)"
+      ],
+      "human_checkpoints": [
+        "Graph schema or sync semantics that mirror normative sv0doc/ layout changes"
+      ],
+      "success_signals": [
+        "MCP milestone task criteria met",
+        "Graph sync run recorded when tasks or sv0doc/ layout required it"
+      ]
     },
     {
       "id": "roadmap",
       "title": "Full roadmap index (option C)",
       "primary_tasks": ["task/sv0-toolchain-roadmap-full.Rmd"],
       "submodules_hint": [],
-      "pre_merge_validation": ["./scripts/sv0 test-guards", "bash task/sv0-toolchain-roadmap-full/01-verify-roadmap-artifacts.sh"],
+      "pre_merge_validation": [
+        "./scripts/sv0 test-guards",
+        "bash task/sv0-toolchain-roadmap-full/01-verify-roadmap-artifacts.sh"
+      ],
       "closure_authority": "Roadmap is an index — milestone closure is per owning task/*.Rmd, not this file alone.",
-      "anti_patterns": ["Declare design milestone 3 closed from roadmap hygiene only"]
+      "anti_patterns": [
+        "Declare design milestone 3 closed from roadmap hygiene only"
+      ],
+      "automation_profile": "Indexing workflow: roadmap verify script + guards; routing readers to milestone-orient show <id> for real closure authority.",
+      "ground_truth": [
+        "./scripts/sv0 test-guards",
+        "bash task/sv0-toolchain-roadmap-full/01-verify-roadmap-artifacts.sh",
+        "task/milestone-orientation.json primary_tasks paths"
+      ],
+      "human_checkpoints": [
+        "Reinterpreting design milestone boundaries (vision vs tracked tasks)"
+      ],
+      "success_signals": [
+        "Roadmap artifacts script passes",
+        "Index tables stay consistent with verify_workspace_milestone_table"
+      ]
     }
   ]
 }

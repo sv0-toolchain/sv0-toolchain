@@ -1,5 +1,6 @@
 ---
 created: "2026-03-22T00:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0doc-milestone-0
 key: sv0doc-milestone-0
 state: complete
@@ -27,6 +28,16 @@ milestone 0 is complete when:
 - the memory model (ownership, borrowing, borrows()) is defined
 - the keyword and operator reference is extracted
 - bytecode documentation has anchor files under **sv0doc/bytecode/** (**format** + **instructions**) so **`sv0 doc`**, sv0c VM backend, and sv0vm share a normative location; **`scripts/verify_sv0doc_baseline.py`** (run from **`./scripts/sv0 test`**) asserts those paths plus the other required **sv0doc** files exist and are non-empty
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m0.spec.dashboard","title":"M0 spec hub — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M0"} -->
+- [ ] **sv0doc/** paths touched this session match the described extraction or fix
+- [ ] Baseline / hub expectations in this file reviewed against checkout
+- [ ] `./scripts/sv0 test-guards` green after **sv0doc** or **`task/*.Rmd`** index edits
+<!-- sv0-track:end {"id":"m0.spec.dashboard"} -->
 
 ## dependencies
 

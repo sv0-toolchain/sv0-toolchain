@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Print milestone orientation for LLM/human workflows (see task/milestone-orientation.json)."""
+"""Print milestone orientation for LLM/human workflows.
+
+Reads ``task/milestone-orientation.json``.
+"""
 
 from __future__ import annotations
 
@@ -49,7 +52,10 @@ def cmd_list(data: dict) -> None:
 def cmd_show(data: dict, milestone_id: str) -> int:
     m = _find(data, milestone_id)
     if m is None:
-        print(f"milestone_orient: unknown milestone id: {milestone_id!r}", file=sys.stderr)
+        print(
+            f"milestone_orient: unknown milestone id: {milestone_id!r}",
+            file=sys.stderr,
+        )
         print("Run: python3 scripts/milestone_orient.py list", file=sys.stderr)
         return 1
     print(f"id: {m.get('id')}")
@@ -57,7 +63,8 @@ def cmd_show(data: dict, milestone_id: str) -> int:
     print("primary_tasks:")
     for p in m.get("primary_tasks") or []:
         print(f"  - {p}")
-    print("submodules_hint:", ", ".join(m.get("submodules_hint") or []) or "(none)")
+    hints = ", ".join(m.get("submodules_hint") or []) or "(none)"
+    print("submodules_hint:", hints)
     print("pre_merge_validation:")
     for c in m.get("pre_merge_validation") or []:
         print(f"  - {c}")
@@ -67,8 +74,21 @@ def cmd_show(data: dict, milestone_id: str) -> int:
         print("anti_patterns:")
         for a in anti:
             print(f"  - {a}")
+    ap = m.get("automation_profile")
+    if isinstance(ap, str) and ap.strip():
+        print(f"automation_profile: {ap}")
+    for key in ("ground_truth", "human_checkpoints", "success_signals"):
+        items = m.get(key)
+        if isinstance(items, list) and items:
+            print(f"{key}:")
+            for item in items:
+                if isinstance(item, str) and item.strip():
+                    print(f"  - {item}")
     print()
-    print("Next: open the primary_tasks files and read completion criteria before claiming milestone progress.")
+    print(
+        "Next: open the primary_tasks files and read completion criteria "
+        "before claiming milestone progress."
+    )
     return 0
 
 
@@ -76,7 +96,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
     sub.add_parser("list", help="tabular index of milestone ids")
-    p_show = sub.add_parser("show", help="print orientation for one milestone id (e.g. M3, 3, mcp-0)")
+    p_show = sub.add_parser(
+        "show",
+        help="print orientation for one milestone id (e.g. M3, 3, mcp-0)",
+    )
     p_show.add_argument("id", help="milestone id")
     args = parser.parse_args()
     path = _root() / "task" / "milestone-orientation.json"

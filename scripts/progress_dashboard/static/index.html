@@ -9,48 +9,59 @@
 </head>
 
 <body>
-  <header>
-    <h1>sv0 toolchain progress</h1>
-    <p class="meta">
-      Local dev view · data from <code>/api/digest</code> and <code>/api/milestones</code>
-      · the page reloads digest/milestones on a gentle timer (server caches disk scans)
-    </p>
-    <p id="refresh-status" class="meta subtle"></p>
-  </header>
-  <main>
-    <section id="milestones">
-      <h2>Milestones</h2>
-      <div id="milestone-cards" class="cards"></div>
-    </section>
-    <section id="digest">
-      <h2>Task tracking digest</h2>
-      <p id="digest-summary" class="summary"></p>
-      <div class="table-wrap">
-        <table id="digest-table">
-          <thead>
-            <tr>
-              <th>File</th>
-              <th>Anchors</th>
-              <th>Checklist</th>
-              <th>Errors</th>
-              <th>Warnings</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <details id="digest-raw">
-        <summary>Raw JSON (digest)</summary>
-        <pre id="digest-pre"></pre>
-      </details>
-    </section>
-  </main>
-  <footer>
-    <p>
-      Run <code>./scripts/sv0 progress-dashboard</code> from the repo root, or start
-      <code>uv run sv0-mcp serve</code> (dashboard starts as a sidecar by default).
-    </p>
-  </footer>
+  <div class="page">
+    <header class="header">
+      <h1>Toolchain progress</h1>
+      <p class="lede">
+        A calm read on <strong>milestone entrypoints</strong> and <strong>task-file tracking</strong>
+        (<code>sv0-track</code> checklists). Details stay folded until you need them.
+      </p>
+      <p id="refresh-status" class="meta subtle" aria-live="polite"></p>
+    </header>
+
+    <main class="main">
+      <section class="panel" id="milestones" aria-labelledby="milestones-heading">
+        <div class="panel-head">
+          <h2 id="milestones-heading">Milestones</h2>
+          <p class="panel-hint">Where each design slice lives in <code>task/*.Rmd</code>.</p>
+        </div>
+        <div id="milestone-cards" class="milestone-grid"></div>
+      </section>
+
+      <section class="panel" id="digest" aria-labelledby="digest-heading">
+        <div class="panel-head">
+          <h2 id="digest-heading">Task tracking</h2>
+          <p class="panel-hint">
+            One card per <code>task/*.Rmd</code>. Open a card to see checklist lines ingested for the progress digest.
+          </p>
+        </div>
+
+        <div id="status-strip" class="status-strip" role="region" aria-label="Digest summary"></div>
+
+        <div class="digest-toolbar">
+          <label class="filter-toggle">
+            <input type="checkbox" id="filter-issues" />
+            <span>Show only files with errors or warnings</span>
+          </label>
+        </div>
+
+        <div id="digest-cards" class="digest-cards"></div>
+
+        <details class="dev-details">
+          <summary>Developer: full digest JSON</summary>
+          <pre id="digest-pre" class="digest-pre" tabindex="0"></pre>
+        </details>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>
+        Run <code>./scripts/sv0 progress-dashboard</code> from the repo root, or
+        <code>uv run sv0-mcp serve</code> (dashboard starts as a sidecar by default).
+        Data: <code>/api/milestones</code>, <code>/api/digest</code> — server caches disk scans; this page polls gently.
+      </p>
+    </footer>
+  </div>
   <script src="/static/app.js"></script>
 </body>
 

@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-03-25T00:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-toolchain-milestone-cross-cutting
 key: sv0-toolchain-milestone-cross-cutting
 state: draft
@@ -22,6 +22,16 @@ roadmap_parent: sv0-toolchain-roadmap-full
 ## purpose
 
 track features in the [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) that **do not map cleanly** to a single numbered milestone or that **start after bootstrap** is far enough along. this file is intentionally a **backlog + link hub**; split out child tasks when any stream becomes large.
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"mx.cross.dashboard","title":"Cross-cutting backlog — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"cross-cutting"} -->
+- [ ] Owning **numbered milestone** id noted for the backlog item worked this session
+- [ ] **sv0doc/** vs implementation order respected for normative streams (macros, literate, std)
+- [ ] `./scripts/sv0 test-guards` after **`task/`** or workspace orchestration edits
+<!-- sv0-track:end {"id":"mx.cross.dashboard"} -->
 
 ## configuration
 

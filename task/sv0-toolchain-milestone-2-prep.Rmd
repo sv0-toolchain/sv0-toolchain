@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-19T12:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-toolchain-milestone-2-prep
 key: sv0-toolchain-milestone-2-prep
 state: complete
@@ -33,6 +33,17 @@ from the **sv0-toolchain** root, after submodules are present:
 4. optional: **`./scripts/sv0 doctest`** — Markdown doctests only; **`./scripts/sv0 bootstrap-build`** — VM-compile listed **`.sv0`** seeds.
 
 for the workspace map and **Neo4j** graph refresh after **`task/`** or **sv0doc** edits, see **`task/sv0-toolchain-workspace.Rmd`**.
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m2prep.toolchain.dashboard","title":"M2 prep — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M2-prep"} -->
+- [ ] **`lib/bootstrap-sources.list`**, **`lib/self-host-sv0-loop.list`**, or orchestration scripts touched only with listed validation
+- [ ] `./scripts/sv0 test-guards` green after **`task/`**, **README**, or manifest edits
+- [ ] `./scripts/sv0 test` when integration / bootstrap lists / goldens changed
+- [ ] Graph or MCP sync noted when **`task/`** or **sv0doc/** layout required it
+<!-- sv0-track:end {"id":"m2prep.toolchain.dashboard"} -->
 
 ## dependencies
 

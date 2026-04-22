@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-03-25T00:00:00Z"
+updated: "2026-04-21T19:00:00-06:00"
 id: task-sv0-toolchain-milestone-5-llvm-crypto
 key: sv0-toolchain-milestone-5-llvm-crypto
 state: draft
@@ -20,6 +20,16 @@ roadmap_parent: sv0-toolchain-roadmap-full
 ## purpose
 
 match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 5**: **LLVM IR** lowering from sv0-IR, use of LLVM’s optimization and codegen, and **performance-oriented** work on the **crypto** standard library tier with **contract-backed** guarantees where the design promises them (e.g. constant-time patterns).
+
+## progress dashboard (sv0-track)
+
+Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m5.llvm.dashboard","title":"M5 LLVM + crypto — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M5"} -->
+- [ ] **sv0doc/** and this task updated together when crypto or LLVM contracts shift
+- [ ] Dependency / licensing choices for LLVM or crypto stacks recorded when relevant
+- [ ] `./scripts/sv0 test-guards` after **`task/`** edits; **`./scripts/sv0 test`** when backend code integrated
+<!-- sv0-track:end {"id":"m5.llvm.dashboard"} -->
 
 ## dependencies
 
