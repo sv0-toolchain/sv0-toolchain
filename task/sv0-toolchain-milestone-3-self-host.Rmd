@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-21T18:30:00-06:00"
+updated: "2026-04-22T12:00:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -19,6 +19,17 @@ roadmap_parent: sv0-toolchain-roadmap-full
 ## purpose
 
 match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 3**: the **sv0 compiler is fully implemented in sv0**, reaches **feature parity** with the SML compiler (including a **fully functional VM** path), compiles **itself**, and the **SML bootstrap** is **tagged and moved to legacy** (see **stakeholder decisions**).
+
+## progress dashboard (sv0-track)
+
+High-level **M3** session closure (complements **numbered** **`m3.validation.sequence`** below). Checklist rows bind for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
+
+<!-- sv0-track:begin {"id":"m3.selfhost.session","title":"M3 self-host — session closure checklist","kind":"checklist-region","ingest":"gfm","milestone":"M3"} -->
+- [ ] **`./scripts/sv0 milestone-orient show M3`** re-read when claiming material M3 progress
+- [ ] **`task/sv0-toolchain-milestone-3-checklist.Rmd`** or **`sv0c/doc/transliteration-plan.md`** updated when transliteration inventory moved
+- [ ] Stage0 / vm-parity goldens refreshed when **`lib/`** lowering/parser/vm slices changed
+- [ ] **`task/sv0-toolchain-progress.md`** run log row with **exact** validation commands (**`40-validation-and-proof.mdc`**)
+<!-- sv0-track:end {"id":"m3.selfhost.session"} -->
 
 ## dependencies
 
@@ -359,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-22 (**America/Denver −06:00**): **Slice A — `PatLit` bool in `lower_match_arms`.** `lowering.sv0`: **`lit_tag` 5** (`lower_lit_to_ir_value` bool class) now mirrors SML **`matchArmSetup`** — pattern **`true`** lowers to scrutinee **`!= 0`** (IR binop tag **5**), **`false`** to **`== 0`** (tag **4**); lexer token **91** selects **`true`**; **`is_neg`** flips the sense. Stage0 **`lowering.c`**, vm-parity **`lowering.sv0b`**. Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-21 (**America/Denver −06:00**): **M3 language-surface gap reconciled with landed Phase 0 Tier 1.** **§ language surface gap** rewritten: Tier 1 (**T0-1** … **T0-6**) and integration probes under **`sv0c/test/integration/`** are now the **done** baseline; **remaining** work called out as **Track C** (`CompileError` / `Result` vs SML exceptions), **T0-8** file I/O, optional **T0-2d**, deferrable **T0-7/T0-9**, then **slice A** transliteration (`PatStruct` / **PatLit** / **`lower_tag_match`**). Confirmed **`println(s)`** with `s: string` on bootstrap path (`./scripts/sv0 vm-compile` + `compile-run` on a throwaway probe). Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-17 (**America/Denver −06:00**): **Deep-function transliteration batch 36 — lowerFn prerequisites (SML `exprInitCty`/`scanLets`).** `lowering.sv0`: 2 new functions (`expr_init_cty` — infer type handle from init expression: ExprStruct(24) path, ExprPath(1) 2-seg enum ctor, ExprCall(4) callee return type lookup or 2-seg enum, ExprTuple(25) single-elem recursion, else -1; `scan_lets` — ExprBlock(9) LetStmt(27) walk collecting name+type handle pairs via `expr_init_cty`). 2 new test groups. Also: `doc/bootstrap-compiler-workarounds.md` created (expression depth, per-tag decomposition, C binary stack, while hoisting). `scripts/sv0` `ulimit -s` raised to hard limit for SML/NJ headroom. `.cursor/rules/41-sml-process-and-vm-hang-prevention.mdc` updated with bootstrap compiler limits section. Metrics unchanged: bootstrap 97, self-host 97, stage0 21, vm-parity 97. Function count 105→109. Remaining lowerFn prereqs: `ensGlue`, `injectEnsuresAndRetSlot`, `lowerEnsuresClause` — deferred to core lowering cluster (need IR instruction list representation design; `ensGlue`/`injectEnsuresAndRetSlot` operate on IR output, not AST arena; `lowerEnsuresClause` calls `lowerExprWithInstrs` which is the recursive cluster).
 - 2026-04-16 (**America/Denver −06:00**): **Deep-function transliteration batch 33 — VM codegen `emit_program` (SML `VmCodegen.emit` — top-level).** `vm_codegen.sv0`: 4 new functions (`is_main_label` — string eq check for "main", `build_func_order` — non-main first / main last ordering, `emit_program` — top-level orchestration: builds struct/enum layouts, reorders blocks, emits all functions via `emit_fn`, populates pool + ft_entries for caller to encode via `bytecode.sv0`, `emit_program_1fn` — test helper). 3 new test groups (8 assertions). **VM backend transliteration complete** — all SML `VmCodegen` functions now have sv0 equivalents. `emit_program` returns pool + ft_entries instead of raw bytecode because `encode_strings`/`encode_file` live in `bytecode.sv0` (separate compilation unit); the SML driver links both modules. Note: test functions kept compact due to SML bootstrap compiler stack-depth limit on large files (~2950 lines). For-loop continue optimization deferred.
