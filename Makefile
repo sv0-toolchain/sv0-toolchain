@@ -1,7 +1,7 @@
 # sv0-toolchain — aggregate build, test, and VM integration.
 ROOT := $(abspath .)
 
-.PHONY: help check build test test-guards test-mcp doc fmt integration-vm ci ci-all all milestone-orient milestone-orient-show progress-dashboard
+.PHONY: help check build test test-guards test-mcp doc fmt integration-vm ci ci-all all milestone-orient milestone-orient-show progress-dashboard mcp-light-up mcp-light-down
 
 help:
 	@echo "sv0-toolchain targets:"
@@ -15,6 +15,8 @@ help:
 	@echo "  make milestone-orient — ./scripts/sv0 milestone-orient list"
 	@echo "  make milestone-orient-show ID=M3 — ./scripts/sv0 milestone-orient show <ID>"
 	@echo "  make progress-dashboard — ./scripts/sv0 progress-dashboard (local browser UI)"
+	@echo "  make mcp-light-up    — docker compose up -d Neo4j + progress UI (sv0-mcp; conservative TTL)"
+	@echo "  make mcp-light-down  — docker compose down (sv0-mcp stack)"
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
 	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
 	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"
@@ -41,6 +43,12 @@ milestone-orient-show:
 
 progress-dashboard:
 	@"$(ROOT)/scripts/sv0" progress-dashboard
+
+mcp-light-up:
+	@"$(ROOT)/scripts/sv0" mcp-light-stack up
+
+mcp-light-down:
+	@"$(ROOT)/scripts/sv0" mcp-light-stack down
 
 test-mcp:
 	@"$(ROOT)/scripts/sv0" test-mcp

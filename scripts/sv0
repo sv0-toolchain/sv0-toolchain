@@ -54,6 +54,7 @@ usage: sv0 <command> [args]
   milestone-orient [list | show <id> | <id>]  LLM/human orientation from task/milestone-orientation.json
                        (ids: M0, M1, M2, M2-prep, M3, …, cross-cutting, mcp-0, roadmap; <id> alone means show)
   progress-dashboard [port]  local browser UI for milestone + sv0-track digest (default port 8765; 127.0.0.1 only; SV0_PROGRESS_DASHBOARD_REFRESH sec TTL)
+  mcp-light-stack [up|down]  docker compose in sv0-mcp: Neo4j + progress-dashboard (default up). Uses SV0_MCP_TOOLCHAIN_ROOT (default meta-repo root) and SV0_MCP_PROGRESS_DASHBOARD_REFRESH (default 300) for a light rescan interval.
 
 EOF
 }
@@ -738,6 +739,28 @@ run_progress_dashboard() {
     --root "$ROOT" --port "$port" --refresh-seconds "$refresh"
 }
 
+run_mcp_light_stack() {
+  sv0_require_cmd docker
+  sv0_require_dir "$SV0_MCP"
+  local sub="${1:-up}"
+  local mount_root="${SV0_MCP_TOOLCHAIN_ROOT:-$ROOT}"
+  if [[ "$sub" == "down" ]]; then
+    (cd "$SV0_MCP" && SV0_MCP_TOOLCHAIN_ROOT="$mount_root" docker compose down) || exit 1
+    return 0
+  fi
+  if [[ "$sub" != "up" ]]; then
+    echo "sv0 mcp-light-stack: unknown subcommand '$sub' (use up or down)" >&2
+    exit 1
+  fi
+  local refresh="${SV0_MCP_PROGRESS_DASHBOARD_REFRESH:-300}"
+  (
+    cd "$SV0_MCP" || exit 1
+    export SV0_MCP_TOOLCHAIN_ROOT="$mount_root"
+    export SV0_MCP_PROGRESS_DASHBOARD_REFRESH="$refresh"
+    docker compose up -d
+  ) || exit 1
+}
+
 run_repl() {
   require_sml
   mkdir -p "$SV0C/build/vm"
@@ -895,6 +918,10 @@ case "$cmd" in
     ;;
   milestone-orient)
     run_milestone_orient "$@"
+    ;;
+  mcp-light-stack)
+    shift || true
+    run_mcp_light_stack "${1:-up}"
     ;;
   progress-dashboard)
     run_progress_dashboard "$@"

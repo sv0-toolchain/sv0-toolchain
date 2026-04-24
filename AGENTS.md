@@ -35,6 +35,7 @@ Use this file as the **first** on-ramp when automating work in this meta-repo. N
 |-----------|-----------------|
 | **`task/*.Rmd`** YAML / docs only | `./scripts/sv0 test-guards` (includes **`verify_task_rmd_frontmatter.py`** + optional **`sv0-track`** anchors via **`verify_task_rmd_tracking.py`**) |
 | **Local progress UI** (milestones + digest) | `./scripts/sv0 progress-dashboard` then open **<http://127.0.0.1:8765/>** (optional port arg; **`SV0_PROGRESS_DASHBOARD_REFRESH`** sec server TTL). UI: summary strip, per-task **collapsible cards** (checklists inside), **issues-only** filter, raw JSON under **Developer**. **`uv run sv0-mcp serve`** also spawns the same server by default (**`SV0_MCP_PROGRESS_DASHBOARD=0`** to disable; see **`sv0-mcp/README.md`**) |
+| **Docker Neo4j + progress UI** (optional dev stack) | **`./scripts/sv0 mcp-light-stack up`** (or **`make mcp-light-up`**); tear down with **`down`** / **`make mcp-light-down`**. Uses **`SV0_MCP_TOOLCHAIN_ROOT`** (default meta-repo root) and **`SV0_MCP_PROGRESS_DASHBOARD_REFRESH`** (default **300**). See **`sv0-mcp/README.md`** for compose resource caps. |
 | One **`sv0c/`** bootstrap **`.sv0`** | `./scripts/sv0 vm-compile <rel>` and/or `./scripts/sv0 emit-c <rel>` |
 | Lists, goldens, **`sml/`**, integration | `./scripts/sv0 test-guards` then `./scripts/sv0 test` |
 | After **push** to GitHub (code or tests) | `gh run list --limit 3` then `gh run watch <id>` until success (see **`40-validation-and-proof.mdc`**) |
