@@ -59,6 +59,8 @@ Use **narrow checks during iteration**; escalate only when the change class warr
 
 **Graph / MCP:** run **`sync_graph`** (or **`sv0-mcp`** sync) when **tasks** or normative **`sv0doc/`** layout change — not for every rule-only edit (**`32-sv0-mcp-tooling-boundaries.mdc`**).
 
+**Lightweight Neo4j + progress UI (optional):** **`make mcp-light-up`** / **`./scripts/sv0 mcp-light-stack up`** (and **`… down`**) drive **`sv0-mcp/docker-compose.yml`** with conservative defaults (**`SV0_MCP_PROGRESS_DASHBOARD_REFRESH`**, **`SV0_MCP_TOOLCHAIN_ROOT`**); see **`sv0-mcp/README.md`** and **`AGENTS.md`**.
+
 ## Phase 4 — Validate, integrate, ship
 
 Follow **## Fast validation loop** for default tiering. Validate with the **narrowest** relevant commands that still match the change class, then broaden; **name them** in the report (**`.cursor/rules/40-validation-and-proof.mdc`**).
