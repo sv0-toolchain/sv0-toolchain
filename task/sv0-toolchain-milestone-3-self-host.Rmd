@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-24T23:30:00-07:00"
+updated: "2026-04-24T20:15:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-24 (**America/Los_Angeles −07:00**, later): **Lowering — `ItemUse` → `import_aliases` auto-fill.** `sv0c/lib/lowering.sv0`: when `lower(...)` receives an empty `import_aliases` vec, `lower_fill_import_aliases_from_use_items` scans `ItemUse` rows (`ppc == 2`) and registers `short_h -> lib__short` mangled ItemFn names so `resolve_fn_callee` / `match_scrut_cty` agree with resolver-style value imports; adds `test_fill_import_aliases_from_use_items`. Stage0 `lowering.c`; vm-parity `lowering.sv0b`; **`bash scripts/capture_vm_parity_goldens.sh`** rewrote **97** goldens (only `lowering.sv0b` drifted vs prior commit). Landed on **`sv0c`** **`6a0133c`**. Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-24 (**America/Los_Angeles −07:00**, later): **Lowering — thread `import_aliases` for `match_scrut_cty`.** `sv0c/lib/lowering.sv0`: new `import_aliases: Vec<i32>` parameter on `lower` / `lower_fn` / `lower_expr_to_value` (and match-related callees) so `match_scrut_cty` receives the resolver alias table for `ExprCall` scrutinees (SML `importAliases` + `callee_fn_index_match_env`); `lower_tag_match` no longer allocates an empty `aliases_mt`. Callers pass `vec_new()` until orchestration fills alias pairs. Stage0 `lowering.c`; **`bash scripts/capture_vm_parity_goldens.sh`** refreshed all **97** vm-parity goldens (bytecode drift from lowering signature churn). Landed on **`sv0c`** **`cb60ca3`**. Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-24 (**America/Los_Angeles −07:00**): **VM codegen member/field loads on variable bases.** `sv0c/lib/vm_codegen.sv0` now lowers both `VMember(VVar, field)` and `Expr::FieldAccess(VVar, field)` to `LOAD_LOCAL` with enum-tag sentinel normalization (`-1 -> 0`) and bounds checks; shared helper path removes duplicate offset math in the two branches. Refreshed `lib/golden/stage0/vm_codegen.c` and `test/vm-parity/golden/sml/vm_codegen.sv0b` to keep stage0 and parity checks aligned (`sv0c` commits `8989c08` + `d646c00`; prior member-load + golden slices `42576d5` + `bc499af`). Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-25 (**America/Denver −06:00**, later): **Match env clone regression + VM integration index.** **`test_lower_match_env_clone_scrut_roundtrip`** documents that **`lower_match_env_clone`** must copy the packed scrut tail and that **`append_scrut_pair`** on the per-arm clone does not mutate the parent env’s **`scrut_count`**. **`sv0c/test/integration/README.md`** lists cases exercised by **`task/sv0vm-milestone-2/02-integration-test.sh`**; **`lib/LAYOUT.md`** links both. Landed on **`sv0c`** **`d354dce`** (see meta submodule **`175a0bd`**). Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
