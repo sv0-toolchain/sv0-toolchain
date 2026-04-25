@@ -117,6 +117,21 @@ else
   failures=$((failures + 1))
 fi
 
+echo -n "  import_use_match (project)... "
+if compile_vm_project "test/integration/import_use_match" && [[ -f "$SV0C_ROOT/build/vm/main.sv0b" ]]; then
+  out="$(capture_vm "$SV0C_ROOT/build/vm/main.sv0b")" || true
+  if echo "$out" | grep -q "vm_exit:0"; then
+    echo "PASS (exit 0)"
+  else
+    echo "FAIL (expected vm_exit:0)"
+    echo "$out" | tail -20
+    failures=$((failures + 1))
+  fi
+else
+  echo "FAIL (compile or missing main.sv0b)"
+  failures=$((failures + 1))
+fi
+
 echo -n "  println_ok... "
 if compile_vm "test/data/golden/pass/println_ok.sv0" && [[ -f "$SV0C_ROOT/build/vm/println_ok.sv0b" ]]; then
   out="$(capture_vm "$SV0C_ROOT/build/vm/println_ok.sv0b")" || true

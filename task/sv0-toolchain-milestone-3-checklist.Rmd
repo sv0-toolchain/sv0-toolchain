@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-25T18:45:00-06:00"
+updated: "2026-04-24T23:05:00-06:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -73,6 +73,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 ## session log (agent)
 
+- **2026-04-24:** **`test/integration/import_use_match/`** + **`task/sv0vm-milestone-2/02-integration-test.sh`** — VM project harness: **`use lib::forty_two`** + **`match forty_two()`** (`PatLit`) end-to-end on **`--target=vm`** (`sv0c` **`5400c6c`**). **`sv0c/test/integration/README.md`** case row.
 - **2026-04-25:** **`lib/lowering.sv0`** — **`lower_match_arms`** registers **`PatEnum`** tuple and **`PatStruct`** field **`Assign`** bindings in packed scrut-local **`[8..10]`** via **`lower_match_env_append_scrut_pair`** (submodule **`512ba84`** on **`sv0c`** **`main`**). Authoritative note: **`sv0c/doc/transliteration-plan.md`** session + migration paragraph.
 
 ## related
