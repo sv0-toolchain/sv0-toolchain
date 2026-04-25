@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-22T22:55:00-06:00"
+updated: "2026-04-25T18:45:00-06:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-25 (**America/Denver −06:00**): **Packed match env — scrut names for enum tuple + struct field arms.** **`lower_match_arms`** ( **`lib/lowering.sv0`** ) mirrors **`PatBind`** by appending **`(name_h, scrut_cty)`** for each payload **`Assign`** introduced by **`PatEnum`** / **`PatStruct`** after **`lower_match_env_clone`**, so **`match_scrut_cty`** resolves those bindings inside nested matches on the arm body. Stage0 **`lowering.c`** + vm-parity **`lowering.sv0b`** refreshed on **`sv0c`** **`512ba84`**. Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-22 (**America/Denver −06:00**): **Agent workflow / M3 harness — lightweight MCP stack + scrut regression.** Meta-repo: **`make mcp-light-up`** / **`./scripts/sv0 mcp-light-stack`** for bounded **`sv0-mcp`** compose (Neo4j + progress-dashboard; **`AGENTS.md`**, **`.cursor/commands/continue-development.md`**). **`sv0c`:** landed **`test_lower_match_env_scrut_merge_roundtrip`** (**`lower_match_env_merge_parent_scrut`** / **`lower_match_env_scrut_ty_lookup`**) on **`main`** via submodule bump — see rollup run log. Draft **`scripts/patch_lowering_match_inherit.py`** removed from workspace (untracked mechanical helper superseded by **`match_env_inherit`**). Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-22 (**America/Denver −06:00**): **Slice A — `PatLit` bool in `lower_match_arms`.** `lowering.sv0`: **`lit_tag` 5** (`lower_lit_to_ir_value` bool class) now mirrors SML **`matchArmSetup`** — pattern **`true`** lowers to scrutinee **`!= 0`** (IR binop tag **5**), **`false`** to **`== 0`** (tag **4**); lexer token **91** selects **`true`**; **`is_neg`** flips the sense. Stage0 **`lowering.c`**, vm-parity **`lowering.sv0b`**. Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
 - 2026-04-21 (**America/Denver −06:00**): **M3 language-surface gap reconciled with landed Phase 0 Tier 1.** **§ language surface gap** rewritten: Tier 1 (**T0-1** … **T0-6**) and integration probes under **`sv0c/test/integration/`** are now the **done** baseline; **remaining** work called out as **Track C** (`CompileError` / `Result` vs SML exceptions), **T0-8** file I/O, optional **T0-2d**, deferrable **T0-7/T0-9**, then **slice A** transliteration (`PatStruct` / **PatLit** / **`lower_tag_match`**). Confirmed **`println(s)`** with `s: string` on bootstrap path (`./scripts/sv0 vm-compile` + `compile-run` on a throwaway probe). Metrics unchanged (97 / 97 / 21 / 97). **M3 still not met.**
