@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-04-25T18:45:00-06:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -70,6 +70,10 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 | **`sv0c/test/vm-parity/`** | SML bytecode goldens; manifest paths must ⊆ **`bootstrap-sources.list`** (meta **`verify_vm_parity_manifest_bootstrap.py`**). |
 | **`sv0c/examples/learn/*.sv0`** (and nested dirs) | Informal tutorials (**not** on bootstrap/vm-parity lists); teach **`vm-compile`** / **`vm-project-compile`** / **`vm-run`** / **`emit-c`**. |
 | **`sv0c/examples/libs/*/`** | **Educational library-shaped** packages (`edu_clamp`, `edu_bits`, …) + Markdown; **not** bootstrap seeds; **`vm-project-compile`** per package root. |
+
+## session log (agent)
+
+- **2026-04-25:** **`lib/lowering.sv0`** — **`lower_match_arms`** registers **`PatEnum`** tuple and **`PatStruct`** field **`Assign`** bindings in packed scrut-local **`[8..10]`** via **`lower_match_env_append_scrut_pair`** (submodule **`512ba84`** on **`sv0c`** **`main`**). Authoritative note: **`sv0c/doc/transliteration-plan.md`** session + migration paragraph.
 
 ## related
 
