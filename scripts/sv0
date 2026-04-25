@@ -126,7 +126,7 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_task_rmd_tracking.py" --root "$ROOT"; then
     ec=1
   fi
-  sv0_info "$label: README.md sv0c pinned SHA vs git submodule (HEAD)"
+  sv0_info "$label: README.md sv0c pinned SHA vs git submodule (index or HEAD)"
   if ! python3 "$ROOT/scripts/verify_readme_sv0c_gitlink.py" --root "$ROOT"; then
     ec=1
   fi
