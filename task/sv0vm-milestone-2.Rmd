@@ -1,6 +1,6 @@
 ---
 created: "2026-03-22T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-04-24T23:25:00-06:00"
 id: task-sv0vm-milestone-2
 key: sv0vm-milestone-2
 state: complete
@@ -115,7 +115,7 @@ the pipeline is wired from the toolchain root: `make integration-vm`, `./scripts
 ## milestone 2 closure summary (2026-04-01)
 
 - **Bytecode / spec:** format and opcodes documented under `sv0doc/bytecode/`; sv0c VM backend and sv0vm decode/execute align with CI.
-- **VM feature coverage:** matches the **sv0c integration** scenarios exercised by the C path: hello, contracts, pattern match exit codes, structs, monomorphic generics placeholder, multi-file `module`/`use` projects, and golden `println` — all run via `sv0c --target=vm` + sv0vm.
+- **VM feature coverage:** matches the **sv0c integration** scenarios exercised by the C path: hello, contracts, pattern match exit codes, structs, monomorphic generics placeholder, multi-file `module`/`use` projects (including **`import_use_match`** — `use` + **`match`** on an imported call), and golden `println` — all run via `sv0c --target=vm` + sv0vm.
 - **Contracts:** runtime contract checks exercised in integration (`contracts.sv0`) on the VM path; golden **`no_alias_requires`** also runs on VM (**`no_alias` / `&param`** via slot tokens + **`CALL_BUILTIN` 1**).
 - **REPL:** `./scripts/sv0 repl` evaluates **i32** expressions and **`println("...")`** lines via compile-to-bytecode + `run_sv0b.sml` (sentinel `SV0VM_RUN_BEGIN` keeps loader noise out of the user-visible slice).
 - **Performance:** VM path optimizes for fast iteration (no `cc`); no formal perf parity with C required for this milestone.
