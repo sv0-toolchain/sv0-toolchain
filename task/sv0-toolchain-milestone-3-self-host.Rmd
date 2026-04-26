@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T17:30:00-07:00"
+updated: "2026-04-24T12:15:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-24 (**America/Los_Angeles −07:00**): **Include expansion — `join_lines`.** **`lib/include_expand.sv0`**: **`join_lines`** rebuilds text from **`split_lines`** `(starts, lens, count)` (same newline join as **`expand_text_table2`**); **`test_join_lines_roundtrip`** (multiline and trailing-newline case). Stage0 **`include_expand.c`** + vm-parity **`include_expand.sv0b`**. Landed on **`sv0c`** **`3c76dcb`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Integration — `import_use_match` two `use` lines.** **`test/integration/import_use_match/`** adds **`use lib::neg_one`** and **`match neg_one()`** after **`forty_two`** guard (merged **`ItemUse`** alias table + **`match_scrut_cty`**). **`sv0c`** (post-**`cad02e4`**). **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Include expansion — in-memory `expand_text_table2`.** Line-wise include resolution with a **2-slot** path→body table, **`E0322`** / **`E0323`** markers, and **`test_expand_text_table2_*`**. Stage0 **`include_expand.c`** + vm-parity **`include_expand.sv0b`**. Landed on **`sv0c`** **`cad02e4`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Lowering — always merge `ItemUse` into `import_aliases`.** **`lower(...)`** unconditionally calls **`lower_fill_import_aliases_from_use_items`** so resolver-style preloaded alias rows stay intact while **`ItemUse`** rows add **`mod::short` → `mod__short`** pairs ( **`test_fill_import_aliases_merges_with_preload`** ). Stage0 **`lowering.c`** + vm-parity **`lowering.sv0b`**. Landed on **`sv0c`** **`f643096`**. **M3 still not met.**
