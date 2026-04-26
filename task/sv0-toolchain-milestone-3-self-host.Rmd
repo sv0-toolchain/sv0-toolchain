@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T21:50:00-07:00"
+updated: "2026-04-25T22:05:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-25 (**America/Los_Angeles −07:00**): **Lexer seed — digit class edge cases.** **`lib/lexer.sv0`** adds **`test_digit_class_edges`**; refreshed stage0 **`lexer.c`** and vm-parity **`lexer.sv0b`**. Landed on **`sv0c`** **`0527026`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Bytecode seed — logical opcode band constants.** **`lib/bytecode.sv0`** adds **`test_logical_opcode_cluster`**; refreshed stage0 **`bytecode.c`** and vm-parity **`bytecode.sv0b`**. Landed on **`sv0c`** **`29bc1a8`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Diagnostic seed — negative `diag_int_to_str`.** **`lib/diagnostic.sv0`** extends **`test_diag_int_to_str`**; refreshed stage0 **`diagnostic.c`** and vm-parity **`diagnostic.sv0b`**. Landed on **`sv0c`** **`2f30730`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **AST seed — `ExprLoop` / `ExprTry` tags.** **`lib/ast.sv0`** adds **`test_expr_loop_try_tags`**; refreshed stage0 **`ast.c`** and vm-parity **`ast.sv0b`**. Landed on **`sv0c`** **`7c1513b`**. **M3 still not met.**
