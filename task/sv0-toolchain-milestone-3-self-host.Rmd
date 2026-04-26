@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T20:15:00-07:00"
+updated: "2026-04-25T20:35:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-25 (**America/Los_Angeles −07:00**): **Span seed — negative `span_int_to_str`.** **`lib/span.sv0`** adds **`test_int_to_str_negative`**; refreshed stage0 **`span.c`** and vm-parity **`span.sv0b`**. Landed on **`sv0c`** **`82db82e`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Unify seed — nested `TySlice`/`TyRef` regression.** **`lib/unify.sv0`** adds **`test_nested_slice_ref`** (slice-of-ref must agree on inner element type); refreshed stage0 **`unify.c`** and vm-parity **`unify.sv0b`**. Landed on **`sv0c`** **`1b82c32`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Integration widening — `import_use_match` now uses four imports.** Added **`use lib::one`** + guard in `main.sv0` and `one()` in fixture library; integration harness still passes. Landed on **`sv0c`** **`755e706`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Include expansion depth guard regression.** Added **`test_expand_text_table3_depth_limit`** in **`lib/include_expand.sv0`** to lock **`E0323`** behavior for nested includes at max depth; refreshed stage0/vm-parity include-expand goldens. Landed on **`sv0c`** **`0363d15`** (fix-forward after CI exposed a bad test expectation). **M3 still not met.**
