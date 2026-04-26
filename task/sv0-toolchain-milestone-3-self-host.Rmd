@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T21:05:00-07:00"
+updated: "2026-04-25T21:20:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-25 (**America/Los_Angeles −07:00**): **AST seed — `ExprLoop` / `ExprTry` tags.** **`lib/ast.sv0`** adds **`test_expr_loop_try_tags`**; refreshed stage0 **`ast.c`** and vm-parity **`ast.sv0b`**. Landed on **`sv0c`** **`7c1513b`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **IR seed — `IndexAccess` expr tag.** **`lib/ir.sv0`** adds **`test_index_access_expr`**; refreshed stage0 **`ir.c`** and vm-parity **`ir.sv0b`**. Landed on **`sv0c`** **`be8b359`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Env seed — type registration by interned handle.** **`lib/env.sv0`** adds **`test_type_is_registered_by_handle_only`**; refreshed stage0 **`env.c`** and vm-parity **`env.sv0b`**. Landed on **`sv0c`** **`50efba1`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Span seed — negative `span_int_to_str`.** **`lib/span.sv0`** adds **`test_int_to_str_negative`**; refreshed stage0 **`span.c`** and vm-parity **`span.sv0b`**. Landed on **`sv0c`** **`82db82e`**. **M3 still not met.**
