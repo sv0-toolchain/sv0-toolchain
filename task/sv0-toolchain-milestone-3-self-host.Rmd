@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T18:26:00-07:00"
+updated: "2026-04-25T18:38:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,7 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
-- 2026-04-25 (**America/Los_Angeles −07:00**): **Include expansion depth guard regression.** Added **`test_expand_text_table3_depth_limit`** in **`lib/include_expand.sv0`** to lock **`E0323`** behavior for nested includes at max depth; refreshed stage0/vm-parity include-expand goldens. Landed on **`sv0c`** **`df2cd01`**. **M3 still not met.**
+- 2026-04-25 (**America/Los_Angeles −07:00**): **Include expansion depth guard regression.** Added **`test_expand_text_table3_depth_limit`** in **`lib/include_expand.sv0`** to lock **`E0323`** behavior for nested includes at max depth; refreshed stage0/vm-parity include-expand goldens. Landed on **`sv0c`** **`0363d15`** (fix-forward after CI exposed a bad test expectation). **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Linker helper — default module id from entry path.** **`lib/link.sv0`** adds **`module_id_from_entry_path`** and test coverage; refreshed stage0/vm-parity **`link`** goldens. Landed on **`sv0c`** **`06a5003`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Driver pathing — VM output from input filename.** **`lib/main.sv0`** adds **`vm_output_sv0b_for_input_path`** (`path`→`base_name_sv0`→VM output path), with unit tests; refreshed stage0/vm-parity **`main`** goldens. Landed on **`sv0c`** **`5f1121d`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Lowering shadowing fix — newest scrut-local binding wins.** **`lib/lowering.sv0`** now scans bounded scrut-local rows newest→oldest in **`lower_match_env_scrut_ty_lookup`**, with regression coverage in **`test_lower_match_env_scrut_merge_roundtrip`**; refreshed stage0/vm-parity **`lowering`** goldens. Landed on **`sv0c`** **`7f80cc0`**. **M3 still not met.**
