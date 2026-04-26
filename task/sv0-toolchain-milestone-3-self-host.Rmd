@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T17:48:00-07:00"
+updated: "2026-04-25T17:57:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-25 (**America/Los_Angeles −07:00**): **Lowering shadowing fix — newest scrut-local binding wins.** **`lib/lowering.sv0`** now scans bounded scrut-local rows newest→oldest in **`lower_match_env_scrut_ty_lookup`**, with regression coverage in **`test_lower_match_env_scrut_merge_roundtrip`**; refreshed stage0/vm-parity **`lowering`** goldens. Landed on **`sv0c`** **`7f80cc0`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Linker seed hardening — source-file selection helper.** **`lib/link.sv0`** adds **`is_link_source_file`** (visible `.sv0` filter) + unit test; refreshed stage0 **`link.c`** and vm-parity **`link.sv0b`**. Landed on **`sv0c`** **`8e4e00e`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Driver helpers — VM output path construction.** **`lib/main.sv0`** adds **`vm_output_sv0b_path`** and **`vm_output_sv0b_for_entry`** with unit coverage; vm-parity **`main.sv0b`** refreshed. Landed on **`sv0c`** **`e3104ba`**. **M3 still not met.**
 - 2026-04-24 (**America/Los_Angeles −07:00**): **Integration — `import_use_match` three `use` lines.** **`use lib::zero`**, **`lib::zero`**, **`zero()`** guard before **`match neg_one()`**; **`test/integration/README.md`**, **`doc/transliteration-plan.md`**, **`PROGRESS.md`**. Landed on **`sv0c`** **`e425a2b`**. **M3 still not met.**
