@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T22:35:00-07:00"
+updated: "2026-04-26T12:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**): **Integration widening — `import_use_match` now uses six imports.** Added **`use lib::three`**, **`three()`** guard, and **`fn three`** in the fixture library; **`test/integration/README.md`**. Landed on **`sv0c`** **`d6da770`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Integration widening — `import_use_match` now uses five imports.** Added **`use lib::two`**, **`two()`** guard, and **`fn two`** in the fixture library; integration index updated. Landed on **`sv0c`** **`864f91c`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Contract analyzer seed — chained `analyze`.** **`lib/contract_analyzer.sv0`** **`main`** now checks **`analyze(analyze(99))`**; refreshed stage0 **`contract_analyzer.c`** and vm-parity **`contract_analyzer.sv0b`**. Landed on **`sv0c`** **`a64976b`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **Lexer seed — digit class edge cases.** **`lib/lexer.sv0`** adds **`test_digit_class_edges`**; refreshed stage0 **`lexer.c`** and vm-parity **`lexer.sv0b`**. Landed on **`sv0c`** **`0527026`**. **M3 still not met.**
