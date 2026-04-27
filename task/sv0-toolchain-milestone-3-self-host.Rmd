@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T14:30:00-07:00"
+updated: "2026-04-26T14:35:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**): **Checker — `named_only_ty` basic classifier.** **`lib/checker.sv0`** adds **`test_named_only_ty_basic`**; refreshed stage0 **`checker.c`** and vm-parity **`checker.sv0b`**. Landed on **`sv0c`** **`1c82a80`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Token enum — compound-assign + fat-arrow tags.** **`lexer/token.sv0`** adds **`test_compound_assign_cluster`** (**`PLUSEQ`**, **`GTGTEQ`**, **`LTLTEQ`**, **`FATARROW`**); refreshed stage0 **`token.c`** and vm-parity **`token.sv0b`**. Landed on **`sv0c`** **`4917f9c`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Types seed — numeric + ref-mut + slice surface.** **`lib/types.sv0`** **`main`** now asserts **`TyUint`/`TyFloat`** tags and **`TyRefMut`/`TySlice`** box shapes; refreshed stage0 **`types.c`** and vm-parity **`types.sv0b`**. Landed on **`sv0c`** **`bef1c0c`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Integration widening — `import_use_match` now uses six imports.** Added **`use lib::three`**, **`three()`** guard, and **`fn three`** in the fixture library; **`test/integration/README.md`**. Landed on **`sv0c`** **`d6da770`**. **M3 still not met.**
