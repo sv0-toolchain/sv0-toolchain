@@ -6,7 +6,7 @@ relative). CI grows this list slice-by-slice; when **M3-S-014** is included, the
 asserts the full ``sv0c/lib|lexer|parser`` ``*.sv0`` scan (same coverage as
 ``verify_compiler_sv0_no_raise.py``) for that slice row.
 
-See ``task/sv0-toolchain-milestone-3-self-host.Rmd`` **### G1 slice status**.
+See ``task/sv0-toolchain-milestone-3-self-host.Rmd`` **## M3 G1 slice status (Track C)**.
 """
 
 from __future__ import annotations

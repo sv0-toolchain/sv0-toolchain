@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-27T20:00:00-07:00"
+updated: "2026-04-27T20:15:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -154,6 +154,28 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 - **Default next slice:** **M3-S-007** (checker — first **`raise Fail` → `Result`** tranche in **`lib/checker.sv0`**) — **M3-S-005**/**M3-S-006** parser **`raise Fail`** batches are **closed** on current tree (no **`raise`** token under **`sv0c/lib|lexer|parser`**; **`verify_compiler_sv0_no_raise.py`** enforces this in **`./scripts/sv0 test-guards`**).
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
+
+## M3 G1 slice status (Track C)
+
+Rolling mirror of **`## documented M3 slice backlog`** rows **M3-S-004 … M3-S-014** (G1 — SML-style **`raise`** elimination / **`Result`**-shaped control flow).
+
+**Progress dashboard:** **`./scripts/sv0 progress-dashboard`** reads **`task/*.Rmd`** digest JSON. The pipe table below lives inside **`sv0-track:begin` … `end`** with **`"ingest":"table"`** so each **non-separator** row becomes one digest checklist line ( **`Status`** drives **`done`**: **`Done`**, **`Met`**, **`Yes`**, … vs **`Pending`**, **`Open`**, … ) — see **`scripts/task_rmd_tracking.py`**.
+
+<!-- sv0-track:begin {"id":"m3.g1.slice.status","title":"M3 G1 slice status (Track C)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
+| Slice | Status | Primary notes |
+|-------|--------|---------------|
+| M3-S-004 | Done | Parser — speculative `Fail` → `Option` |
+| M3-S-005 | Done | Parser — `raise Fail` batch A (`try_assign_stmt` / field targets) |
+| M3-S-006 | Done | Parser — `raise Fail` batch B (no `raise` token under `lib|lexer|parser`) |
+| M3-S-007 | Pending | Checker — `raise Fail` batch A (`lib/checker.sv0`) |
+| M3-S-008 | Pending | Checker — `raise Fail` batch B |
+| M3-S-009 | Pending | Lowering — `raise Fail` → `Result` (`lib/lowering.sv0`) |
+| M3-S-010 | Pending | Resolver — exception bridge (`lib/resolver.sv0`) |
+| M3-S-011 | Pending | VM codegen — exception bridge (`lib/vm_codegen.sv0`) |
+| M3-S-012 | Pending | `codegen.sv0` / `bytecode.sv0` / `env.sv0` |
+| M3-S-013 | Pending | `link` / `lexer` / `include_expand` / `unify` / `diagnostic` |
+| M3-S-014 | Met | `scripts/verify_compiler_sv0_no_raise.py` + repo-wide `.sv0` audit (see `sv0c/doc/m3-g1-track-c.md`) |
+<!-- sv0-track:end {"id":"m3.g1.slice.status"} -->
 
 ## validation (agents)
 

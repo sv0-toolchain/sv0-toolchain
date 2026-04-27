@@ -38,6 +38,7 @@ You may add **single-line** HTML comments so dashboards and future tooling can b
 - **Region:** `<!-- sv0-track:begin {"id":"…","ingest":"numbered"} -->` … `<!-- sv0-track:end {"id":"…"} -->` — **`end`** with no **`id`** closes the innermost open region. Nested regions must use distinct open **`id`**s (no duplicate open ids).
 - **GFM checklists:** `- [ ]` / `- [x]` lines bind to the **innermost open region**, an **inline** trailer `<!-- sv0-track: {"id":"…"} -->` on the same line, or a **standalone** anchor on the previous non-empty line (blank lines between anchor and item are allowed).
 - **Numbered lists:** only when a region’s JSON sets **`ingest`** to **`numbered`** or **`both`**; lines must match `1.` … with text after the marker.
+- **Markdown pipe tables:** when a region’s JSON sets **`ingest`** to **`table`**, lines that look like **`| col | col |`** inside the region are parsed: a header row (columns containing **`Slice`** and **`Status`**) plus a separator row (`| --- |`), then each subsequent row becomes one digest checklist item (the **`Status`** cell sets **`done`** for **`./scripts/sv0 progress-dashboard`**).
 
 Malformed anchors (bad JSON, unclosed **`begin`**, **`end`** without **`begin`**, duplicate standalone **`id`**, literal **`-->`** inside JSON) fail **`scripts/verify_task_rmd_tracking.py`** (part of **`./scripts/sv0 test-guards`**). Unknown JSON keys produce **warnings** unless you pass **`--strict`**.
 

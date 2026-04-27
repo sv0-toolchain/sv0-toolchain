@@ -58,7 +58,7 @@ class ChecklistItem:
     done: bool
     text: str
     track_ids: list[str]
-    source: Literal["region", "prev_line", "inline"]
+    source: Literal["region", "prev_line", "inline", "table"]
 
 
 @dataclass
@@ -139,9 +139,10 @@ def _validate_semantic_fields(
 ) -> None:
     """Validate well-known keys beyond JSON typing (errors for inconsistent task files)."""
     ing = obj.get("ingest")
-    if ing is not None and ing not in ("gfm", "numbered", "both"):
+    if ing is not None and ing not in ("gfm", "numbered", "both", "table"):
         result.errors.append(
-            f"{path}:{line}: ingest must be one of 'gfm', 'numbered', 'both' (got {ing!r})"
+            f"{path}:{line}: ingest must be one of 'gfm', 'numbered', 'both', 'table' "
+            f"(got {ing!r})"
         )
     done = obj.get("done")
     if done is not None and not isinstance(done, bool):
@@ -293,6 +294,55 @@ def _line_is_numbered_step(line: str) -> bool:
     return bool(re.match(r"^[ \t]*\d+\.\s+\S", line))
 
 
+def _ingest_table_for_region(open_payload: dict[str, Any]) -> bool:
+    ing = open_payload.get("ingest")
+    return ing == "table"
+
+
+def _parse_markdown_table_row(line: str) -> list[str] | None:
+    """Return trimmed cell strings for a ``| a | b |`` row, or None if not a pipe row."""
+    s = line.strip()
+    if not (s.startswith("|") and s.endswith("|")):
+        return None
+    inner = s[1:-1]
+    parts = [p.strip() for p in inner.split("|")]
+    return parts
+
+
+def _table_row_is_separator(cells: list[str]) -> bool:
+    """True for markdown alignment rows like ``| --- | :--- |``."""
+    if not cells:
+        return False
+
+    def cell_is_rule(c: str) -> bool:
+        t = c.strip()
+        if not t:
+            return True
+        return bool(re.fullmatch(r":?-{3,}:?", t))
+
+    return all(cell_is_rule(c) for c in cells)
+
+
+def _table_row_looks_like_header(cells: list[str]) -> bool:
+    joined = " ".join(c.lower() for c in cells)
+    return "slice" in joined and "status" in joined
+
+
+def _table_status_done(status_cell: str) -> bool:
+    t = status_cell.strip().lower()
+    if t.startswith("[x]"):
+        return True
+    return t in (
+        "done",
+        "yes",
+        "complete",
+        "closed",
+        "shipped",
+        "met",
+        "satisfied",
+    )
+
+
 def parse_task_rmd_body(
     body: str, *, path: str, body_start_line: int = 1
 ) -> ParseResult:
@@ -334,7 +384,10 @@ def parse_task_rmd_body(
                         "(duplicate open region ids are not allowed)"
                     )
                 else:
-                    region_stack.append(track_anchor.payload)
+                    pl = track_anchor.payload
+                    region_stack.append(pl)
+                    if str(pl.get("ingest")) == "table":
+                        pl["_table_phase"] = "pre_header"
                 prev_nonempty_was_standalone_track = None
             elif track_anchor.form == "end":
                 end_id = track_anchor.payload.get("id")
@@ -365,6 +418,83 @@ def parse_task_rmd_body(
         # Non-track line: maybe GFM checklist or numbered ingest.
         stripped = raw_line.strip()
         if stripped == "":
+            continue
+
+        # Markdown pipe tables inside sv0-track:begin … end when ingest is "table".
+        # Each non-separator data row becomes one digest checklist item (done from Status col).
+        if region_stack and _ingest_table_for_region(region_stack[-1]):
+            top = region_stack[-1]
+            cells = _parse_markdown_table_row(raw_line)
+            if cells is None:
+                result.warnings.append(
+                    f"{path}:{ln}: non-pipe line inside sv0-track table region "
+                    f"(id {top.get('id')!r}); skipping"
+                )
+                prev_nonempty_was_standalone_track = None
+                continue
+            if not any(c.strip() for c in cells):
+                prev_nonempty_was_standalone_track = None
+                continue
+            if _table_row_is_separator(cells):
+                top["_table_phase"] = "body"
+                prev_nonempty_was_standalone_track = None
+                continue
+            phase = str(top.get("_table_phase", "pre_header"))
+            if phase == "pre_header":
+                if _table_row_looks_like_header(cells):
+                    top["_table_phase"] = "after_header"
+                else:
+                    top["_table_phase"] = "body"
+                    if len(cells) >= 2:
+                        tid = str(top["id"])
+                        st = cells[1].strip()
+                        slice_cell = cells[0].strip()
+                        tail = " | ".join(c.strip() for c in cells[2:] if c.strip())
+                        text = f"{slice_cell} — {st}" + (f" — {tail}" if tail else "")
+                        result.checklist_items.append(
+                            ChecklistItem(
+                                line=ln,
+                                done=_table_status_done(st),
+                                text=text,
+                                track_ids=[tid],
+                                source="table",
+                            )
+                        )
+                prev_nonempty_was_standalone_track = None
+                continue
+            if phase == "after_header":
+                if _table_row_is_separator(cells):
+                    top["_table_phase"] = "body"
+                else:
+                    result.warnings.append(
+                        f"{path}:{ln}: expected markdown table separator row "
+                        f"after header in table region id {top.get('id')!r}"
+                    )
+                prev_nonempty_was_standalone_track = None
+                continue
+            # body
+            if len(cells) < 2:
+                result.warnings.append(
+                    f"{path}:{ln}: table data row needs at least two columns "
+                    f"(slice + status) in region id {top.get('id')!r}"
+                )
+                prev_nonempty_was_standalone_track = None
+                continue
+            tid = str(top["id"])
+            slice_cell = cells[0].strip()
+            st = cells[1].strip()
+            tail = " | ".join(c.strip() for c in cells[2:] if c.strip())
+            text = f"{slice_cell} — {st}" + (f" — {tail}" if tail else "")
+            result.checklist_items.append(
+                ChecklistItem(
+                    line=ln,
+                    done=_table_status_done(st),
+                    text=text,
+                    track_ids=[tid],
+                    source="table",
+                )
+            )
+            prev_nonempty_was_standalone_track = None
             continue
 
         # GFM task item
@@ -692,6 +822,27 @@ x: y
     if not r_err_ln.errors or ":5:" not in r_err_ln.errors[0]:
         errs.append(
             f"expected malformed track error on line 5 (two-line yaml fm), got {r_err_ln.errors!r}"
+        )
+
+    # Markdown table ingest (digest / progress-dashboard checklist synthesis)
+    t14 = """---
+x: y
+---
+
+<!-- sv0-track:begin {"id":"tbl.a","ingest":"table"} -->
+| Slice | Status |
+|-------|--------|
+| A | Done |
+| B | Pending |
+<!-- sv0-track:end {"id":"tbl.a"} -->
+"""
+    errs.extend(check(t14, want_errors=0, want_items=2))
+    r14 = parse_task_rmd_text(t14, path="<selftest>")
+    if r14.checklist_items[0].source != "table" or r14.checklist_items[1].source != "table":
+        errs.append(f"expected table sources, got {[c.source for c in r14.checklist_items]}")
+    if r14.checklist_items[0].done is not True or r14.checklist_items[1].done is not False:
+        errs.append(
+            f"expected Done/Pending row done flags, got {[(c.done, c.text) for c in r14.checklist_items]}"
         )
 
     return errs
