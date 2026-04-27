@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-27T18:30:00-07:00"
+updated: "2026-04-27T20:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -487,6 +487,38 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | M3-S-012 | G1 | **C codegen / bytecode / env — exception bridge** | Remaining **`raise`** in **`codegen.sv0`**, **`bytecode.sv0`**, **`env.sv0`** (counts from SML audit). | `sv0c/lib/codegen.sv0`, `bytecode.sv0`, `env.sv0` | M3-S-002 | Per-file **`vm-compile`** + goldens; **`./scripts/sv0 test`**. |
 | M3-S-013 | G1 | **Link / lexer / misc — exception bridge** | Any remaining compiler **`raise`** in **`link.sv0`**, **`lexer.sv0`**, **`include_expand.sv0`**, **`unify.sv0`**, **`diagnostic.sv0`**. | respective `sv0c/lib/*.sv0`, `lexer/*.sv0` | M3-S-002 | Targeted **`vm-compile`** + integration if behavior-visible. |
 | M3-S-014 | G1 | **Track C closure audit** | Static grep + CI guard: **zero** unintended `raise` / `raise Fail` in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** compiler **`.sv0`**; document any intentional divergence. | **`scripts/verify_compiler_sv0_no_raise.py`** + `sv0c/` | M3-S-004–013 | **`./scripts/sv0 test-guards`** (includes script) + periodic repo search for other roots; **`./scripts/sv0 test`** when broadening gates. |
+
+### G1 slice status (dashboard + snapshot)
+
+**Human table** (mirrors the digest checklist below). **Dashboard:** the checklist is ingested from **`<!-- sv0-track ... -->`** via **`./scripts/sv0 progress-dashboard`** and **`verify_task_rmd_tracking.py`** (GFM boxes inside the open region).
+
+| Slice | Primary `.sv0` paths | Mechanical closure (no `raise` in scoped files) |
+|-------|------------------------|--------------------------------------------------|
+| M3-S-004 | `sv0c/lib/parser.sv0` | Pending |
+| M3-S-005 | `sv0c/lib/parser.sv0` | Pending |
+| M3-S-006 | `sv0c/lib/parser.sv0` | Pending |
+| M3-S-007 | `sv0c/lib/checker.sv0` | Pending |
+| M3-S-008 | `sv0c/lib/checker.sv0` | Pending |
+| M3-S-009 | `sv0c/lib/lowering.sv0` | Pending |
+| M3-S-010 | `sv0c/lib/resolver.sv0` | Pending |
+| M3-S-011 | `sv0c/lib/vm_codegen.sv0` | Pending |
+| M3-S-012 | `codegen.sv0`, `bytecode.sv0`, `env.sv0` | Pending |
+| M3-S-013 | `link.sv0`, `lexer.sv0`, `include_expand.sv0`, `unify.sv0`, `diagnostic.sv0` | Pending |
+| M3-S-014 | `sv0c/lib/**`, `sv0c/lexer/**`, `sv0c/parser/**` (full compiler `.sv0` scan) | Pending |
+
+<!-- sv0-track:begin {"id":"m3.g1.slice.status","title":"G1 Track C — M3-S slice checklist","kind":"checklist-region","ingest":"gfm","milestone":"M3"} -->
+- [ ] **M3-S-004** — Parser speculative Fail to Option (`parser.sv0`)
+- [ ] **M3-S-005** — Parser raise Fail batch A (`parser.sv0`)
+- [ ] **M3-S-006** — Parser raise Fail batch B (`parser.sv0`)
+- [ ] **M3-S-007** — Checker raise Fail batch A (`checker.sv0`)
+- [ ] **M3-S-008** — Checker raise Fail batch B (`checker.sv0`)
+- [ ] **M3-S-009** — Lowering raise Fail to Result (`lowering.sv0`)
+- [ ] **M3-S-010** — Resolver exception bridge (`resolver.sv0`)
+- [ ] **M3-S-011** — VM codegen exception bridge (`vm_codegen.sv0`)
+- [ ] **M3-S-012** — C codegen / bytecode / env (`codegen.sv0`, `bytecode.sv0`, `env.sv0`)
+- [ ] **M3-S-013** — Link / lexer / include_expand / unify / diagnostic
+- [ ] **M3-S-014** — Track C closure audit (full `lib|lexer|parser` `.sv0` scan)
+<!-- sv0-track:end {"id":"m3.g1.slice.status"} -->
 
 | M3-S-015 | G2 | **Spec — T0-8 I/O builtins** | Normative names/signatures for **`read_file` / `write_file` / `read_dir`** (or agreed subset) in **`sv0doc/`**. | `sv0doc/` | M3-S-001 | `./scripts/sv0 test-guards`. |
 | M3-S-016 | G2 | **Runtime — filesystem builtins (C)** | C runtime helpers backing T0-8. | `sv0c/runtime/`, `sv0doc/` bytecode/runtime notes if any | M3-S-015 | C/VM integration tests added or extended; **`./scripts/sv0 test`**. |
