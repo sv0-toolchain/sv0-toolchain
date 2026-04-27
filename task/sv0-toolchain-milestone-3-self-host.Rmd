@@ -504,7 +504,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | M3-S-011 | `sv0c/lib/vm_codegen.sv0` | Done |
 | M3-S-012 | `codegen.sv0`, `bytecode.sv0`, `env.sv0` | Done |
 | M3-S-013 | `link.sv0`, `lexer.sv0`, `include_expand.sv0`, `unify.sv0`, `diagnostic.sv0` | Done |
-| M3-S-014 | `sv0c/lib/**`, `sv0c/lexer/**`, `sv0c/parser/**` (full compiler `.sv0` scan) | Pending |
+| M3-S-014 | `sv0c/lib/**`, `sv0c/lexer/**`, `sv0c/parser/**` (full compiler `.sv0` scan) | Done |
 
 <!-- sv0-track:begin {"id":"m3.g1.slice.status","title":"G1 Track C — M3-S slice checklist","kind":"checklist-region","ingest":"gfm","milestone":"M3"} -->
 - [x] **M3-S-004** — Parser speculative Fail to Option (`parser.sv0`)
@@ -517,7 +517,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - [x] **M3-S-011** — VM codegen exception bridge (`vm_codegen.sv0`)
 - [x] **M3-S-012** — C codegen / bytecode / env (`codegen.sv0`, `bytecode.sv0`, `env.sv0`)
 - [x] **M3-S-013** — Link / lexer / include_expand / unify / diagnostic
-- [ ] **M3-S-014** — Track C closure audit (full `lib|lexer|parser` `.sv0` scan)
+- [x] **M3-S-014** — Track C closure audit (full `lib|lexer|parser` `.sv0` scan)
 <!-- sv0-track:end {"id":"m3.g1.slice.status"} -->
 
 | M3-S-015 | G2 | **Spec — T0-8 I/O builtins** | Normative names/signatures for **`read_file` / `write_file` / `read_dir`** (or agreed subset) in **`sv0doc/`**. | `sv0doc/` | M3-S-001 | `./scripts/sv0 test-guards`. |
