@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T14:45:00-07:00"
+updated: "2026-04-26T15:05:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**): **IR — `Branch` / `Jump` instruction tags.** **`lib/ir.sv0`** adds **`test_branch_jump_instr_tags`**; refreshed stage0 **`ir.c`** and vm-parity **`ir.sv0b`**. Landed on **`sv0c`** **`24e27f7`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Include expand — `parse_include_line` whitespace before `;`.** **`lib/include_expand.sv0`** extends **`test_parse_include_line`** with a tab before **`;`**; refreshed stage0 **`include_expand.c`** and vm-parity **`include_expand.sv0b`**. Landed on **`sv0c`** **`2c32721`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Env — `register_module_type` sequence.** **`lib/env.sv0`** adds **`test_register_module_type_sequence`**; refreshed stage0 **`env.c`** and vm-parity **`env.sv0b`**. Landed on **`sv0c`** **`8663d7f`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Checker — `named_only_ty` basic classifier.** **`lib/checker.sv0`** adds **`test_named_only_ty_basic`**; refreshed stage0 **`checker.c`** and vm-parity **`checker.sv0b`**. Landed on **`sv0c`** **`1c82a80`**. **M3 still not met.**
