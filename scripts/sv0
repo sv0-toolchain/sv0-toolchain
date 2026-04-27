@@ -384,7 +384,7 @@ run_self_host_sv0_loop() {
     local clog
     clog="$(mktemp)"
     # No -Werror: sv0c’s emitted C may trigger -Wparentheses-equality on Clang; GCC is the CI compiler.
-    if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$tmp1" >"$clog" 2>&1; then
+    if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$tmp1" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
       cat "$clog" >&2
       rm -f "$clog" "$tmp1"
       sv0_fail "self-host-sv0-loop: ${_cc} failed for $rel"
@@ -557,7 +557,7 @@ run_compile_run() {
   fi
 
   local clog="$tmpdir/cc.log"
-  if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin_file" "$c_file" >"$clog" 2>&1; then
+  if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin_file" "$c_file" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
     echo "compile-run: cc failed for $rel:" >&2
     cat "$clog" >&2
     rm -rf "$tmpdir"
