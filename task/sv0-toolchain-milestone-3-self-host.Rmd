@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T21:00:00-07:00"
+updated: "2026-04-26T22:45:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -151,8 +151,8 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-001** (spec vocabulary) unless **stakeholder review** is already recorded in the **refinement log** — then **M3-S-002**.
-- **If G0 is already satisfied in your branch:** advance to the **first G1** row whose **Deps** are met (typically **M3-S-004** after **M3-S-002**).
+- **Default next slice:** **M3-S-004** (parser — speculative **`Fail`** → **`Option`**) — **G0** (**M3-S-001 … M3-S-003**) is recorded complete in the **refinement log** for this branch line.
+- **If G0 is not yet merged in your checkout:** land **M3-S-001 … M3-S-003** first (spec + **`CompileError`** + driver **`Result`** sketch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
 ## validation (agents)
@@ -546,6 +546,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**, later): **M3-S-003 (G0) — driver `Result` sketch.** **`lib/main.sv0`**: enum **`MainPhaseResult`** {**`Ok(i32)`**, **`Err(i32)`**} (structural **`Result`** shape; **`Err`** uses **i32** codes **1**/**2** because **sv0-emitted C** mis-encodes **`Err(string)`** enum payloads today — upgrade to **`CompileError`** when **`main`** links **`span.sv0`** / codegen hardens). **`driver_tokenize_sketch`** + **`test_driver_tokenize_sketch`** (tokenize-phase placeholder, no lexer). Goldens: **`lib/golden/stage0/main.c`**, **`test/vm-parity/golden/sml/main.sv0b`**. Landed on **`sv0c`** **`8b0ea21`**. **G0** slice trio **M3-S-001 … M3-S-003** now has a landed driver boundary; **next default slice:** **M3-S-004**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**, later): **M3-S-001 + M3-S-002 (G0).** **`sv0doc/compiler/bootstrap-diagnostics.md`** — compile-time failure **`Result`** / **`CompileError`** contract + explicit deferral of T0-8 builtin names to **M3-S-015**. **`sv0c/lib/span.sv0`** — **`struct CompileError`** {message, span} + **`compile_error_new`** / accessors + **`test_compile_error_roundtrip`** (struct shape avoids broken **sv0-emitted C** enum-tuple self-host until **M3-S-045** tier-2 hardens). Goldens: **`lib/golden/stage0/span.c`**, **`test/vm-parity/golden/sml/span.sv0b`**. **`sv0c/doc/transliteration-plan.md`** span row. **Stakeholder:** spec text is **agent-authored** for integration — amend via PR if **`sv0doc/`** wording should move. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Development pathway to L0.** New **## development pathway to L0 closure** (macro spine **G0→G9/GX**, per-session loop, “where to start next”). **Slice index** rows for **G6–G9** corrected to match **master table** gate columns; added **GX** row. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**, later): **M3 depth + accuracy pass.** New **## milestone depth and accuracy** (L0/L1/L2 layers, completion→**`M3-S-###`** map, live **`grep`** count recipe, MCP sync pointer). Tightened **## remaining work** + throughput rows to avoid stale **97** literals; **phase 2** harness paragraph points at live counts + **`verify_vm_parity_manifest_bootstrap`**. **M3 still not met.**
