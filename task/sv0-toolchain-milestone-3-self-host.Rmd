@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T15:35:00-07:00"
+updated: "2026-04-26T15:45:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**): **Integration — `import_use_match` seventh `use`.** **`use lib::four`**, **`four()`** guard, **`fn four`**; **`test/integration/README.md`**. Landed on **`sv0c`** **`bb488aa`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Resolver — `path_join_vec` three segments.** **`lib/resolver.sv0`** adds **`test_path_join_vec_three`**; refreshed stage0 **`resolver.c`** and vm-parity **`resolver.sv0b`**. Landed on **`sv0c`** **`894984b`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Driver — path helpers with backslashes.** **`lib/main.sv0`** extends **`test_path_helpers`** / **`test_base_name_sv0`** for **`\\`** segments; refreshed stage0 **`main.c`** and vm-parity **`main.sv0b`**. Landed on **`sv0c`** **`83781e3`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Link — backslash path segments.** **`lib/link.sv0`** extends **`file_stem`** / **`link_dir_from_entry`** tests for **`\\`**-separated paths; refreshed stage0 **`link.c`** and vm-parity **`link.sv0b`**. Landed on **`sv0c`** **`3c3b0ff`**. **M3 still not met.**
