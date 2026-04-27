@@ -16,7 +16,7 @@ import sys
 from pathlib import Path
 
 # Word-boundary ``raise`` as a statement/expression starter (not substring of identifiers).
-_RAISE_RE = re.compile(r"(?m)(^|[^\w])raise(\s|\(|$)")
+RAISE_RE = re.compile(r"(?m)(^|[^\w])raise(\s|\(|$)")
 
 
 def iter_sv0_files(sv0c: Path) -> list[Path]:
@@ -49,7 +49,7 @@ def main() -> int:
             print(f"verify_compiler_sv0_no_raise: read {path}: {exc}", file=sys.stderr)
             return 1
         for i, line in enumerate(text.splitlines(), start=1):
-            if _RAISE_RE.search(line):
+            if RAISE_RE.search(line):
                 rel = path.relative_to(root)
                 hits.append((rel, i, line.rstrip()))
     if hits:

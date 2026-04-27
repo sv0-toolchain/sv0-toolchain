@@ -147,6 +147,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_compiler_sv0_no_raise.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: M3 G1 Track C per-slice path audit (scripts/m3_g1_active_slices.txt)"
+  if ! python3 "$ROOT/scripts/verify_m3_g1_track_c.py" --root "$ROOT"; then
+    ec=1
+  fi
   return "$ec"
 }
 
@@ -154,7 +158,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + M3 G1 slice path audit"
 }
 
 run_test() {
@@ -198,7 +202,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + vm-parity SML goldens + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + vm-parity SML goldens + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + doctests"
 }
 
 run_doctests() {
