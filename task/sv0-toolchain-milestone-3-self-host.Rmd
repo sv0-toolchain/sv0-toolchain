@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T12:00:00-07:00"
+updated: "2026-04-26T21:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -546,6 +546,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**, later): **M3-S-001 + M3-S-002 (G0).** **`sv0doc/compiler/bootstrap-diagnostics.md`** — compile-time failure **`Result`** / **`CompileError`** contract + explicit deferral of T0-8 builtin names to **M3-S-015**. **`sv0c/lib/span.sv0`** — **`struct CompileError`** {message, span} + **`compile_error_new`** / accessors + **`test_compile_error_roundtrip`** (struct shape avoids broken **sv0-emitted C** enum-tuple self-host until **M3-S-045** tier-2 hardens). Goldens: **`lib/golden/stage0/span.c`**, **`test/vm-parity/golden/sml/span.sv0b`**. **`sv0c/doc/transliteration-plan.md`** span row. **Stakeholder:** spec text is **agent-authored** for integration — amend via PR if **`sv0doc/`** wording should move. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Development pathway to L0.** New **## development pathway to L0 closure** (macro spine **G0→G9/GX**, per-session loop, “where to start next”). **Slice index** rows for **G6–G9** corrected to match **master table** gate columns; added **GX** row. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**, later): **M3 depth + accuracy pass.** New **## milestone depth and accuracy** (L0/L1/L2 layers, completion→**`M3-S-###`** map, live **`grep`** count recipe, MCP sync pointer). Tightened **## remaining work** + throughput rows to avoid stale **97** literals; **phase 2** harness paragraph points at live counts + **`verify_vm_parity_manifest_bootstrap`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **M3 planning — documented slice backlog (`M3-S-001`…`M3-S-055`).** Added **## documented M3 slice backlog** (stable IDs, gates G0–G9 + GX, objectives, artifacts, deps, acceptance). Corrected **phase 2** rolling paragraph (harness counts **97**, `*_core.sv0` consolidation). Cross-links: **`sv0c/doc/transliteration-plan.md`** (**`sv0c`** **`c2ecc14`**), **`task/sv0-toolchain-milestone-3-checklist.Rmd`**. **M3 still not met.**
