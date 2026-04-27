@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-27T07:20:00-07:00"
+updated: "2026-04-27T18:30:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -151,7 +151,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-006** (parser diagnostics tranche B) after confirming **M3-S-005** lane-B helper plumbing is landed.
+- **Default next slice:** **M3-S-007** (checker — first **`raise Fail` → `Result`** tranche in **`lib/checker.sv0`**) — **M3-S-005**/**M3-S-006** parser **`raise Fail`** batches are **closed** on current tree (no **`raise`** token under **`sv0c/lib|lexer|parser`**; **`verify_compiler_sv0_no_raise.py`** enforces this in **`./scripts/sv0 test-guards`**).
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -162,7 +162,7 @@ Default checks when recording **M3** progress (see **`task/milestone-orientation
 <!-- sv0-track:begin {"id":"m3.validation.sequence","title":"Default M3 validation when recording progress","kind":"checklist-region","ingest":"numbered","milestone":"M3"} -->
 
 1. **`./scripts/sv0 milestone-orient show M3`** — **closure authority** and **anti-patterns** (pilot list green **≠** M3 done; do not tag **`bootstrap-sml-final`** early).
-2. **`./scripts/sv0 test-guards`** — task YAML, **sv0doc** baseline, **README** **sv0c** gitlink, vm-parity manifest ⊆ bootstrap list, milestone-orientation + workspace table, optional **`sv0-track`** anchors (**`scripts/verify_task_rmd_tracking.py`**).
+2. **`./scripts/sv0 test-guards`** — task YAML, **sv0doc** baseline, **README** **sv0c** gitlink, vm-parity manifest ⊆ bootstrap list, milestone-orientation + workspace table, **`scripts/verify_compiler_sv0_no_raise.py`** (M3-S-014 — zero **`raise`** in **`sv0c/lib|lexer|parser`** `.sv0`), optional **`sv0-track`** anchors (**`scripts/verify_task_rmd_tracking.py`**).
 3. **`./scripts/sv0 test`** — before calling an **integrated** slice **done** when **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/`**, **`lib/self-host-sv0-loop.list`**, **`sml/`**, or vm-parity goldens changed.
 4. After a push to **`origin`**: **`gh run list`** / **`gh run watch <id>`** until CI succeeds — **`.cursor/rules/40-validation-and-proof.mdc`** (**Routine GitHub ship loop**).
 
@@ -486,7 +486,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | M3-S-011 | G1 | **VM codegen — exception bridge** | `vm_codegen` **`raise Fail`** sites → agreed error model. | `sv0c/lib/vm_codegen.sv0` | M3-S-002 | **`vm-compile`** + **`bash scripts/capture_vm_parity_goldens.sh`** if needed; **`./scripts/sv0 test`**. |
 | M3-S-012 | G1 | **C codegen / bytecode / env — exception bridge** | Remaining **`raise`** in **`codegen.sv0`**, **`bytecode.sv0`**, **`env.sv0`** (counts from SML audit). | `sv0c/lib/codegen.sv0`, `bytecode.sv0`, `env.sv0` | M3-S-002 | Per-file **`vm-compile`** + goldens; **`./scripts/sv0 test`**. |
 | M3-S-013 | G1 | **Link / lexer / misc — exception bridge** | Any remaining compiler **`raise`** in **`link.sv0`**, **`lexer.sv0`**, **`include_expand.sv0`**, **`unify.sv0`**, **`diagnostic.sv0`**. | respective `sv0c/lib/*.sv0`, `lexer/*.sv0` | M3-S-002 | Targeted **`vm-compile`** + integration if behavior-visible. |
-| M3-S-014 | G1 | **Track C closure audit** | Static grep + CI guard: **zero** unintended `raise Fail` in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** compiler sources; document any intentional divergence. | scripts + `sv0c/` | M3-S-004–013 | `./scripts/sv0 test-guards` + repo search; **`./scripts/sv0 test`**. |
+| M3-S-014 | G1 | **Track C closure audit** | Static grep + CI guard: **zero** unintended `raise` / `raise Fail` in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** compiler **`.sv0`**; document any intentional divergence. | **`scripts/verify_compiler_sv0_no_raise.py`** + `sv0c/` | M3-S-004–013 | **`./scripts/sv0 test-guards`** (includes script) + periodic repo search for other roots; **`./scripts/sv0 test`** when broadening gates. |
 
 | M3-S-015 | G2 | **Spec — T0-8 I/O builtins** | Normative names/signatures for **`read_file` / `write_file` / `read_dir`** (or agreed subset) in **`sv0doc/`**. | `sv0doc/` | M3-S-001 | `./scripts/sv0 test-guards`. |
 | M3-S-016 | G2 | **Runtime — filesystem builtins (C)** | C runtime helpers backing T0-8. | `sv0c/runtime/`, `sv0doc/` bytecode/runtime notes if any | M3-S-015 | C/VM integration tests added or extended; **`./scripts/sv0 test`**. |
@@ -546,6 +546,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-27 (**America/Los_Angeles −07:00**, evening): **M3-S-014 (G1) — partial closure via CI guard; M3-S-006 bookkeeping.** Added **`scripts/verify_compiler_sv0_no_raise.py`** and wired it into **`./scripts/sv0 test-guards`** / **`test`** so **`sv0c/lib/`**, **`lexer/`**, and **`parser/`** compiler **`.sv0`** cannot reintroduce **`raise`** without failing guards (**M3-S-014** mechanical half). **M3-S-006** (parser **`raise Fail`** batch B) recorded **satisfied on current tree** — the transliterated parser already uses sentinel **`Result`** / backtrack patterns (**zero** **`raise`** matches); remaining **G1** batches (**M3-S-007** …) still apply to **`checker.sv0`**, **`lowering.sv0`**, etc. **“Develop all `M3-S-*`”** remains a **multi-gate program** (G2 needs **`sv0doc/`** + C runtime; G9 is **human-gated**); this commit does **not** assert **L0** / **M3 done**. **Meta only** (no **`sv0c`** submodule pointer).
 - 2026-04-27 (**America/Los_Angeles −07:00**, morning): **M3-S-005 (G1) — parser assign-target probe helper (lane B).** **`sv0c/lib/parser.sv0`** adds **`parse_assign_target_op_pos`** and routes **`try_assign_stmt`** through that helper to isolate speculative LHS target probing; parser coverage now includes field compound-assignment (**`{ x.y += 1; }`**) in **`test_parse_assign`**. Refreshed goldens: **`lib/golden/stage0/parser.c`**, **`test/vm-parity/golden/sml/parser.sv0b`**. Inventory docs updated: **`sv0c/doc/transliteration-plan.md`** parser row + **`sv0c/PROGRESS.md`**. Landed on **`sv0c`** **`ea098f8`**. **M3 still not met.**
 - 2026-04-27 (**America/Los_Angeles −07:00**, morning): **M3-S-004 (G1) — parser assign-target batch (parallel lane A).** **`sv0c/lib/parser.sv0`** `try_assign_stmt` now accepts one-level **`IDENT.FIELD`** LHS for both `=` and `OP=` forms in addition to plain identifiers; added field-target coverage inside **`test_parse_assign`**. Refreshed goldens: **`lib/golden/stage0/parser.c`**, **`test/vm-parity/golden/sml/parser.sv0b`**. Inventory docs updated: **`sv0c/doc/transliteration-plan.md`** parser row + **`sv0c/PROGRESS.md`**. Landed on **`sv0c`** **`4eb45c5`**. **M3 still not met.**
 - 2026-04-27 (**America/Los_Angeles −07:00**, morning): **M3-S-003 (G0) re-land.** Reintroduced driver **`MainPhaseResult`** tokenize boundary in **`sv0c/lib/main.sv0`**, plus helper **`driver_result_code`** and roundtrip tests. Refreshed goldens: **`lib/golden/stage0/main.c`**, **`test/vm-parity/golden/sml/main.sv0b`**; docs updated in **`sv0c/doc/transliteration-plan.md`** and **`sv0c/PROGRESS.md`**. Landed on **`sv0c`** **`4975114`**. **M3 still not met.**
