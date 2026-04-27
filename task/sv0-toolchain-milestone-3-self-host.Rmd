@@ -495,7 +495,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | Slice | Primary `.sv0` paths | Mechanical closure (no `raise` in scoped files) |
 |-------|------------------------|--------------------------------------------------|
 | M3-S-004 | `sv0c/lib/parser.sv0` | Done |
-| M3-S-005 | `sv0c/lib/parser.sv0` | Pending |
+| M3-S-005 | `sv0c/lib/parser.sv0` | Done |
 | M3-S-006 | `sv0c/lib/parser.sv0` | Pending |
 | M3-S-007 | `sv0c/lib/checker.sv0` | Pending |
 | M3-S-008 | `sv0c/lib/checker.sv0` | Pending |
@@ -508,7 +508,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 <!-- sv0-track:begin {"id":"m3.g1.slice.status","title":"G1 Track C — M3-S slice checklist","kind":"checklist-region","ingest":"gfm","milestone":"M3"} -->
 - [x] **M3-S-004** — Parser speculative Fail to Option (`parser.sv0`)
-- [ ] **M3-S-005** — Parser raise Fail batch A (`parser.sv0`)
+- [x] **M3-S-005** — Parser raise Fail batch A (`parser.sv0`)
 - [ ] **M3-S-006** — Parser raise Fail batch B (`parser.sv0`)
 - [ ] **M3-S-007** — Checker raise Fail batch A (`checker.sv0`)
 - [ ] **M3-S-008** — Checker raise Fail batch B (`checker.sv0`)
