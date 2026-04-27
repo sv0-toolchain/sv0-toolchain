@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-04-25T22:30:00-07:00"
 id: task-sv0-mcp-milestone-0
 key: sv0-mcp-milestone-0
 state: complete
@@ -76,6 +76,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 - 2026-04-06: Roadmap snapshot + **Cursor** **`15-root-orchestration-entrypoints`** rule reference **`test-guards`**; graph sync after **`task/`** + **`.cursor/rules/`** touch.
 - 2026-05-20: Parent **`verify_readme_sv0c_gitlink.py`** in **`sv0 test`** / **`test-guards`**; task doc updates (M2 prep, workspace, roadmap); graph sync after **`task/`** touch.
 - 2026-05-21: **VM parity v1** in **sv0c** + parent harness; **`vm-parity-v1`** tag on **sv0c**; graph sync after **`task/`** touch.
+- 2026-04-25 (**America/Los_Angeles −07:00**): **M3 task depth + harness doc accuracy** in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** (milestone layers, live count recipe, completion→slice map); **`sv0c/doc/transliteration-plan.md`** snapshot counts refreshed; **`sv0c/doc/self-host-sv0-loop.md`** pilot table corrected (removed stale “270 programs” literal). **`sv0-mcp/README.md`** “when to run a full sync” now explicitly lists heavy **M3 self-host** edits + **`task/milestone-orientation.json`** changes. Run **`./scripts/sync-graph.sh all`** from **`sv0-mcp/`** (or **`uv run sv0-mcp sync --scope all`**) when Neo4j is up so graph tools match.
 - 2026-04-10: New **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (**`/include:`** from M3 self-host); **`examples/learn/12`**–**`13`**; run **`./scripts/sync-graph.sh all`** (or MCP **`sync_graph`** scope **`all`**) when **Neo4j** is up so the new task node and roadmap edges are visible.
 - 2026-04-10: **`sv0-mcp/README.md`** + **`docker-compose.yml`** — document **custom Bolt host ports** via **`SV0_MCP_NEO4J_URI`** / Cursor **`NEO4J_URI`** alignment; **connection refused** troubleshooting; parent **README** cross-link.
 - 2026-04-11: **`examples/learn/14`–`16`** + roadmap/M3 log; run **`./scripts/sync-graph.sh all`** when **Neo4j** is available so task/roadmap edits are reflected in the graph.

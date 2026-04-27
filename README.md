@@ -13,7 +13,7 @@ development workspace for the sv0 programming language compiler and toolchain.
 | [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain                    | Python   | **Milestone 0 (task) complete** — see `**task/sv0-mcp-milestone-0.Rmd`**                                      |
 
 
-**Design milestones 0–2 (task-tracked)** are **met** at the level described in `[task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd)`. **Milestone 3** (self-hosting compiler in **sv0**) is **in progress** — see `[task/sv0-toolchain-milestone-3-self-host.Rmd](task/sv0-toolchain-milestone-3-self-host.Rmd)` for definition of done vs remaining transliteration work; it is **not** closable by documentation alone.
+**Design milestones 0–2 (task-tracked)** are **met** at the level described in `[task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd)`. **Milestone 3** (self-hosting compiler in **sv0**) is **in progress** — see `[task/sv0-toolchain-milestone-3-self-host.Rmd](task/sv0-toolchain-milestone-3-self-host.Rmd)` (**## development pathway to L0 closure** for **G0→G9/GX** gate order and session loop) for definition of done vs remaining transliteration work; it is **not** closable by documentation alone.
 
 **Tracking:** start from `[task/sv0-toolchain-workspace.Rmd](task/sv0-toolchain-workspace.Rmd)` for the full workspace map, env vars, and submodule checks. **Progress rollup / run log:** `[task/sv0-toolchain-progress.md](task/sv0-toolchain-progress.md)`. **LLM/agent on-ramp:** `[AGENTS.md](AGENTS.md)` and `./scripts/sv0 milestone-orient` (see `[task/milestone-orientation.json](task/milestone-orientation.json)`).
 

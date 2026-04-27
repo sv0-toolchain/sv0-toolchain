@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-25T21:00:00-07:00"
+updated: "2026-04-26T12:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -82,6 +82,79 @@ These choices unblock scope, CI, and transliteration priority. **Do not** move *
 - **diagnostics**: behavioral baseline; tighten toward **strict** where practical (see above).
 - **SML retirement**: tag **`bootstrap-sml-final`** on **sv0c** (not the meta-repo); **`sml/`** → **`sml-legacy/`**; default build is **sv0-only**; recovery documented.
 
+## milestone depth and accuracy
+
+This section separates **what “M3 done” means** from **what CI green means** and from **how work is sliced**. Use it when prose elsewhere looks stale (harness sizes drift with every merge).
+
+### Layers (do not conflate)
+
+| Layer | What it answers | Primary artifacts |
+|-------|-----------------|-------------------|
+| **L0 — stakeholder completion** | Is the compiler **fully in sv0**, at **feature + VM parity**, with **native** self-host and **SML retired**? | This file **## completion criteria**, **## stakeholder decisions**, **`28-sml-retirement-and-self-host-bar.mdc`**. |
+| **L1 — harness health** | Do lists, goldens, and CI workflows stay aligned for the **current** transliteration surface? | **`sv0c/lib/bootstrap-sources.list`**, **`sv0c/lib/self-host-sv0-loop.list`**, **`sv0c/test/vm-parity/manifest.txt`**, **`sv0c/lib/golden/stage0/*.c`**, **`./scripts/sv0 test`**. |
+| **L2 — execution plan** | What is the **next ordered slice** of implementation work? | **## documented M3 slice backlog** (**`M3-S-###`**), **`sv0c/doc/transliteration-plan.md`** inventory. |
+
+**Invariant:** **L1 green does not imply L0** — a long green **`self-host-sv0-loop.list`** with the third leg skipped or with the SML **`emit-c`** stand-in is still **harness**, not **semantic native self-host** or **retirement** (see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native**).
+
+### Completion criteria → slice map (orientation)
+
+| **## completion criteria** bullet | Primary **`M3-S-###`** coverage (not exhaustive) |
+|-----------------------------------|--------------------------------------------------|
+| **full pipeline in sv0** | **M3-S-001**–**M3-S-014** (error model + **`Result`** migration), **M3-S-022**–**M3-S-044** (parser enrichment → resolver/checker → link/driver composition), **M3-S-039**–**M3-S-042** |
+| **self-compile** + cold path | **M3-S-047**–**M3-S-048**, **M3-S-053** |
+| **VM strict parity v1** | **M3-S-011**, **M3-S-033**–**M3-S-036**, **M3-S-043**–**M3-S-045** |
+| **diagnostics** | **M3-S-021**, **M3-S-044** |
+| **SML retirement** | **M3-S-050**–**M3-S-052** (tag + **`sml-legacy/`** + default sv0-only build are **human-gated** after L0 evidence) |
+
+### Live harness counts (do not hardcode in narrative)
+
+Authoritative **sizes** are the files on disk; the **snapshot table** in **`sv0c/doc/transliteration-plan.md`** should be refreshed when those files change materially (**`sv0c/PROGRESS.md` C-4**). To print counts without counting comments or blank lines:
+
+```bash
+grep -cve '^\s*$\|^\s*#' sv0c/lib/bootstrap-sources.list
+grep -cve '^\s*$\|^\s*#' sv0c/lib/self-host-sv0-loop.list
+grep -cve '^\s*$\|^\s*#' sv0c/test/vm-parity/manifest.txt
+```
+
+**Graph / MCP:** after **material** edits to **`task/*.Rmd`** (including this file’s backlog) or normative **`sv0doc/`** layout, run a full graph sync so **`get_milestone_progress`** and task tools match the repo — see **`task/sv0-mcp-milestone-0.Rmd`** and **`sv0-mcp/README.md`** **§ when to run a full sync** (`./scripts/sync-graph.sh all` from **`sv0-mcp/`**, or **`uv run sv0-mcp sync --scope all`**, or MCP **`sync_graph`** scope **`all`**).
+
+## development pathway to L0 closure
+
+This is the **ordered execution spine** from today’s repo to **L0** (**## completion criteria**). It ties together **phase gates** (**G0**…**G9**, **GX**), the **master slice table** below, and **validation** — without replacing per-slice **Deps** / **Acceptance** cells.
+
+### Spine (macro order)
+
+1. **Orient** — **`./scripts/sv0 milestone-orient show M3`**; skim **## milestone depth and accuracy** so **L1 harness green** is not mistaken for **L0 done**.
+2. **G0 — Spec + error shape** (**M3-S-001** … **M3-S-003**) — normative **`sv0doc/`** vocabulary for errors / I/O (where needed), then **`CompileError`** + a thin **`Result`** boundary sketch in **`lib/main.sv0`**. **Nothing in G1–G9 replaces missing spec** for new surface.
+3. **G1 — Track C** (**M3-S-004** … **M3-S-014**) — migrate compiler **`raise`/`handle`** story to **`Result`** / **`CompileError`** file-by-file until **M3-S-014** audit passes. Parallelize by subsystem once **M3-S-002** exists; respect each row’s **Deps**.
+4. **G2 — Host I/O** (**M3-S-015** … **M3-S-021**) — unlocks real **`main` / link / include_expand / diagnostic`** paths that today still assume **SML `TextIO`** semantics at the orchestration layer.
+5. **G3 → G4** — parser arena enrichment (**M3-S-022** … **M3-S-026**) then resolver + checker orchestration (**M3-S-027** … **M3-S-032**).
+6. **G5** — lowering + VM contract gaps (**M3-S-033** … **M3-S-038**) including **`forall`/`exists`** on VM where still C-only.
+7. **G6** — link rewrite passes + project link + **sv0 pipeline composition** + CLI (**M3-S-039** … **M3-S-042**).
+8. **G7** — vm-parity corpus hygiene, diagnostics corpus, **tier-2 sv0-emitted bytecode** (**M3-S-045**), optional stage-1 C compare (**M3-S-043** … **M3-S-046**).
+9. **G8** — **`SV0_SELF_HOST_COMPILER`** recipe, green native **third leg** on **`lib/self-host-sv0-loop.list`**, optional CI job (**M3-S-047** … **M3-S-049**).
+10. **G9** — **human-gated** **`bootstrap-sml-final`**, **`sml/` → `sml-legacy/`**, sv0-only default build, recovery docs (**M3-S-050** … **M3-S-053**).
+11. **GX — Policy / deferred language** (**M3-S-054**, **M3-S-055**) — resolve or explicitly defer **T0-2d**, closures / **`impl`**, etc., with spec + task notes so they do not block the wrong gate.
+
+### In parallel (non-blocking on the spine, until a slice says otherwise)
+
+- **Transliteration seeds** in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** — continue vertical slices from **`sv0c/doc/transliteration-plan.md`** and **`task/sv0-toolchain-milestone-3-checklist.Rmd`**, but **schedule them inside** the **G1+** error model once **`raise Fail`** in the same file is part of an agreed **M3-S-00x** batch (avoid silent drift).
+- **Phase 0 / Track 0** language surface (**## language surface gap**, **T0-*** table) — keep landing through **`sv0doc/`** + bootstrap compiler + integration tests; **G2** I/O and **G6** driver work **depend** on **T0-8**-class surface (**M3-S-015** onward).
+
+### Per-session loop (agents)
+
+1. Pick the **lowest-friction** open slice whose **Deps** column is satisfied (usually next in **G0→G1→…**; use **master table** + **refinement log** for intra-gate batching).
+2. Implement in **owning paths** only (**`sv0c/`**, **`sv0doc/`**, **`scripts/`** as the slice states).
+3. Run **narrow → wide** validation from that row’s **Acceptance** column; default ladder is **## validation (agents)** (**`test-guards`** then **`test`** when lists/goldens/**`sml/`** move).
+4. Refresh **`sv0c/doc/transliteration-plan.md`** / **`sv0c/PROGRESS.md`** when inventory or harness meaningfully shifts; add **`task/sv0-toolchain-progress.md`** row (**`40-validation-and-proof.mdc`**).
+5. If **`task/*.Rmd`** or **`sv0doc/`** layout changed for MCP consumers, run **`sv0-mcp`** full sync (**`./scripts/sync-graph.sh all`**) when Neo4j is available.
+
+### Where to start next (execution prep)
+
+- **Default next slice:** **M3-S-001** (spec vocabulary) unless **stakeholder review** is already recorded in the **refinement log** — then **M3-S-002**.
+- **If G0 is already satisfied in your branch:** advance to the **first G1** row whose **Deps** are met (typically **M3-S-004** after **M3-S-002**).
+- **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
+
 ## validation (agents)
 
 Default checks when recording **M3** progress (see **`task/milestone-orientation.json`** **`pre_merge_validation`** for id **M3**):
@@ -105,8 +178,8 @@ Optional **GFM** checklist binding (same file, illustrative — not a hard gate)
 
 milestone **3** is **not** complete until the bullets above hold. today’s repo state (for orientation only — grows with commits):
 
-- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated seeds**; **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, integration tests, and the **self-host sv0 loop** (**`./scripts/sv0 self-host-sv0-loop`** — deterministic SML→C emit, **`cc`**+run, and **`diff`** of **`scripts/sv0-self-host-emit-c.sh`** vs SML by default; **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** skips the third leg). **VM backend** supports **`break`** / **`continue`**, including **`break`** inside **`for`** (increment **`Store`** included in exit jump distance in **`vm_codegen.sml`**), **`Ir.VAddrOf`** / **`no_alias`** via **local slot tokens** + **`CALL_BUILTIN` 1** (see **`sv0c/doc/compiler-passes.md`**), and the **vm-parity** manifest is **97** SML bytecode goldens (M3 **~50–100** bar met for the v1 corpus). **Living transliteration roadmap:** **`sv0c/doc/transliteration-plan.md`**.
-- **not done (core M3):** most of **`sv0c/sml/`** still has **no** corresponding **sv0** module; **semantic** **sv0→sv0** (**native** compiler output **≡** SML on the pilot list) is **not** done — **`sv0-self-host-emit-c.sh`** is the **bootstrap** stand-in; **feature parity**, remaining **VM** contract gaps (**`forall` / `exists`** on VM where still C-only), **SML retirement** (tag + **`sml-legacy/`**), and a second-tier **sv0-emitted** vm-parity check remain open. **Progress (2026-04-07):** assignment to **one-level** struct fields and **arithmetic** compound assignment (**`+=`**, …) on **`i32`** slots are implemented in **SML** checker + lowering + C/VM backends; vm-parity corpus **97** programs.
+- **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated** compiler modules (seeds consolidated into real **`lib/*.sv0`** / **`lexer/`** / **`parser/`** trees — no **`*_core.sv0`** split). **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output where present; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, integration tests, and the **self-host sv0 loop** (**`./scripts/sv0 self-host-sv0-loop`** — deterministic SML→C emit, **`cc`**+run, and **`diff`** of **`scripts/sv0-self-host-emit-c.sh`** vs SML by default; **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** skips the third leg). **VM backend** supports **`break`** / **`continue`**, including **`break`** inside **`for`** (increment **`Store`** included in exit jump distance in **`vm_codegen.sml`**), **`Ir.VAddrOf`** / **`no_alias`** via **local slot tokens** + **`CALL_BUILTIN` 1** (see **`sv0c/doc/compiler-passes.md`**). **vm-parity v1:** curated manifest under **`sv0c/test/vm-parity/manifest.txt`** with SML golden bytecode (**M3 ~50–100** corpus policy is **met** for the current manifest size — see **live counts** in **## milestone depth and accuracy**). **Living transliteration roadmap:** **`sv0c/doc/transliteration-plan.md`**.
+- **not done (core M3):** **L0** completion criteria above remain open: orchestration is still **SML-first** for the full compiler driver; **semantic** **sv0→sv0** (**`SV0_SELF_HOST_COMPILER`** output **≡** SML on the pilot list) is **not** done — **`sv0-self-host-emit-c.sh`** is the **bootstrap** stand-in; **feature parity** on the whole surface, remaining **VM** contract gaps (**`forall` / `exists`** where still C-only), **SML retirement** (tag + **`sml-legacy/`**), and **tier-2** **sv0-emitted** vm-parity (**`M3-S-045`**) remain. **Historical note (2026-04-07):** compound assignment on **`i32`** slots landed in **SML** checker + lowering + both backends; do not treat that note as the current harness size (use **grep** recipe above).
 
 closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
 
@@ -117,7 +190,7 @@ Planning ranges only — not schedule commitments. Granularity and staffing domi
 | Measure | Rough value | Notes |
 |---------|-------------|--------|
 | **`sv0c/sml/**/*.sml`** units (excluding **`.cm`**) | ~20 files | Large files; seeds usually subdivide by helper or vertical slice. |
-| **`lib/bootstrap-sources.list`** | **~97** program lines (2026-04-18) | Live count grows with vm-parity + integration + **`lib/`** / **`lexer/`** / **`parser/`**; see file + **`sv0c/doc/transliteration-plan.md`**. |
+| **`lib/bootstrap-sources.list`** | **live** non-comment lines | Recompute with **`grep -cve '^\s*$\|^\s*#'`** (see **## milestone depth and accuracy**); snapshot also in **`sv0c/doc/transliteration-plan.md`**. |
 | **`lib/self-host-sv0-loop.list`** pilots | see **`sv0c/doc/self-host-sv0-loop.md`** | Grows as **`emit-c`** + **`cc`** + run is verified per path. |
 | More **curated seeds** to cover most of **`sml/`** at today’s slice size | **~50–200+** (wide band) | Parser, checker, **`lowering.sml`**, contract analyzer, and backends drive the tail; horizontal **`lowering.sml`** cuts alone can be **~10–30+** before a unified **`lowerExpr`**. |
 | **M3 “done”** (parity + **native** self-host + **SML** retirement) | **multi-quarter** typical | See **completion criteria** above; **semantic** loop and **retirement** are not implied by pilot list growth alone (**`28-sml-retirement-and-self-host-bar.mdc`**). |
@@ -198,7 +271,7 @@ Phase 5: SML Retirement (tag + sml-legacy/ + sv0-only default)
 | `type_checker/types.sml` | 29 | 1 (`lib/`) | Type representation |
 | `contract_analyzer/analyzer.sml` | 5 | 1 (`lib/`) | Phase 1 real module: `contract_analyzer.sv0` (identity pass-through) |
 
-**Total seeds (historical, pre-consolidation):** 181 (163 `lib/` + 6 `lexer/` + 12 `parser/`). **Update (2026-04-18):** **`*_core.sv0` surrogates were removed** and absorbed into **real** **`lib/*.sv0`** / **`lexer/`** / **`parser/`** modules (see refinement log **seed consolidation**). The table above still documents **SML file ↔ coverage** intent; **live** harness sizes are **`lib/bootstrap-sources.list`** (**97**), **`lib/self-host-sv0-loop.list`** (**97**), **`test/vm-parity/manifest.txt`** (**97**). **Next:** deep-function parity inside real modules + **Phase 0** language surface (**## language surface gap**).
+**Total seeds (historical, pre-consolidation):** 181 (163 `lib/` + 6 `lexer/` + 12 `parser/`). **Update (2026-04-18):** **`*_core.sv0` surrogates were removed** and absorbed into **real** **`lib/*.sv0`** / **`lexer/`** / **`parser/`** modules (see refinement log **seed consolidation**). The table above still documents **SML file ↔ coverage** intent; **live** harness sizes are the three list files (counts in **`sv0c/doc/transliteration-plan.md`** snapshot + **## milestone depth and accuracy**). **Next:** execute **`M3-S-###`** backlog + **Phase 0** language surface (**## language surface gap**).
 
 ### Track 0 execution tiers (language surface extensions)
 
@@ -356,7 +429,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative **module inventory** stays in **`sv0c/doc/transliteration-plan.md`** and the checklist table below; **actionable sequencing** for remaining work is **`## documented M3 slice backlog`** (stable slice IDs). **Harness truth (counts):** see the snapshot table in **`sv0c/doc/transliteration-plan.md`** — today’s lists are **`lib/bootstrap-sources.list`**, **`lib/self-host-sv0-loop.list`**, and **`test/vm-parity/manifest.txt`** (each **97** entries at last snapshot there). **`*_core.sv0` surrogates were consolidated** into real **`lib/*.sv0`** / **`lexer/`** / **`parser/`** modules; do not plan new work against obsolete per-core filenames. **Next** → execute the slice backlog from **Track C / I-O / resolver unblock / pipeline composition** toward **native self-host** and **SML retirement** (see **`28-sml-retirement-and-self-host-bar.mdc`**).
+**Agent (rolling):** authoritative **module inventory** stays in **`sv0c/doc/transliteration-plan.md`** and the checklist table below; **actionable sequencing** for remaining work is **`## documented M3 slice backlog`** (stable slice IDs). **Harness truth (counts):** never trust a stale integer in prose — use **## milestone depth and accuracy** (**live `grep` recipe**) and the **snapshot table** in **`sv0c/doc/transliteration-plan.md`**. The three lists are **`lib/bootstrap-sources.list`**, **`lib/self-host-sv0-loop.list`**, and **`test/vm-parity/manifest.txt`** (manifest must remain **`⊆`** bootstrap per **`verify_vm_parity_manifest_bootstrap.py`**). **`*_core.sv0` surrogates were consolidated** into real **`lib/*.sv0`** / **`lexer/`** / **`parser/`** modules; do not plan new work against obsolete per-core filenames. **Next** → execute the **`M3-S-###`** backlog from **Track C / I-O / resolver unblock / pipeline composition** toward **native self-host** and **SML retirement** (see **`28-sml-retirement-and-self-host-bar.mdc`**).
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -390,10 +463,11 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | **G3 — Parser arena enrichment** | M3-S-022 … M3-S-026 | Unblocks **`resolve_top_item`** body walks in **`resolver.sv0`**. |
 | **G4 — Resolver / checker completion** | M3-S-027 … M3-S-032 | Full **`resolve_*`**, **`check`** orchestration, cross-item consistency. |
 | **G5 — Lowering + contracts on VM** | M3-S-033 … M3-S-038 | **`ensGlue`**, **`injectEnsuresAndRetSlot`**, **`lowerEnsuresClause`**, **`forall`/`exists`** VM gaps, match polish. |
-| **G6 — Link + driver composition** | M3-S-039 … M3-S-044 | **`mapTy`/`mapExpr`/`mapItem`**, project link, sv0 pipeline entry. |
-| **G7 — Parity + corpus** | M3-S-045 … M3-S-048 | vm-parity growth, **sv0-emitted** bytecode tier, diagnostics corpus. |
-| **G8 — Native self-host** | M3-S-049 … M3-S-051 | **`SV0_SELF_HOST_COMPILER`** green diff; CI wiring. |
-| **G9 — SML retirement** | M3-S-052 … M3-S-055 | Tag, **`sml-legacy/`**, default sv0-only build, recovery docs (**human-owned** cutover). |
+| **G6 — Link + driver composition** | M3-S-039 … M3-S-042 | **`mapTy`/`mapExpr`/`mapItem`**, project link, sv0 pipeline entry, CLI parity. |
+| **G7 — Parity + corpus** | M3-S-043 … M3-S-046 | vm-parity growth + allowlist, diagnostics corpus, **sv0-emitted** bytecode tier, stage-1 C compare (if used). |
+| **G8 — Native self-host** | M3-S-047 … M3-S-049 | **`SV0_SELF_HOST_COMPILER`** recipe, green native **third leg**, optional CI workflow. |
+| **G9 — SML retirement** | M3-S-050 … M3-S-053 | Tag, **`sml-legacy/`**, default sv0-only build, recovery docs (**human-owned** cutover). |
+| **GX — Deferred policy** | M3-S-054 … M3-S-055 | **T0-2d** / closures / **`impl`** / VM sugar — promote to new slices when un-deferred. |
 
 ### Master table (planned slices)
 
@@ -449,7 +523,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 | M3-S-043 | G7 | **vm-parity corpus growth + allowlist hygiene** | Add curated programs under **`sv0c/test/vm-parity/`**; keep manifest ⊆ bootstrap list; document allowlist entries. | `sv0c/test/vm-parity/`, manifests | — | **`./scripts/sv0 test-guards`**; **`bash scripts/capture_vm_parity_goldens.sh`** when bytecode changes; **`./scripts/sv0 test`**. |
 | M3-S-044 | G7 | **Diagnostics corpus — behavioral** | Shared accept/reject inputs vs SML baseline (categories/codes). | `sv0c/test/**`, tasks | M3-S-021 | Focused pytest/SML harness (as designed); **`./scripts/sv0 test`** when wired. |
-| M3-S-045 | G7 | **Tier-2 VM parity — sv0 compiler emits bytecode** | Harness: compare **sv0-emitted** `.sv0b` to SML goldens (may start subset before full 97). | `sv0c/test/vm-parity/`, `scripts/` | M3-S-041 | Design doc row + CI job stub; then expand file list. |
+| M3-S-045 | G7 | **Tier-2 VM parity — sv0 compiler emits bytecode** | Harness: compare **sv0-emitted** `.sv0b` to SML goldens (start with a subset; grow toward full **`manifest.txt`**). | `sv0c/test/vm-parity/`, `scripts/` | M3-S-041 | Design doc row + CI job stub; then expand file list. |
 | M3-S-046 | G7 | **Stage-1 C parity (`self-host-compare`)** | When **`stage1/*.c`** policy activates; compare staged compiler output. | `sv0c/lib/golden/stage1/` (if used) | M3-S-041 | **`./scripts/sv0 self-host-compare <stem>`** per `AGENTS.md`. |
 
 | M3-S-047 | G8 | **Native compiler binary (recipe)** | Document + script: build **`SV0_SELF_HOST_COMPILER`** from sv0-emitted C (or agreed path). | `sv0c/doc/self-host-sv0-loop.md`, `scripts/` | M3-S-041 | Local **`cc`** recipe reproducible on macOS/Linux; **`./scripts/sv0 test-guards`**. |
@@ -472,6 +546,8 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**): **Development pathway to L0.** New **## development pathway to L0 closure** (macro spine **G0→G9/GX**, per-session loop, “where to start next”). **Slice index** rows for **G6–G9** corrected to match **master table** gate columns; added **GX** row. **M3 still not met.**
+- 2026-04-25 (**America/Los_Angeles −07:00**, later): **M3 depth + accuracy pass.** New **## milestone depth and accuracy** (L0/L1/L2 layers, completion→**`M3-S-###`** map, live **`grep`** count recipe, MCP sync pointer). Tightened **## remaining work** + throughput rows to avoid stale **97** literals; **phase 2** harness paragraph points at live counts + **`verify_vm_parity_manifest_bootstrap`**. **M3 still not met.**
 - 2026-04-25 (**America/Los_Angeles −07:00**): **M3 planning — documented slice backlog (`M3-S-001`…`M3-S-055`).** Added **## documented M3 slice backlog** (stable IDs, gates G0–G9 + GX, objectives, artifacts, deps, acceptance). Corrected **phase 2** rolling paragraph (harness counts **97**, `*_core.sv0` consolidation). Cross-links: **`sv0c/doc/transliteration-plan.md`** (**`sv0c`** **`c2ecc14`**), **`task/sv0-toolchain-milestone-3-checklist.Rmd`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**, later): **Integration — `import_use_match` eighth `use`.** **`use lib::five`**, **`five()`** guard, **`fn five`**; **`test/integration/README.md`** (eight **`use lib::…`** lines); **`PROGRESS.md`**. Landed on **`sv0c`** **`a5c6dfd`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Integration — `import_use_match` seventh `use`.** **`use lib::four`**, **`four()`** guard, **`fn four`**; **`test/integration/README.md`**. Landed on **`sv0c`** **`bb488aa`**. **M3 still not met.**
