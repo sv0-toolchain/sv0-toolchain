@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T15:15:00-07:00"
+updated: "2026-04-26T15:25:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -370,6 +370,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-26 (**America/Los_Angeles −07:00**): **Driver — path helpers with backslashes.** **`lib/main.sv0`** extends **`test_path_helpers`** / **`test_base_name_sv0`** for **`\\`** segments; refreshed stage0 **`main.c`** and vm-parity **`main.sv0b`**. Landed on **`sv0c`** **`83781e3`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Link — backslash path segments.** **`lib/link.sv0`** extends **`file_stem`** / **`link_dir_from_entry`** tests for **`\\`**-separated paths; refreshed stage0 **`link.c`** and vm-parity **`link.sv0b`**. Landed on **`sv0c`** **`3c3b0ff`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **IR — `Branch` / `Jump` instruction tags.** **`lib/ir.sv0`** adds **`test_branch_jump_instr_tags`**; refreshed stage0 **`ir.c`** and vm-parity **`ir.sv0b`**. Landed on **`sv0c`** **`24e27f7`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Include expand — `parse_include_line` whitespace before `;`.** **`lib/include_expand.sv0`** extends **`test_parse_include_line`** with a tab before **`;`**; refreshed stage0 **`include_expand.c`** and vm-parity **`include_expand.sv0b`**. Landed on **`sv0c`** **`2c32721`**. **M3 still not met.**
