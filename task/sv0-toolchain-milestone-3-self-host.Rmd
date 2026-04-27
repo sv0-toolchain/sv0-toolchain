@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-26T18:30:00-07:00"
+updated: "2026-04-25T21:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -356,7 +356,7 @@ Order is suggestive; adjust as **`lowering.sml`** evolves.
 
 /ai: track each SML component → sv0 module; the living table lives in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (included below).
 
-**Agent (rolling):** authoritative rows stay in the included checklist and **`sv0c/doc/transliteration-plan.md`**; **all ~20 SML modules now have at least one surrogate seed** (84 `lib/*_core.sv0` files total). Coverage: lowering (54 seeds), C backend (4 seeds), VM backend (5 seeds), bytecode (1), types (1), unify (1), checker (2), driver (1), include expansion (1), pipeline composition (1), plus parser/lexer/env/resolver/span/diagnostic seeds. **Self-host pilots 172/172** — all bootstrap-listed programs pass `emit-c` + `cc` + run. **Next** → deepen coverage of `checker.sml` (1024 lines, only 2 seeds) and `resolver.sml` (404 lines, 3 seeds); then compose real pipeline modules that produce actual IR/bytecode/C against SML reference output toward native self-host.
+**Agent (rolling):** authoritative **module inventory** stays in **`sv0c/doc/transliteration-plan.md`** and the checklist table below; **actionable sequencing** for remaining work is **`## documented M3 slice backlog`** (stable slice IDs). **Harness truth (counts):** see the snapshot table in **`sv0c/doc/transliteration-plan.md`** — today’s lists are **`lib/bootstrap-sources.list`**, **`lib/self-host-sv0-loop.list`**, and **`test/vm-parity/manifest.txt`** (each **97** entries at last snapshot there). **`*_core.sv0` surrogates were consolidated** into real **`lib/*.sv0`** / **`lexer/`** / **`parser/`** modules; do not plan new work against obsolete per-core filenames. **Next** → execute the slice backlog from **Track C / I-O / resolver unblock / pipeline composition** toward **native self-host** and **SML retirement** (see **`28-sml-retirement-and-self-host-bar.mdc`**).
 
 /include: task/sv0-toolchain-milestone-3-checklist.Rmd
 
@@ -368,8 +368,111 @@ Implement **VM strict parity v1**: curated **~50–100** programs, SML-produced 
 
 Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → **`sv0c/sml-legacy/`**; remove SML from default **make** / **`./scripts/sv0`** paths; document **legacy** build targets, **version pins**, and **recovery** if self-host breaks.
 
+## documented M3 slice backlog
+
+**Purpose:** Every remaining **milestone-3** work item is named here as a **slice** with a stable ID, objective, primary owning paths, dependencies, and **acceptance** (what to run before claiming closure). This is **planning prose** — it does not change **`sv0doc/`** semantics; normative behavior still comes from the spec + owning tasks.
+
+**Conventions**
+
+- **ID:** `M3-S-###` — append new slices at the end; **do not reuse** IDs after cancellation (add a refinement-log note instead).
+- **Deps:** other slice IDs, **`sv0doc/`** edits, or **human** gates (e.g. **`bootstrap-sml-final`**).
+- **Acceptance:** minimum commands (from **`AGENTS.md`** / **`40-validation-and-proof.mdc`**). Escalate **`./scripts/sv0 test`** when **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/`**, **`sml/`**, vm-parity goldens, or **`lib/self-host-sv0-loop.list`** move.
+
+**For learners (read next):** **`sv0doc/`** (language + bytecode) → this file (**completion criteria**, **slice backlog**) → **`sv0c/doc/transliteration-plan.md`** (module-level “what’s next”) → **`sv0c/doc/self-host-sv0-loop.md`** (pilot vs native **`SV0_SELF_HOST_COMPILER`**).
+
+### Slice index (by phase gate)
+
+| Phase gate | Slice IDs | Themes |
+|------------|-----------|--------|
+| **G0 — Spec / contracts for implementation** | M3-S-001 … M3-S-003 | Error model + I/O surface alignment with **`sv0doc/`** before large Track C landings. |
+| **G1 — Track C (SML `raise` → sv0 `Result`)** | M3-S-004 … M3-S-014 | `CompileError` plumbing; per-subsystem batches until compiler paths are **`Result`**. |
+| **G2 — T0-8 host I/O** | M3-S-015 … M3-S-021 | Runtime builtins + **`main` / link / include_expand`** real filesystem. |
+| **G3 — Parser arena enrichment** | M3-S-022 … M3-S-026 | Unblocks **`resolve_top_item`** body walks in **`resolver.sv0`**. |
+| **G4 — Resolver / checker completion** | M3-S-027 … M3-S-032 | Full **`resolve_*`**, **`check`** orchestration, cross-item consistency. |
+| **G5 — Lowering + contracts on VM** | M3-S-033 … M3-S-038 | **`ensGlue`**, **`injectEnsuresAndRetSlot`**, **`lowerEnsuresClause`**, **`forall`/`exists`** VM gaps, match polish. |
+| **G6 — Link + driver composition** | M3-S-039 … M3-S-044 | **`mapTy`/`mapExpr`/`mapItem`**, project link, sv0 pipeline entry. |
+| **G7 — Parity + corpus** | M3-S-045 … M3-S-048 | vm-parity growth, **sv0-emitted** bytecode tier, diagnostics corpus. |
+| **G8 — Native self-host** | M3-S-049 … M3-S-051 | **`SV0_SELF_HOST_COMPILER`** green diff; CI wiring. |
+| **G9 — SML retirement** | M3-S-052 … M3-S-055 | Tag, **`sml-legacy/`**, default sv0-only build, recovery docs (**human-owned** cutover). |
+
+### Master table (planned slices)
+
+| ID | Gate | Slice name | Objective | Primary artifacts | Deps | Acceptance (claim) |
+|----|------|------------|-----------|-------------------|------|----------------------|
+| M3-S-001 | G0 | **Spec — compiler error + I/O vocabulary** | Decide what **`sv0doc/`** promises for compile-time errors and any **stdlib I/O** surface used by the compiler; document deltas vs today’s SML exceptions. | `sv0doc/` (errors + I/O sections), this file cross-links | — | `./scripts/sv0 test-guards`; stakeholder review noted in refinement log. |
+| M3-S-002 | G0 | **`CompileError` type in sv0** | Introduce a unified **`CompileError`** (or agreed name) in **`sv0c/lib/`** matching **M3-S-001**; no full migration yet. | `sv0c/lib/*.sv0`, `sv0c/doc/transliteration-plan.md` | M3-S-001 | `./scripts/sv0 vm-compile` on touched **`lib/<stem>.sv0`**; `./scripts/sv0 test-guards`. |
+| M3-S-003 | G0 | **Driver `Result` boundary sketch** | **`lib/main.sv0`**: prototype **`Result`**-shaped API for one phase (e.g. tokenize-only) without full pipeline swap. | `sv0c/lib/main.sv0` | M3-S-002 | `./scripts/sv0 vm-compile lib/main.sv0`; stage0/vm-parity refresh if goldens exist for **`main`**; **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 ./scripts/sv0 test`** if lists/goldens touched. |
+| M3-S-004 | G1 | **Parser — speculative `Fail` → `Option`** | Convert the **two** SML-style backtrack `handle Fail` sites to **`Option`** (per **§ exception and error translation strategy**). | `sv0c/lib/parser.sv0` | M3-S-002 | Same pattern as **`lowering.sv0`** slice class: **`vm-compile`**, **`self-host-capture-stage0`**, golden copies, **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 ./scripts/sv0 test`**. |
+| M3-S-005 | G1 | **Parser — `raise Fail` batch A** | First tranche of parser diagnostics → **`Result`** / `CompileError` (file-top clusters). | `sv0c/lib/parser.sv0` | M3-S-004 | As M3-S-004. |
+| M3-S-006 | G1 | **Parser — `raise Fail` batch B** | Second tranche until parser has **zero** bare `raise Fail` in transliterated surface (or documented exceptions). | `sv0c/lib/parser.sv0` | M3-S-005 | Full **`./scripts/sv0 test`** before merge if bytecode/C goldens drift broadly. |
+| M3-S-007 | G1 | **Checker — `raise Fail` batch A** | First tranche (`synth` / `expect` hotspots). | `sv0c/lib/checker.sv0` | M3-S-002 | **`vm-compile` + goldens** + scoped **`./scripts/sv0 test`**. |
+| M3-S-008 | G1 | **Checker — `raise Fail` batch B** | Remaining checker sites + `handle` cleanup per strategy table. | `sv0c/lib/checker.sv0` | M3-S-007 | Full **`./scripts/sv0 test`** when diff footprint is large. |
+| M3-S-009 | G1 | **Lowering — `raise Fail` → `Result`** | Lowering exception sites mapped to **`Result`** propagation. | `sv0c/lib/lowering.sv0` | M3-S-002 | **`vm-compile lib/lowering.sv0`** + stage0 + vm-parity **`lowering.sv0b`**; **`./scripts/sv0 test`**. |
+| M3-S-010 | G1 | **Resolver — exception bridge** | Resolver **`raise`/`handle`** sites → **`Result`**. | `sv0c/lib/resolver.sv0` | M3-S-002 | **`vm-compile lib/resolver.sv0`** + goldens; **`./scripts/sv0 test`**. |
+| M3-S-011 | G1 | **VM codegen — exception bridge** | `vm_codegen` **`raise Fail`** sites → agreed error model. | `sv0c/lib/vm_codegen.sv0` | M3-S-002 | **`vm-compile`** + **`bash scripts/capture_vm_parity_goldens.sh`** if needed; **`./scripts/sv0 test`**. |
+| M3-S-012 | G1 | **C codegen / bytecode / env — exception bridge** | Remaining **`raise`** in **`codegen.sv0`**, **`bytecode.sv0`**, **`env.sv0`** (counts from SML audit). | `sv0c/lib/codegen.sv0`, `bytecode.sv0`, `env.sv0` | M3-S-002 | Per-file **`vm-compile`** + goldens; **`./scripts/sv0 test`**. |
+| M3-S-013 | G1 | **Link / lexer / misc — exception bridge** | Any remaining compiler **`raise`** in **`link.sv0`**, **`lexer.sv0`**, **`include_expand.sv0`**, **`unify.sv0`**, **`diagnostic.sv0`**. | respective `sv0c/lib/*.sv0`, `lexer/*.sv0` | M3-S-002 | Targeted **`vm-compile`** + integration if behavior-visible. |
+| M3-S-014 | G1 | **Track C closure audit** | Static grep + CI guard: **zero** unintended `raise Fail` in **`sv0c/lib/`**, **`lexer/`**, **`parser/`** compiler sources; document any intentional divergence. | scripts + `sv0c/` | M3-S-004–013 | `./scripts/sv0 test-guards` + repo search; **`./scripts/sv0 test`**. |
+
+| M3-S-015 | G2 | **Spec — T0-8 I/O builtins** | Normative names/signatures for **`read_file` / `write_file` / `read_dir`** (or agreed subset) in **`sv0doc/`**. | `sv0doc/` | M3-S-001 | `./scripts/sv0 test-guards`. |
+| M3-S-016 | G2 | **Runtime — filesystem builtins (C)** | C runtime helpers backing T0-8. | `sv0c/runtime/`, `sv0doc/` bytecode/runtime notes if any | M3-S-015 | C/VM integration tests added or extended; **`./scripts/sv0 test`**. |
+| M3-S-017 | G2 | **Checker + lowering — I/O builtins** | Type + lower new builtins consistently on **C + VM**. | `sv0c/lib/checker.sv0`, `lowering.sv0`, `vm_codegen.sv0` | M3-S-016 | **`vm-compile`** on touched modules + vm-parity subset; **`./scripts/sv0 test`**. |
+| M3-S-018 | G2 | **`main.sv0` — real `readFile` / compile pipeline I/O** | Replace stubbed orchestration paths that still assume no host I/O. | `sv0c/lib/main.sv0` | M3-S-017 | **`vm-compile lib/main.sv0`** + goldens; smoke **`./scripts/sv0 emit-c`** on a probe. |
+| M3-S-019 | G2 | **`link.sv0` — `parseFile` / directory walk** | Implement **`walkSv0` / `parseFile` / `linkProjectDir`**-class behavior with real I/O. | `sv0c/lib/link.sv0` | M3-S-017 | **`vm-compile lib/link.sv0`** + **`bash task/sv0vm-milestone-2/02-integration-test.sh`** if integration fixtures change. |
+| M3-S-020 | G2 | **`include_expand.sv0` — `expand` / `expandFile`** | Recursive include expansion against real files. | `sv0c/lib/include_expand.sv0` | M3-S-017 | **`vm-compile lib/include_expand.sv0`** + depth/cycle tests; **`./scripts/sv0 test`**. |
+| M3-S-021 | G2 | **`diagnostic.sv0` — `report` / `reportAll` I/O** | Emit diagnostics to stderr/file per SML behavior. | `sv0c/lib/diagnostic.sv0` | M3-S-017 | Unit/integration harness; **`./scripts/sv0 test`**. |
+
+| M3-S-022 | G3 | **Design — parser item arena enrichment** | Written plan: which **`Item*`** rows need extra handles for resolver (`param` types, enum variants, impl methods). | `sv0c/doc/transliteration-plan.md`, `sv0c/lib/LAYOUT.md` | M3-S-001 | `./scripts/sv0 test-guards`. |
+| M3-S-023 | G3 | **Parser — ItemFn retention** | Store **`param`/`ret`/`contract`** indices needed by **`item_fn_ty`** / resolver (exact fields per M3-S-022). | `sv0c/lib/parser.sv0` | M3-S-022 | **`vm-compile lib/parser.sv0`** + goldens; **`./scripts/sv0 test`**. |
+| M3-S-024 | G3 | **Parser — enum variant table** | Persist variant metadata for **`register_item`** / **`resolve_pat_shape`**. | `sv0c/lib/parser.sv0` | M3-S-023 | As M3-S-023. |
+| M3-S-025 | G3 | **Parser — struct/impl/trait bodies** | Any remaining item bodies for **`resolve_top_item`**. | `sv0c/lib/parser.sv0` | M3-S-023 | As M3-S-023. |
+| M3-S-026 | G3 | **Parser enrichment closure** | Resolver can read all data **`resolve_top_item`** needs without re-parse hacks. | `sv0c/lib/parser.sv0`, `resolver.sv0` | M3-S-024, M3-S-025 | **`./scripts/sv0 test`** + new resolver unit tests. |
+
+| M3-S-027 | G4 | **Resolver — `resolve_top_item` ItemFn** | Full function body / signature resolution pass. | `sv0c/lib/resolver.sv0` | M3-S-026 | **`vm-compile lib/resolver.sv0`** + goldens; **`./scripts/sv0 test`**. |
+| M3-S-028 | G4 | **Resolver — struct / enum / type-alias items** | Item bodies for non-fn items. | `sv0c/lib/resolver.sv0` | M3-S-027 | As M3-S-027. |
+| M3-S-029 | G4 | **Resolver — trait / impl items** | Method lists + self types (as spec allows for M3). | `sv0c/lib/resolver.sv0` | M3-S-028 | As M3-S-027. |
+| M3-S-030 | G4 | **Checker — `check` program orchestration** | Cross-item **`check`** loop mirroring SML `check` entry (beyond per-fn **`check_fn_body`**). | `sv0c/lib/checker.sv0` | M3-S-027 | **`./scripts/sv0 test`** + new integration case. |
+| M3-S-031 | G4 | **Checker — `initTypes` / module env parity** | Remaining gaps vs SML `initTypes` / `modEnvFromProg` (if any after M3-S-030). | `sv0c/lib/checker.sv0` | M3-S-030 | **`./scripts/sv0 test`**. |
+| M3-S-032 | G4 | **Checker+resolver integration hardening** | Multi-module fixtures + diagnostics codes vs SML categories. | `sv0c/test/integration/`, `sv0c/lib/*.sv0` | M3-S-031 | **`bash task/sv0vm-milestone-2/02-integration-test.sh`** + **`./scripts/sv0 test`**. |
+
+| M3-S-033 | G5 | **Lowering — `ensGlue` + `injectEnsuresAndRetSlot`** | Wire contract glue into **`lower_fn`** / IR prefix per SML ordering. | `sv0c/lib/lowering.sv0` | M3-S-009 | **`vm-compile lib/lowering.sv0`** + full vm-parity refresh if needed; **`./scripts/sv0 test`**. |
+| M3-S-034 | G5 | **Lowering — `lowerEnsuresClause`** | Ensures lowering into IR checks. | `sv0c/lib/lowering.sv0` | M3-S-033 | As M3-S-033. |
+| M3-S-035 | G5 | **VM — `forall` / `exists` contract op parity** | Close gaps where clauses are **C-only** today (per **`transliteration-plan`** contract row). | `sv0c/lib/vm_codegen.sv0`, `sv0c/sml/backend/vm/*.sml` reference | M3-S-011 | **`./scripts/sv0 test`** + vm-parity cases **`forall_requires` / `exists_requires`** green on VM from **sv0-emitted** path when ready. |
+| M3-S-036 | G5 | **Lowering — match polish backlog** | **`PatStruct`** edge cases, **`scrut_cty`** precision vs SML, any open **`transliteration-plan`** lowering notes. | `sv0c/lib/lowering.sv0` | M3-S-009 | Targeted **`vm-compile`** + integration **`import_use_match`** extensions; **`./scripts/sv0 test`**. |
+| M3-S-037 | G5 | **Lowering — `ExprCast` typing in resolver** | Resolver **`ExprCast`** validation (deferred in **`transliteration-plan`**). | `sv0c/lib/resolver.sv0`, `checker.sv0` | M3-S-029 | **`./scripts/sv0 test`**. |
+| M3-S-038 | G5 | **Contract analyzer beyond identity** | If SML **`analyzer.sml`** grows responsibilities; else mark **N/A** in refinement log. | `sv0c/lib/contract_analyzer.sv0` | — | `./scripts/sv0 test-guards` + parity justification. |
+
+| M3-S-039 | G6 | **Link — `mapTy` / `mapExpr` / `mapStmt` / `mapItem`** | Cross-module rewrite passes per SML **`link.sml`**. | `sv0c/lib/link.sv0` | M3-S-019 | **`vm-compile lib/link.sv0`** + project integration tests. |
+| M3-S-040 | G6 | **Link — `linkProjectDir` orchestration** | Full project link entry matching SML semantics. | `sv0c/lib/link.sv0` | M3-S-039 | **`bash task/sv0vm-milestone-2/02-integration-test.sh`** + **`./scripts/sv0 test`**. |
+| M3-S-041 | G6 | **Driver — pipeline composition in sv0** | Single sv0 driver calls **lexer→parser→resolve→check→lower→codegen/vm** mirroring SML pass order. | `sv0c/lib/main.sv0`, new `pipeline` module if split | M3-S-018, M3-S-032, M3-S-040 | **`./scripts/sv0 test`** + compare selected outputs to SML on fixed fixtures. |
+| M3-S-042 | G6 | **CLI parity** | CLI flags / modes vs **`main.sml`** (document non-goals if some flags retire). | `sv0c/lib/main.sv0`, `scripts/sv0` | M3-S-041 | **`./scripts/sv0 test-guards`** + manual matrix in refinement log. |
+
+| M3-S-043 | G7 | **vm-parity corpus growth + allowlist hygiene** | Add curated programs under **`sv0c/test/vm-parity/`**; keep manifest ⊆ bootstrap list; document allowlist entries. | `sv0c/test/vm-parity/`, manifests | — | **`./scripts/sv0 test-guards`**; **`bash scripts/capture_vm_parity_goldens.sh`** when bytecode changes; **`./scripts/sv0 test`**. |
+| M3-S-044 | G7 | **Diagnostics corpus — behavioral** | Shared accept/reject inputs vs SML baseline (categories/codes). | `sv0c/test/**`, tasks | M3-S-021 | Focused pytest/SML harness (as designed); **`./scripts/sv0 test`** when wired. |
+| M3-S-045 | G7 | **Tier-2 VM parity — sv0 compiler emits bytecode** | Harness: compare **sv0-emitted** `.sv0b` to SML goldens (may start subset before full 97). | `sv0c/test/vm-parity/`, `scripts/` | M3-S-041 | Design doc row + CI job stub; then expand file list. |
+| M3-S-046 | G7 | **Stage-1 C parity (`self-host-compare`)** | When **`stage1/*.c`** policy activates; compare staged compiler output. | `sv0c/lib/golden/stage1/` (if used) | M3-S-041 | **`./scripts/sv0 self-host-compare <stem>`** per `AGENTS.md`. |
+
+| M3-S-047 | G8 | **Native compiler binary (recipe)** | Document + script: build **`SV0_SELF_HOST_COMPILER`** from sv0-emitted C (or agreed path). | `sv0c/doc/self-host-sv0-loop.md`, `scripts/` | M3-S-041 | Local **`cc`** recipe reproducible on macOS/Linux; **`./scripts/sv0 test-guards`**. |
+| M3-S-048 | G8 | **Native loop — green `diff` on pilots** | **`SV0_SELF_HOST_COMPILER`** set; **`./scripts/sv0 self-host-sv0-loop`** without **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** on **`lib/self-host-sv0-loop.list`**. | env + scripts | M3-S-047 | Full **`./scripts/sv0 test`** with native binary available in CI or documented opt-in. |
+| M3-S-049 | G8 | **CI — optional native third leg** | Non-default workflow job proving M3-S-048 on schedule or `workflow_dispatch`. | `.github/workflows/` | M3-S-048 | `gh run watch` green on pilot workflow. |
+
+| M3-S-050 | G9 | **Retirement — spec + task checklist** | Human-readable cutover checklist (no tag yet): **`bootstrap-sml-final`**, `sml-legacy/`, default build. | this file, `sv0c/README.md`, `28-*.mdc` | M3-S-048 | Review-only; **`./scripts/sv0 test-guards`**. |
+| M3-S-051 | G9 | **Retirement — `sv0c` tag + directory move** | Apply tag on **sv0c**; rename **`sml/`** → **`sml-legacy/`**; **human-owned**. | `sv0c/` | M3-S-050 + stakeholder sign-off | **`./scripts/sv0 test`** on branch; push submodule first per **`29-submodule-git-visibility.mdc`**. |
+| M3-S-052 | G9 | **Retirement — default build sv0-only** | **`Makefile` / `./scripts/sv0`** default paths skip SML; **explicit legacy** targets only. | `sv0c/`, meta `scripts/` | M3-S-051 | **`./scripts/sv0 test`** with SML absent from default path. |
+| M3-S-053 | G9 | **Recovery doc** | Cold bootstrap from **`bootstrap-sml-final` + `sml-legacy/`** if self-host breaks. | `sv0c/doc/*.md` | M3-S-051 | Doc review; **`./scripts/sv0 test-guards`**. |
+
+| M3-S-054 | GX | **T0-2d policy — user generic monomorphization** | Either implement narrowed lowering monomorphization **or** formally defer with compiler-only typing rules (update **`sv0doc/`** + tasks). | `sv0doc/`, `sv0c/lib/lowering.sv0` | M3-S-001 | Spec + **`./scripts/sv0 test`**. |
+| M3-S-055 | GX | **Deferred language — closures / `impl` / VM for-loop continue** | Track decisions: **T0-7**, **T0-9**, VM **`continue` in for** optimization; each becomes a new slice when un-deferred. | tasks, `sv0c/lib/vm_codegen.sv0` | stakeholder | Refinement-log row only until promoted. |
+
+**Notes**
+
+1. **Order within gates** is not totally linear: **G1** batches can parallelize by file once **M3-S-002** exists; **G2** is blocked on **M3-S-015**/**016**; **G3** unblocks **G4**.
+2. **“Every slice” granularity:** horizontal **`raise Fail`** removal may need **sub-batches** inside **M3-S-005 … M3-S-013** — keep them as **child bullets in the refinement log** rather than renumbering this table.
+3. **M3 completion** still requires **all** **## completion criteria** bullets above, not only finishing **M3-S-001 … M3-S-055**.
+
 ## refinement log
 
+- 2026-04-25 (**America/Los_Angeles −07:00**): **M3 planning — documented slice backlog (`M3-S-001`…`M3-S-055`).** Added **## documented M3 slice backlog** (stable IDs, gates G0–G9 + GX, objectives, artifacts, deps, acceptance). Corrected **phase 2** rolling paragraph (harness counts **97**, `*_core.sv0` consolidation). Cross-links: **`sv0c/doc/transliteration-plan.md`** (**`sv0c`** **`c2ecc14`**), **`task/sv0-toolchain-milestone-3-checklist.Rmd`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**, later): **Integration — `import_use_match` eighth `use`.** **`use lib::five`**, **`five()`** guard, **`fn five`**; **`test/integration/README.md`** (eight **`use lib::…`** lines); **`PROGRESS.md`**. Landed on **`sv0c`** **`a5c6dfd`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Integration — `import_use_match` seventh `use`.** **`use lib::four`**, **`four()`** guard, **`fn four`**; **`test/integration/README.md`**. Landed on **`sv0c`** **`bb488aa`**. **M3 still not met.**
 - 2026-04-26 (**America/Los_Angeles −07:00**): **Resolver — `path_join_vec` three segments.** **`lib/resolver.sv0`** adds **`test_path_join_vec_three`**; refreshed stage0 **`resolver.c`** and vm-parity **`resolver.sv0b`**. Landed on **`sv0c`** **`894984b`**. **M3 still not met.**

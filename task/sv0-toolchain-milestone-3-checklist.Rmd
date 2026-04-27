@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-04-24T23:05:00-06:00"
+updated: "2026-04-25T21:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -18,7 +18,7 @@ roadmap_parent: sv0-toolchain-roadmap-full
 
 ## purpose
 
-Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds** under **`sv0c/lib/`**, **`sv0c/lexer/`**, **`sv0c/parser/`**, and future phase directories. This file is a **living index**; it does **not** by itself close milestone 3 (see **`task/sv0-toolchain-milestone-3-self-host.Rmd`** for definition of done).
+Track **bootstrap compiler** surface area in **`sv0c/sml/`** against **sv0 seeds** under **`sv0c/lib/`**, **`sv0c/lexer/`**, **`sv0c/parser/`**, and future phase directories. This file is a **living index**; it does **not** by itself close milestone 3 (see **`task/sv0-toolchain-milestone-3-self-host.Rmd`** for definition of done). **Sequencing / slice IDs:** use **`task/sv0-toolchain-milestone-3-self-host.Rmd`** → **“documented M3 slice backlog”** (**`M3-S-###`**) as the authoritative per-slice plan; keep this checklist’s phase table aligned when subsystem status flips.
 
 ## how to use
 
