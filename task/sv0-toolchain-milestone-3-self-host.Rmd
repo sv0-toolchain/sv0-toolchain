@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-27T20:15:00-07:00"
+updated: "2026-04-27T21:30:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -167,7 +167,7 @@ Rolling mirror of **`## documented M3 slice backlog`** rows **M3-S-004 … M3-S-
 | M3-S-004 | Done | Parser — speculative `Fail` → `Option` |
 | M3-S-005 | Done | Parser — `raise Fail` batch A (`try_assign_stmt` / field targets) |
 | M3-S-006 | Done | Parser — `raise Fail` batch B (no `raise` token under `lib|lexer|parser`) |
-| M3-S-007 | Pending | Checker — `raise Fail` batch A (`lib/checker.sv0`) |
+| M3-S-007 | Done | Checker — `raise Fail` batch A (`lib/checker.sv0`; see `sv0c/doc/m3-g1-track-c.md`) |
 | M3-S-008 | Pending | Checker — `raise Fail` batch B |
 | M3-S-009 | Pending | Lowering — `raise Fail` → `Result` (`lib/lowering.sv0`) |
 | M3-S-010 | Pending | Resolver — exception bridge (`lib/resolver.sv0`) |
@@ -600,6 +600,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 
 ## refinement log
 
+- 2026-04-27 (**America/Los_Angeles −07:00**, evening): **M3-S-007 (G1) — mechanical Track C audit landed on `sv0c`.** `doc/m3-g1-track-c.md` records scoped **`raise`** search on **`lib/checker.sv0`** (zero hits). Meta: **`sv0-track`** **`ingest: table`** digest for **## M3 G1 slice status** + submodule bump + README pin. **M3 still not met.**
 - 2026-04-27 (**America/Los_Angeles −07:00**, evening): **M3-S-014 (G1) — partial closure via CI guard; M3-S-006 bookkeeping.** Added **`scripts/verify_compiler_sv0_no_raise.py`** and wired it into **`./scripts/sv0 test-guards`** / **`test`** so **`sv0c/lib/`**, **`lexer/`**, and **`parser/`** compiler **`.sv0`** cannot reintroduce **`raise`** without failing guards (**M3-S-014** mechanical half). **M3-S-006** (parser **`raise Fail`** batch B) recorded **satisfied on current tree** — the transliterated parser already uses sentinel **`Result`** / backtrack patterns (**zero** **`raise`** matches); remaining **G1** batches (**M3-S-007** …) still apply to **`checker.sv0`**, **`lowering.sv0`**, etc. **“Develop all `M3-S-*`”** remains a **multi-gate program** (G2 needs **`sv0doc/`** + C runtime; G9 is **human-gated**); this commit does **not** assert **L0** / **M3 done**. **Meta only** (no **`sv0c`** submodule pointer).
 - 2026-04-27 (**America/Los_Angeles −07:00**, morning): **M3-S-005 (G1) — parser assign-target probe helper (lane B).** **`sv0c/lib/parser.sv0`** adds **`parse_assign_target_op_pos`** and routes **`try_assign_stmt`** through that helper to isolate speculative LHS target probing; parser coverage now includes field compound-assignment (**`{ x.y += 1; }`**) in **`test_parse_assign`**. Refreshed goldens: **`lib/golden/stage0/parser.c`**, **`test/vm-parity/golden/sml/parser.sv0b`**. Inventory docs updated: **`sv0c/doc/transliteration-plan.md`** parser row + **`sv0c/PROGRESS.md`**. Landed on **`sv0c`** **`ea098f8`**. **M3 still not met.**
 - 2026-04-27 (**America/Los_Angeles −07:00**, morning): **M3-S-004 (G1) — parser assign-target batch (parallel lane A).** **`sv0c/lib/parser.sv0`** `try_assign_stmt` now accepts one-level **`IDENT.FIELD`** LHS for both `=` and `OP=` forms in addition to plain identifiers; added field-target coverage inside **`test_parse_assign`**. Refreshed goldens: **`lib/golden/stage0/parser.c`**, **`test/vm-parity/golden/sml/parser.sv0b`**. Inventory docs updated: **`sv0c/doc/transliteration-plan.md`** parser row + **`sv0c/PROGRESS.md`**. Landed on **`sv0c`** **`4eb45c5`**. **M3 still not met.**
