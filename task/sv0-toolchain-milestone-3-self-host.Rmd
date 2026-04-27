@@ -499,7 +499,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | M3-S-006 | `sv0c/lib/parser.sv0` | Done |
 | M3-S-007 | `sv0c/lib/checker.sv0` | Done |
 | M3-S-008 | `sv0c/lib/checker.sv0` | Done |
-| M3-S-009 | `sv0c/lib/lowering.sv0` | Pending |
+| M3-S-009 | `sv0c/lib/lowering.sv0` | Done |
 | M3-S-010 | `sv0c/lib/resolver.sv0` | Pending |
 | M3-S-011 | `sv0c/lib/vm_codegen.sv0` | Pending |
 | M3-S-012 | `codegen.sv0`, `bytecode.sv0`, `env.sv0` | Pending |
@@ -512,7 +512,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 - [x] **M3-S-006** — Parser raise Fail batch B (`parser.sv0`)
 - [x] **M3-S-007** — Checker raise Fail batch A (`checker.sv0`)
 - [x] **M3-S-008** — Checker raise Fail batch B (`checker.sv0`)
-- [ ] **M3-S-009** — Lowering raise Fail to Result (`lowering.sv0`)
+- [x] **M3-S-009** — Lowering raise Fail to Result (`lowering.sv0`)
 - [ ] **M3-S-010** — Resolver exception bridge (`resolver.sv0`)
 - [ ] **M3-S-011** — VM codegen exception bridge (`vm_codegen.sv0`)
 - [ ] **M3-S-012** — C codegen / bytecode / env (`codegen.sv0`, `bytecode.sv0`, `env.sv0`)
