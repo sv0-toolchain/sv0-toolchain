@@ -11,7 +11,7 @@ let lastDigestRows = null;
  * @returns {Promise<unknown>}
  */
 async function loadJson(url) {
-  const r = await fetch(url);
+  const r = await fetch(url, { cache: "no-store" });
   if (!r.ok) {
     throw new Error(`${url}: ${r.status}`);
   }
@@ -406,13 +406,19 @@ async function main() {
   }
 
   let pollMs = 120000;
+  /** @type {string} */
+  let toolchainRoot = "";
   try {
     const cfg = await loadJson("/api/config");
-    if (cfg && typeof cfg === "object" && "suggested_client_poll_ms" in cfg) {
-      const v = /** @type {{ suggested_client_poll_ms?: unknown }} */ (cfg)
-        .suggested_client_poll_ms;
-      if (typeof v === "number") {
-        pollMs = v;
+    if (cfg && typeof cfg === "object") {
+      const c = /** @type {{ suggested_client_poll_ms?: unknown; toolchain_root?: unknown }} */ (
+        cfg
+      );
+      if (typeof c.suggested_client_poll_ms === "number") {
+        pollMs = c.suggested_client_poll_ms;
+      }
+      if (typeof c.toolchain_root === "string") {
+        toolchainRoot = c.toolchain_root;
       }
     }
   } catch {
@@ -431,7 +437,9 @@ async function main() {
   const rs = document.getElementById("refresh-status");
   const base = rs ? rs.textContent.trim() : "";
   const pollSec = Math.round(pollMs / 1000);
-  setRefreshStatus(`${base} · refreshes about every ${pollSec}s`);
+  const rootHint =
+    toolchainRoot.length > 0 ? ` · digest root: ${toolchainRoot}` : "";
+  setRefreshStatus(`${base} · refreshes about every ${pollSec}s${rootHint}`);
   window.setInterval(() => {
     loadAndRender().catch((err) => {
       const m = err instanceof Error ? err.message : String(err);

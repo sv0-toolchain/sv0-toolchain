@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-27T23:45:00-07:00"
+updated: "2026-04-28T12:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -151,7 +151,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-022** (G3 — parser item arena enrichment) — **G2** host I/O rows **M3-S-015 … M3-S-021** are **closed** on current tree (see **## M3 G2 slice status**); **G1 Track C** mechanical **`raise`** rows **M3-S-004 … M3-S-014** remain guarded by **`verify_compiler_sv0_no_raise.py`** + **`verify_m3_g1_track_c.py`** (**`./scripts/sv0 test-guards`**; **`sv0c/doc/m3-g1-track-c.md`**).
+- **Default next slice:** **M3-S-027** (G4 — **`resolve_top_item`** **`ItemFn`** walk) — **G3** rows **M3-S-022 … M3-S-026** are **closed** on current tree (see **## M3 G3 slice status**); **G2** / **G1** closure mirrors remain as recorded above.
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -192,6 +192,20 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-015 … M3-S-02
 | M3-S-020 | Done | **`lib/include_expand.sv0`** — **`expand_file`**, **`expand`**, **`expand_from_file`** + depth guard **E0323** |
 | M3-S-021 | Done | **`lib/diagnostic.sv0`** — **`report`**, **`report_all`** (stdout via **`println`**; **`report_all`** avoids chaining **`report`** so sv0-emitted C stays valid; stderr/file → later sinks) |
 <!-- sv0-track:end {"id":"m3.g2.slice.status"} -->
+
+## M3 G3 slice status (parser arena enrichment)
+
+Rolling mirror of **## documented M3 slice backlog** rows **M3-S-022 … M3-S-026** (G3 — **`parse_program`** item arena + program sidecars for **G4** **`resolve_top_item`** / **`initTypes`** integration).
+
+<!-- sv0-track:begin {"id":"m3.g3.slice.status","title":"M3 G3 slice status (parser enrichment)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
+| Slice | Status | Primary notes |
+|-------|--------|---------------|
+| M3-S-022 | Done | **`sv0c/doc/transliteration-plan.md`** § **M3 G3 — Parser item arena + program sidecars** (+ **`lib/LAYOUT.md`** pointer) |
+| M3-S-023 | Done | **`lib/parser.sv0`** — **`ItemFn`** **id2** packing documented (**has_ret**/**contract_count**); **`item_fn_has_ret_packed`** / **`item_fn_contract_count_packed`** |
+| M3-S-024 | Done | **`enum_variant_name_toks`** program Vec + **`ItemEnum`** **id3**/**id4** slice bases |
+| M3-S-025 | Done | **`struct_field_name_toks`** program Vec + **`ItemStruct`** **id3**/**id4** slice bases |
+| M3-S-026 | Done | **`lib/resolver.sv0`** — **`resolve_top_item`** stub documents **G3** roots/sidecars; **G4** wires **`resolve_expr`** |
+<!-- sv0-track:end {"id":"m3.g3.slice.status"} -->
 
 ## validation (agents)
 

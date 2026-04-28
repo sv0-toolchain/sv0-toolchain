@@ -75,7 +75,6 @@ def make_handler(root: Path, refresh_seconds: float) -> type[BaseHTTPRequestHand
     static_root = _SCRIPT_DIR / "progress_dashboard" / "static"
     digest_cache = _JsonBodyCache(refresh_seconds)
     milestones_cache = _JsonBodyCache(refresh_seconds)
-    max_age = int(max(1, round(refresh_seconds)))
 
     class Handler(BaseHTTPRequestHandler):
         protocol_version = "HTTP/1.1"
@@ -142,13 +141,17 @@ def make_handler(root: Path, refresh_seconds: float) -> type[BaseHTTPRequestHand
                 cfg: dict[str, object] = {
                     "refresh_seconds": refresh_seconds,
                     "suggested_client_poll_ms": poll_ms,
+                    "toolchain_root": str(root),
                 }
                 raw = json.dumps(cfg).encode("utf-8")
+                # Do not let browsers cache JSON: digest/milestones already use an in-process
+                # TTL cache; HTTP caching caused stale "Needs fix N files" after task fixes or
+                # container restarts until max-age expired.
                 self._send(
                     200,
                     raw,
                     "application/json; charset=utf-8",
-                    cache_control=f"private, max-age={max_age}",
+                    cache_control="no-store",
                 )
                 return
             if path == "/api/digest":
@@ -157,7 +160,7 @@ def make_handler(root: Path, refresh_seconds: float) -> type[BaseHTTPRequestHand
                     200,
                     raw,
                     "application/json; charset=utf-8",
-                    cache_control=f"private, max-age={max_age}",
+                    cache_control="no-store",
                 )
                 return
             if path == "/api/milestones":
@@ -166,7 +169,7 @@ def make_handler(root: Path, refresh_seconds: float) -> type[BaseHTTPRequestHand
                     200,
                     raw,
                     "application/json; charset=utf-8",
-                    cache_control=f"private, max-age={max_age}",
+                    cache_control="no-store",
                 )
                 return
             self._send(404, b"not found", "text/plain; charset=utf-8")
