@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-28T12:00:00-07:00"
+updated: "2026-04-28T15:30:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -151,7 +151,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-027** (G4 — **`resolve_top_item`** **`ItemFn`** walk) — **G3** rows **M3-S-022 … M3-S-026** are **closed** on current tree (see **## M3 G3 slice status**); **G2** / **G1** closure mirrors remain as recorded above.
+- **Default next slice:** **M3-S-028** (G4 — struct / enum / type-alias **`resolve_top_item`** **`resolve_ty`**) — **M3-S-027** landed **G4 initial** (**`fn_param_name_toks`** / **`id5`** + **`ItemFn`** **`resolve_expr`** body); remaining **G4** rows **M3-S-028 … M3-S-032** are tracked in **## M3 G4 slice status**. **G3** / **G2** / **G1** mirrors remain as recorded above.
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -204,8 +204,23 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-022 … M3-S-02
 | M3-S-023 | Done | **`lib/parser.sv0`** — **`ItemFn`** **id2** packing documented (**has_ret**/**contract_count**); **`item_fn_has_ret_packed`** / **`item_fn_contract_count_packed`** |
 | M3-S-024 | Done | **`enum_variant_name_toks`** program Vec + **`ItemEnum`** **id3**/**id4** slice bases |
 | M3-S-025 | Done | **`struct_field_name_toks`** program Vec + **`ItemStruct`** **id3**/**id4** slice bases |
-| M3-S-026 | Done | **`lib/resolver.sv0`** — **`resolve_top_item`** stub documents **G3** roots/sidecars; **G4** wires **`resolve_expr`** |
+| M3-S-026 | Done | **`lib/resolver.sv0`** — **G3** documented roots/sidecars; superseded by **## M3 G4 slice status** **M3-S-027** (**`resolve_expr`** on **`ItemFn`** bodies) |
 <!-- sv0-track:end {"id":"m3.g3.slice.status"} -->
+
+## M3 G4 slice status (resolver / checker orchestration)
+
+Rolling mirror of **## documented M3 slice backlog** rows **M3-S-027 … M3-S-032** (G4 — **`resolve_top_item`** completion + checker program **`check`** / **`initTypes`** parity).
+
+<!-- sv0-track:begin {"id":"m3.g4.slice.status","title":"M3 G4 slice status (resolver/checker)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
+| Slice | Status | Primary notes |
+|-------|--------|---------------|
+| M3-S-027 | Partial | **`lib/parser.sv0`** — **`fn_param_name_toks`** + **`ItemFn.id5`**; **`lib/resolver.sv0`** — **`resolve_program`** threads **`body_et`**/**`ed*`**/**`id5`**; **`resolve_top_item`** **`ItemFn`**: bind params then **`resolve_expr`** on **`id4`**. Signature **`resolve_ty`** on formal types / contracts deferred. |
+| M3-S-028 | Open | **`resolve_top_item`** for **`ItemStruct`** / **`ItemEnum`** / type-alias — **`resolve_ty`** walks using persisted parser type nodes |
+| M3-S-029 | Open | Trait / impl method lists + self types (**as spec allows for M3**) |
+| M3-S-030 | Open | **`lib/checker.sv0`** — program-level **`check`** orchestration (beyond **`check_fn_body`**) |
+| M3-S-031 | Open | **`initTypes`** / **`modEnvFromProg`** parity vs remaining SML gaps |
+| M3-S-032 | Open | **`sv0c/test/integration/`** + diagnostics hardening |
+<!-- sv0-track:end {"id":"m3.g4.slice.status"} -->
 
 ## validation (agents)
 
