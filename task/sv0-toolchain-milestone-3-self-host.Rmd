@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-27T14:30:00-07:00"
+updated: "2026-04-27T18:45:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -151,7 +151,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-031** (G4 — checker **`initTypes`** / module-env parity vs remaining SML gaps) — **M3-S-030** (**`check_program`** + **`check_fn_body`** **`body_root_idx`**) is **closed** on current tree (see **## M3 G4 slice status**); remaining **M3-S-031 … M3-S-032** (**`initTypes`** parity, integration hardening) still **Open**. **G3** / **G2** / **G1** mirrors remain as recorded above.
+- **Default next slice:** **M3-S-032** (G4 — integration / diagnostics hardening) while **M3-S-031** stays **Partial** (string **`struct_enum_name_clash`** / duplicate-variant (**`dupVariants`**) parity landed in **`check_program`** / **`init_enum_defs`**; remaining **`initTypes`** gaps: **`ItemFn`** formal/contract **`resolve_ty`** (**`pty_*`**), **`ItemEnum`** variant payload type roots). **M3-S-030** remains **closed**. **G3** / **G2** / **G1** mirrors remain as recorded above.
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -218,7 +218,7 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-027 … M3-S-03
 | M3-S-028 | Done | **`lib/parser.sv0`** — program **`pty_tt`** + **`struct_field_ty_root`**; **`ItemTypeAlias.id2`** = alias type root; **`resolve_top_item`** **`ItemStruct`**/**`ItemTypeAlias`**: **`resolve_ty`** on field/alias types (**`ItemEnum`** payload **`resolve_ty`** still deferred). |
 | M3-S-029 | Done | **`ItemTrait`**/**`ItemImpl`** parent rows remain no-ops; nested **`ItemFn`** bodies resolved as **`ItemFn`** rows (**self**/**method** typing deferred where spec allows). |
 | M3-S-030 | Done | **`lib/checker.sv0`** — **`check_program`** (**`init_struct_defs`**/**`init_enum_defs`**/**`register_all_item_fns`**/**`build_mod_env`** + per-**`ItemFn`** **`check_fn_body`**); **`check_fn_body`** takes **`body_root_idx`** for shared **`body_et`**; **`test_check_program`** |
-| M3-S-031 | Open | **`initTypes`** / **`modEnvFromProg`** parity vs remaining SML gaps |
+| M3-S-031 | Partial | **`struct_enum_name_clash_str`** + **`dup_variant_names_str`** (**`dupVariants`** spelling) wired through **`check_program`** / **`init_enum_defs`** (**`-1`** on dup variants). Remaining vs SML **`initTypes`**: formal/contract **`resolve_ty`**, **`ItemEnum`** payload roots. |
 | M3-S-032 | Open | **`sv0c/test/integration/`** + diagnostics hardening |
 <!-- sv0-track:end {"id":"m3.g4.slice.status"} -->
 
@@ -573,7 +573,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | M3-S-028 | G4 | **Resolver — struct / enum / type-alias items** | Item bodies for non-fn items. | `sv0c/lib/resolver.sv0` | M3-S-027 | As M3-S-027. |
 | M3-S-029 | G4 | **Resolver — trait / impl items** | Method lists + self types (as spec allows for M3). | `sv0c/lib/resolver.sv0` | M3-S-028 | As M3-S-027. |
 | M3-S-030 | G4 | **Checker — `check` program orchestration** | Cross-item **`check`** loop mirroring SML `check` entry (beyond per-fn **`check_fn_body`**). | `sv0c/lib/checker.sv0` | M3-S-027 | **`./scripts/sv0 test`** + new integration case. |
-| M3-S-031 | G4 | **Checker — `initTypes` / module env parity** | Remaining gaps vs SML `initTypes` / `modEnvFromProg` (if any after M3-S-030). | `sv0c/lib/checker.sv0` | M3-S-030 | **`./scripts/sv0 test`**. |
+| M3-S-031 | G4 | **Checker — `initTypes` / module env parity** | Name-clash + duplicate-variant spelling parity vs SML (**`struct_enum_name_clash`** / **`dupVariants`**); remaining: signature **`resolve_ty`** (**`pty_*`**), **`ItemEnum`** payload plumbing. | `sv0c/lib/checker.sv0` | M3-S-030 | **`./scripts/sv0 test`**. |
 | M3-S-032 | G4 | **Checker+resolver integration hardening** | Multi-module fixtures + diagnostics codes vs SML categories. | `sv0c/test/integration/`, `sv0c/lib/*.sv0` | M3-S-031 | **`bash task/sv0vm-milestone-2/02-integration-test.sh`** + **`./scripts/sv0 test`**. |
 
 | M3-S-033 | G5 | **Lowering — `ensGlue` + `injectEnsuresAndRetSlot`** | Wire contract glue into **`lower_fn`** / IR prefix per SML ordering. | `sv0c/lib/lowering.sv0` | M3-S-009 | **`vm-compile lib/lowering.sv0`** + full vm-parity refresh if needed; **`./scripts/sv0 test`**. |
