@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-29T14:20:00-07:00"
+updated: "2026-04-29T15:45:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -151,7 +151,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-039** / **M3-S-040** (G6 — **`map*`** arena rewrite + AST **`linkProjectDir`** parity); **`lib/main.sv0`** now exposes the nine-step driver naming/tests (**M3-S-041**/**M3-S-042** partials) but does not merge lexer→emit into one bootstrap TU yet.
+- **Default next slice:** **M3-S-039** / **M3-S-040** / **M3-S-041** (G6 — **`map*`** arena rewrite + AST **`linkProjectDir`** parity + single-TU driver); **M3-S-042** (CLI argv parity vs **`main.sml`**) is **done** — see **`sv0c/doc/cli-parity.md`**.
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -247,7 +247,7 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-039 … M3-S-04
 | M3-S-039 | Partial | **`lib/link.sv0`**: **`link_ty_*`** + expr predicate stack + **`link_pat_subtree_node_count`**/**`link_pat_root_needs_mangle`** on parser **`pat_tags`** (0–6 — mirrors **`pat_leftmost_subtree_rows`** sizing). Remaining: **`mapPat`**/**`mapItem`**/**`mapExpr`** concrete arena rewrites (not predicate-only) per SML. |
 | M3-S-040 | Partial | **`link_project_listing_from_entry`** / **`link_project_concat_sources_from_entry`** (SML **`linkDirectory`** → **`linkProjectDir`**); plus listing concat / **`listing_count_nonempty_paths`**. VM tests avoid **`read_dir`** (host). Still missing per-file **`parse_program`** + **`mapProgramUnit`** program merge vs SML. |
 | M3-S-041 | Partial | **`driver_pipeline_step_name`** / **`driver_pipeline_step_for_core_phase`** (+ **`test_driver_pipeline_step_names`**) document the nine-step spine (**tokenize** → **parse** → **`PHASE_*`**). Real lexer→…→emit calls remain split across bootstrap **`lib/*.sv0`** roots until multi-unit sv0 compilation or a merged pipeline module exists. |
-| M3-S-042 | Partial | **`scripts/sv0`** **`usage()`** + **`lib/main.sv0`** **`classify_cli`** / **`test_cli`** / **`test_cli_invalid_patterns`** (unsupported argv shapes → usage). Exhaustive parity vs every **`main.sml`** branch still tracked separately. |
+| M3-S-042 | Done | **`sv0c/doc/cli-parity.md`** — **`main.sml`** `Main.main` argv matrix ↔ **`lib/main.sv0`** **`classify_cli`** + tests; **`scripts/sv0`** **`usage()`** four-mode summary; non-goals: meta orchestrator vs compiler argv, **M3-S-041** single-TU driver. |
 <!-- sv0-track:end {"id":"m3.g6.slice.status"} -->
 
 ## validation (agents)
@@ -640,6 +640,8 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 3. **M3 completion** still requires **all** **## completion criteria** bullets above, not only finishing **M3-S-001 … M3-S-055**.
 
 ## refinement log
+
+- 2026-04-29 (**America/Los_Angeles −07:00**): **M3-S-042 (G6) — closure.** Added **`sv0c/doc/cli-parity.md`** (authoritative **`Main.main`** argv table, **`classify_cli`** mapping, **`scripts/sv0`** scope/non-goals). Updated **`sv0c/doc/transliteration-plan.md`** Pipeline/driver row and **`lib/main.sv0`** header pointer. **## M3 G6 slice status** marks **M3-S-042** **Done**. Full **`scripts/sv0`** subcommand matrix vs SML remains **non-goal**; **M3-S-041** (lexer→emit in one bootstrap TU) stays open. **M3 still not met.**
 
 - 2026-04-27 (**America/Los_Angeles −07:00**, night): **G2 — follow-up (`lib/link.sv0` test):** **`test_g2_link_host_io_aliases`** no longer calls **`read_dir`** — **`/tmp`** recurse hit **`read_dir: io error`** on GitHub Linux; **`"."`** in **native self-host** recurse hit **SIGSEGV (139)** (deep cwd / stack). Probe is **`write_file` + `parse_file`** only; **`walk_sv0` / `link_project_dir`** stay as API aliases over **`read_dir` / `list_sv0`**.
 - 2026-04-27 (**America/Los_Angeles −07:00**, night): **G2 closure batch (M3-S-018 … M3-S-021) on `sv0c`.** **`lib/main.sv0`** — **`driver_tokenize_sketch`** reads source after path checks; **`compile_write_text`** alias; tokenize test probe under **`/tmp/`** (VM **`bootstrap-build`** cwd is **`sv0vm/`**, not **`sv0c/`**). **`lib/link.sv0`** — **`walk_sv0` / `parse_file` / `link_project_dir`** + **`/tmp`** probe test. **`lib/include_expand.sv0`** — **`expand`**, **`expand_from_file`**, tests. **`lib/diagnostic.sv0`** — **`report_all`** (no **`test_report_all_smoke`** — sv0-emitted C assigns **`void`** from unit calls). Meta: **## M3 G2 slice status** table; **“where to start next” → M3-S-022**. **`bash scripts/capture_vm_parity_goldens.sh`** + stage0 copies for **`main` / `link` / `include_expand` / `diagnostic`**. **M3 L0 still not met** (G3+ spine open).
