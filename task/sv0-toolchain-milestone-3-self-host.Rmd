@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-29T11:30:00-07:00"
+updated: "2026-04-29T14:20:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -244,7 +244,7 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-039 … M3-S-04
 <!-- sv0-track:begin {"id":"m3.g6.slice.status","title":"M3 G6 slice status (link/driver)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
 | Slice | Status | Primary notes |
 |-------|--------|---------------|
-| M3-S-039 | Partial | **`lib/link.sv0`**: **`link_ty_*`** + recursive expr predicate stack (**`link_expr_subtree_node_count`**, **`link_expr_find_root_covering_min`**, **`link_expr_root_needs_mangle`**) now covers ExprCall/MethodCall arg regions plus block/if/match/while/for and stmt/arm tags (**27…33**). Remaining: **`mapPat`**/**`mapItem`** + actual **`mapExpr`** rewrite (not predicate-only) per SML. |
+| M3-S-039 | Partial | **`lib/link.sv0`**: **`link_ty_*`** + expr predicate stack + **`link_pat_subtree_node_count`**/**`link_pat_root_needs_mangle`** on parser **`pat_tags`** (0–6 — mirrors **`pat_leftmost_subtree_rows`** sizing). Remaining: **`mapPat`**/**`mapItem`**/**`mapExpr`** concrete arena rewrites (not predicate-only) per SML. |
 | M3-S-040 | Partial | **`link_project_listing_from_entry`** / **`link_project_concat_sources_from_entry`** (SML **`linkDirectory`** → **`linkProjectDir`**); plus listing concat / **`listing_count_nonempty_paths`**. VM tests avoid **`read_dir`** (host). Still missing per-file **`parse_program`** + **`mapProgramUnit`** program merge vs SML. |
 | M3-S-041 | Partial | **`driver_pipeline_step_name`** / **`driver_pipeline_step_for_core_phase`** (+ **`test_driver_pipeline_step_names`**) document the nine-step spine (**tokenize** → **parse** → **`PHASE_*`**). Real lexer→…→emit calls remain split across bootstrap **`lib/*.sv0`** roots until multi-unit sv0 compilation or a merged pipeline module exists. |
 | M3-S-042 | Partial | **`scripts/sv0`** **`usage()`** + **`lib/main.sv0`** **`classify_cli`** / **`test_cli`** / **`test_cli_invalid_patterns`** (unsupported argv shapes → usage). Exhaustive parity vs every **`main.sml`** branch still tracked separately. |
