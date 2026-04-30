@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-29T21:40:00-07:00"
+updated: "2026-04-29T22:15:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -244,7 +244,7 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-039 … M3-S-04
 <!-- sv0-track:begin {"id":"m3.g6.slice.status","title":"M3 G6 slice status (link/driver)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
 | Slice | Status | Primary notes |
 |-------|--------|---------------|
-| M3-S-039 | Partial | **`lib/link.sv0`**: predicates + **`link_ty_tyname_first_seg_preview`** (dry-run **`TyName`** first-segment text after **`map_path_segs_rewrite_*`**); **`doc/link-g6-blockers.md`** states why mutating **`map*`** needs synthetic token handles. Remaining: in-place arena rewrites per SML **`mapTy`/`mapExpr`/`mapPat`/`mapItem`**. |
+| M3-S-039 | Partial | **`lib/link.sv0`**: predicates + **`link_ty_tyname_first_seg_preview`** / **`link_ty_tyname_second_seg_preview`** (dry-run **`TyName`** path segment text vs SML **`mapPathSegs`**); **`doc/link-g6-blockers.md`** states why mutating **`map*`** needs synthetic token handles. Remaining: in-place arena rewrites per SML **`mapTy`/`mapExpr`/`mapPat`/`mapItem`**. |
 | M3-S-040 | Partial | **`link_project_listing_from_entry`** / **`link_project_concat_sources_from_entry`** (SML **`linkDirectory`** → **`linkProjectDir`**); plus listing concat / **`listing_count_nonempty_paths`**. VM tests avoid **`read_dir`** (host). Still missing per-file **`parse_program`** + **`mapProgramUnit`** program merge vs SML. |
 | M3-S-041 | Partial | **`driver_pipeline_step_name`** / **`driver_pipeline_step_for_core_phase`** (+ **`test_driver_pipeline_step_names`**) document the nine-step spine (**tokenize** → **parse** → **`PHASE_*`**). **`doc/driver-pipeline-composition.md`** states closure criteria (single TU vs explicit multi-unit). Real lexer→…→emit calls remain split across bootstrap **`lib/*.sv0`** roots until that bar is met. |
 | M3-S-042 | Done | **`sv0c/doc/cli-parity.md`** — **`main.sml`** `Main.main` argv matrix ↔ **`lib/main.sv0`** **`classify_cli`** + tests; **`scripts/sv0`** **`usage()`** four-mode summary; non-goals: meta orchestrator vs compiler argv, **M3-S-041** single-TU driver. |
@@ -640,6 +640,8 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 3. **M3 completion** still requires **all** **## completion criteria** bullets above, not only finishing **M3-S-001 … M3-S-055**.
 
 ## refinement log
+
+- 2026-04-29 (**America/Los_Angeles −07:00**, night): **M3-S-039 (G6) — TyName second-segment preview (still Partial).** **`lib/link.sv0`**: **`link_ty_tyname_second_seg_preview`** + **`test_link_ty_tyname_second_seg_preview`** (`sc==2` second token text, unchanged vs SML **`mapPathSegs`**); **`doc/link-g6-blockers.md`** shipped bullet; **`doc/transliteration-plan.md`** Link row; stage0 **`link.c`** + vm-parity **`link.sv0b`**. Mutating **`map*`** still gated on synthetic handles.
 
 - 2026-04-29 (**America/Los_Angeles −07:00**, night): **M3-S-041 (G6) — composition doc (still Partial).** Added **`sv0c/doc/driver-pipeline-composition.md`** (SML reference ordering, current **`lib/main.sv0`** scope, closure checklist, cross-links to **`link-g6-blockers.md`**). **`doc/transliteration-plan.md`** Pipeline row + **`lib/main.sv0`** header pointer; **`doc/link-g6-blockers.md`** Related. **M3-S-041** remains **Partial** until one TU or explicit multi-unit pipeline wiring + CI-backed checks land.
 
