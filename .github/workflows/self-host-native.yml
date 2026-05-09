@@ -1,0 +1,41 @@
+# M3-S-049: optional pilot third leg with canonical SV0_SELF_HOST_COMPILER path (bootstrap wrapper).
+# Full ./scripts/sv0 test stays on default CI; this job proves self-host-sv0-loop with build/sv0-self-host-compiler.
+name: Self-host native path (pilot loop)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  pilot-third-leg:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache SML/NJ install
+        uses: actions/cache@v4
+        id: smlnj-cache
+        with:
+          path: ~/smlnj-110.99.9
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-curl-v2
+
+      - name: Install SML/NJ
+        run: bash scripts/ci-install-smlnj.sh
+
+      - name: Materialize canonical compiler wrapper (M3-S-047)
+        run: bash scripts/build-sv0-self-host-compiler.sh
+
+      - name: Pilot loop with SV0_SELF_HOST_COMPILER (M3-S-048)
+        run: SV0_SELF_HOST_COMPILER="$PWD/build/sv0-self-host-compiler" ./scripts/sv0 self-host-sv0-loop

@@ -29,6 +29,8 @@ Growing the pilot list **is** real progress toward M3 (more transliterated surfa
 
 ## Related
 
-- **`task/sv0-toolchain-milestone-3-self-host.Rmd`** — definition of done, stakeholder decisions.
+- **`task/sv0-toolchain-milestone-3-self-host.Rmd`** — definition of done, stakeholder decisions; **## M3 G9 slice status**.
+- **`sv0c/doc/sml-retirement-cutover-checklist.md`** — human cutover steps (**`bootstrap-sml-final`**, **`sml-legacy/`**).
+- **`sv0c/doc/cold-bootstrap-recovery.md`** — recovery after retirement if self-host breaks.
 - **`25-sv0-design-invariants-vision.mdc`** — milestones 0–3 snapshot pointer.
 - **`27-examples-libraries-boundary.mdc`** — **`examples/libs`** vs **`sv0c/lib/`** seeds.

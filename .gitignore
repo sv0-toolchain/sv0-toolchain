@@ -3,3 +3,6 @@ __pycache__/
 *.pyc
 .DS_Store
 /build/
+unknown_session_stop_tracking.sh
+unknown_session_start_tracking.sh
+unknown_session_open_cursor.sh

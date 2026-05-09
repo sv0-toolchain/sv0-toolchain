@@ -6,6 +6,11 @@ can run **before** ``git commit`` when README and the submodule pointer are stag
 together (``HEAD`` still points at the previous commit). If the index has no
 ``sv0c`` line, fall back to ``git ls-tree HEAD sv0c``.
 
+If the workspace root is **not** a git repository (exported tree, sparse checkout
+without ``.git``, etc.), submodule gitlinks cannot be read: the script **skips**
+the SHA comparison after verifying that README.md still contains a well-formed
+**sv0c commit pinned** row with a 40-hex SHA.
+
 The meta-repo README lists the pinned **sv0c** submodule next to **bootstrap-sml-final**
 for support. This script keeps that line aligned with the gitlink being committed.
 """
@@ -19,6 +24,19 @@ import sys
 from pathlib import Path
 
 RE_README_SHA = re.compile(r"`([0-9a-f]{40})`")
+
+
+def git_work_tree_available(root: Path) -> bool:
+    """Return True when *root* is inside a git work tree (``git`` installed and repo present)."""
+    r = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "--is-inside-work-tree"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if r.returncode != 0:
+        return False
+    return r.stdout.strip() == "true"
 
 
 def _parse_ls_tree_submodule_line(line: str) -> str | None:
@@ -147,9 +165,18 @@ def main(argv: list[str] | None = None) -> int:
     if not readme.is_file():
         print(f"verify_readme_sv0c_gitlink: missing {readme}", file=sys.stderr)
         return 1
-    git_sha, git_label = git_sv0c_effective_gitlink(root)
     doc_sha = readme_pinned_sv0c_sha(readme)
-    if git_sha is None or doc_sha is None:
+    if doc_sha is None:
+        return 1
+    if not git_work_tree_available(root):
+        print(
+            "verify_readme_sv0c_gitlink: OK (skip submodule gitlink check — "
+            "not a git repository; README.md sv0c pinned SHA row present)",
+            file=sys.stderr,
+        )
+        return 0
+    git_sha, git_label = git_sv0c_effective_gitlink(root)
+    if git_sha is None:
         return 1
     if git_sha != doc_sha:
         print(

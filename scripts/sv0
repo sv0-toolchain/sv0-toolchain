@@ -56,6 +56,9 @@ usage: sv0 <command> [args]
   self-host-sv0-loop     pilot sv0→sv0 loop: deterministic SML→C emit, cc+run on lib/self-host-sv0-loop.list;
                            diffs scripts/sv0-self-host-emit-c.sh vs SML by default (override SV0_SELF_HOST_COMPILER;
                            SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 to skip); see sv0c/doc/self-host-sv0-loop.md
+  build-self-host-compiler  write build/sv0-self-host-compiler (wrapper for SV0_SELF_HOST_COMPILER — M3-S-047);
+                           see sv0c/doc/native-self-host-compiler-recipe.md
+  sml-retirement-preflight   print blast-radius scan for `sml/` path refs before M3-S-051 (no edits)
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
@@ -162,6 +165,34 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_m3_g1_track_c.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: M3 G6 pipeline contract (lib/main.sv0 DRIVER_FULL_PIPELINE_LEN vs PHASE_COUNT)"
+  if ! python3 "$ROOT/scripts/verify_m3_g6_pipeline_contract.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: M3 G6 link merge contract (lib/link.sv0 token-stream merge helpers)"
+  if ! python3 "$ROOT/scripts/verify_m3_g6_link_merge_contract.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: M3 G6 staging driver contract (sources.cm + main.sv0 staging spine)"
+  if ! python3 "$ROOT/scripts/verify_m3_g6_staging_driver_contract.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: M3 G7 diagnostics corpus layout (sv0c/test/diagnostics)"
+  if ! python3 "$ROOT/scripts/verify_diagnostics_corpus_layout.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: M3 G7 tier-2 VM parity policy (tier2-manifest vs manifest + goldens)"
+  if ! python3 "$ROOT/scripts/verify_vm_parity_tier2_policy.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: M3 G8 native self-host recipe paths (build script + doc)"
+  if ! python3 "$ROOT/scripts/verify_m3_g8_native_recipe_paths.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: M3 G9 SML retirement docs (checklist + cold recovery)"
+  if ! python3 "$ROOT/scripts/verify_m3_g9_retirement_docs_layout.py" --root "$ROOT"; then
+    ec=1
+  fi
   return "$ec"
 }
 
@@ -169,7 +200,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + M3 G1 slice path audit"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs"
 }
 
 run_test() {
@@ -179,6 +210,10 @@ run_test() {
     ec=1
   fi
   require_sml
+  sv0_info "sv0 test: diagnostics corpus behavioral (SML vs manifest needles)"
+  if ! python3 "$ROOT/scripts/verify_diagnostics_corpus_behavior.py" --root "$ROOT"; then
+    ec=1
+  fi
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml"; OS.Process.exit OS.Process.success;' | sml >/dev/null); then
     ec=1
   fi
@@ -198,6 +233,10 @@ run_test() {
   if ! run_vm_parity_sml_goldens; then
     ec=1
   fi
+  sv0_info "sv0 test: VM parity tier-2 (optional emitter vs golden/sml)"
+  if ! run_vm_parity_tier2_emit_compare; then
+    ec=1
+  fi
   sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
   if ! run_self_host_stage0_golden; then
     ec=1
@@ -213,7 +252,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + bootstrap-in-sv0 + vm-parity SML goldens + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + diagnostics corpus behavioral + bootstrap-in-sv0 + vm-parity SML goldens + optional vm-parity tier-2 emit + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline/link-merge/staging-driver contracts + M3 G7 diagnostics layout + M3 G7 tier-2 policy + M3 G8 native recipe paths + M3 G9 retirement docs + doctests"
 }
 
 run_doctests() {
@@ -526,6 +565,68 @@ run_vm_parity_sml_goldens() {
     n=$((n + 1))
   done <"$manifest"
   sv0_ok "vm-parity SML goldens: $n file(s) match bootstrap VM emit"
+  return 0
+}
+
+# M3-S-045: optional second leg — re-emit VM bytecode for tier2-manifest paths using
+# SV0_VM_BYTECODE_EMITTER (native sv0 compiler or scripts/sv0-vm-tier2-emit-bootstrap.sh),
+# then cmp to golden/sml/<stem>.sv0b. Skipped when env unset (default CI).
+run_vm_parity_tier2_emit_compare() {
+  local emit="${SV0_VM_BYTECODE_EMITTER:-}"
+  if [[ -z "$emit" ]]; then
+    sv0_info "vm-parity tier-2 emit compare: skipped (SV0_VM_BYTECODE_EMITTER unset)"
+    return 0
+  fi
+  if [[ "${emit:0:1}" != "/" && -x "$ROOT/$emit" ]]; then
+    emit="$ROOT/$emit"
+  elif [[ "${emit:0:1}" != "/" && -f "$ROOT/$emit" ]]; then
+    emit="$ROOT/$emit"
+  fi
+  if [[ ! -f "$emit" ]]; then
+    sv0_fail "vm-parity tier-2: SV0_VM_BYTECODE_EMITTER not found: $emit"
+    return 1
+  fi
+  if [[ ! -x "$emit" ]]; then
+    sv0_fail "vm-parity tier-2: SV0_VM_BYTECODE_EMITTER not executable: $emit"
+    return 1
+  fi
+  require_sml
+  local manifest="$SV0C/test/vm-parity/tier2-manifest.txt"
+  if [[ ! -f "$manifest" ]]; then
+    sv0_ok "vm-parity tier-2 emit compare: skipped (no tier2-manifest.txt)"
+    return 0
+  fi
+  local line rel stem golden built n
+  n=0
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -z "${line//[[:space:]]/}" ]] && continue
+    [[ "$line" =~ ^[[:space:]]*# ]] && continue
+    rel="${line//[[:space:]]/}"
+    stem=$(basename "$rel" .sv0)
+    golden="$SV0C/test/vm-parity/golden/sml/${stem}.sv0b"
+    built="$SV0C/build/vm/${stem}.sv0b"
+    if [[ ! -f "$golden" ]]; then
+      sv0_fail "vm-parity tier-2: missing golden $golden"
+      return 1
+    fi
+    sv0_info "vm-parity tier-2: emit $rel via $emit"
+    if ! ( export SV0TOOLCHAIN_ROOT="$ROOT" SV0C_ROOT="$SV0C"; "$emit" "$rel" ); then
+      sv0_fail "vm-parity tier-2: emitter failed for $rel"
+      return 1
+    fi
+    if [[ ! -f "$built" ]]; then
+      sv0_fail "vm-parity tier-2: missing $built after emit ($rel)"
+      return 1
+    fi
+    if ! cmp -s "$built" "$golden"; then
+      echo "vm-parity tier-2: bytecode mismatch for ${stem} ($rel)" >&2
+      echo "  fresh:  $built" >&2
+      echo "  golden: $golden" >&2
+      return 1
+    fi
+    n=$((n + 1))
+  done <"$manifest"
+  sv0_ok "vm-parity tier-2 emit compare: $n file(s) matched golden/sml ($emit)"
   return 0
 }
 
@@ -898,6 +999,12 @@ case "$cmd" in
     ;;
   self-host-sv0-loop)
     run_self_host_sv0_loop || exit 1
+    ;;
+  build-self-host-compiler)
+    bash "$ROOT/scripts/build-sv0-self-host-compiler.sh"
+    ;;
+  sml-retirement-preflight)
+    python3 "$ROOT/scripts/sml_retirement_preflight_scan.py" --root "$ROOT"
     ;;
   integration-vm)
     bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"

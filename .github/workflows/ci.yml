@@ -42,6 +42,9 @@ jobs:
           python3 scripts/verify_workspace_milestone_table.py --root .
           python3 scripts/milestone_orient.py list
 
+      - name: Tier-2 VM parity policy subset (M3-S-045, no SML)
+        run: python3 scripts/verify_vm_parity_tier2_policy.py --root .
+
       - name: Cache SML/NJ install
         uses: actions/cache@v4
         id: smlnj-cache

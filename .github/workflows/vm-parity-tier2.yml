@@ -1,0 +1,20 @@
+# M3-S-045 stub: tier-2 VM parity policy only (subset ⊆ manifest + golden/sml presence).
+# Full bytecode compare runs when sv0 emits .sv0b; until then this is a lightweight dispatch hook.
+name: VM parity tier-2 policy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tier2-policy:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Tier-2 manifest policy (no SML)
+        run: python3 scripts/verify_vm_parity_tier2_policy.py --root .
