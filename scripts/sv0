@@ -24,7 +24,7 @@ usage: sv0 <command> [args]
     check → analyze → strip → lower → emit (C and/or VM); see sv0c/lib/main.sv0
     (PHASE_* and DRIVER_FULL_PIPELINE_LEN).
 
-  Bootstrap compiler CLI (sv0c — see sv0c/doc/cli-parity.md; mirrors sv0c/sml/main.sml):
+  Bootstrap compiler CLI (sv0c — see sv0c/doc/cli-parity.md; mirrors sv0c/sml-legacy/main.sml):
     <file.sv0>                    compile to C on stdout
     --target=vm <file.sv0>        emit build/vm/<stem>.sv0b (VM bytecode)
     --target=vm --project <dir>   link *.sv0 under dir; VM emit uses project_vm_entry_stem

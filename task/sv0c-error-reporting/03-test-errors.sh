@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
-SRC_DIR="${SRC_DIR:-sv0c/sml}"
+SRC_DIR="${SRC_DIR:-sv0c/sml-legacy}"
 SV0C_ROOT="${SV0C_ROOT:-sv0c}"
 echo "testing error module..."
 if [[ -f "$SRC_DIR/error/sources.cm" ]]; then
     echo "compiling error module..."
-    cd "$SV0C_ROOT" && echo 'CM.make "sml/error/sources.cm";' | sml 2>&1 || {
+    cd "$SV0C_ROOT" && echo 'CM.make "sml-legacy/error/sources.cm";' | sml 2>&1 || {
         echo "FAIL: error module compilation failed"
         exit 1
     }
@@ -16,7 +16,7 @@ elif [[ -f "$SV0C_ROOT/sources.cm" ]]; then
         echo "FAIL: sv0c compilation failed"
         exit 1
     }
-    echo "OK: sv0c compiles (root sources.cm; no sml/error/sources.cm yet)"
+    echo "OK: sv0c compiles (root sources.cm; no sml-legacy/error/sources.cm yet)"
 else
     echo "TODO: create sources.cm for error module"
 fi

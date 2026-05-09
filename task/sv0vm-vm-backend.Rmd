@@ -32,7 +32,7 @@ stack-based instruction sequence.
 
 /env: SV0C_ROOT=sv0c
 /env: SV0VM_ROOT=sv0vm
-/env: SRC_DIR=sv0c/sml
+/env: SRC_DIR=sv0c/sml-legacy
 
 ## implementation
 
@@ -41,7 +41,7 @@ stack-based instruction sequence.
 /ai: implement the IR-to-bytecode lowering in SML/NJ.
 
      this module lives in sv0c (it's a backend, like the C backend):
-     implement in `sv0c/sml/backend/vm/vm_codegen.sml` (and related `.sig`)
+     implement in `sv0c/sml-legacy/backend/vm/vm_codegen.sml` (and related `.sig`)
 
      the lowering must handle the SSA-to-stack conversion:
      - SSA variables -> local variable slots (allocated per function)

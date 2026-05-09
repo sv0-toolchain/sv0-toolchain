@@ -35,9 +35,9 @@ def main(argv: list[str] | None = None) -> int:
             print(f"verify_m3_g6_staging_driver_contract: missing {path}", file=sys.stderr)
             return 1
     cm_text = sources_cm.read_text(encoding="utf-8")
-    if "sml/main.sml" not in cm_text:
+    if "sml-legacy/main.sml" not in cm_text:
         print(
-            "verify_m3_g6_staging_driver_contract: sv0c/sources.cm must list sml/main.sml",
+            "verify_m3_g6_staging_driver_contract: sv0c/sources.cm must list sml-legacy/main.sml",
             file=sys.stderr,
         )
         return 1

@@ -48,7 +48,7 @@ Use **narrow checks during iteration**; escalate only when the change class warr
 |--------------|-------------------|
 | **`task/*.Rmd`** YAML / copy only | **`./scripts/sv0 test-guards`** |
 | **One** bootstrap **`.sv0`** under **`sv0c/`** | **`./scripts/sv0 vm-compile <rel>`** and/or **`./scripts/sv0 emit-c <rel>`** (`<rel>` relative to **`sv0c/`**) |
-| **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/`**, **`lib/self-host-sv0-loop.list`**, **`sml/`** compiler, cross-submodule | **`./scripts/sv0 test-guards`** then **`./scripts/sv0 test`** before push / merge |
+| **`lib/bootstrap-sources.list`**, **`lib/golden/stage0/`**, **`lib/self-host-sv0-loop.list`**, **`sml-legacy/`** compiler, cross-submodule | **`./scripts/sv0 test-guards`** then **`./scripts/sv0 test`** before push / merge |
 | After **meta-repo** push | **`gh run list`** / **`gh run watch`** (or **`gh run view <id>`**) on **CI** |
 
 **`./scripts/sv0 test-guards`** — Python-only: block-comment guard, **sv0doc** baseline paths, **`task/*.Rmd`** YAML, **README** sv0c gitlink, vm-parity manifest ⊆ bootstrap, **`milestone-orientation.json`** + bidirectional workspace milestone-table check (**`verify_workspace_milestone_table.py`**: JSON ↔ **`## milestone and area tasks`**) (fast; no full SML suite).

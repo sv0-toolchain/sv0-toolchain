@@ -61,7 +61,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 
-/assert: test -d $SV0C_ROOT/sml/backend/vm
+/assert: test -d $SV0C_ROOT/sml-legacy/backend/vm
 
 ## completion criteria (met)
 
@@ -70,7 +70,7 @@ bytecode path usable for fast iteration (see `task/sv0vm-milestone-2.Rmd`).
 - **doc tests**: `task/sv0-toolchain-milestone-2-prep/doctests.md` defines ```sv0 doctest``` fences; policy and runner documented in that file. Run alone via `./scripts/sv0 doctest`.
 - **`sv0 fmt`**: **`scripts/fmt_sv0.py`** normalizes trailing whitespace and final newline for all `*.sv0` under `sv0c/` and `sv0vm/`. Shell-only formatting is **`./scripts/sv0 fmt-shell`**; **`./scripts/sv0 fmt`** runs both.
 - **`sv0 doc`**: **`scripts/gen_sv0_doc.py`** writes **`build/sv0-toolchain-doc/index.md`** (spec pointers + outline of `sv0c/lib/**/*.sv0`). Same command still verifies expected **sv0doc** and **sv0-mcp** README paths.
-- **bootstrap-in-sv0 entry**: **`sv0c/lib/`** with **`span_core.sv0`** (seed transliteration of `sml/error/span.sml`), **`lib/README.md`**, **`lib/LAYOUT.md`**, and **`lib/bootstrap-sources.list`**; commands `./scripts/sv0 bootstrap-build`, `sml` + `--target=vm`. **`sml/`** holds the SML bootstrap; top-level **`lexer/`**, etc. are reserved for future sv0 modules.
+- **bootstrap-in-sv0 entry**: **`sv0c/lib/`** with **`span_core.sv0`** (seed transliteration of `sml-legacy/error/span.sml`), **`lib/README.md`**, **`lib/LAYOUT.md`**, and **`lib/bootstrap-sources.list`**; commands `./scripts/sv0 bootstrap-build`, `sml` + `--target=vm`. **`sml-legacy/`** holds the SML bootstrap; top-level **`lexer/`**, etc. are reserved for future sv0 modules.
 
 ## implementation notes
 
@@ -86,7 +86,7 @@ Milestone **2 prep** shipped **`./scripts/sv0 fmt`** (**`scripts/fmt_sv0.py`**) 
 
 - 2026-03-25: initial scaffold; criteria copied from design milestone 2; VM split documented.
 - 2026-04-01: implemented unified test, doctest runner, fmt_sv0, doc generator, `sv0c/rewrite/`; marked **complete**.
-- 2026-04-02: SML bootstrap → **`sv0c/sml/`**; sv0 seeds → **`sv0c/lib/`**; recursive **`--project`**; **`lexer/`** placeholder; **`bootstrap-build`** + **`lib/bootstrap-sources.list`** only (no **`rewrite-build`** / **`rewrite-sources.list`**).
+- 2026-04-02: SML bootstrap → **`sv0c/sml-legacy/`**; sv0 seeds → **`sv0c/lib/`**; recursive **`--project`**; **`lexer/`** placeholder; **`bootstrap-build`** + **`lib/bootstrap-sources.list`** only (no **`rewrite-build`** / **`rewrite-sources.list`**).
 - 2026-04-03: **`lib/diagnostic_core.sv0`** + golden **`diagnostic_core.c`** (diagnostics transliteration after **`span_core`**).
 - 2026-04-04: **`lib/diagnostic_batch_core.sv0`**, **`lib/env_core.sv0`**, **`lexer/token_keyword_core.sv0`** + goldens; **sv0vm** `RETURN_SLOTS` fix for struct return.
 - 2026-04-05: **`lib/resolver_value_core.sv0`** (three-slot `lookup_value` / `resolve_path_ok`); **`lexer/token_delim_core.sv0`** (delimiter tag band + `is_delimiter_tag`); stage0 goldens + **`bootstrap-sources.list`**.

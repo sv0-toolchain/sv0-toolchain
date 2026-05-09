@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""List references to the bootstrap path segment `sml/` before M3-S-051 cutover.
+"""List references to the path segment `sml/` (legacy bootstrap tree path).
 
-Informational only — does not modify files. Run from repo root:
+After **M3-S-051** rename, a non-empty report usually means a stale `sml/` path
+that should be `sml-legacy/` (VM parity `golden/sml/` is an exception). Run from
+repo root:
   python3 scripts/sml_retirement_preflight_scan.py --root .
 
-Exit 0 always (stdout is the report). Use after editing sources.cm paths during rename.
+Exit 0 always (stdout is the report).
 """
 
 from __future__ import annotations

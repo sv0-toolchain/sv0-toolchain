@@ -37,7 +37,7 @@
       ],
       "closure_authority": "task/sv0c-milestone-1.Rmd and linked child tasks.",
       "anti_patterns": [],
-      "automation_profile": "Workflow + evaluator–optimizer loop: implement slice → named local targets (vm-compile / emit-c) → escalate to full test when lists or sml/ move.",
+      "automation_profile": "Workflow + evaluator–optimizer loop: implement slice → named local targets (vm-compile / emit-c) → escalate to full test when lists or sml-legacy/ move.",
       "ground_truth": [
         "./scripts/sv0 test-guards",
         "./scripts/sv0 test",
@@ -119,7 +119,7 @@
       "closure_authority": "Stakeholder completion criteria in task/sv0-toolchain-milestone-3-self-host.Rmd (feature parity, VM policy, native self-host, SML retirement) — not pilot list growth alone.",
       "anti_patterns": [
         "Claim M3 complete because lib/self-host-sv0-loop.list is green",
-        "Tag bootstrap-sml-final or move sml/ to sml-legacy/ before that task allows it"
+        "Tag bootstrap-sml-final or move sml-legacy/ to sml-legacy/ before that task allows it"
       ],
       "automation_profile": "Long-horizon workflow plus orchestrator–workers: slash-command phases, optional Task subagents per submodule, evaluator–optimizer on red tests/CI; judgment against task bars is not fully automatable.",
       "ground_truth": [
