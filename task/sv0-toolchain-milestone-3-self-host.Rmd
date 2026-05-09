@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-09T22:45:00-07:00"
+updated: "2026-05-08T18:30:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -47,7 +47,7 @@ High-level **M3** session closure (complements **numbered** **`m3.validation.seq
 
 ## layout decision
 
-The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). The **SML/NJ bootstrap** sources now live under **`sv0c/sml-legacy/`** (historical layout **`sv0c/sml/`** ended at tag **`bootstrap-sml-final`**). **`sources.cm`** references **`sml-legacy/...`** member paths. **sv0 transliteration** continues in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`) and parallel dirs (**`lexer/`**, **`parser/`**, …). **M3-S-052:** default **`make check`** / **`./scripts/sv0 check`** smoke **`heap` + `SV0_SELF_HOST_COMPILER`** (**`build/sv0-self-host-compiler`**); full **`CM.make "sources.cm"`** remains **`make -C sv0c legacy-bootstrap-check`** (CI runs both).
+The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). The **SML/NJ bootstrap** sources now live under **`sv0c/sml-legacy/`** (historical layout **`sv0c/sml/`** ended at tag **`bootstrap-sml-final`**). **`sources.cm`** references **`sml-legacy/...`** member paths. **sv0 transliteration** continues in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`) and parallel dirs (**`lexer/`**, **`parser/`**, …). **M3-S-052:** default **`make check`** / **`./scripts/sv0 check`** smoke **`heap`** + one-file emit (**`sv0c/scripts/smoke-self-host-compiler.sh`**, meta **`scripts/sv0-smoke-self-host-compiler.sh`** delegates); **`emit-c`** / stage0 **C** via **`SV0_SELF_HOST_COMPILER`** (**`build/sv0-self-host-compiler`**); full **`CM.make "sources.cm"`** remains **`make -C sv0c legacy-bootstrap-check`** (CI runs both).
 
 ## stakeholder decisions (implementation bar)
 
@@ -82,6 +82,24 @@ These choices unblock scope, CI, and transliteration priority.
 - **diagnostics**: behavioral baseline; tighten toward **strict** where practical (see above).
 - **SML retirement**: tag **`bootstrap-sml-final`** on **sv0c** (not the meta-repo); **`sml-legacy/`** → **`sml-legacy/`**; default build is **sv0-only**; recovery documented.
 
+## stakeholder closure checklist (M3 evidence)
+
+**Stakeholder M3** (**## completion criteria**) is **not complete** here until each row has **documented evidence** (commands, artifacts, stakeholder review), not **L1** harness green alone (**## milestone depth and accuracy**).
+
+| **## completion criteria** bullet | Satisfied in this checkout? | Blocking notes |
+|-----------------------------------|-----------------------------|----------------|
+| **full pipeline in sv0** | **No** | Day-to-day integration remains **`sources.cm`** + **`sml-legacy/main.sml`**; **`lib/*.sv0`** roots compile standalone under **`bootstrap-build`**. |
+| **self-compile** (native semantic third leg) | **No** | **`SV0_SELF_HOST_COMPILER`** paths still lean on the **bootstrap delegate** story per **`sv0c/doc/native-self-host-compiler-recipe.md`**; native **`cc`** binary proof vs **`lib/self-host-sv0-loop.list`** is **open**. |
+| **VM strict parity v1** | **Harness healthy** | Manifest **`cmp`** vs SML goldens; **tier-2** / native bytecode emitter work continues toward **L0**. |
+| **diagnostics** | **Partial** | Bootstrap **`println`** parity; **`TextIO`**-style sinks deferred (**M3-S-021**). |
+| **SML retirement** | **Done** (**G9**) | Does **not** imply **L0** — see **## milestone depth and accuracy**. |
+
+**Native driver (A) vs (B):** **`sv0c/doc/driver-pipeline-composition.md`** **§ Native closure — both (A) and (B)** recommends **(B) multi-unit linking** as the maintainable end state; **(A) mega-TU** as an optional spike toward **`SV0_SELF_HOST_COMPILER`** proof, then **refactor toward (B)**. **“Complete both options”** means **sequential milestones** on the way to **one** shipped model, **not** maintaining two production drivers.
+
+**Overall:** stakeholder **M3** remains **open** until the **No** / **Partial** rows close with evidence mapped here and **`milestone-orientation.json`** **closure_authority**.
+
+**Sequenced engineering work (phases + acceptance ladder):** **`sv0c/doc/l0-closure-roadmap.md`**.
+
 ## milestone depth and accuracy
 
 This section separates **what “M3 done” means** from **what CI green means** and from **how work is sliced**. Use it when prose elsewhere looks stale (harness sizes drift with every merge).
@@ -104,7 +122,7 @@ This section separates **what “M3 done” means** from **what CI green means**
 | **self-compile** + cold path | **M3-S-047**–**M3-S-048**, **M3-S-053** |
 | **VM strict parity v1** | **M3-S-011**, **M3-S-033**–**M3-S-036**, **M3-S-043**–**M3-S-045** |
 | **diagnostics** | **M3-S-021**, **M3-S-044** |
-| **SML retirement** | **M3-S-050**–**M3-S-052** (tag + **`sml-legacy/`** + default sv0-only build are **human-gated** after L0 evidence) |
+| **SML retirement** | **M3-S-050**–**M3-S-053** — **G9 slice backlog Done** (tag, **`sml-legacy/`**, default orchestration + recovery). Overall **M3** completion still requires **## completion criteria** (parity, semantic self-host, …). |
 | **Deferred bootstrap policy (GX)** | **M3-S-054**–**M3-S-055** (**T0-2d**, closures, **`impl`**, VM loop micro-opts — normative **`sv0doc/compiler/`** notes; **`verify_m3_gx_bootstrap_policy_docs.py`**) |
 
 ### Live harness counts (do not hardcode in narrative)
@@ -134,7 +152,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 7. **G6** — link rewrite passes + project link + **sv0 pipeline composition** + CLI (**M3-S-039** … **M3-S-042**).
 8. **G7** — vm-parity corpus hygiene, diagnostics corpus, **tier-2 sv0-emitted bytecode** (**M3-S-045**), optional stage-1 C compare (**M3-S-043** … **M3-S-046**).
 9. **G8** — **`SV0_SELF_HOST_COMPILER`** recipe, green native **third leg** on **`lib/self-host-sv0-loop.list`**, optional CI job (**M3-S-047** … **M3-S-049**).
-10. **G9** — **human-gated** **`bootstrap-sml-final`**, **`sml-legacy/` → `sml-legacy/`**, sv0-only default build, recovery docs (**M3-S-050** … **M3-S-053**).
+10. **G9** — **SML retirement slice backlog closed on `main`:** **`bootstrap-sml-final`**, **`sml-legacy/`**, smoke **`check`** + **`legacy-bootstrap-check`**, **`SV0_SELF_HOST_COMPILER`**-first **`emit-c`** / stage0, recovery docs (**M3-S-050** … **M3-S-053** **Done** — **## M3 G9 slice status**).
 11. **GX — Policy / deferred language** (**M3-S-054**, **M3-S-055**) — **Done (policy):** **`sv0doc/compiler/bootstrap-generics-policy.md`**, **`bootstrap-deferred-surface.md`**, **`type-system/rules.md`** §5.6 cross-link, **`verify_m3_gx_bootstrap_policy_docs.py`** (**`test-guards`**).
 
 ### In parallel (non-blocking on the spine, until a slice says otherwise)
@@ -152,7 +170,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Next material work:** **M3 L0** transliteration + parity + semantic native compiler — **G9** checklist slices **M3-S-050 … M3-S-052** **Done** (**## M3 G9 slice status**); **GX** closed — **## M3 GX slice status**. **G8** — **## M3 G8 slice status**. **G7** — **## M3 G7 slice status**. **G6** (**M3-S-039** … **M3-S-042**) **closed** — **`sv0c/doc/link-g6-blockers.md`** / **`sv0c/doc/driver-pipeline-composition.md`**.
+- **Next material work:** **`## M3 closure — next execution steps (ordered)`** — native **`SV0_SELF_HOST_COMPILER`**, composed sv0 driver, semantic/link parity, VM tails, then evidence vs **`## completion criteria`**. **M3 L0** detail: **## L0 closure (blocking prerequisites)**. **G9** + **GX** slice rows **closed** (**## M3 G9 slice status**, **## M3 GX slice status**). **G8** — **## M3 G8 slice status**. **G7** — **## M3 G7 slice status**. **G6** (**M3-S-039** … **M3-S-042**) **bootstrap staging closed** — **`sv0c/doc/link-g6-blockers.md`** / **`sv0c/doc/driver-pipeline-composition.md`** (**full** **`linkProjectDir`** parity still open).
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -276,20 +294,20 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-047 … M3-S-04
 | M3-S-049 | Done | **`.github/workflows/self-host-native.yml`** — **`workflow_dispatch`**, **`build-sv0-self-host-compiler.sh`** + **`SV0_SELF_HOST_COMPILER`** + **`./scripts/sv0 self-host-sv0-loop`**. |
 <!-- sv0-track:end {"id":"m3.g8.slice.status"} -->
 
-## M3 G9 slice status (SML retirement — prep vs execution)
+## M3 G9 slice status (SML retirement)
 
-Rolling mirror of **## documented M3 slice backlog** rows **M3-S-050 … M3-S-053**. **051** directory move **Done** on **`main`**; **052** default **`SV0_SELF_HOST_COMPILER`** orchestration **Done** — see **`sv0c/doc/sml-retirement-cutover-checklist.md`**.
+Rolling mirror of **## documented M3 slice backlog** rows **M3-S-050 … M3-S-053**. **Gate:** all four slices **Done** on **`main`** — **`sv0c/doc/sml-retirement-cutover-checklist.md`** is the human cutover record.
 
 <!-- sv0-track:begin {"id":"m3.g9.slice.status","title":"M3 G9 slice status (SML retirement)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
 | Slice | Status | Primary notes |
 |-------|--------|---------------|
 | M3-S-050 | Done | **`sv0c/doc/sml-retirement-cutover-checklist.md`** + **`sv0c/README.md`** cross-links; **`scripts/verify_m3_g9_retirement_docs_layout.py`** ( **`test-guards`** ). |
 | M3-S-051 | Done | Tag **`bootstrap-sml-final`** + **`git mv sml sml-legacy`** + **`sources.cm`** + docs/scripts path updates (**2026-05-09**). |
-| M3-S-052 | Done | Default **`make check`** / **`./scripts/sv0 check`** = **`heap` + `SV0_SELF_HOST_COMPILER`** smoke; **`emit-c`** / stage0 **C** via **`SV0_SELF_HOST_COMPILER`**; self-host loop **diff** vs **SML heap** reference; **`legacy-bootstrap-check`** + CI step keep **`CM.make`**. |
+| M3-S-052 | Done | **`make check`** / **`./scripts/sv0 check`** = **`heap`** + **`sv0c/scripts/smoke-self-host-compiler.sh`** (standalone-safe; meta **`scripts/sv0-smoke-self-host-compiler.sh`** delegates); **`emit-c`** / stage0 **C** via **`SV0_SELF_HOST_COMPILER`**; self-host loop **diff** vs **SML heap** reference; **`legacy-bootstrap-check`** + CI keep **`CM.make`**. |
 | M3-S-053 | Done | **`sv0c/doc/cold-bootstrap-recovery.md`** (tag checkout + **`sml-legacy`** + heap rebuild); verifier substring guard in **`verify_m3_g9_retirement_docs_layout.py`**. |
 <!-- sv0-track:end {"id":"m3.g9.slice.status"} -->
 
-**G9 slice note:** **051** rename **landed**; **052** (default build policy) **not** implied — **M3** completion still follows **## completion criteria**.
+**G9 slice backlog:** **M3-S-050 … M3-S-053** **Done** — retirement **slice gate** satisfied. **M3** milestone completion still follows **## completion criteria** (full sv0 pipeline, feature parity, semantic native self-host, VM policy, … — not implied by G9 alone).
 
 ## M3 GX slice status (deferred policy — spec closure)
 
@@ -328,7 +346,39 @@ Optional **GFM** checklist binding (same file, illustrative — not a hard gate)
 milestone **3** is **not** complete until the bullets above hold. today’s repo state (for orientation only — grows with commits):
 
 - **done-ish (harness + slices):** **`sv0c/lib/`**, **`lexer/`**, **`parser/`** hold **transliterated** compiler modules (seeds consolidated into real **`lib/*.sv0`** / **`lexer/`** / **`parser/`** trees — no **`*_core.sv0`** split). **`lib/bootstrap-sources.list`** + **`lib/golden/stage0/*.c`** lock **stage0** C output where present; **`./scripts/sv0 test`** runs **bootstrap-build**, golden **diff**, integration tests, and the **self-host sv0 loop** (**`./scripts/sv0 self-host-sv0-loop`** — deterministic SML→C emit, **`cc`**+run, and **`diff`** of **`scripts/sv0-self-host-emit-c.sh`** vs SML by default; **`SV0_SKIP_SELF_HOST_COMPILER_DIFF=1`** skips the third leg). **VM backend** supports **`break`** / **`continue`**, including **`break`** inside **`for`** (increment **`Store`** included in exit jump distance in **`vm_codegen.sml`**), **`Ir.VAddrOf`** / **`no_alias`** via **local slot tokens** + **`CALL_BUILTIN` 1** (see **`sv0c/doc/compiler-passes.md`**). **vm-parity v1:** curated manifest under **`sv0c/test/vm-parity/manifest.txt`** with SML golden bytecode (**M3 ~50–100** corpus policy is **met** for the current manifest size — see **live counts** in **## milestone depth and accuracy**). **Living transliteration roadmap:** **`sv0c/doc/transliteration-plan.md`**.
-- **not done (core M3):** **L0** completion criteria above remain open: orchestration is still **SML-first** for the full compiler driver; **semantic** **sv0→sv0** (**`SV0_SELF_HOST_COMPILER`** output **≡** SML on the pilot list) is **not** done — **`sv0-self-host-emit-c.sh`** is the **bootstrap** stand-in; **feature parity** on the whole surface, remaining **VM** contract gaps (**`forall` / `exists`** where still C-only), **SML retirement** (tag + **`sml-legacy/`**). **G7 tier-2 harness** (**`SV0_VM_BYTECODE_EMITTER`**) is landed — **native** sv0 bytecode emitter parity vs **`golden/sml`** remains integration work toward **M3** completion. **Historical note (2026-04-07):** compound assignment on **`i32`** slots landed in **SML** checker + lowering + both backends; do not treat that note as the current harness size (use **grep** recipe above).
+- **not done (core M3):** **L0** completion criteria above remain open: default **`check`** / **`emit-c`** / stage0 paths prefer **`SV0_SELF_HOST_COMPILER`**, but **semantic** **sv0→sv0** (**outputs ≡** SML on the pilot list **without** the shell delegate story) is **not** proven — **`sv0-self-host-emit-c.sh`** remains the **bootstrap** stand-in for much of the loop; **feature parity** on the whole surface; remaining **VM** contract gaps (**`forall` / `exists`** where still C-only). **G9** retirement slices (**tag**, **`sml-legacy/`**, smoke **`check`**, **`legacy-bootstrap-check`**, recovery) are **Done** — **## completion criteria** **M3** **still** requires parity + native semantic self-host + VM policy, not G9 alone. **G7 tier-2 harness** (**`SV0_VM_BYTECODE_EMITTER`**) is landed — **native** sv0 bytecode emitter parity vs **`golden/sml`** remains integration work toward **M3** completion. **Historical note (2026-04-07):** compound assignment on **`i32`** slots landed in **SML** checker + lowering + both backends; do not treat that note as the current harness size (use **grep** recipe above).
+
+## L0 closure (blocking prerequisites)
+
+**L0** (stakeholder **M3** done — **## milestone depth and accuracy**) is **not** the same as **G1–G9/GX** backlog rows **Done** or a green **`./scripts/sv0 test`**. Use the table below to choose the next **driver / transliteration / harness** slice; **G9** alone does **not** close **L0**.
+
+| Prerequisite | Status | Where to work next |
+|--------------|--------|--------------------|
+| **Semantic native self-host** — **`SV0_SELF_HOST_COMPILER`** is a **native** binary (or thin wrapper) **built from sv0-emitted C**, and **`./scripts/sv0 self-host-sv0-loop`** reports **byte-identical** C vs the SML heap on **`lib/self-host-sv0-loop.list`** while using that binary as the “second compiler” (**not** the SML-only **`sv0-self-host-emit-c.sh`** stand-in) | **Open** | **`sv0c/doc/l0-closure-roadmap.md`** (phased path); **`sv0c/doc/native-self-host-compiler-recipe.md`** § Forward path; **`scripts/build-sv0-self-host-compiler.sh`** documents today’s **bootstrap delegate** |
+| **Composed driver in sv0** — one agreed model **(A)** single **`.sv0`** TU or **(B)** linked units whose entry runs **lexer → … → emit** with the same observable order as **`sml-legacy/main.sml`** on fixtures | **Open** | **`sv0c/doc/l0-closure-roadmap.md`** § **Critical path**; **`sv0c/doc/driver-pipeline-composition.md`** — § **Native closure** (**(B)** preferred; **(A)** optional spike **then** converge); **`sv0c/doc/link-g6-blockers.md`** |
+| **Feature + diagnostic parity** vs SML on the agreed surface | **Partial** — **diagnostics bootstrap parity Done** (**`sv0c/doc/transliteration-plan.md`** § **Feature + diagnostic parity**); semantic pipeline + link + driver still open | **`sv0c/doc/transliteration-plan.md`** § **Feature + diagnostic parity** + per-row **Next focus**; **`task/sv0-toolchain-milestone-3-checklist.Rmd`** |
+| **VM parity policy** — manifest **`cmp`** vs SML goldens; tier-2 path when **native** bytecode emitter replaces surrogate | **v1 harness healthy** | **`sv0c/test/vm-parity/README.md`**; **`SV0_VM_BYTECODE_EMITTER`** |
+| **SML retirement** (tag, **`sml-legacy/`**, default orchestration, recovery) | **Done** (G9 slices) | **`## M3 G9 slice status`** — **L0** still needs the **Open** / **Partial** rows above |
+
+**Planning default:** **## transliteration throughput** — **multi-quarter** typical for full **L0**; do not treat pilot-list growth or **L1** green as **L0** (**`28-sml-retirement-and-self-host-bar.mdc`**).
+
+**Execution sequencing (dependency-ordered phases + validation ladder):** **`sv0c/doc/l0-closure-roadmap.md`**.
+
+## M3 closure — next execution steps (ordered)
+
+Use this spine **after** routine **G0–G9/GX** slice maintenance when the goal is **stakeholder M3** (**## completion criteria**), not **L1** harness health. Order is **dependency-ish** — parallelize only where slices declare no dependency (**`transliteration-plan.md`** **Next focus** wins for firefighting). **L0** roadmap: **`sv0c/doc/l0-closure-roadmap.md`**.
+
+1. **Native `SV0_SELF_HOST_COMPILER` binary** — Build a **native** executable from **sv0-emitted** C (link layout TBD) that honors **one absolute `.sv0` path → C on stdout** (**`native-self-host-compiler-recipe.md`**). **Blocked upstream by** a composed lexer→emit entrypoint (**`driver-pipeline-composition.md`** § **Closure criteria**). **Planning default:** land **(B)** multi-unit native link when practical; use **(A)** only as a **time-boxed spike** if it unblocks the loop **`diff`** sooner (**§ Native closure**). **Gate:** **`./scripts/sv0 self-host-sv0-loop`** third leg **`diff`** vs SML heap using **that** binary (**`self-host-sv0-loop.md`** § Pilot vs native).
+
+2. **Composed sv0 driver** — Implement **one** shipped **(A)** or **(B)** model (not both in production) so **`lib/main.sv0`** (or linked roots) can drive **resolve → check → lower → emit** without relying on **SML `sources.cm`** for closure proof (**`driver-pipeline-composition.md`** **Deferred engineering**). **Recommended path:** **(B)**; optional **(A)** spike first, then **migrate to (B)** (**§ Native closure**).
+
+3. **Semantic pipeline + link parity** — Close **`transliteration-plan.md`** gaps: resolver (**trait/impl** / **`resolve_top_item`** beyond parent no-ops where spec requires), checker (**multi-module `check`** vs **`compileProgram`**), **`linkProjectDir`** AST merge (**`link-g6-blockers.md`**), **`include_expand`** **`expand`/`expandFile`** with host I/O (**M3-S-015 … M3-S-021**, **T0-8**).
+
+4. **Lowering / VM policy tails** — **`forall`/`exists`** on VM where still C-only (**M3-S-035** class); expand **tier-2** sv0-emitted bytecode vs **`golden/sml`** when **`SV0_VM_BYTECODE_EMITTER`** tracks the native compiler (**`test/vm-parity/README.md`**).
+
+5. **Evidence package + stakeholder review** — Map **`./scripts/sv0 test`**, vm-parity manifest, **`lib/self-host-sv0-loop.list`**, and **`cold-bootstrap-recovery.md`** to **`## completion criteria`** bullets; **CI green alone is insufficient** (**`milestone-orientation.json`** **closure_authority**).
+
+**Retirement orchestration (default build path) is already slice-complete:** **## M3 G9 slice status** — **M3 “done”** still needs the rows above.
 
 closing M3 is **sequenced transliteration + parity + bootstrap story** (phases below), not a single PR.
 
@@ -615,7 +665,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml-legacy/`*
 | **G6 — Link + driver composition** | M3-S-039 … M3-S-042 | **`mapTy`/`mapExpr`/`mapItem`**, project link, sv0 pipeline entry, CLI parity. |
 | **G7 — Parity + corpus** | M3-S-043 … M3-S-046 | vm-parity growth + allowlist, diagnostics corpus, **sv0-emitted** bytecode tier, stage-1 C compare (if used). |
 | **G8 — Native self-host** | M3-S-047 … M3-S-049 | **`SV0_SELF_HOST_COMPILER`** recipe, green native **third leg**, optional CI workflow. |
-| **G9 — SML retirement** | M3-S-050 … M3-S-053 | Tag, **`sml-legacy/`**, default sv0-only build, recovery docs (**human-owned** cutover). |
+| **G9 — SML retirement** | M3-S-050 … M3-S-053 | **Done** — tag, **`sml-legacy/`**, smoke **`check`** + **`legacy-bootstrap-check`**, **`SV0_SELF_HOST_COMPILER`** defaults, recovery docs (**## M3 G9 slice status**). |
 | **GX — Deferred policy** | M3-S-054 … M3-S-055 | **Done** — normative **`sv0doc/compiler/bootstrap-*.md`** + **`verify_m3_gx_bootstrap_policy_docs.py`**; promote **T0-2d** / **T0-7** / **T0-9** via **new** slices when un-deferred. |
 
 ### Master table (planned slices)
@@ -695,11 +745,23 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml-legacy/`*
 
 ## refinement log
 
+- 2026-05-08 (**America/Los_Angeles −07:00**, evening): **L0 engineering roadmap:** **`sv0c/doc/l0-closure-roadmap.md`** — phased critical path (merge orchestration → native composition → parity tails → evidence); validation ladder; cross-links in **`## L0 closure`**, **`## stakeholder closure checklist`**, **`## M3 closure — next execution steps`**; **`native-self-host-compiler-recipe.md`** / **`driver-pipeline-composition.md`** Related; this rollup + **`sv0c/PROGRESS.md`** note. **Closing L0/M3** remains **implementation work** — roadmap does **not** assert completion. **Validation:** **`./scripts/sv0 test-guards`**; **`./scripts/sv0 compile-run lib/main.sv0`**.
+
+- 2026-05-08 (**America/Los_Angeles −07:00**, late night): **Stakeholder closure checklist + native (A)/(B) sequencing:** new **`## stakeholder closure checklist (M3 evidence)`** — **M3 L0** explicitly **open** (honest row-level evidence vs **`## completion criteria`**); **`## L0 closure`** + **`## M3 closure — next execution steps`** aligned with **`sv0c/doc/driver-pipeline-composition.md`** § **Native closure** (**(B)** preferred; **(A)** optional spike **then** converge; **“both options”** = sequential milestones). **`sv0c/doc/transliteration-plan.md`** Pipeline row + this rollup run log. **Validation:** **`./scripts/sv0 test-guards`**.
+
+- 2026-05-08 (**America/Los_Angeles −07:00**, night): **M3 closure spine:** **`## M3 closure — next execution steps (ordered)`** — native **`SV0_SELF_HOST_COMPILER`**, composed driver, semantic/link parity, VM tails, stakeholder evidence; **`### Where to start next`** points here; **G6** wording (**full linkProjectDir** still open). **Validation:** **`./scripts/sv0 test-guards`**.
+
+- 2026-05-08 (**America/Los_Angeles −07:00**, night): **Feature + diagnostic parity (documentation closure):** **`sv0c/doc/transliteration-plan.md`** — fixed corrupted Type checker inventory row; Span/diagnostics row → **bootstrap parity reached** for **`report`**/**`format`**; new § **Feature + diagnostic parity (definition — L0 row)**; **## L0 closure** table row clarified (**Partial**, diagnostics bootstrap **Done**). **Validation:** **`./scripts/sv0 test-guards`**; **`./scripts/sv0 vm-compile lib/diagnostic.sv0`**.
+
+- 2026-05-08 (**America/Los_Angeles −07:00**, evening): **L0 orientation:** added **## L0 closure (blocking prerequisites)** — semantic native self-host + composed sv0 driver + parity remain **open** after **G9**; **`sv0c/doc/native-self-host-compiler-recipe.md`** § **L0 prerequisite chain**. **Validation:** **`./scripts/sv0 test-guards`**.
+
+- 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3 G9 slice gate closed:** backlog **M3-S-050 … M3-S-053** all **Done** on **`main`**; milestone prose + slice index updated (**G9** row **Done**). **M3 L0** remains open per **## completion criteria**. **Validation:** **`./scripts/sv0 test-guards`** (session copy / unknown workspace).
+
 - 2026-05-09 (**America/Los_Angeles −07:00**, night): **`M3-S-052` Done:** **`sv0c/scripts/smoke-self-host-compiler.sh`** (**`make check`** standalone-safe); meta **`scripts/sv0-smoke-self-host-compiler.sh`** delegates; default **`SV0_SELF_HOST_COMPILER`** for **`emit-c`** / stage0 / loop **diff** wiring; **`legacy-bootstrap-check`** split + CI step. **Validation:** **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 check`** + **`./scripts/sv0 test`** (local / CI).
 
 - 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3-S-051 executed (`bootstrap-sml-final` + `git mv sml sml-legacy` + `sources.cm` + repo-wide path docs).** **Validation:** **`./scripts/sv0 test-guards`** (exit **0**); full **`./scripts/sv0 test`** on CI.
 
-- 2026-05-09 (**America/Los_Angeles −07:00**, late evening): **M3 GX closure (`M3-S-054` / `M3-S-055`).** Normative **`sv0doc/compiler/bootstrap-generics-policy.md`** (**T0-2d** deferred), **`bootstrap-deferred-surface.md`** (**T0-7**, **T0-9**, **`for`/`continue`** micro-opt deferral); **`type-system/rules.md`** §5.6 bootstrap cross-link; **`scripts/verify_m3_gx_bootstrap_policy_docs.py`** + **`verify_sv0doc_baseline.py`** paths; **`scripts/sv0`** **`test-guards`** wiring; **`sv0c/doc/transliteration-plan.md`** GX pointer; **## M3 GX slice status** + backlog rows; completion-map GX bullet. **Next:** stakeholder **G9** cutover (**self-hosted default**) when **L0** holds — **not** implied by GX. **Validation:** **`./scripts/sv0 test-guards`** (exit **0**).
+- 2026-05-09 (**America/Los_Angeles −07:00**, late evening): **M3 GX closure (`M3-S-054` / `M3-S-055`).** Normative **`sv0doc/compiler/bootstrap-generics-policy.md`** (**T0-2d** deferred), **`bootstrap-deferred-surface.md`** (**T0-7**, **T0-9**, **`for`/`continue`** micro-opt deferral); **`type-system/rules.md`** §5.6 bootstrap cross-link; **`scripts/verify_m3_gx_bootstrap_policy_docs.py`** + **`verify_sv0doc_baseline.py`** paths; **`scripts/sv0`** **`test-guards`** wiring; **`sv0c/doc/transliteration-plan.md`** GX pointer; **## M3 GX slice status** + backlog rows; completion-map GX bullet. **Deferred language** promotion remains **new slices** — **not** implied by GX or **G9**. **Validation:** **`./scripts/sv0 test-guards`** (exit **0**).
 
 - 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3 G9 follow-on prep (`M3-S-052` Partial):** **`legacy-bootstrap-check`/`legacy-bootstrap-heap`** Makefile aliases; **`scripts/sml_retirement_preflight_scan.py`** + **`./scripts/sv0 sml-retirement-preflight`**; checklist preflight § + **`verify_m3_g9_retirement_docs_layout.py`** Makefile anchors. **`M3-S-051`** rename/tag still **Human-gated** ( **M3 L0** ). **Validation:** **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 sml-retirement-preflight`** | tail **5**.
 
