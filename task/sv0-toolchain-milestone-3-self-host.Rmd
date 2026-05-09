@@ -695,7 +695,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml-legacy/`*
 
 ## refinement log
 
-- 2026-05-09 (**America/Los_Angeles −07:00**, night): **`M3-S-052` Done:** default **`SV0_SELF_HOST_COMPILER`** (**`scripts/sv0-smoke-self-host-compiler.sh`**, **`make check`** / **`./scripts/sv0 check`**); **`emit-c`** / stage0 **C** / self-host loop reference **diff** wiring; **`legacy-bootstrap-check`** split + CI step; **`sv0c/Makefile`** / **`scripts/sv0`** / **`native-self-host-compiler-recipe.md`** / checklist updates. **Validation:** **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 check`** + **`./scripts/sv0 test`** (local / CI).
+- 2026-05-09 (**America/Los_Angeles −07:00**, night): **`M3-S-052` Done:** **`sv0c/scripts/smoke-self-host-compiler.sh`** (**`make check`** standalone-safe); meta **`scripts/sv0-smoke-self-host-compiler.sh`** delegates; default **`SV0_SELF_HOST_COMPILER`** for **`emit-c`** / stage0 / loop **diff** wiring; **`legacy-bootstrap-check`** split + CI step. **Validation:** **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 check`** + **`./scripts/sv0 test`** (local / CI).
 
 - 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3-S-051 executed (`bootstrap-sml-final` + `git mv sml sml-legacy` + `sources.cm` + repo-wide path docs).** **Validation:** **`./scripts/sv0 test-guards`** (exit **0**); full **`./scripts/sv0 test`** on CI.
 

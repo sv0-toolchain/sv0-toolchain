@@ -140,7 +140,7 @@ check_sv0c() {
   if ! bash "$ROOT/scripts/sv0-smoke-self-host-compiler.sh"; then
     sv0_fail "sv0c: heap + SV0_SELF_HOST_COMPILER smoke failed"
   fi
-  sv0_ok "sv0c: heap + SV0_SELF_HOST_COMPILER smoke (see make legacy-bootstrap-check for full CM.make)"
+  sv0_ok "sv0c: heap + emit smoke (sv0c/scripts/smoke-self-host-compiler.sh; make legacy-bootstrap-check for full CM.make)"
 }
 
 check_sv0vm() {
