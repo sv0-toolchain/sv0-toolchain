@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-09T19:30:00-07:00"
+updated: "2026-05-09T20:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -105,6 +105,7 @@ This section separates **what “M3 done” means** from **what CI green means**
 | **VM strict parity v1** | **M3-S-011**, **M3-S-033**–**M3-S-036**, **M3-S-043**–**M3-S-045** |
 | **diagnostics** | **M3-S-021**, **M3-S-044** |
 | **SML retirement** | **M3-S-050**–**M3-S-052** (tag + **`sml-legacy/`** + default sv0-only build are **human-gated** after L0 evidence) |
+| **Deferred bootstrap policy (GX)** | **M3-S-054**–**M3-S-055** (**T0-2d**, closures, **`impl`**, VM loop micro-opts — normative **`sv0doc/compiler/`** notes; **`verify_m3_gx_bootstrap_policy_docs.py`**) |
 
 ### Live harness counts (do not hardcode in narrative)
 
@@ -134,7 +135,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 8. **G7** — vm-parity corpus hygiene, diagnostics corpus, **tier-2 sv0-emitted bytecode** (**M3-S-045**), optional stage-1 C compare (**M3-S-043** … **M3-S-046**).
 9. **G8** — **`SV0_SELF_HOST_COMPILER`** recipe, green native **third leg** on **`lib/self-host-sv0-loop.list`**, optional CI job (**M3-S-047** … **M3-S-049**).
 10. **G9** — **human-gated** **`bootstrap-sml-final`**, **`sml/` → `sml-legacy/`**, sv0-only default build, recovery docs (**M3-S-050** … **M3-S-053**).
-11. **GX — Policy / deferred language** (**M3-S-054**, **M3-S-055**) — resolve or explicitly defer **T0-2d**, closures / **`impl`**, etc., with spec + task notes so they do not block the wrong gate.
+11. **GX — Policy / deferred language** (**M3-S-054**, **M3-S-055**) — **Done (policy):** **`sv0doc/compiler/bootstrap-generics-policy.md`**, **`bootstrap-deferred-surface.md`**, **`type-system/rules.md`** §5.6 cross-link, **`verify_m3_gx_bootstrap_policy_docs.py`** (**`test-guards`**).
 
 ### In parallel (non-blocking on the spine, until a slice says otherwise)
 
@@ -151,7 +152,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **GX** — **M3-S-054** … **M3-S-055** (deferred policy); **or** stakeholder execution of **G9** **M3-S-051**/**052** when **M3 L0** holds — **## M3 G9 slice status**. **G8** — **## M3 G8 slice status**. **G7** — **## M3 G7 slice status**. **G6** (**M3-S-039** … **M3-S-042**) is **closed** for bootstrap staging — see **`sv0c/doc/link-g6-blockers.md`** / **`sv0c/doc/driver-pipeline-composition.md`**.
+- **Default next slice:** **G9 execution prep / cutover** — stakeholder **M3-S-051**/**052** when **M3 L0** holds (**## M3 G9 slice status**); **GX** policy docs are **closed** — **## M3 GX slice status**. **G8** — **## M3 G8 slice status**. **G7** — **## M3 G7 slice status**. **G6** (**M3-S-039** … **M3-S-042**) is **closed** for bootstrap staging — see **`sv0c/doc/link-g6-blockers.md`** / **`sv0c/doc/driver-pipeline-composition.md`**.
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -289,6 +290,19 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-050 … M3-S-05
 <!-- sv0-track:end {"id":"m3.g9.slice.status"} -->
 
 **G9 closure (repository prep):** docs + guards **Done**; **051**/**052** remain **stakeholder execution** — **M3** still **not met** until L0 + retirement cutover policy fires.
+
+## M3 GX slice status (deferred policy — spec closure)
+
+Rolling mirror of **## documented M3 slice backlog** rows **M3-S-054 … M3-S-055**. **Implementation** of deferred features (**T0-2d**, closures, **`impl`**, optional VM loop opts) is **out of scope** here — only **normative deferral** + task linkage.
+
+<!-- sv0-track:begin {"id":"m3.gx.slice.status","title":"M3 GX slice status (deferred policy)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
+| Slice | Status | Primary notes |
+|-------|--------|---------------|
+| M3-S-054 | Done | **`sv0doc/compiler/bootstrap-generics-policy.md`** — **T0-2d** (lowering monomorphization pass) **formally deferred**; **`type-system/rules.md`** §5.6 bootstrap note; **`verify_m3_gx_bootstrap_policy_docs.py`** + **`verify_sv0doc_baseline.py`**. |
+| M3-S-055 | Done | **`sv0doc/compiler/bootstrap-deferred-surface.md`** — **T0-7** closures, **T0-9** **`impl`**, **`continue`-in-`for`** micro-optimizations **deferred**; promotion = new slices. |
+<!-- sv0-track:end {"id":"m3.gx.slice.status"} -->
+
+**GX closure:** spec + guards **Done** — **G9** cutover (**self-hosted default**) does **not** imply **T0-2d**/**T0-7**/**T0-9** landed.
 
 ## validation (agents)
 
@@ -602,7 +616,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | **G7 — Parity + corpus** | M3-S-043 … M3-S-046 | vm-parity growth + allowlist, diagnostics corpus, **sv0-emitted** bytecode tier, stage-1 C compare (if used). |
 | **G8 — Native self-host** | M3-S-047 … M3-S-049 | **`SV0_SELF_HOST_COMPILER`** recipe, green native **third leg**, optional CI workflow. |
 | **G9 — SML retirement** | M3-S-050 … M3-S-053 | Tag, **`sml-legacy/`**, default sv0-only build, recovery docs (**human-owned** cutover). |
-| **GX — Deferred policy** | M3-S-054 … M3-S-055 | **T0-2d** / closures / **`impl`** / VM sugar — promote to new slices when un-deferred. |
+| **GX — Deferred policy** | M3-S-054 … M3-S-055 | **Done** — normative **`sv0doc/compiler/bootstrap-*.md`** + **`verify_m3_gx_bootstrap_policy_docs.py`**; promote **T0-2d** / **T0-7** / **T0-9** via **new** slices when un-deferred. |
 
 ### Master table (planned slices)
 
@@ -670,8 +684,8 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 | M3-S-052 | G9 | **Retirement — default build sv0-only** | **Blocked** until **051** + native compiler; **prep:** **`legacy-bootstrap-*`** Makefile aliases + **`sml-retirement-preflight`** scan. | `sv0c/`, meta `scripts/` | M3-S-051 | **`make -C sv0c legacy-bootstrap-check`**; future **`./scripts/sv0 test`** without SML default. |
 | M3-S-053 | G9 | **Recovery doc** | **`sv0c/doc/cold-bootstrap-recovery.md`** (+ verifier substrings). | `sv0c/doc/` | M3-S-050 | **`./scripts/sv0 test-guards`**. |
 
-| M3-S-054 | GX | **T0-2d policy — user generic monomorphization** | Either implement narrowed lowering monomorphization **or** formally defer with compiler-only typing rules (update **`sv0doc/`** + tasks). | `sv0doc/`, `sv0c/lib/lowering.sv0` | M3-S-001 | Spec + **`./scripts/sv0 test`**. |
-| M3-S-055 | GX | **Deferred language — closures / `impl` / VM for-loop continue** | Track decisions: **T0-7**, **T0-9**, VM **`continue` in for** optimization; each becomes a new slice when un-deferred. | tasks, `sv0c/lib/vm_codegen.sv0` | stakeholder | Refinement-log row only until promoted. |
+| M3-S-054 | GX | **T0-2d policy — user generic monomorphization** | **Done:** formal deferral — **`sv0doc/compiler/bootstrap-generics-policy.md`** + **`type-system/rules.md`** §5.6 note; **`verify_m3_gx_bootstrap_policy_docs.py`**. | `sv0doc/` | M3-S-001 | **`./scripts/sv0 test-guards`**. |
+| M3-S-055 | GX | **Deferred language — closures / `impl` / VM for-loop continue** | **Done:** **`sv0doc/compiler/bootstrap-deferred-surface.md`**; implementation stays deferred until **new** slices. | `sv0doc/`, tasks | M3-S-001 | **`./scripts/sv0 test-guards`**. |
 
 **Notes**
 
@@ -680,6 +694,8 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml/`** → *
 3. **M3 completion** still requires **all** **## completion criteria** bullets above, not only finishing **M3-S-001 … M3-S-055**.
 
 ## refinement log
+
+- 2026-05-09 (**America/Los_Angeles −07:00**, late evening): **M3 GX closure (`M3-S-054` / `M3-S-055`).** Normative **`sv0doc/compiler/bootstrap-generics-policy.md`** (**T0-2d** deferred), **`bootstrap-deferred-surface.md`** (**T0-7**, **T0-9**, **`for`/`continue`** micro-opt deferral); **`type-system/rules.md`** §5.6 bootstrap cross-link; **`scripts/verify_m3_gx_bootstrap_policy_docs.py`** + **`verify_sv0doc_baseline.py`** paths; **`scripts/sv0`** **`test-guards`** wiring; **`sv0c/doc/transliteration-plan.md`** GX pointer; **## M3 GX slice status** + backlog rows; completion-map GX bullet. **Next:** stakeholder **G9** cutover (**self-hosted default**) when **L0** holds — **not** implied by GX. **Validation:** **`./scripts/sv0 test-guards`** (exit **0**).
 
 - 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3 G9 follow-on prep (`M3-S-052` Partial):** **`legacy-bootstrap-check`/`legacy-bootstrap-heap`** Makefile aliases; **`scripts/sml_retirement_preflight_scan.py`** + **`./scripts/sv0 sml-retirement-preflight`**; checklist preflight § + **`verify_m3_g9_retirement_docs_layout.py`** Makefile anchors. **`M3-S-051`** rename/tag still **Human-gated** ( **M3 L0** ). **Validation:** **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 sml-retirement-preflight`** | tail **5**.
 

@@ -15,6 +15,8 @@ from pathlib import Path
 # Paths relative to repo root (must stay aligned with sv0 doc + milestone asserts).
 REQUIRED_FILES: tuple[str, ...] = (
     "sv0doc/README.md",
+    "sv0doc/compiler/bootstrap-generics-policy.md",
+    "sv0doc/compiler/bootstrap-deferred-surface.md",
     "sv0doc/grammar/sv0.ebnf",
     "sv0doc/type-system/rules.md",
     "sv0doc/contracts/semantics.md",
