@@ -29,7 +29,7 @@ The SML bootstrap retirement tag `**bootstrap-sml-final`** is defined on **[sv0c
 |                                                |                                            |
 | ---------------------------------------------- | ------------------------------------------ |
 | **sv0c tag (when cut)**                        | `bootstrap-sml-final`                      |
-| **sv0c commit pinned on this branch (`main`)** | `ceda431eb9843f26f78288a3f093ae24f34c2b7c` |
+| **sv0c commit pinned on this branch (`main`)** | `28cf2a8ea4eff638f9eb478e8c696bfde88bd603` |
 
 
 **Maintainers:** whenever you bump the `**sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-files -s sv0c` (staged/index gitlink; matches **HEAD** when the index is clean) or `git ls-tree HEAD sv0c`. **CI / local:** `**./scripts/sv0 test-guards`** runs `**scripts/verify_readme_sv0c_gitlink.py`** (README vs index gitlink, **HEAD** fallback) and `**scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches the submodule pointer you are committing and `**test/vm-parity/manifest.txt`** stays a subset of `**sv0c/lib/bootstrap-sources.list`**.
@@ -80,7 +80,7 @@ task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
 make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
 make milestone-orient # same as ./scripts/sv0 milestone-orient list
 make milestone-orient-show ID=M3  # ./scripts/sv0 milestone-orient show M3
-./scripts/sv0 check   # compile sv0c + load sv0vm (fast)
+./scripts/sv0 check   # sv0c heap + SV0_SELF_HOST_COMPILER smoke + load sv0vm (fast)
 ./scripts/sv0 test    # sv0c units; Python guards; sv0vm; C+VM integration; bootstrap .sv0; VM parity (SML .sv0b vs golden/sml); stage0 golden C; doctests
 ./scripts/sv0 test-guards  # Python only: same guards as start of `sv0 test` incl. vm-parity manifest ⊆ bootstrap, milestone-orientation JSON ↔ workspace milestone table (bidirectional; fast; no SML)
 ./scripts/sv0 milestone-orient list   # milestone id → owning task/*.Rmd + validation hints (for humans and agents)
@@ -103,7 +103,7 @@ make milestone-orient-show ID=M3  # ./scripts/sv0 milestone-orient show M3
 
 **Neo4j dev graph (sv0-mcp):** after you change `**task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP `**sync_graph`** tool). If Bolt is not on the default host port `**7688`**, set `**SV0_MCP_NEO4J_URI`** (and the cypher MCP `**NEO4J_URI**`) — see `[sv0-mcp/README.md](sv0-mcp/README.md)` (*custom host ports*).
 
-From **sv0c**: `make check` (compile only), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
+From **sv0c**: `make check` (**heap** + **`SV0_SELF_HOST_COMPILER`** smoke), `make legacy-bootstrap-check` (full **CM.make**), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
 
 ### running agents
 

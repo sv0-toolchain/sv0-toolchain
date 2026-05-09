@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-09T21:30:00-07:00"
+updated: "2026-05-09T22:45:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: active
@@ -47,7 +47,7 @@ High-level **M3** session closure (complements **numbered** **`m3.validation.seq
 
 ## layout decision
 
-The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). The **SML/NJ bootstrap** sources now live under **`sv0c/sml-legacy/`** (historical layout **`sv0c/sml/`** ended at tag **`bootstrap-sml-final`**). **`sources.cm`** references **`sml-legacy/...`** member paths. **sv0 transliteration** continues in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`) and parallel dirs (**`lexer/`**, **`parser/`**, …). **Default** **`make`** / **`./scripts/sv0`** behavior is unchanged until **M3-S-052** (sv0-only default).
+The self-hosting **compiler in sv0** lives entirely inside the **sv0c** repository (not a sibling top-level `sv0-compiler/` tree in the meta-repo). The **SML/NJ bootstrap** sources now live under **`sv0c/sml-legacy/`** (historical layout **`sv0c/sml/`** ended at tag **`bootstrap-sml-final`**). **`sources.cm`** references **`sml-legacy/...`** member paths. **sv0 transliteration** continues in **`sv0c/lib/`** (see `sv0c/lib/README.md`, `lib/LAYOUT.md`, `./scripts/sv0 bootstrap-build`) and parallel dirs (**`lexer/`**, **`parser/`**, …). **M3-S-052:** default **`make check`** / **`./scripts/sv0 check`** smoke **`heap` + `SV0_SELF_HOST_COMPILER`** (**`build/sv0-self-host-compiler`**); full **`CM.make "sources.cm"`** remains **`make -C sv0c legacy-bootstrap-check`** (CI runs both).
 
 ## stakeholder decisions (implementation bar)
 
@@ -57,7 +57,7 @@ These choices unblock scope, CI, and transliteration priority.
 
 - **End state:** compiler **fully in sv0**; **SML** removed from the **default** developer and CI path (**M3-S-052**).
 - **Git tag (sv0c only):** **`bootstrap-sml-final`** — points at the last **`sv0c`** revision whose tree still had **`sml/`** before **`git mv sml sml-legacy`**. Do **not** place this tag on the **sv0-toolchain** meta-repo. The meta-repo **README** lists the tag next to the **pinned sv0c SHA**; **update that SHA** whenever the **`sv0c`** submodule pointer changes (same commit as the bump).
-- **Layout after M3-S-051:** bootstrap SML sources are under **`sv0c/sml-legacy/`**; **`make`** / **`./scripts/sv0`** still invoke **`CM.make "sources.cm"`** via SML until **052** changes defaults.
+- **Layout after M3-S-051 / defaults after M3-S-052:** bootstrap SML sources are under **`sv0c/sml-legacy/`**; default **`check`** / **`emit-c`** / stage0 **C** paths use **`SV0_SELF_HOST_COMPILER`**; **`legacy-bootstrap-check`** keeps **`CM.make "sources.cm"`** available.
 - **Cold bootstrap / recovery:** **`sv0c/doc/cold-bootstrap-recovery.md`** — checkout **`bootstrap-sml-final`** or **`main`** with **`sml-legacy/`**.
 
 ### feature parity and VM
@@ -152,7 +152,7 @@ This is the **ordered execution spine** from today’s repo to **L0** (**## comp
 
 ### Where to start next (execution prep)
 
-- **Default next slice:** **M3-S-052** — default **sv0-only** build / CI split (**## M3 G9 slice status**); **GX** closed — **## M3 GX slice status**. **G8** — **## M3 G8 slice status**. **G7** — **## M3 G7 slice status**. **G6** (**M3-S-039** … **M3-S-042**) **closed** — **`sv0c/doc/link-g6-blockers.md`** / **`sv0c/doc/driver-pipeline-composition.md`**.
+- **Next material work:** **M3 L0** transliteration + parity + semantic native compiler — **G9** checklist slices **M3-S-050 … M3-S-052** **Done** (**## M3 G9 slice status**); **GX** closed — **## M3 GX slice status**. **G8** — **## M3 G8 slice status**. **G7** — **## M3 G7 slice status**. **G6** (**M3-S-039** … **M3-S-042**) **closed** — **`sv0c/doc/link-g6-blockers.md`** / **`sv0c/doc/driver-pipeline-composition.md`**.
 - **If G0/G1 baseline is missing in your checkout:** land **M3-S-001 … M3-S-004** first (spec + `CompileError` + driver `Result` + parser assign-target batch).
 - **Proof targets:** **L0** needs **G8** + **G9** evidence, not merely more **L1** pilot lines — see **`sv0c/doc/self-host-sv0-loop.md`** **§ Pilot vs native** and **`28-sml-retirement-and-self-host-bar.mdc`**.
 
@@ -278,14 +278,14 @@ Rolling mirror of **## documented M3 slice backlog** rows **M3-S-047 … M3-S-04
 
 ## M3 G9 slice status (SML retirement — prep vs execution)
 
-Rolling mirror of **## documented M3 slice backlog** rows **M3-S-050 … M3-S-053**. **051** directory move **Done** on **`main`**; **052** default sv0-only **still open** — see **`sv0c/doc/sml-retirement-cutover-checklist.md`**.
+Rolling mirror of **## documented M3 slice backlog** rows **M3-S-050 … M3-S-053**. **051** directory move **Done** on **`main`**; **052** default **`SV0_SELF_HOST_COMPILER`** orchestration **Done** — see **`sv0c/doc/sml-retirement-cutover-checklist.md`**.
 
 <!-- sv0-track:begin {"id":"m3.g9.slice.status","title":"M3 G9 slice status (SML retirement)","kind":"slice-table","ingest":"table","milestone":"M3"} -->
 | Slice | Status | Primary notes |
 |-------|--------|---------------|
 | M3-S-050 | Done | **`sv0c/doc/sml-retirement-cutover-checklist.md`** + **`sv0c/README.md`** cross-links; **`scripts/verify_m3_g9_retirement_docs_layout.py`** ( **`test-guards`** ). |
 | M3-S-051 | Done | Tag **`bootstrap-sml-final`** + **`git mv sml sml-legacy`** + **`sources.cm`** + docs/scripts path updates (**2026-05-09**). |
-| M3-S-052 | Blocked (prep Partial) | Default **sv0-only** still future (native **`SV0_SELF_HOST_COMPILER`** default); **`legacy-bootstrap-*`** Makefile aliases + **`sml-retirement-preflight`**. |
+| M3-S-052 | Done | Default **`make check`** / **`./scripts/sv0 check`** = **`heap` + `SV0_SELF_HOST_COMPILER`** smoke; **`emit-c`** / stage0 **C** via **`SV0_SELF_HOST_COMPILER`**; self-host loop **diff** vs **SML heap** reference; **`legacy-bootstrap-check`** + CI step keep **`CM.make`**. |
 | M3-S-053 | Done | **`sv0c/doc/cold-bootstrap-recovery.md`** (tag checkout + **`sml-legacy`** + heap rebuild); verifier substring guard in **`verify_m3_g9_retirement_docs_layout.py`**. |
 <!-- sv0-track:end {"id":"m3.g9.slice.status"} -->
 
@@ -681,7 +681,7 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml-legacy/`*
 
 | M3-S-050 | G9 | **Retirement — spec + task checklist** | **`sv0c/doc/sml-retirement-cutover-checklist.md`** + **`verify_m3_g9_retirement_docs_layout.py`**; **`sv0c/README.md`** § SML retirement. | `sv0c/doc/`, `scripts/` | M3-S-048 | **`./scripts/sv0 test-guards`**. |
 | M3-S-051 | G9 | **Retirement — `sv0c` tag + directory move** | **Done:** **`bootstrap-sml-final`**, **`sml-legacy/`**, **`sources.cm`**, docs + scripts path churn. | `sv0c/`, `scripts/`, `task/` | M3-S-050 | **`./scripts/sv0 test-guards`**; **`./scripts/sv0 test`** post-merge; push **`sv0c`** then meta. |
-| M3-S-052 | G9 | **Retirement — default build sv0-only** | **Blocked** until **051** + native compiler; **prep:** **`legacy-bootstrap-*`** Makefile aliases + **`sml-retirement-preflight`** scan. | `sv0c/`, meta `scripts/` | M3-S-051 | **`make -C sv0c legacy-bootstrap-check`**; future **`./scripts/sv0 test`** without SML default. |
+| M3-S-052 | G9 | **Retirement — default build sv0-only** | **Done:** default **`SV0_SELF_HOST_COMPILER`** (**`build/sv0-self-host-compiler`**); **`legacy-bootstrap-check`** for full **`CM.make`**; CI **`legacy-bootstrap-check`** step. | `sv0c/`, meta `scripts/` | M3-S-051 | **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 check`** + **`./scripts/sv0 test`**. |
 | M3-S-053 | G9 | **Recovery doc** | **`sv0c/doc/cold-bootstrap-recovery.md`** (+ verifier substrings). | `sv0c/doc/` | M3-S-050 | **`./scripts/sv0 test-guards`**. |
 
 | M3-S-054 | GX | **T0-2d policy — user generic monomorphization** | **Done:** formal deferral — **`sv0doc/compiler/bootstrap-generics-policy.md`** + **`type-system/rules.md`** §5.6 note; **`verify_m3_gx_bootstrap_policy_docs.py`**. | `sv0doc/` | M3-S-001 | **`./scripts/sv0 test-guards`**. |
@@ -695,7 +695,9 @@ Apply tag **`bootstrap-sml-final`** on **sv0c** only; move **`sv0c/sml-legacy/`*
 
 ## refinement log
 
-- 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3-S-051 executed (`bootstrap-sml-final` + `git mv sml sml-legacy` + `sources.cm` + repo-wide path docs).** **`M3-S-052`** (default sv0-only) **still open**. **Validation:** **`./scripts/sv0 test-guards`** (exit **0**); full **`./scripts/sv0 test`** pending CI / local SML.
+- 2026-05-09 (**America/Los_Angeles −07:00**, night): **`M3-S-052` Done:** default **`SV0_SELF_HOST_COMPILER`** (**`scripts/sv0-smoke-self-host-compiler.sh`**, **`make check`** / **`./scripts/sv0 check`**); **`emit-c`** / stage0 **C** / self-host loop reference **diff** wiring; **`legacy-bootstrap-check`** split + CI step; **`sv0c/Makefile`** / **`scripts/sv0`** / **`native-self-host-compiler-recipe.md`** / checklist updates. **Validation:** **`./scripts/sv0 test-guards`**; **`make -C sv0c legacy-bootstrap-check`**; **`./scripts/sv0 check`** + **`./scripts/sv0 test`** (local / CI).
+
+- 2026-05-09 (**America/Los_Angeles −07:00**, night): **M3-S-051 executed (`bootstrap-sml-final` + `git mv sml sml-legacy` + `sources.cm` + repo-wide path docs).** **Validation:** **`./scripts/sv0 test-guards`** (exit **0**); full **`./scripts/sv0 test`** on CI.
 
 - 2026-05-09 (**America/Los_Angeles −07:00**, late evening): **M3 GX closure (`M3-S-054` / `M3-S-055`).** Normative **`sv0doc/compiler/bootstrap-generics-policy.md`** (**T0-2d** deferred), **`bootstrap-deferred-surface.md`** (**T0-7**, **T0-9**, **`for`/`continue`** micro-opt deferral); **`type-system/rules.md`** §5.6 bootstrap cross-link; **`scripts/verify_m3_gx_bootstrap_policy_docs.py`** + **`verify_sv0doc_baseline.py`** paths; **`scripts/sv0`** **`test-guards`** wiring; **`sv0c/doc/transliteration-plan.md`** GX pointer; **## M3 GX slice status** + backlog rows; completion-map GX bullet. **Next:** stakeholder **G9** cutover (**self-hosted default**) when **L0** holds — **not** implied by GX. **Validation:** **`./scripts/sv0 test-guards`** (exit **0**).
 

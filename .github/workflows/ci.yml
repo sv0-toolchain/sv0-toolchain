@@ -65,6 +65,9 @@ jobs:
       - name: Compile smoke (sv0c + sv0vm)
         run: ./scripts/sv0 check
 
+      - name: Legacy sml-legacy CM.make (M3-S-052)
+        run: make -C sv0c legacy-bootstrap-check
+
       - name: Full sv0 test harness (./scripts/sv0 test)
         run: ./scripts/sv0 test
 

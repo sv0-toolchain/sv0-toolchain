@@ -48,7 +48,7 @@ usage: sv0 <command> [args]
   fmt                format .sv0 sources (whitespace) + shell fmt (see fmt-shell)
   fmt-shell          bash -n on shell scripts; shfmt -w if shfmt is in PATH
   bootstrap-build    VM-compile programs listed in sv0c/lib/bootstrap-sources.list (fallback: lib/*.sv0)
-  emit-c <rel>       print C for one .sv0 (path relative to sv0c/; uses make heap + SML bootstrap)
+  emit-c <rel>       print C for one .sv0 (path relative to sv0c/; heap + SV0_SELF_HOST_COMPILER — default build/sv0-self-host-compiler)
   compile-run <rel>  emit-c + cc + run for one .sv0 (exit 0 = pass; non-zero = fail)
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
@@ -89,17 +89,58 @@ sml_log_check() {
   rm -f "$log"
 }
 
-check_sv0c() {
-  require_sml
+ensure_sv0_self_host_compiler() {
+  local out="$ROOT/build/sv0-self-host-compiler"
+  if [[ ! -x "$out" ]]; then
+    bash "$ROOT/scripts/build-sv0-self-host-compiler.sh"
+  fi
+  if [[ ! -x "$out" ]]; then
+    sv0_fail "ensure_sv0_self_host_compiler: missing executable $out"
+  fi
+}
+
+_abs_sv0c_rel() {
+  local rel="${1:?}"
+  local p="$SV0C/$rel"
+  if [[ "$p" != /* ]]; then
+    p="$(cd "$(dirname "$p")" && pwd)/$(basename "$p")"
+  fi
+  printf '%s' "$p"
+}
+
+# Reference emit for self-host loop diff leg — direct SML heap image (not SV0_SELF_HOST_COMPILER).
+_self_host_emit_c_via_sml_heap_to() {
+  local rel="${1:?}"
+  local out="${2:?}"
   local log
   log="$(mktemp)"
-  if ! ( cd "$SV0C" && echo 'CM.make "sources.cm"; OS.Process.exit OS.Process.success;' | sml >"$log" 2>&1 ); then
-    tail -50 "$log"
+  if [[ ! -f "$SV0C/$rel" ]]; then
     rm -f "$log"
-    sv0_fail "sv0c: sml exited non-zero"
+    return 1
   fi
-  sml_log_check "sv0c" "$log"
-  sv0_ok "sv0c: sources.cm"
+  set +e
+  (cd "$SV0C" && sml "@SMLload=build/sv0c" "$rel" >"$out" 2>"$log")
+  local sml_ec=$?
+  set -e
+  if [[ "$sml_ec" -ne 0 ]] || grep -q 'Error:' "$log"; then
+    tail -30 "$log" >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+  if ! grep -q '#include' "$out"; then
+    echo "self-host: emitted file missing #include: $out" >&2
+    return 1
+  fi
+  return 0
+}
+
+check_sv0c() {
+  require_sml
+  if ! bash "$ROOT/scripts/sv0-smoke-self-host-compiler.sh"; then
+    sv0_fail "sv0c: heap + SV0_SELF_HOST_COMPILER smoke failed"
+  fi
+  sv0_ok "sv0c: heap + SV0_SELF_HOST_COMPILER smoke (see make legacy-bootstrap-check for full CM.make)"
 }
 
 check_sv0vm() {
@@ -116,6 +157,8 @@ check_sv0vm() {
 }
 
 run_check() {
+  ensure_sv0_self_host_compiler
+  export SV0_SELF_HOST_COMPILER="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
   check_sv0c
   check_sv0vm
 }
@@ -209,6 +252,8 @@ run_test_guards() {
 
 run_test() {
   local ec=0
+  ensure_sv0_self_host_compiler
+  export SV0_SELF_HOST_COMPILER="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
   (cd "$SV0C" && make test) || ec=1
   if ! run_python_guards "sv0 test"; then
     ec=1
@@ -294,21 +339,24 @@ _self_host_stage0_heap_ready() {
   (cd "$SV0C" && make heap >/dev/null 2>&1)
 }
 
-# Emit C for one .sv0 via SML heap image; write to $2. Requires heap ready. Returns 0 on success.
+# Emit C via SV0_SELF_HOST_COMPILER contract (M3-S-052 default); write to $2. Requires heap ready.
 _self_host_stage0_emit_c_to() {
   local rel="${1:?}"
   local out="${2:?}"
-  local log
+  ensure_sv0_self_host_compiler
+  local SHC="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
+  local log abs
   log="$(mktemp)"
   if [[ ! -f "$SV0C/$rel" ]]; then
     rm -f "$log"
     return 1
   fi
+  abs="$(_abs_sv0c_rel "$rel")"
   set +e
-  (cd "$SV0C" && sml "@SMLload=build/sv0c" "$rel" >"$out" 2>"$log")
-  local sml_ec=$?
+  "$SHC" "$abs" >"$out" 2>"$log"
+  local ec=$?
   set -e
-  if [[ "$sml_ec" -ne 0 ]] || grep -q 'Error:' "$log"; then
+  if [[ "$ec" -ne 0 ]] || grep -q 'Error:' "$log"; then
     tail -30 "$log" >&2
     rm -f "$log"
     return 1
@@ -385,9 +433,11 @@ self_host_sv0_loop_fill_paths() {
   return 0
 }
 
-# Pilot for milestone 3 sv0→sv0 loop: deterministic SML→C emit, native cc+run, optional SV0_SELF_HOST_COMPILER vs SML diff.
+# Pilot for milestone 3 sv0→sv0 loop: deterministic SV0_SELF_HOST_COMPILER emit, native cc+run, optional diff vs direct SML heap.
 run_self_host_sv0_loop() {
   require_sml
+  ensure_sv0_self_host_compiler
+  export SV0_SELF_HOST_COMPILER="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
   local _cc="${CC:-cc}"
   if ! command -v "$_cc" >/dev/null 2>&1; then
     sv0_fail "self-host-sv0-loop: C compiler not found (install cc or set CC)"
@@ -422,11 +472,11 @@ run_self_host_sv0_loop() {
     tmp2="$emitdir/${stem}.b.c"
     if ! _self_host_stage0_emit_c_to "$rel" "$tmp1"; then
       rm -f "$tmp1" "$tmp2"
-      sv0_fail "self-host-sv0-loop: SML emit failed for $rel"
+      sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
     fi
     if ! _self_host_stage0_emit_c_to "$rel" "$tmp2"; then
       rm -f "$tmp1" "$tmp2"
-      sv0_fail "self-host-sv0-loop: second SML emit failed for $rel"
+      sv0_fail "self-host-sv0-loop: second SV0_SELF_HOST_COMPILER emit failed for $rel"
     fi
     if ! cmp -s "$tmp1" "$tmp2"; then
       echo "self-host-sv0-loop: non-deterministic C emit for $rel" >&2
@@ -457,16 +507,18 @@ run_self_host_sv0_loop() {
       local tmp_sv0 tmp_err tmp_ref d
       tmp_sv0="$emitdir/${stem}.sv0-built.c"
       tmp_err="$(mktemp)"
-      if ! "$sv0_emit" "$SV0C/$rel" >"$tmp_sv0" 2>"$tmp_err"; then
+      local abs_emit
+      abs_emit="$(_abs_sv0c_rel "$rel")"
+      if ! "$sv0_emit" "$abs_emit" >"$tmp_sv0" 2>"$tmp_err"; then
         cat "$tmp_err" >&2
         rm -f "$tmp_sv0" "$tmp_err"
         sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
       fi
       rm -f "$tmp_err"
       tmp_ref="$emitdir/${stem}.ref.c"
-      if ! _self_host_stage0_emit_c_to "$rel" "$tmp_ref"; then
+      if ! _self_host_emit_c_via_sml_heap_to "$rel" "$tmp_ref"; then
         rm -f "$tmp_sv0" "$tmp_ref"
-        sv0_fail "self-host-sv0-loop: SML reference emit failed for $rel"
+        sv0_fail "self-host-sv0-loop: SML heap reference emit failed for $rel"
       fi
       set +e
       diff -u "$tmp_ref" "$tmp_sv0"
@@ -647,7 +699,11 @@ run_emit_c() {
   if ! (cd "$SV0C" && make heap >/dev/null 2>&1); then
     sv0_fail "emit-c: sv0c make heap failed"
   fi
-  (cd "$SV0C" && sml "@SMLload=build/sv0c" "$rel")
+  ensure_sv0_self_host_compiler
+  local SHC="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
+  local abs
+  abs="$(_abs_sv0c_rel "$rel")"
+  "$SHC" "$abs"
 }
 
 run_compile_run() {
@@ -777,6 +833,7 @@ run_fmt_shell() {
   local f
   local fmt_targets=(
     "$ROOT/scripts/sv0"
+    "$ROOT/scripts/sv0-smoke-self-host-compiler.sh"
     "$ROOT/scripts/sv0-self-host-emit-c.sh"
     "$ROOT/scripts/with-github-ssh443.sh"
     "$ROOT/scripts/ci-install-smlnj.sh"

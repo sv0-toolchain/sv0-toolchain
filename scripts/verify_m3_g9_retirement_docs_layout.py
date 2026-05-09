@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""M3-S-050 / M3-S-053 (+ M3-S-052 prep): checklist + recovery anchors + Makefile legacy-bootstrap aliases (no cutover)."""
+"""M3-S-050 / M3-S-053 / M3-S-052: checklist + recovery anchors + Makefile legacy-bootstrap targets."""
 
 from __future__ import annotations
 
