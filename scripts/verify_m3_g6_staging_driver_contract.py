@@ -68,6 +68,25 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
+
+    # P1 contract: driver.sv0 must exist and define the full pipeline
+    driver_sv0 = root / "sv0c" / "lib" / "driver.sv0"
+    if not driver_sv0.is_file():
+        print(
+            "verify_m3_g6_staging_driver_contract: missing sv0c/lib/driver.sv0 "
+            "(P1 composed driver — required for L0 closure)",
+            file=sys.stderr,
+        )
+        return 1
+    driver_text = driver_sv0.read_text(encoding="utf-8")
+    for driver_needle in ("fn drv_compile_file", "fn drv_tokenize", "fn drv_parse", "fn drv_emit_c"):
+        if driver_needle not in driver_text:
+            print(
+                f"verify_m3_g6_staging_driver_contract: driver.sv0 missing {driver_needle!r}",
+                file=sys.stderr,
+            )
+            return 1
+
     print("verify_m3_g6_staging_driver_contract: OK", file=sys.stderr)
     return 0
 
