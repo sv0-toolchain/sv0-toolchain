@@ -1,5 +1,6 @@
-# M3-S-049: optional pilot third leg with canonical SV0_SELF_HOST_COMPILER path (bootstrap wrapper).
-# Full ./scripts/sv0 test stays on default CI; this job proves self-host-sv0-loop with build/sv0-self-host-compiler.
+# M3-S-049 / P2: optional pilot third leg — SML bootstrap wrapper (default) +
+# native binary compiled from lib/driver.sv0 (P2 proof-of-concept).
+# Full ./scripts/sv0 test stays on the default CI with the SML-backed wrapper.
 name: Self-host native path (pilot loop)
 
 on:
@@ -34,8 +35,24 @@ jobs:
       - name: Install SML/NJ
         run: bash scripts/ci-install-smlnj.sh
 
-      - name: Materialize canonical compiler wrapper (M3-S-047)
+      - name: Materialize canonical compiler wrapper + native binary (M3-S-047/P2)
         run: bash scripts/build-sv0-self-host-compiler.sh
 
-      - name: Pilot loop with SV0_SELF_HOST_COMPILER (M3-S-048)
+      - name: Pilot loop — SML bootstrap wrapper (M3-S-048)
         run: SV0_SELF_HOST_COMPILER="$PWD/build/sv0-self-host-compiler" ./scripts/sv0 self-host-sv0-loop
+
+      - name: Native binary self-test (P2 — 49 tests exit 0)
+        run: |
+          printf "" > /tmp/.sv0_drv_path
+          ./build/sv0-driver-native
+          echo "native driver self-test: exit $?"
+
+      - name: Native binary smoke — emit+cc+run vm_add_chain (P2)
+        run: |
+          ABS="$PWD/sv0c/test/vm-parity/programs/vm_add_chain.sv0"
+          printf '%s\n' "$ABS" > /tmp/.sv0_drv_path
+          ./build/sv0-driver-native > /tmp/vm_add_chain_native.c
+          printf "" > /tmp/.sv0_drv_path
+          cc -std=c99 -O0 -I sv0c/runtime /tmp/vm_add_chain_native.c sv0c/runtime/sv0_runtime.c -o /tmp/vm_add_chain_native
+          /tmp/vm_add_chain_native
+          echo "native driver smoke: vm_add_chain exit $?"
