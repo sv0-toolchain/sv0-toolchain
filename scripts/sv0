@@ -356,8 +356,9 @@ _self_host_stage0_emit_c_to() {
   "$SHC" "$abs" >"$out" 2>"$log"
   local ec=$?
   set -e
-  if [[ "$ec" -ne 0 ]] || grep -q 'Error:' "$log"; then
-    tail -30 "$log" >&2
+  if [[ "$ec" -ne 0 ]] || grep -q 'Error:\|sv0c error:\|error\[' "$log"; then
+    echo "self-host-emit-c: ec=$ec rel=$rel" >&2
+    cat "$log" >&2
     rm -f "$log"
     return 1
   fi
@@ -566,16 +567,19 @@ run_bootstrap_build() {
       rm -f "$log"
       return 1
     fi
-    if grep -q 'Error:' "$log"; then
-      tail -30 "$log"
+    if grep -q 'Error:\|sv0c error:\|error\[' "$log"; then
+      echo "bootstrap-build: compile log for $rel:" >&2
+      cat "$log" >&2
+      rm -f "$log"
+      return 1
+    fi
+    if [[ ! -f "$sv0b" ]]; then
+      echo "bootstrap-build: missing $sv0b (for $rel) — log follows:" >&2
+      cat "$log" >&2
       rm -f "$log"
       return 1
     fi
     rm -f "$log"
-    if [[ ! -f "$sv0b" ]]; then
-      echo "bootstrap-build: missing $sv0b (for $rel)" >&2
-      return 1
-    fi
     out="$(cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml 2>&1)" || true
     if ! echo "$out" | grep -q "vm_exit:0"; then
       echo "bootstrap-build: FAIL $rel ($(echo "$out" | grep 'vm_exit:' | head -1))" >&2
