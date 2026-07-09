@@ -204,6 +204,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_compiler_sv0_no_raise.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: commit-msg AI-signoff checker selftest (git-hooks)"
+  if ! python3 "$ROOT/scripts/verify_commit_msg_no_ai_signoff.py" --selftest; then
+    ec=1
+  fi
   sv0_info "$label: M3 G1 Track C per-slice path audit (scripts/m3_g1_active_slices.txt)"
   if ! python3 "$ROOT/scripts/verify_m3_g1_track_c.py" --root "$ROOT"; then
     ec=1
@@ -247,7 +251,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs"
 }
 
 run_test() {

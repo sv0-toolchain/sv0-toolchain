@@ -105,6 +105,24 @@ make milestone-orient-show ID=M3  # ./scripts/sv0 milestone-orient show M3
 
 From **sv0c**: `make check` (**heap** + **`SV0_SELF_HOST_COMPILER`** smoke), `make legacy-bootstrap-check` (full **CM.make**), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
 
+### git hooks
+
+Install once per clone (wires `core.hooksPath` for **both** the parent repo and the `sv0c` submodule; idempotent):
+
+```bash
+make hooks            # or: ./scripts/install-git-hooks.sh
+```
+
+The single tracked source is `scripts/git-hooks/` (repo-aware scripts) plus `scripts/verify_commit_msg_no_ai_signoff.py`. What they enforce:
+
+| Hook | When | Checks |
+| --- | --- | --- |
+| `commit-msg` | every commit (parent + sv0c) | **No LLM/agent/assistant sign-off** — rejects `Co-Authored-By:`/`Signed-off-by:`/`Generated with …` lines naming an AI (Claude, Anthropic, GPT, Copilot, …) and the `🤖` signature. Topic mentions (e.g. `fix: Claude API retry`) still pass. |
+| `pre-commit` | every commit (fast, no SML) | `.sv0` whitespace formatting (staged) + block-comment nesting guard; `bash -n` on staged shell; `ruff check`/`format --check` on staged sv0-mcp Python (syntax-only for other `*.py`); **documentation pins + fast guards** via `./scripts/sv0 test-guards` (parent repo). |
+| `pre-push` | every push (slow, needs SML) | **Full test suite** — parent: `./scripts/sv0 test` (units + C/VM integration + self-host sv0 loop 98/98 + goldens + doctests + guards); sv0c: `make check test`. |
+
+Bypass a single run with `git commit --no-verify` / `git push --no-verify`, or disable all sv0 hooks for a shell with `SV0_SKIP_HOOKS=1`. The `verify_commit_msg_no_ai_signoff.py` checker has a `--selftest` accept/reject corpus.
+
 ### running agents
 
 ```bash

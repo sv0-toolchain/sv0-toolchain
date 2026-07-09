@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# sv0-toolchain pre-push hook — the SLOW, complete verification (needs SML).
+#   * parent repo : ./scripts/sv0 test   (units + C/VM integration + self-host
+#                   sv0 loop 98/98 + goldens + doctests + all guards)
+#   * sv0c submodule: make check test     (sv0c's own CI-equivalent suite)
+#
+# Installed for BOTH repos by scripts/install-git-hooks.sh.
+# Source of truth: scripts/git-hooks/ (tracked).
+# Bypass: git push --no-verify   (or SV0_SKIP_HOOKS=1)
+set -euo pipefail
+
+[[ -n "${SV0_SKIP_HOOKS:-}" ]] && { echo "pre-push: SV0_SKIP_HOOKS set — skipping tests" >&2; exit 0; }
+
+repo_top="$(git rev-parse --show-toplevel)"
+
+if [[ -f "$repo_top/scripts/sv0" ]]; then
+  # Parent toolchain repo.
+  echo "pre-push: running full test suite (./scripts/sv0 test) — this takes a few minutes..." >&2
+  ( cd "$repo_top" && ./scripts/sv0 test ) || {
+    echo "pre-push: ./scripts/sv0 test FAILED — push aborted. Fix tests or push --no-verify." >&2
+    exit 1
+  }
+elif [[ -f "$repo_top/Makefile" && "$(basename "$repo_top")" == "sv0c" ]]; then
+  # sv0c submodule.
+  echo "pre-push: running sv0c suite (make check test)..." >&2
+  ( cd "$repo_top" && make check test ) || {
+    echo "pre-push: make check test FAILED — push aborted. Fix tests or push --no-verify." >&2
+    exit 1
+  }
+else
+  echo "pre-push: unrecognized repo at $repo_top; skipping (no tests run)" >&2
+  exit 0
+fi
+
+echo "pre-push: tests passed." >&2

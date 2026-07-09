@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# sv0-toolchain pre-commit hook — FAST checks only (seconds), no SML.
+#   * .sv0 whitespace formatting (staged files)
+#   * shell syntax (staged *.sh) + Python syntax/lint (staged *.py)
+#   * documentation pins + fast guards (parent repo: ./scripts/sv0 test-guards;
+#     sv0c submodule: .sv0 block-comment nesting guard)
+# The full test suite runs at pre-push, not here.
+#
+# Installed for BOTH the parent repo and the sv0c submodule by
+# scripts/install-git-hooks.sh. Source of truth: scripts/git-hooks/ (tracked).
+# Bypass: git commit --no-verify   (or SV0_SKIP_HOOKS=1)
+set -euo pipefail
+
+[[ -n "${SV0_SKIP_HOOKS:-}" ]] && exit 0
+
+repo_top="$(git rev-parse --show-toplevel)"
+
+# Resolve the toolchain root (holds scripts/) and whether we are in the submodule.
+if [[ -f "$repo_top/scripts/fmt_sv0.py" ]]; then
+  toolchain_root="$repo_top"
+  in_submodule=0
+elif [[ -f "$repo_top/../scripts/fmt_sv0.py" ]]; then
+  toolchain_root="$(cd "$repo_top/.." && pwd)"
+  in_submodule=1
+else
+  echo "pre-commit hook: cannot locate toolchain scripts/ from $repo_top" >&2
+  exit 1
+fi
+
+fail() { echo "pre-commit: $*" >&2; exit 1; }
+info() { echo "pre-commit: $*"; }
+
+# Staged, added/copied/modified files (repo-top-relative), NUL-safe.
+# (read -d '' loop for bash 3.2 compatibility — macOS has no mapfile.)
+staged=()
+while IFS= read -r -d '' f; do
+  staged+=("$f")
+done < <(git diff --cached --name-only --diff-filter=ACM -z)
+((${#staged[@]} == 0)) && { info "no staged files; skipping"; exit 0; }
+
+sv0_files=() sh_files=() py_files=()
+for f in "${staged[@]}"; do
+  case "$f" in
+    *.sv0) sv0_files+=("$repo_top/$f") ;;
+    *.sh)  sh_files+=("$repo_top/$f") ;;
+    *.py)  py_files+=("$f") ;;   # keep repo-relative for tool scoping
+  esac
+done
+
+# 1. .sv0 whitespace formatting (trailing ws / final newline).
+if ((${#sv0_files[@]} > 0)); then
+  if ! python3 "$toolchain_root/scripts/fmt_sv0.py" --check "${sv0_files[@]}"; then
+    fail "unformatted .sv0 file(s). Run: ./scripts/sv0 fmt"
+  fi
+  info ".sv0 formatting OK (${#sv0_files[@]} file(s))"
+
+  # .sv0 block-comment nesting guard (cheap; run on any .sv0 change).
+  guard="$toolchain_root/scripts/check_sv0_block_comment_nesting.py"
+  [[ -f "$guard" ]] && { python3 "$guard" >/dev/null || fail "block-comment nesting guard failed"; }
+fi
+
+# 2. Shell syntax on staged scripts.
+# (${arr[@]+"${arr[@]}"} expands to nothing when empty — safe under bash 3.2 set -u.)
+for f in ${sh_files[@]+"${sh_files[@]}"}; do
+  bash -n "$f" || fail "bash -n failed: $f"
+done
+((${#sh_files[@]} > 0)) && info "shell syntax OK (${#sh_files[@]} file(s))"
+
+# 3. Python: ruff for sv0-mcp (has ruff config); syntax-only for other scripts.
+if ((${#py_files[@]} > 0)); then
+  mcp_py=() other_py=()
+  for f in "${py_files[@]}"; do
+    case "$f" in
+      sv0-mcp/*) mcp_py+=("$f") ;;
+      *)         other_py+=("$repo_top/$f") ;;
+    esac
+  done
+  if ((${#mcp_py[@]} > 0)) && command -v uv >/dev/null 2>&1; then
+    ( cd "$toolchain_root/sv0-mcp" && \
+      uv run ruff check "${mcp_py[@]/#sv0-mcp\//}" && \
+      uv run ruff format --check "${mcp_py[@]/#sv0-mcp\//}" ) \
+      || fail "ruff check/format failed for sv0-mcp Python"
+    info "ruff OK (${#mcp_py[@]} sv0-mcp file(s))"
+  fi
+  for f in ${other_py[@]+"${other_py[@]}"}; do
+    python3 -m py_compile "$f" || fail "python syntax error: $f"
+  done
+  ((${#other_py[@]} > 0)) && info "python syntax OK (${#other_py[@]} file(s))"
+fi
+
+# 4. Documentation pins + fast guards.
+if ((in_submodule == 0)); then
+  # Parent repo: full fast guard suite (README sv0c SHA pin, vm-parity manifest ⊆
+  # bootstrap, task YAML, milestone orientation, no-raise, G6/G7 contracts, ...).
+  ( cd "$toolchain_root" && ./scripts/sv0 test-guards >/tmp/sv0-precommit-guards.log 2>&1 ) \
+    || { tail -30 /tmp/sv0-precommit-guards.log >&2; fail "documentation pins / guards failed (see above)"; }
+  info "documentation pins + guards OK"
+fi
+
+info "all fast checks passed"

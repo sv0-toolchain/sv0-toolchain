@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# sv0-toolchain commit-msg hook.
+# Rejects LLM/agent/assistant sign-offs and attributions in commit messages.
+# Installed for BOTH the parent repo and the sv0c submodule by
+# scripts/install-git-hooks.sh. Source of truth: scripts/git-hooks/ (tracked).
+#
+# Bypass in an emergency with: git commit --no-verify
+# Or set SV0_SKIP_HOOKS=1 to skip all sv0 hooks.
+set -euo pipefail
+
+[[ -n "${SV0_SKIP_HOOKS:-}" ]] && exit 0
+
+msg_file="$1"
+
+# Locate the toolchain root so we can find the shared verifier even when this
+# hook runs inside the sv0c submodule (whose working tree has no scripts/).
+repo_top="$(git rev-parse --show-toplevel)"
+if [[ -f "$repo_top/scripts/verify_commit_msg_no_ai_signoff.py" ]]; then
+  toolchain_root="$repo_top"
+elif [[ -f "$repo_top/../scripts/verify_commit_msg_no_ai_signoff.py" ]]; then
+  toolchain_root="$(cd "$repo_top/.." && pwd)"
+else
+  echo "commit-msg hook: cannot locate verify_commit_msg_no_ai_signoff.py" >&2
+  exit 1
+fi
+
+exec python3 "$toolchain_root/scripts/verify_commit_msg_no_ai_signoff.py" "$msg_file"

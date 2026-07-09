@@ -1,7 +1,7 @@
 # sv0-toolchain — aggregate build, test, and VM integration.
 ROOT := $(abspath .)
 
-.PHONY: help check build test test-guards test-mcp doc fmt integration-vm ci ci-all all milestone-orient milestone-orient-show progress-dashboard mcp-light-up mcp-light-down
+.PHONY: help check build test test-guards test-mcp doc fmt hooks integration-vm ci ci-all all milestone-orient milestone-orient-show progress-dashboard mcp-light-up mcp-light-down
 
 help:
 	@echo "sv0-toolchain targets:"
@@ -20,6 +20,7 @@ help:
 	@echo "  make test-mcp        — sv0-mcp pytest (uv; skips if uv missing)"
 	@echo "  make doc             — generate build/sv0-toolchain-doc + verify sv0doc paths"
 	@echo "  make fmt             — .sv0 whitespace fmt + shell fmt (fmt-shell)"
+	@echo "  make hooks           — install git hooks (no AI sign-off, fmt/lint/doc-pins, full tests) for parent + sv0c"
 	@echo "  make integration-vm  — VM integration only (also part of make test)"
 	@echo "  make ci              — check + full test (no sv0-mcp)"
 	@echo "  make ci-all          — ci, then sv0-mcp tests (uv + pytest when uv available)"
@@ -58,6 +59,9 @@ doc:
 
 fmt:
 	@"$(ROOT)/scripts/sv0" fmt
+
+hooks:
+	@bash "$(ROOT)/scripts/install-git-hooks.sh"
 
 integration-vm:
 	@"$(ROOT)/scripts/sv0" integration-vm
