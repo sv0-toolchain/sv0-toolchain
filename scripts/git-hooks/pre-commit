@@ -38,12 +38,13 @@ while IFS= read -r -d '' f; do
 done < <(git diff --cached --name-only --diff-filter=ACM -z)
 ((${#staged[@]} == 0)) && { info "no staged files; skipping"; exit 0; }
 
-sv0_files=() sh_files=() py_files=()
+sv0_files=() sh_files=() py_files=() yml_files=()
 for f in "${staged[@]}"; do
   case "$f" in
-    *.sv0) sv0_files+=("$repo_top/$f") ;;
-    *.sh)  sh_files+=("$repo_top/$f") ;;
-    *.py)  py_files+=("$f") ;;   # keep repo-relative for tool scoping
+    *.sv0)         sv0_files+=("$repo_top/$f") ;;
+    *.sh)          sh_files+=("$repo_top/$f") ;;
+    *.py)          py_files+=("$f") ;;   # keep repo-relative for tool scoping
+    *.yml|*.yaml)  yml_files+=("$repo_top/$f") ;;
   esac
 done
 
@@ -87,6 +88,20 @@ if ((${#py_files[@]} > 0)); then
   done
   ((${#other_py[@]} > 0)) && info "python syntax OK (${#other_py[@]} file(s))"
 fi
+
+# 3b. YAML well-formedness (GitHub Actions rejects an invalid workflow file with a
+#     0-second "workflow file issue" run, which is easy to miss).
+for f in ${yml_files[@]+"${yml_files[@]}"}; do
+  python3 -c '
+import sys, yaml
+try:
+    yaml.safe_load(open(sys.argv[1]))
+except yaml.YAMLError as e:
+    print(f"  {e}", file=sys.stderr)
+    sys.exit(1)
+' "$f" || fail "invalid YAML: $f"
+done
+((${#yml_files[@]} > 0)) && info "YAML OK (${#yml_files[@]} file(s))"
 
 # 4. Documentation pins + fast guards.
 if ((in_submodule == 0)); then

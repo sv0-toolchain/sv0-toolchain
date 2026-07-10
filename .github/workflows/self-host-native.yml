@@ -55,7 +55,7 @@ jobs:
           printf "" > /tmp/.sv0_drv_path
           cc -std=c99 -O0 -I sv0c/runtime /tmp/vm_add_chain_native.c sv0c/runtime/sv0_runtime.c -o /tmp/vm_add_chain_native
           /tmp/vm_add_chain_native
-
-      - name: Native ↔ SML behavioral parity (P3 — 98/98 emit+cc+run, identical stdout+exit)
-        run: ./scripts/sv0 self-host-native-parity
           echo "native driver smoke: vm_add_chain exit $?"
+
+      - name: Native vs SML behavioral parity (P3 - 98/98 emit+cc+run, identical stdout+exit)
+        run: ./scripts/sv0 self-host-native-parity
