@@ -100,6 +100,11 @@ ensure_sv0_self_host_compiler() {
   if [[ ! -x "$out" ]]; then
     sv0_fail "ensure_sv0_self_host_compiler: missing executable $out"
   fi
+  # lib/driver.sv0's test mode calls read_file("/tmp/.sv0_drv_path") unconditionally,
+  # and read_file panics when fopen fails. build-sv0-self-host-compiler.sh creates the
+  # file empty, but it is skipped once the wrapper exists (and /tmp gets reaped), so
+  # guarantee the control file here for every self-host path.
+  [[ -f /tmp/.sv0_drv_path ]] || printf '' > /tmp/.sv0_drv_path
 }
 
 _abs_sv0c_rel() {
