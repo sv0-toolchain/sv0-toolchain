@@ -23,7 +23,7 @@ EXPECT_PHASE_COUNT = 7
 def _fn_body_after(text: str, fn_name: str) -> str | None:
     """Return braces body of ``fn fn_name`` at top level (first match)."""
     pat = re.compile(
-        rf"fn\s+{re.escape(fn_name)}\s*\([^)]*\)\s*->\s*[^{{]+\{{",
+        rf"fn\s+{re.escape(fn_name)}\s*\([^)]*\)\s*(?:->\s*[^{{]+)?\{{",
         re.MULTILINE,
     )
     m = pat.search(text)
@@ -50,6 +50,34 @@ def _first_return_int(body: str) -> int | None:
         if m:
             return int(m.group(1))
     return None
+
+
+def check_driver_pipeline_order(driver_text: str) -> list[str]:
+    """Verify drv_compile_file calls tokenize -> parse -> emit_c in order."""
+    errors: list[str] = []
+    body = _fn_body_after(driver_text, "drv_compile_file")
+    if body is None:
+        errors.append(
+            "drv_compile_file: could not parse function body in driver.sv0"
+        )
+        return errors
+
+    calls = ("drv_tokenize(", "drv_parse(", "drv_emit_c(")
+    positions: dict[str, int] = {}
+    for call in calls:
+        idx = body.find(call)
+        if idx == -1:
+            errors.append(f"drv_compile_file: missing call to {call.rstrip('(')}")
+        else:
+            positions[call] = idx
+
+    if len(positions) == len(calls):
+        if not positions["drv_tokenize("] < positions["drv_parse("]:
+            errors.append("drv_compile_file: drv_tokenize must precede drv_parse")
+        if not positions["drv_parse("] < positions["drv_emit_c("]:
+            errors.append("drv_compile_file: drv_parse must precede drv_emit_c")
+
+    return errors
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -132,6 +160,19 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             return 1
+
+    driver_sv0 = root / "sv0c" / "lib" / "driver.sv0"
+    if not driver_sv0.is_file():
+        print(
+            f"verify_m3_g6_pipeline_contract: missing {driver_sv0}", file=sys.stderr
+        )
+        return 1
+    driver_text = driver_sv0.read_text(encoding="utf-8")
+    order_errors = check_driver_pipeline_order(driver_text)
+    if order_errors:
+        for err in order_errors:
+            print(f"verify_m3_g6_pipeline_contract: {err}", file=sys.stderr)
+        return 1
 
     print(
         "verify_m3_g6_pipeline_contract: OK "
