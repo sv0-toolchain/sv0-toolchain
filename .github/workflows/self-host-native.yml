@@ -60,5 +60,5 @@ jobs:
       - name: Native vs SML behavioral parity (P3 - 98/98 emit+cc+run, identical stdout+exit)
         run: ./scripts/sv0 self-host-native-parity
 
-      - name: Mega-TU assembler front-end compiles (native-compose A1)
+      - name: Mega-TU assembler — full pipeline (18 modules) compiles (native-compose A1)
         run: ./scripts/sv0 assemble-megatu --check

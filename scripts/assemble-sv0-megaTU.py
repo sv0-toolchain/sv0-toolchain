@@ -11,10 +11,12 @@ several modules redefine *differently* (see the doc). This assembler does the
 deterministic source transform; the compose `main` (threading the real phases) is
 A2.
 
-Status: A1 handles the **front-end** module set (lex→parse→resolve), which has no
-cross-module collisions once mains/tests are stripped, and appends a placeholder
-`main`. Back-end modules + type namespacing land in later A1 increments via the
-`rename_types` / `rename_fns` maps.
+Status: A1 assembles the **full 18-module pipeline** into one TU that compiles
+(SML→C ~34k lines → cc, binary runs). Collisions are handled by **auto-namespacing**
+— any top-level name a module defines that an earlier module already claimed is
+renamed `<stem>_<name>` (definition + every word-boundary use within that module),
+so the back-end's divergent core types coexist (`lowering_Value`, `codegen_Value`,
+…). A placeholder `main` is appended; **A2** replaces it with the real compose main.
 
 Usage:
   scripts/assemble-sv0-megaTU.py --manifest sv0c/lib/megaTU-modules.list --out build/megaTU.sv0
@@ -31,11 +33,17 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Per-module renames for later back-end increments: {module_stem: {old: new}}.
-# Applied as word-boundary text substitutions within that module only (covers type
-# refs, `::` constructors, and `fn`/call sites). Empty for the front-end set.
-RENAME_TYPES: dict[str, dict[str, str]] = {}
-RENAME_FNS: dict[str, dict[str, str]] = {}
+# Forced per-module renames (escape hatch for anything auto-namespacing gets wrong):
+# {module_stem: {old: new}}, applied as word-boundary substitutions before auto pass.
+FORCED_RENAMES: dict[str, dict[str, str]] = {}
+
+
+def module_defs(body: str) -> set[str]:
+    """Top-level names a module DEFINES (fn / struct / enum). sv0 has no top-level
+    `type` alias; constants are `fn`. These are the only names that can collide."""
+    fns = set(re.findall(r"(?m)^fn\s+([A-Za-z0-9_]+)\s*\(", body))
+    types = set(re.findall(r"(?m)^(?:struct|enum)\s+([A-Za-z0-9_]+)", body))
+    return fns | types
 
 
 def strip_top_fn(text: str, name: str) -> str:
@@ -100,6 +108,12 @@ def assemble(sv0c_root: Path, rels: list[str]) -> str:
         "   Regenerate: ./scripts/sv0 assemble-megatu */",
         "",
     ]
+    # Auto-namespacing: modules are standalone (never cross-reference), so any
+    # top-level name a module defines that an EARLIER module already claimed is
+    # renamed `<stem>_<name>` here (definition + every word-boundary use within
+    # this module). The first definer keeps the bare name. Runtime builtins /
+    # primitives (vec_new, Vec, i32, …) are defined by no module and never renamed.
+    claimed: set[str] = set()
     for rel in rels:
         f = sv0c_root / rel
         if not f.is_file():
@@ -107,10 +121,17 @@ def assemble(sv0c_root: Path, rels: list[str]) -> str:
             raise SystemExit(1)
         stem = f.stem
         body = strip_tests_and_main(f.read_text(encoding="utf-8"))
-        if stem in RENAME_TYPES:
-            body = apply_renames(body, RENAME_TYPES[stem])
-        if stem in RENAME_FNS:
-            body = apply_renames(body, RENAME_FNS[stem])
+        if stem in FORCED_RENAMES:
+            body = apply_renames(body, FORCED_RENAMES[stem])
+        my = module_defs(body)
+        collide = sorted(my & claimed, key=len, reverse=True)
+        for name in collide:
+            body = re.sub(r"\b" + re.escape(name) + r"\b", f"{stem}_{name}", body)
+        for name in my:
+            claimed.add(f"{stem}_{name}" if name in set(collide) else name)
+        if collide:
+            print(f"assemble-megatu: {rel}: namespaced {len(collide)} name(s): "
+                  + ", ".join(collide), file=sys.stderr)
         parts.append(f"/* ===== module: {rel} ===== */")
         parts.append(body)
     # A1 placeholder compose main; A2 replaces this with the real phase-threading driver.
