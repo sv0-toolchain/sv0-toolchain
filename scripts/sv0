@@ -61,6 +61,9 @@ usage: sv0 <command> [args]
   self-host-native-parity  native driver (build/sv0-driver-native) vs SML BEHAVIORAL parity on
                            self-host-sv0-loop.list: emit+cc+run both, require identical stdout+exit
                            (98/98). The principled native third-leg check — see l0-closure-roadmap.md
+  assemble-megatu [--check]  native-compose (A): assemble sv0c/lib/megaTU-modules.list into one
+                           build/megaTU.sv0 (strip test mains/tests); --check also SML->C->cc compiles
+                           it. A1 front-end set today — see sv0c/doc/native-compose-tradeoffs.md
   sml-retirement-preflight   print blast-radius scan for `sml/` path refs before M3-S-051 (no edits)
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
@@ -1082,6 +1085,9 @@ case "$cmd" in
     ;;
   self-host-native-parity)
     bash "$ROOT/scripts/sv0-native-behavioral-parity.sh"
+    ;;
+  assemble-megatu)
+    python3 "$ROOT/scripts/assemble-sv0-megaTU.py" --root "$ROOT" "$@"
     ;;
   sml-retirement-preflight)
     python3 "$ROOT/scripts/sml_retirement_preflight_scan.py" --root "$ROOT"
