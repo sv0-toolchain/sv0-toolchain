@@ -101,7 +101,7 @@ def read_manifest(path: Path) -> list[str]:
     return mods
 
 
-def assemble(sv0c_root: Path, rels: list[str]) -> str:
+def assemble(sv0c_root: Path, rels: list[str], compose_main: str | None = None) -> str:
     parts: list[str] = [
         "/* Auto-assembled mega-TU — do not edit by hand.",
         "   Source: scripts/assemble-sv0-megaTU.py (native-compose option A).",
@@ -134,8 +134,16 @@ def assemble(sv0c_root: Path, rels: list[str]) -> str:
                   + ", ".join(collide), file=sys.stderr)
         parts.append(f"/* ===== module: {rel} ===== */")
         parts.append(body)
-    # A1 placeholder compose main; A2 replaces this with the real phase-threading driver.
-    parts.append("fn main() -> i32 { return 0; }")
+    # Compose main (A2): if `compose_main` is provided it is appended verbatim (it
+    # calls the now-visible real phase entry points — tokenize, parse_program,
+    # lower, emit_program — by their bare names, which the first-definer keeps).
+    # It is NOT auto-namespaced (its calls must reach those bare entry points) and
+    # must use unique helper names (mega_*). Otherwise a placeholder main is used.
+    if compose_main is not None:
+        parts.append("/* ===== compose main (A2) ===== */")
+        parts.append(compose_main)
+    else:
+        parts.append("fn main() -> i32 { return 0; }")
     return "\n".join(parts) + "\n"
 
 
@@ -176,8 +184,16 @@ def compile_check(sv0c_root: Path, tu: Path) -> int:
         errs = [ln for ln in cc.stderr.splitlines() if "error:" in ln][:10]
         sys.stderr.write("\n".join(errs) + "\n")
         return 1
+    # Run it: the compose main returns 0 on success (its A2 smoke); the placeholder
+    # main also returns 0. A non-zero exit means the composed phases misbehaved.
+    run = subprocess.run([str(bin_out)], capture_output=True, text=True, check=False)
+    if run.returncode != 0:
+        print(f"assemble-megatu: assembled TU ran but exited {run.returncode} "
+              "(compose main smoke failed)", file=sys.stderr)
+        sys.stderr.write(run.stderr[-1000:])
+        return 1
     nlines = c_out.read_text(encoding="utf-8", errors="replace").count("\n")
-    print(f"assemble-megatu: OK — assembled TU compiles (SML->C {nlines} lines -> cc)")
+    print(f"assemble-megatu: OK — assembled TU compiles (SML->C {nlines} lines -> cc) and runs (exit 0)")
     return 0
 
 
@@ -187,6 +203,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--manifest", type=Path,
                     default=Path("sv0c/lib/megaTU-modules.list"))
     ap.add_argument("--out", type=Path, default=Path("build/megaTU.sv0"))
+    ap.add_argument("--main", type=Path, default=Path("sv0c/lib/megaTU-main.sv0"),
+                    help="Compose-main source appended verbatim (A2). If missing, a "
+                         "placeholder `main` is used.")
     ap.add_argument("--check", action="store_true",
                     help="Also SML->C->cc compile the assembled TU.")
     args = ap.parse_args(argv)
@@ -200,10 +219,13 @@ def main(argv: list[str] | None = None) -> int:
     if not rels:
         print(f"assemble-megatu: empty manifest {manifest}", file=sys.stderr)
         return 1
+    main_path = args.main if args.main.is_absolute() else root / args.main
+    compose_main = main_path.read_text(encoding="utf-8") if main_path.is_file() else None
     tu = args.out if args.out.is_absolute() else root / args.out
     tu.parent.mkdir(parents=True, exist_ok=True)
-    tu.write_text(assemble(sv0c_root, rels), encoding="utf-8")
-    print(f"assemble-megatu: wrote {tu} ({len(rels)} module(s))")
+    tu.write_text(assemble(sv0c_root, rels, compose_main), encoding="utf-8")
+    kind = "compose main" if compose_main is not None else "placeholder main"
+    print(f"assemble-megatu: wrote {tu} ({len(rels)} module(s), {kind})")
     if args.check:
         return compile_check(sv0c_root, tu)
     return 0
