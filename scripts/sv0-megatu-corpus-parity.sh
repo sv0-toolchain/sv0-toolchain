@@ -108,7 +108,7 @@ fi
 
 # PASS must not regress below the recorded high-water mark. PANIC/RUNFAIL are
 # triage signals on still-unsupported modules, not gate failures (see header).
-MIN_PASS=87
+MIN_PASS=88
 if [ "$panic" -ne 0 ] || [ "$runfail" -ne 0 ]; then
   echo "megatu-corpus-parity: note — $panic panic(s), $runfail wrong-output on unsupported modules (triage, not fatal)"
 fi
