@@ -71,5 +71,8 @@ jobs:
       - name: Full sv0 test harness (./scripts/sv0 test)
         run: ./scripts/sv0 test
 
+      - name: Mega-TU corpus parity (composed sv0 compiler covers self-host-sv0-loop 98/98)
+        run: ./scripts/sv0-megatu-corpus-parity.sh --verbose
+
       - name: sv0-mcp tests (pytest when uv available)
         run: ./scripts/sv0 test-mcp

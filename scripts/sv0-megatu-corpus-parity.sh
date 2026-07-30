@@ -19,15 +19,15 @@
 #              lowering/emit is not complete yet (known incompleteness, not wrong)
 #   RUNFAIL    ran but exited non-zero              (wrong output — a real defect)
 #
-# This is a PROGRESS MONITOR, not a CI gate (the real gate is `./scripts/sv0 test`,
-# which keeps self-host-sv0-loop at 98/98 via the SML pipeline). The composed
-# compiler is bottom-up work in progress: fixing an early phase (e.g. resolve) lets
-# more modules reach later phases, so PHASEFAIL falls while CCFAIL/PANIC/RUNFAIL on
-# the newly-reached, still-unsupported modules temporarily rise. That is expected —
-# those modules never passed. The metric that matters is PASS, and it must not go
-# backwards: the script fails only if PASS drops below MIN_PASS (the recorded high-
-# water mark, bumped as tasks land). PANIC/RUNFAIL are printed as triage signals to
-# investigate and drive to zero, not hard failures. Usage:
+# CI GATE. The composed native-compose compiler now covers the whole corpus
+# (98/98 PASS; PHASEFAIL/CCFAIL/PANIC/RUNFAIL all 0), so this runs in CI (ci.yml)
+# as a stable green gate alongside `./scripts/sv0 test`. MIN_PASS is the floor (98):
+# because total == 98, any regression in ANY category — a clean rejection
+# (PHASEFAIL), an emit gap (CCFAIL), a crash (PANIC), or wrong output (RUNFAIL) —
+# drops PASS below the floor and fails the build. PANIC/RUNFAIL are also called out
+# explicitly below for a clearer failure message. (History: this began as a bottom-up
+# PROGRESS MONITOR while the composed pipeline was incomplete; it is now a gate.)
+# Usage:
 #   scripts/sv0-megatu-corpus-parity.sh            # summary
 #   scripts/sv0-megatu-corpus-parity.sh --verbose  # also list every non-PASS file
 set -euo pipefail
@@ -71,6 +71,11 @@ sml "@SMLload=$SV0C" "$CORPUS_TU" > "$CORPUS_C" 2>/dev/null
 cc -std=c99 -O0 -w -I "$RT" "$CORPUS_C" "$RT/sv0_runtime.c" -o "$CORPUS_BIN"
 
 # 3. Run every corpus seed through it.
+# driver.sv0's test main reads /tmp/.sv0_drv_path (CLI mode: compile that path when
+# non-empty, else run its self-test). Ensure it exists and is EMPTY so the corpus run
+# exercises the self-test (exit 0) rather than panicking in read_file — self-contained
+# so this gate is stable regardless of the surrounding environment (cf. self-host-native.yml).
+printf '' > /tmp/.sv0_drv_path
 pass=0 phasefail=0 panic=0 ccfail=0 runfail=0 total=0
 fails=""
 while IFS= read -r f; do
@@ -106,14 +111,17 @@ if [ "$VERBOSE" = 1 ] && [ -n "$fails" ]; then
   printf '%s' "$fails"
 fi
 
-# PASS must not regress below the recorded high-water mark. PANIC/RUNFAIL are
-# triage signals on still-unsupported modules, not gate failures (see header).
+# CI gate: the corpus is fully covered (98/98), so any non-PASS is a regression.
+# A crash (PANIC) or wrong output (RUNFAIL) fails explicitly for a clearer message;
+# PHASEFAIL/CCFAIL are also caught by the PASS floor below. Re-run with --verbose to
+# list the offending files.
 MIN_PASS=98
 if [ "$panic" -ne 0 ] || [ "$runfail" -ne 0 ]; then
-  echo "megatu-corpus-parity: note — $panic panic(s), $runfail wrong-output on unsupported modules (triage, not fatal)"
-fi
-if [ "$pass" -lt "$MIN_PASS" ]; then
-  echo "megatu-corpus-parity: FAIL — PASS $pass regressed below high-water mark $MIN_PASS" >&2
+  echo "megatu-corpus-parity: FAIL — $panic crash(es), $runfail wrong-output regression(s); run with --verbose" >&2
   exit 1
 fi
-echo "megatu-corpus-parity: OK ($pass/$total PASS; floor $MIN_PASS; $phasefail rejected, $ccfail emit-incomplete)"
+if [ "$pass" -lt "$MIN_PASS" ]; then
+  echo "megatu-corpus-parity: FAIL — PASS $pass below floor $MIN_PASS ($phasefail rejected, $ccfail emit-incomplete); run with --verbose" >&2
+  exit 1
+fi
+echo "megatu-corpus-parity: OK ($pass/$total PASS; floor $MIN_PASS; all categories 0)"
