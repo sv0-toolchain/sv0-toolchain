@@ -62,3 +62,6 @@ jobs:
 
       - name: Mega-TU — full pipeline (18 modules) assembles, compiles, compose main runs (A1+A2)
         run: ./scripts/sv0 assemble-megatu --check
+
+      - name: Native full-compose behavioral parity (P2/B3 — build native compiler, 98/98 emit+cc+run, no SML at runtime)
+        run: ./scripts/sv0-megatu-native-parity.sh
