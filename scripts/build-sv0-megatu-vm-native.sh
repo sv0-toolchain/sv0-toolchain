@@ -95,7 +95,7 @@ vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program
     }
     let vpool: Vec<i32> = vec_new();
     let vft: Vec<i32> = vec_new();
-    let vfc: i32 = vm_codegen_emit_program(it, id1, ifc, ivm, vbl, vbpn, vbpc, vbi,
+    let vfc: i32 = vm_codegen_emit_program(it, id1, ifc, ivm, id3, sfn, vbl, vbpn, vbpc, vbi,
                                 source, starts, ends, vpool, vft);
     if vfc < 0 { return 5; }
     let vstrbuf: Vec<i32> = vec_new();
