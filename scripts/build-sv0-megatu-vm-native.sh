@@ -111,6 +111,19 @@ PY
 python3 "$ROOT/scripts/assemble-sv0-megaTU.py" --root "$ROOT" --main "$VM_MAIN" --out "$TU" >/dev/null
 echo "build-sv0-megatu-vm-native: assembled mega-TU -> $TU" >&2
 
+# VM target: flip lowering's lower_vm_target() 0 -> 1 so a typed box_deref
+# reconstructs per-slot (SML boxDerefFromValue), matching SML --target=vm. The C
+# compose builds leave it 0 (single sv0__box_deref_raw, packed box untouched).
+python3 - "$TU" <<'PY'
+import sys, pathlib
+p = pathlib.Path(sys.argv[1]); s = p.read_text()
+old = "fn lower_vm_target() -> i32 { return 0; }"
+new = "fn lower_vm_target() -> i32 { return 1; }"
+assert old in s, "build-sv0-megatu-vm-native: lower_vm_target() shape changed"
+p.write_text(s.replace(old, new, 1))
+print("build-sv0-megatu-vm-native: set lower_vm_target()=1 (VM per-slot box_deref)", file=sys.stderr)
+PY
+
 if ! make -C "$SV0C" heap >/dev/null 2>&1; then
   echo "build-sv0-megatu-vm-native: error: sv0c make heap failed" >&2; exit 1
 fi
