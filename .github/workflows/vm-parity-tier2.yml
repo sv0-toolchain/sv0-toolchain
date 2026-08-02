@@ -1,12 +1,26 @@
-# M3-S-045 stub: tier-2 VM parity policy only (subset ⊆ manifest + golden/sml presence).
-# Full bytecode compare runs when sv0 emits .sv0b; until then this is a lightweight dispatch hook.
-name: VM parity tier-2 policy
+# Tier-2 VM parity (M3-S-045 / P4-D2).
+#   tier2-policy      — subset ⊆ manifest + golden/sml presence (no SML, fast).
+#   tier2-byte-parity — build the native mega-TU VM emitter and require each
+#                       tier2-manifest program's .sv0b to be byte-identical to its
+#                       SML --target=vm golden. All four (span, token, bytecode,
+#                       ast) are byte-identical as of P4/D2; this gate locks that in.
+name: VM parity tier-2
 
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   tier2-policy:
@@ -18,3 +32,31 @@ jobs:
 
       - name: Tier-2 manifest policy (no SML)
         run: python3 scripts/verify_vm_parity_tier2_policy.py --root .
+
+  tier2-byte-parity:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache SML/NJ install
+        uses: actions/cache@v4
+        id: smlnj-cache
+        with:
+          path: ~/smlnj-110.99.9
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-curl-v2
+
+      - name: Install SML/NJ (110.99.x; apt package is too old)
+        run: bash scripts/ci-install-smlnj.sh
+
+      - name: Build native mega-TU VM emitter (SML -> C -> cc, no SML at runtime)
+        run: bash scripts/build-sv0-megatu-vm-native.sh
+
+      - name: Tier-2 byte-parity — native .sv0b vs SML golden (span/token/bytecode/ast)
+        run: ./scripts/sv0 vm-parity-tier2-emit

@@ -1087,6 +1087,15 @@ case "$cmd" in
   self-host-native-parity)
     bash "$ROOT/scripts/sv0-native-behavioral-parity.sh"
     ;;
+  vm-parity-tier2-emit)
+    # Tier-2 VM byte-parity: re-emit each tier2-manifest path via
+    # SV0_VM_BYTECODE_EMITTER and cmp to golden/sml/<stem>.sv0b. Defaults the
+    # emitter to the native mega-TU VM emitter wrapper when the env is unset, so
+    # `sv0 vm-parity-tier2-emit` is a self-contained byte-parity gate.
+    : "${SV0_VM_BYTECODE_EMITTER:=$ROOT/scripts/sv0-vm-tier2-native-emitter.sh}"
+    export SV0_VM_BYTECODE_EMITTER
+    run_vm_parity_tier2_emit_compare
+    ;;
   assemble-megatu)
     python3 "$ROOT/scripts/assemble-sv0-megaTU.py" --root "$ROOT" "$@"
     ;;
