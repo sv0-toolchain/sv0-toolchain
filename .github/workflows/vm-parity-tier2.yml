@@ -2,8 +2,9 @@
 #   tier2-policy      — subset ⊆ manifest + golden/sml presence (no SML, fast).
 #   tier2-byte-parity — build the native mega-TU VM emitter and require each
 #                       tier2-manifest program's .sv0b to be byte-identical to its
-#                       SML --target=vm golden. All four (span, token, bytecode,
-#                       ast) are byte-identical as of P4/D2; this gate locks that in.
+#                       SML --target=vm golden. All 18 mega-TU compiler modules are
+#                       byte-identical as of P4/D2 (driver closed via prepool_loop_seq);
+#                       this gate locks that in with no SML-heap surrogate.
 name: VM parity tier-2
 
 on:
@@ -58,5 +59,5 @@ jobs:
       - name: Build native mega-TU VM emitter (SML -> C -> cc, no SML at runtime)
         run: bash scripts/build-sv0-megatu-vm-native.sh
 
-      - name: Tier-2 byte-parity — native .sv0b vs SML golden (span/token/bytecode/ast)
+      - name: Tier-2 byte-parity — native .sv0b vs SML golden (all 18 mega-TU modules)
         run: ./scripts/sv0 vm-parity-tier2-emit

@@ -9,8 +9,8 @@
 # emitter on demand, then run it for one manifest path into build/vm/<stem>.sv0b.
 #
 # The native emitter is byte-identical to the SML --target=vm golden for every
-# tier-2 program (span, token, bytecode, ast), so a mismatch here is a real
-# regression in the sv0 VM emitter or its lowering.
+# tier-2 program (all 18 mega-TU compiler modules as of P4/D2), so a mismatch
+# here is a real regression in the sv0 VM emitter or its lowering.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SV0C="$ROOT/sv0c"
