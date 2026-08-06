@@ -74,6 +74,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 ## session log (agent)
 
+- **2026-08-05:** **M3 stakeholder completion criteria met** (closure-authority ruling). All five **`## completion criteria`** rows in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** flipped to Yes/Done; evidence map **`sv0c/doc/m3-closure-evidence.md`** (per-row commands + artifacts + CI gates, verified at sv0c **`06017cf`**). VM strict parity v1 = **all 18 mega-TU modules byte-identical** via the native emitter (driver closed via **`prepool_loop_seq`**); native full-compose self-compile **98/98** SML-free. **This index stays `active`:** post-M3 hardening (Phase C whole-language feature parity + default native-compiler promotion, **`sv0c/doc/l0-closure-roadmap.md`**) continues to drive the SML↔sv0 coverage rows below.
 - **2026-05-08:** **`sv0c/doc/transliteration-plan.md`** — § **Feature + diagnostic parity (definition — L0 row)**; Span/diagnostics inventory → **bootstrap parity reached** for **`report`**/**`format`**; repaired corrupted Type checker table row; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **## L0 closure** row (**Partial**, diagnostics bootstrap **Done**).
 
 - **2026-04-24:** **`test/integration/import_use_match/`** + **`task/sv0vm-milestone-2/02-integration-test.sh`** — VM project harness: **`use lib::forty_two`** + **`match forty_two()`** (`PatLit`) end-to-end on **`--target=vm`** (`sv0c` **`5400c6c`**). **`sv0c/test/integration/README.md`** case row.

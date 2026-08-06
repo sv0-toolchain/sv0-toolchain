@@ -13,7 +13,7 @@ development workspace for the sv0 programming language compiler and toolchain.
 | [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain                    | Python   | **Milestone 0 (task) complete** — see `**task/sv0-mcp-milestone-0.Rmd`**                                      |
 
 
-**Design milestones 0–2 (task-tracked)** are **met** at the level described in `[task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd)`. **Milestone 3** (self-hosting compiler in **sv0**) is **in progress** — see `[task/sv0-toolchain-milestone-3-self-host.Rmd](task/sv0-toolchain-milestone-3-self-host.Rmd)` (**## development pathway to L0 closure** for **G0→G9/GX** gate order and session loop) for definition of done vs remaining transliteration work; it is **not** closable by documentation alone.
+**Design milestones 0–2 (task-tracked)** are **met** at the level described in `[task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd)`. **Milestone 3** (self-hosting compiler in **sv0**) — **stakeholder completion criteria met** (closure-authority ruling **2026-08-05**; evidence map `[sv0c/doc/m3-closure-evidence.md](sv0c/doc/m3-closure-evidence.md)`): full pipeline in sv0 (native mega-TU, 98/98 C + 18/18 VM byte-identical, no SML at runtime), documented native self-compile, VM strict parity v1 (18/18 byte-identical via the native emitter), diagnostics behavioral baseline, and SML retirement (`bootstrap-sml-final` + `sml-legacy/`). See `[task/sv0-toolchain-milestone-3-self-host.Rmd](task/sv0-toolchain-milestone-3-self-host.Rmd)`. **Post-M3 hardening** (whole-language feature parity + default native-compiler promotion) continues per `[sv0c/doc/l0-closure-roadmap.md](sv0c/doc/l0-closure-roadmap.md)` **Phase C** and does not reopen M3.
 
 **Tracking:** start from `[task/sv0-toolchain-workspace.Rmd](task/sv0-toolchain-workspace.Rmd)` for the full workspace map, env vars, and submodule checks. **Progress rollup / run log:** `[task/sv0-toolchain-progress.md](task/sv0-toolchain-progress.md)`. **LLM/agent on-ramp:** `[AGENTS.md](AGENTS.md)` and `./scripts/sv0 milestone-orient` (see `[task/milestone-orientation.json](task/milestone-orientation.json)`).
 
@@ -29,7 +29,7 @@ The SML bootstrap retirement tag `**bootstrap-sml-final`** is defined on **[sv0c
 |                                                |                                            |
 | ---------------------------------------------- | ------------------------------------------ |
 | **sv0c tag (when cut)**                        | `bootstrap-sml-final`                      |
-| **sv0c commit pinned on this branch (`main`)** | `06017cfa8391c9114de7723a646c73793414e1fb` |
+| **sv0c commit pinned on this branch (`main`)** | `9118a7c32cc9222dd07ff2271f13fd0b10aedc1c` |
 
 
 **Maintainers:** whenever you bump the `**sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-files -s sv0c` (staged/index gitlink; matches **HEAD** when the index is clean) or `git ls-tree HEAD sv0c`. **CI / local:** `**./scripts/sv0 test-guards`** runs `**scripts/verify_readme_sv0c_gitlink.py`** (README vs index gitlink, **HEAD** fallback) and `**scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches the submodule pointer you are committing and `**test/vm-parity/manifest.txt`** stays a subset of `**sv0c/lib/bootstrap-sources.list`**.

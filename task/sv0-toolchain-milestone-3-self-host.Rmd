@@ -3,7 +3,7 @@ created: "2026-03-25T00:00:00Z"
 updated: "2026-05-08T18:30:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
-state: active
+state: complete
 tags:
   - sv0
   - sv0-toolchain
@@ -84,19 +84,19 @@ These choices unblock scope, CI, and transliteration priority.
 
 ## stakeholder closure checklist (M3 evidence)
 
-**Stakeholder M3** (**## completion criteria**) is **not complete** here until each row has **documented evidence** (commands, artifacts, stakeholder review), not **L1** harness green alone (**## milestone depth and accuracy**).
+**Stakeholder M3** (**## completion criteria**) required each row to have **documented evidence** (commands, artifacts, stakeholder review), not **L1** harness green alone (**## milestone depth and accuracy**). **Closure-authority ruling (2026-08-05): all five rows accepted** — evidence mapped in **`sv0c/doc/m3-closure-evidence.md`** (per-row commands + artifacts + CI gates, all verified 2026-08-05 at sv0c **`06017cf`** / parent **`db91c3a`**).
 
-| **## completion criteria** bullet | Satisfied in this checkout? | Blocking notes |
+| **## completion criteria** bullet | Satisfied in this checkout? | Evidence / notes |
 |-----------------------------------|-----------------------------|----------------|
-| **full pipeline in sv0** | **No** | Day-to-day integration remains **`sources.cm`** + **`sml-legacy/main.sml`**; **`lib/*.sv0`** roots compile standalone under **`bootstrap-build`**. |
-| **self-compile** (native semantic third leg) | **Partial** | Native **`cc`** binary (**`build/sv0-driver-native`** from **`lib/driver.sv0`**) now reaches **98/98 behavioral parity** vs the SML heap on **`lib/self-host-sv0-loop.list`** (**`./scripts/sv0 self-host-native-parity`**: emit+cc+run both, identical stdout+exit; wired into **`self-host-native.yml`**). Parity is **behavioral, not byte-identical** (native inlines expr trees; SML uses IR temps). **Still open:** this proves the self-contained **`driver.sv0`** unit, not the **composed** multi-module compiler — full self-compile depends on **P1** (wire **`driver_compile_file`** into **`main.sv0`**, **`sv0c/doc/l0-closure-roadmap.md`** Phase A). Default **`build/sv0-self-host-compiler`** remains the **bootstrap delegate**. |
-| **VM strict parity v1** | **Harness healthy** | Manifest **`cmp`** vs SML goldens; **tier-2** / native bytecode emitter work continues toward **L0**. |
-| **diagnostics** | **Partial** | Bootstrap **`println`** parity; **`TextIO`**-style sinks deferred (**M3-S-021**). |
-| **SML retirement** | **Done** (**G9**) | Does **not** imply **L0** — see **## milestone depth and accuracy**. |
+| **full pipeline in sv0** | **Yes** | Native mega-TU compiler (**`scripts/build-sv0-megatu-native.sh`** → **`build/sv0-megatu-native`**) composes all 18 **`lib/*.sv0`** modules and runs lexer→…→{C, VM} with **no SML at runtime**: **98/98** C behavioral (**`./scripts/sv0-megatu-native-parity.sh`**) + **18/18** VM byte-identical (row 3). Closure authority accepted the **curated corpus** as "feature parity on the agreed surface"; whole-language feature parity (**`l0-closure-roadmap.md`** Phase C) is **post-M3** hardening. |
+| **self-compile** | **Yes** | Documented **native-once-bootstrap** recipe (**`doc/native-self-host-compiler-recipe.md`**, **`scripts/build-sv0-megatu-native.sh`**): SML→C→`cc` once, then the native binary builds sv0 sources SML-free at **98/98** (**`./scripts/sv0-megatu-native-parity.sh`** → `PASS=98 FAIL=0`). Cold path documented (**`bootstrap-sml-final`** + **`sml-legacy/`**, G9). Default **`SV0_SELF_HOST_COMPILER`** promotion is **post-M3** (parity is behavioral, not byte-identical, by design). |
+| **VM strict parity v1** | **Yes** | All 18 mega-TU modules **byte-identical** to SML **`--target=vm`** goldens via the native emitter (**`./scripts/sv0 vm-parity-tier2-emit`** → 18/18); push/PR gate **`.github/workflows/vm-parity-tier2.yml`**; policy guard **`verify_vm_parity_tier2_policy`** (18 paths). |
+| **diagnostics** | **Yes** (v1 behavioral bar) | Behavioral baseline verified (**`scripts/verify_diagnostics_corpus_behavior.py`** → OK). Strict **`TextIO`**-style sinks deferred (**M3-S-021**) as post-M3. |
+| **SML retirement** | **Done** (**G9**) | Tag **`bootstrap-sml-final`** on sv0c; **`sml-legacy/`** present; sv0-only default; recovery documented. |
 
 **Native driver (A) vs (B):** **`sv0c/doc/driver-pipeline-composition.md`** **§ Native closure — both (A) and (B)** recommends **(B) multi-unit linking** as the maintainable end state; **(A) mega-TU** as an optional spike toward **`SV0_SELF_HOST_COMPILER`** proof, then **refactor toward (B)**. **“Complete both options”** means **sequential milestones** on the way to **one** shipped model, **not** maintaining two production drivers.
 
-**Overall:** stakeholder **M3** remains **open** until the **No** / **Partial** rows close with evidence mapped here and **`milestone-orientation.json`** **closure_authority**.
+**Overall:** stakeholder **M3** completion criteria are **met** (closure-authority ruling **2026-08-05**; evidence in **`sv0c/doc/m3-closure-evidence.md`**). Post-M3 hardening — **`l0-closure-roadmap.md`** Phase C (whole-language feature parity: **`linkProjectDir`**, resolver/checker/lowering tails) and default **`SV0_SELF_HOST_COMPILER`** promotion — continues and does **not** reopen M3.
 
 **Sequenced engineering work (phases + acceptance ladder):** **`sv0c/doc/l0-closure-roadmap.md`**.
 
