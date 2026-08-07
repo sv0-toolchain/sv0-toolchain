@@ -55,7 +55,9 @@ usage: sv0 <command> [args]
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
   self-host-sv0-loop     pilot sv0→sv0 loop: deterministic SML→C emit, cc+run on lib/self-host-sv0-loop.list;
                            diffs scripts/sv0-self-host-emit-c.sh vs SML by default (override SV0_SELF_HOST_COMPILER;
-                           SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 to skip); see sv0c/doc/self-host-sv0-loop.md
+                           SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 to skip); SV0_SELF_HOST_LOOP_MODE=behavioral
+                           compares emit+cc+run stdout+exit instead of byte-diffing C (for the native sv0
+                           compiler, whose C differs from SML by design); see sv0c/doc/self-host-sv0-loop.md
   build-self-host-compiler  write build/sv0-self-host-compiler (wrapper for SV0_SELF_HOST_COMPILER — M3-S-047);
                            see sv0c/doc/native-self-host-compiler-recipe.md
   self-host-native-parity  native driver (build/sv0-driver-native) vs SML BEHAVIORAL parity on
@@ -537,19 +539,55 @@ run_self_host_sv0_loop() {
         rm -f "$tmp_sv0" "$tmp_ref"
         sv0_fail "self-host-sv0-loop: SML heap reference emit failed for $rel"
       fi
-      set +e
-      diff -u "$tmp_ref" "$tmp_sv0"
-      d=$?
-      set -e
-      rm -f "$tmp_ref" "$tmp_sv0"
-      if [[ "$d" -ne 0 ]]; then
-        sv0_fail "self-host-sv0-loop: self-host compiler C differs from SML for $rel"
+      if [[ "${SV0_SELF_HOST_LOOP_MODE:-bytediff}" == "behavioral" ]]; then
+        # Behavioral-mode (PC-6b): the acceptance is emit+cc+run BEHAVIORAL parity
+        # (identical stdout + exit), not byte-identical C. This is the correct
+        # surface for a second, INDEPENDENT sv0-built compiler whose C diverges
+        # from SML by design (temp naming / decl order / expr structuring — only
+        # 40/98 byte-identical, ~109% churn; see doc/l0-closure-roadmap.md B2). Use
+        # this when SV0_SELF_HOST_COMPILER is the native mega-TU binary. The default
+        # (bytediff) keeps the fast SML-delegate local path exact.
+        local bref bsv0 rout sout clog2 re2 se2
+        bref="$bindir/${stem}.ref.out"
+        bsv0="$bindir/${stem}.shc.out"
+        rout="$(mktemp)"; sout="$(mktemp)"; clog2="$(mktemp)"
+        if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bref" "$tmp_ref" \
+             "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
+          cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
+          sv0_fail "self-host-sv0-loop: cc of SML reference C failed for $rel"
+        fi
+        if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bsv0" "$tmp_sv0" \
+             "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
+          cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
+          sv0_fail "self-host-sv0-loop: cc of self-host compiler C failed for $rel"
+        fi
+        rm -f "$clog2"
+        re2=0; se2=0
+        "$bref" >"$rout" 2>/dev/null || re2=$?
+        "$bsv0" >"$sout" 2>/dev/null || se2=$?
+        rm -f "$tmp_ref" "$tmp_sv0" "$bref" "$bsv0"
+        if [[ "$re2" -ne "$se2" ]] || ! cmp -s "$rout" "$sout"; then
+          rm -f "$rout" "$sout"
+          sv0_fail "self-host-sv0-loop: behavioral parity differs for $rel (SML exit $re2 vs compiler exit $se2)"
+        fi
+        rm -f "$rout" "$sout"
+      else
+        set +e
+        diff -u "$tmp_ref" "$tmp_sv0"
+        d=$?
+        set -e
+        rm -f "$tmp_ref" "$tmp_sv0"
+        if [[ "$d" -ne 0 ]]; then
+          sv0_fail "self-host-sv0-loop: self-host compiler C differs from SML for $rel"
+        fi
       fi
     fi
   done
   if [[ -n "$sv0_emit" ]]; then
     if [[ "$sv0_emit_bootstrap" -eq 1 ]]; then
       sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; bootstrap wrapper matched SML (set SV0_SELF_HOST_COMPILER to native sv0 compiler when ready)"
+    elif [[ "${SV0_SELF_HOST_LOOP_MODE:-bytediff}" == "behavioral" ]]; then
+      sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; SV0_SELF_HOST_COMPILER BEHAVIORAL parity with SML (identical stdout+exit; C differs by design)"
     else
       sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; SV0_SELF_HOST_COMPILER output matched SML"
     fi

@@ -65,3 +65,10 @@ jobs:
 
       - name: Native full-compose behavioral parity (P2/B3 — build native compiler, 98/98 emit+cc+run, no SML at runtime)
         run: ./scripts/sv0-megatu-native-parity.sh
+
+      - name: Native self-host loop — behavioral mode (PC-6b — native compiler is the default; 98/98 identical stdout+exit)
+        run: |
+          bash scripts/build-sv0-megatu-native.sh
+          SV0_SELF_HOST_LOOP_MODE=behavioral \
+            SV0_SELF_HOST_COMPILER="$PWD/build/sv0-megatu-compiler-native" \
+            ./scripts/sv0 self-host-sv0-loop
