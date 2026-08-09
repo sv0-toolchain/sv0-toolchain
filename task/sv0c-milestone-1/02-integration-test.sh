@@ -96,6 +96,11 @@ run_case "modules_enum_match (cross-module enum in match; PC-2)" project "$IT/mo
 run_case "modules_struct_type (imported struct local type; PC-1)" project "$IT/modules_struct_type" 42
 run_case "modules_struct_sig (cross-module struct in fn signature; PC-3c)" project "$IT/modules_struct_sig" 42
 run_case "struct_field_pattern (plain struct field pattern in match; PC-4b)" project "$IT/struct_field_pattern" 42
+run_case "uc_loop_sumsq (imperative loop + mutable accumulator)" project "$IT/uc_loop_sumsq" 42
+run_case "uc_calculator (enum-dispatched calculator via match)" project "$IT/uc_calculator" 42
+run_case "uc_vec2 (struct + free helper functions)" project "$IT/uc_vec2" 42
+run_case "uc_vec_stack (Vec<i32> as a stack)" project "$IT/uc_vec_stack" 42
+run_case "uc_option_sum (Option-style enum + unwrap_or)" project "$IT/uc_option_sum" 42
 
 echo ""
 echo "results: $PASS passed, $FAIL failed, $TOTAL total"

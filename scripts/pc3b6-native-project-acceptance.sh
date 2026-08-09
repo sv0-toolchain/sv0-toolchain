@@ -7,6 +7,9 @@
 #   modules_struct_type  — cross-module struct local type + field access
 #   modules_struct_sig   — cross-module struct in a fn SIGNATURE (param + return; PC-3c)
 #   struct_field_pattern — plain struct field pattern in a `match` (PC-4b)
+#   uc_*                 — realistic use-case programs (loops, enum dispatch, structs +
+#                          free fns, Vec-as-stack, Option-style enums) — parity smoke
+# All are single-module `--project` dirs that emit C, cc, and run to exit 42.
 #
 # Depends only on link_project_concat_sources_from_dir (lib/link.sv0) + the PC-2e
 # apply_use_clause unmangled fallback (lib/resolver.sv0) — NO arena merge. Builds the
@@ -25,7 +28,8 @@ bash "$ROOT/scripts/build-sv0-megatu-native.sh" >"$TMP/build.log" 2>&1 || {
   echo "pc3b6: FAIL — native build failed"; tail -20 "$TMP/build.log"; exit 1; }
 
 fail=0
-for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field_pattern; do
+for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field_pattern \
+          uc_loop_sumsq uc_calculator uc_vec2 uc_vec_stack uc_option_sum; do
   dir="$SV0C/test/integration/$fx"
   c="$TMP/$fx.c"; bin="$TMP/$fx.bin"
   if ! "$WRAP" --project "$dir" >"$c" 2>"$TMP/$fx.emit.err" || ! grep -q '#include' "$c"; then
@@ -42,4 +46,4 @@ for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field
 done
 
 if [ "$fail" -ne 0 ]; then echo "pc3b6: acceptance FAILED"; exit 1; fi
-echo "pc3b6: acceptance PASSED (native --project: both fixtures -> exit 42)"
+echo "pc3b6: acceptance PASSED (native --project: all fixtures -> exit 42)"
