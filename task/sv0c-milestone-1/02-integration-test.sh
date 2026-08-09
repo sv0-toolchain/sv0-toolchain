@@ -95,6 +95,7 @@ run_case "modules_types (cross-module struct/enum via fns)" project "$IT/modules
 run_case "modules_enum_match (cross-module enum in match; PC-2)" project "$IT/modules_enum_match" 42
 run_case "modules_struct_type (imported struct local type; PC-1)" project "$IT/modules_struct_type" 42
 run_case "modules_struct_sig (cross-module struct in fn signature; PC-3c)" project "$IT/modules_struct_sig" 42
+run_case "struct_field_pattern (plain struct field pattern in match; PC-4b)" project "$IT/struct_field_pattern" 42
 
 echo ""
 echo "results: $PASS passed, $FAIL failed, $TOTAL total"

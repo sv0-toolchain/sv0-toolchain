@@ -458,7 +458,7 @@ run_native_project_acceptance() {
     return 1
   fi
   rm -f "$log"
-  sv0_ok "native --project acceptance (PC-3b.6/3c): modules_enum_match + modules_struct_type + modules_struct_sig -> exit 42"
+  sv0_ok "native --project acceptance (PC-3b.6/3c/4b): modules_enum_match + modules_struct_type + modules_struct_sig + struct_field_pattern -> exit 42"
   return 0
 }
 
