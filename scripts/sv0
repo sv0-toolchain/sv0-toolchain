@@ -312,6 +312,10 @@ run_test() {
   if ! run_self_host_sv0_loop; then
     ec=1
   fi
+  sv0_info "sv0 test: native --project acceptance (PC-3b.6 — cross-module enum+struct → exit 42)"
+  if ! run_native_project_acceptance; then
+    ec=1
+  fi
   sv0_info "sv0 test: Markdown doctests"
   if ! run_doctests; then
     ec=1
@@ -319,7 +323,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + diagnostics corpus behavioral + bootstrap-in-sv0 + vm-parity SML goldens + optional vm-parity tier-2 emit + stage0 golden + self-host sv0 loop + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline/link-merge/staging-driver contracts + M3 G7 diagnostics layout + M3 G7 tier-2 policy + M3 G8 native recipe paths + M3 G9 retirement docs + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + diagnostics corpus behavioral + bootstrap-in-sv0 + vm-parity SML goldens + optional vm-parity tier-2 emit + stage0 golden + self-host sv0 loop + native --project acceptance + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline/link-merge/staging-driver contracts + M3 G7 diagnostics layout + M3 G7 tier-2 policy + M3 G8 native recipe paths + M3 G9 retirement docs + doctests"
 }
 
 run_doctests() {
@@ -433,6 +437,28 @@ run_self_host_stage0_golden() {
     fi
   done
   sv0_ok "self-host stage0 golden: $n file(s) match bootstrap C output"
+  return 0
+}
+
+# PC-3b.6: native --project acceptance — build the native full-compose compiler and
+# assert `--project` on the two cross-module fixtures emits C that cc+runs to exit 42
+# (source-concat linkProjectDir + PC-2e use-alias fallback). Returns nonzero (does not
+# exit) so the caller accumulates into $ec like the other stages. Set
+# SV0_SKIP_NATIVE_PROJECT_ACCEPTANCE=1 to skip the (SML->C->cc) native build locally.
+run_native_project_acceptance() {
+  if [[ -n "${SV0_SKIP_NATIVE_PROJECT_ACCEPTANCE:-}" ]]; then
+    sv0_info "native --project acceptance: skipped (SV0_SKIP_NATIVE_PROJECT_ACCEPTANCE set)"
+    return 0
+  fi
+  require_sml
+  local log; log="$(mktemp)"
+  if ! bash "$ROOT/scripts/pc3b6-native-project-acceptance.sh" >"$log" 2>&1; then
+    cat "$log" >&2
+    rm -f "$log"
+    return 1
+  fi
+  rm -f "$log"
+  sv0_ok "native --project acceptance (PC-3b.6): modules_enum_match + modules_struct_type -> exit 42"
   return 0
 }
 
