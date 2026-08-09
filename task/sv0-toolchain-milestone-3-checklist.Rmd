@@ -89,6 +89,8 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 **Recommended order (updated 2026-08-05):** **E2 (PC-2a ✅ → 2b → 2c → 2d)** first — highest feature-parity value; PC-2a's failing fixture is in place. Then E1 (1a→1b→1c, shares resolver-alias work with E2) → E3 (3a→3b→3c) → PC-4b/4c/5a → E6 (6a→6b). **PC-4a deprioritized** (see its row). When E1–E3 land, the two reference cross-module gaps compile+run and `sv0c/doc/transliteration-plan.md` § Feature + diagnostic parity rows can flip to **Done**.
 
+**✅ E1–E3 COMPLETE (2026-08-08):** all cross-module slices done — E1 (PC-1a/b/c), E2 (PC-2a–e), E3 (PC-3a/3b/3c). The three cross-module fixtures (`modules_enum_match`, `modules_struct_type`, `modules_struct_sig`) compile+run to **exit 42** on **both** native `--project` (collision-free source-concat) **and** SML `--project` (mangling + full per-site canonicalization), gated in `./scripts/sv0 test` (`run_native_project_acceptance` + SML integration harness) and CI. Only Phase C remainders are the deprioritized standalone gaps (PC-4a/4b/4c) and optional genuine name-collision/mangling support (needs the checker forward-scan fix, `doc/pc3b-linkprojectdir-scoping.md` §5e) — neither on the acceptance path.
+
 ## harness (already in CI)
 
 | Mechanism | Role |
