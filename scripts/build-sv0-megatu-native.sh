@@ -38,15 +38,27 @@ import re, sys, pathlib
 src = pathlib.Path(sys.argv[1]).read_text()
 
 # Replace the hardcoded smoke source with a CLI read of /tmp/.sv0_drv_path.
+# The control file holds EITHER a single .sv0 path (file mode) OR "--project <dir>"
+# (project mode -> collision-free source-concat of every .sv0 under <dir> via
+# link_project_concat_sources_from_dir; PC-3b.5). One control file => no stale
+# cross-contamination with the single-file corpus/self-host harnesses.
 cli_read = (
     'let _drv_p: string = read_file("/tmp/.sv0_drv_path");\n'
     '    let _drv_n: i32 = string_len(_drv_p);\n'
-    '    let _drv_path: string = if _drv_n > 0 {\n'
+    '    let _drv_c: string = if _drv_n > 0 {\n'
     '        if string_char_at(_drv_p, _drv_n - 1) == 10 {\n'
     '            string_substr(_drv_p, 0, _drv_n - 1)\n'
     '        } else { _drv_p }\n'
     '    } else { _drv_p };\n'
-    '    let source: string = read_file(_drv_path);'
+    '    let _drv_cn: i32 = string_len(_drv_c);\n'
+    '    let _is_proj: bool = if _drv_cn >= 10 {\n'
+    '        string_eq(string_substr(_drv_c, 0, 10), "--project ")\n'
+    '    } else { false };\n'
+    '    let source: string = if _is_proj {\n'
+    '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
+    '    } else {\n'
+    '        read_file(_drv_c)\n'
+    '    };'
 )
 src, n = re.subn(r'let source: string = "[^"]*";', cli_read, src, count=1)
 assert n == 1, "compose main shape changed: could not find hardcoded `let source`"
@@ -82,13 +94,15 @@ if ! "$_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$NATIVE" "$EMIT_C" "$SV0C/runtime
 fi
 echo "build-sv0-megatu-native: wrote $NATIVE (native composed compiler)" >&2
 
-# ── 5. Wrapper: argv[1] -> /tmp/.sv0_drv_path -> native binary (C to stdout) ──
+# ── 5. Wrapper: args -> /tmp/.sv0_drv_path -> native binary (C to stdout) ──────
+#    `wrapper <file.sv0>`        -> file mode
+#    `wrapper --project <dir>`   -> project mode (source-concat every .sv0 under dir)
 cat >"$WRAP" <<'EOS'
 #!/usr/bin/env bash
 set -euo pipefail
 _HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CTL="/tmp/.sv0_drv_path"
-printf '%s\n' "${1:?missing argument: path to .sv0 file}" > "$CTL"
+printf '%s\n' "${*:?missing argument: <file.sv0> | --project <dir>}" > "$CTL"
 trap 'printf "" > "$CTL"' EXIT
 "$_HERE/sv0-megatu-native"
 EOS

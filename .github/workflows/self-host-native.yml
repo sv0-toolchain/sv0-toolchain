@@ -72,3 +72,6 @@ jobs:
           SV0_SELF_HOST_LOOP_MODE=behavioral \
             SV0_SELF_HOST_COMPILER="$PWD/build/sv0-megatu-compiler-native" \
             ./scripts/sv0 self-host-sv0-loop
+
+      - name: Native --project acceptance (PC-3b.5/3b.6 — cross-module enum+struct -> exit 42)
+        run: bash scripts/pc3b6-native-project-acceptance.sh
