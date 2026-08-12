@@ -30,7 +30,7 @@ bash "$ROOT/scripts/build-sv0-megatu-native.sh" >"$TMP/build.log" 2>&1 || {
 fail=0
 for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field_pattern \
           uc_loop_sumsq uc_calculator uc_vec2 uc_vec_stack uc_option_sum \
-          impl_methods; do
+          impl_methods mcall_compound_arg; do
   dir="$SV0C/test/integration/$fx"
   c="$TMP/$fx.c"; bin="$TMP/$fx.bin"
   if ! "$WRAP" --project "$dir" >"$c" 2>"$TMP/$fx.emit.err" || ! grep -q '#include' "$c"; then

@@ -102,6 +102,7 @@ run_case "uc_vec2 (struct + free helper functions)" project "$IT/uc_vec2" 42
 run_case "uc_vec_stack (Vec<i32> as a stack)" project "$IT/uc_vec_stack" 42
 run_case "uc_option_sum (Option-style enum + unwrap_or)" project "$IT/uc_option_sum" 42
 run_case "impl_methods (impl method bodies + self fields + method calls; PC-4c)" project "$IT/impl_methods" 42
+run_case "mcall_compound_arg (method call with compound argument; BH-1)" project "$IT/mcall_compound_arg" 42
 
 echo ""
 echo "results: $PASS passed, $FAIL failed, $TOTAL total"
