@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-05-08T18:30:00-07:00"
+updated: "2026-08-12T00:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-self-host
 key: sv0-toolchain-milestone-3-self-host
 state: complete
@@ -97,6 +97,8 @@ These choices unblock scope, CI, and transliteration priority.
 **Native driver (A) vs (B):** **`sv0c/doc/driver-pipeline-composition.md`** **§ Native closure — both (A) and (B)** recommends **(B) multi-unit linking** as the maintainable end state; **(A) mega-TU** as an optional spike toward **`SV0_SELF_HOST_COMPILER`** proof, then **refactor toward (B)**. **“Complete both options”** means **sequential milestones** on the way to **one** shipped model, **not** maintaining two production drivers.
 
 **Overall:** stakeholder **M3** completion criteria are **met** (closure-authority ruling **2026-08-05**; evidence in **`sv0c/doc/m3-closure-evidence.md`**). Post-M3 hardening — **`l0-closure-roadmap.md`** Phase C (whole-language feature parity: **`linkProjectDir`**, resolver/checker/lowering tails) and default **`SV0_SELF_HOST_COMPILER`** promotion — continues and does **not** reopen M3.
+
+> **Post-M3 progress (2026-08-12) — this milestone stays `complete`; the items below are hardening, not M3.** **Phase C whole-language parity: all numbered PC slices DONE** (cross-module E1/E2/E3 via native `--project` source-concat + SML `--project` mangling; standalone gaps PC-4a/4b/4c; include E5; native-default behavioral-mode loop E6) — `task/sv0-toolchain-milestone-3-checklist.Rmd`. **PC-7 (2026-08-11): the §5e checker forward-scan blocker is RESOLVED**, unblocking genuine cross-module name-collision *mangling* (`sv0c/doc/pc3b-linkprojectdir-scoping.md` §5j). **Bug-hunt (2026-08-12):** `sv0c/doc/bug-hunt-findings.md` — 13 correctness findings (4 P1); **BH-1** (native method-call compound args) + **BH-2** (VM i32 arithmetic) fixed; the native-completeness cluster (#8 under-diagnosis, #10 dropped contracts, #11 `?`/enum-ret/tuple/nested-struct mis-emit) now **gates the default `SV0_SELF_HOST_COMPILER` promotion**. Live rollup: `task/sv0-toolchain-progress.md` ## Post-M3 hardening status.
 
 **Sequenced engineering work (phases + acceptance ladder):** **`sv0c/doc/l0-closure-roadmap.md`**.
 

@@ -1,6 +1,6 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-05-08T21:30:00-07:00"
+updated: "2026-08-12T00:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
 state: active
@@ -90,7 +90,12 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 **Recommended order (updated 2026-08-05):** **E2 (PC-2a ✅ → 2b → 2c → 2d)** first — highest feature-parity value; PC-2a's failing fixture is in place. Then E1 (1a→1b→1c, shares resolver-alias work with E2) → E3 (3a→3b→3c) → PC-4b/4c/5a → E6 (6a→6b). **PC-4a deprioritized** (see its row). When E1–E3 land, the two reference cross-module gaps compile+run and `sv0c/doc/transliteration-plan.md` § Feature + diagnostic parity rows can flip to **Done**.
 
-**✅ E1–E3 COMPLETE (2026-08-08):** all cross-module slices done — E1 (PC-1a/b/c), E2 (PC-2a–e), E3 (PC-3a/3b/3c). The three cross-module fixtures (`modules_enum_match`, `modules_struct_type`, `modules_struct_sig`) compile+run to **exit 42** on **both** native `--project` (collision-free source-concat) **and** SML `--project` (mangling + full per-site canonicalization), gated in `./scripts/sv0 test` (`run_native_project_acceptance` + SML integration harness) and CI. Only Phase C remainders are the deprioritized standalone gaps (PC-4a/4b/4c) and optional genuine name-collision/mangling support (needs the checker forward-scan fix, `doc/pc3b-linkprojectdir-scoping.md` §5e) — neither on the acceptance path.
+**✅ ALL NUMBERED PC SLICES DONE (2026-08-12).** E1 (PC-1a/b/c) + E2 (PC-2a–e) + E3 (PC-3a/3b/3c) cross-module; E4 standalone gaps PC-4a (`[T;N]` length), PC-4b (plain-struct field patterns), PC-4c (impl methods + method calls); E5 include; E6 native-default behavioral-mode loop. Cross-module fixtures (`modules_enum_match`, `modules_struct_type`, `modules_struct_sig`) + `struct_field_pattern` + `impl_methods` + 5 `uc_*` fixtures → **exit 42** on native `--project` **and** SML `--project`, gated in `./scripts/sv0 test` + CI. **PC-7 (§5e checker blocker) RESOLVED (2026-08-11)** — see its row; the checker no longer walks tokens from the mangled defining-name, so genuine name-collision mangling is unblocked (end-to-end 2-module collision→run demo is the only PC-7 tail).
+
+**Remaining post-M3 work (not milestone-3 transliteration):**
+- **Bug-hunt remediation** — `sv0c/doc/bug-hunt-findings.md` (13 findings, 4 P1; each with bite-sized `BH-###` tasks). **Fixed:** BH-1 (native method-call compound args, sv0c 034ca96) + BH-2 (VM i32 arithmetic, sv0vm a0876d9). **Open:** #3–#13 — the native-completeness cluster (#8 checker under-diagnoses, #10 native drops contracts, #11 `?`/enum-ret/tuple/nested-struct mis-emit) is the dominant risk for native-default promotion; plus #12/#13 (shadowing + match guards → invalid C on both C backends), #3/#4/#7/#9/#5.
+- **Native-default compiler promotion (E6 tail)** — behavioral-mode loop + CI gate landed (PC-6a/6b); flipping the local default `SV0_SELF_HOST_COMPILER` to the native binary is gated on closing the native-completeness cluster (#8/#10/#11).
+- Live status rollup: `task/sv0-toolchain-progress.md` ## Post-M3 hardening status.
 
 ## harness (already in CI)
 
@@ -105,6 +110,8 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 ## session log (agent)
 
+- **2026-08-12:** **Bug-hunt audit + first two P1 fixes.** 6-pass inspection + 3-way differential (SML→C / SML→VM / native→C) → **`sv0c/doc/bug-hunt-findings.md`** (13 findings, 4 P1). **BH-1 fixed** (sv0c **`034ca96`**): native method calls silently miscompiled compound args (`p.add(n+17)`→`add(p, n)`) — tag-5 `ExprMethodCall` now carries the tag-4 `pp` arg-root sidecar; parser/resolver/checker/lowering read args via `block_stmt_index`; fixture `test/integration/mcall_compound_arg/` gated both pipelines. **BH-2 fixed** (sv0vm **`a0876d9`**): VM i32 arithmetic ≠ C (overflow no-wrap + floor div/mod) → `Word32` wrap + `Int.quot`/`Int.rem`. Findings #3–13 open (BH-* tasks). Progress rollup updated.
+- **2026-08-11:** **PC-7 — §5e checker blocker RESOLVED** (sv0c **`fc58e40`**): `check_program` reads fn params/return from the parser's per-fn arenas (`id5`/`fn_param_ty_root`/`fn_ret_ty_root_by_item`) instead of walking tokens from the mangled defining-name — genuine cross-module name-collision mangling unblocked (PC-7a/b/c/d; behavior-preserving). Also **native/SML struct-returning-method `let`-cty** (sv0c **`6b21d7c`**) + **SML `--project` impl-method call mangling** (sv0c **`ca4c23c`**).
 - **2026-08-05:** **M3 stakeholder completion criteria met** (closure-authority ruling). All five **`## completion criteria`** rows in **`task/sv0-toolchain-milestone-3-self-host.Rmd`** flipped to Yes/Done; evidence map **`sv0c/doc/m3-closure-evidence.md`** (per-row commands + artifacts + CI gates, verified at sv0c **`06017cf`**). VM strict parity v1 = **all 18 mega-TU modules byte-identical** via the native emitter (driver closed via **`prepool_loop_seq`**); native full-compose self-compile **98/98** SML-free. **This index stays `active`:** post-M3 hardening (Phase C whole-language feature parity + default native-compiler promotion, **`sv0c/doc/l0-closure-roadmap.md`**) continues to drive the SML↔sv0 coverage rows below.
 - **2026-05-08:** **`sv0c/doc/transliteration-plan.md`** — § **Feature + diagnostic parity (definition — L0 row)**; Span/diagnostics inventory → **bootstrap parity reached** for **`report`**/**`format`**; repaired corrupted Type checker table row; **`task/sv0-toolchain-milestone-3-self-host.Rmd`** **## L0 closure** row (**Partial**, diagnostics bootstrap **Done**).
 
