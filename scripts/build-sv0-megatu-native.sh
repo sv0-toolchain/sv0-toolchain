@@ -57,7 +57,7 @@ cli_read = (
     '    let source: string = if _is_proj {\n'
     '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
     '    } else {\n'
-    '        read_file(_drv_c)\n'
+    '        expand_from_file(_drv_c)\n'
     '    };'
 )
 src, n = re.subn(r'let source: string = "[^"]*";', cli_read, src, count=1)

@@ -46,5 +46,24 @@ for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field
   echo "pc3b6: OK   — $fx: --project emit+cc+run -> exit 42"
 done
 
+# ── native SINGLE-FILE include (BH-9) ────────────────────────────────────────
+#   `include "relpath";` is a single-file feature: the native compose main reads
+#   the source via expand_from_file (read + include-expand), mirroring SML's
+#   expandFile. NOT --project (source-concat would double-define the includee).
+inc="$SV0C/test/integration/include_basic/main.sv0"
+c="$TMP/include_basic.c"; bin="$TMP/include_basic.bin"
+if ! "$WRAP" "$inc" >"$c" 2>"$TMP/include_basic.emit.err" || ! grep -q '#include' "$c"; then
+  echo "pc3b6: FAIL — include_basic: single-file emit failed"; head -5 "$TMP/include_basic.emit.err"; fail=1
+elif ! cc -std=c99 -O0 -w -I "$RT" "$c" "$RT/sv0_runtime.c" -o "$bin" 2>"$TMP/include_basic.cc.err"; then
+  echo "pc3b6: FAIL — include_basic: cc failed"; head -5 "$TMP/include_basic.cc.err"; fail=1
+else
+  set +e; "$bin"; ec=$?; set -e
+  if [ "$ec" -ne 42 ]; then
+    echo "pc3b6: FAIL — include_basic: ran to exit $ec (expected 42)"; fail=1
+  else
+    echo "pc3b6: OK   — include_basic: single-file include emit+cc+run -> exit 42"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then echo "pc3b6: acceptance FAILED"; exit 1; fi
-echo "pc3b6: acceptance PASSED (native --project: all fixtures -> exit 42)"
+echo "pc3b6: acceptance PASSED (native --project + single-file include: all fixtures -> exit 42)"
