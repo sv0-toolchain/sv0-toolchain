@@ -91,6 +91,7 @@ run_case "option/result" one "$IT/option_result/option_result.sv0" 0
 run_case "box expr" one "$IT/box_expr/box_expr.sv0" 0
 run_case "ast types (Phase 1 pattern)" one "$IT/ast_types/ast_types.sv0" 0
 run_case "include (single-file expand; BH-9)" one "$IT/include_basic/main.sv0" 42
+run_case "int min (2^31 literal wrap; BH-7)" one "$IT/int_min/int_min.sv0" 42
 run_case "modules (multi-file project)" project "$IT/modules" 42
 run_case "modules_types (cross-module struct/enum via fns)" project "$IT/modules_types" 42
 run_case "modules_enum_match (cross-module enum in match; PC-2)" project "$IT/modules_enum_match" 42
