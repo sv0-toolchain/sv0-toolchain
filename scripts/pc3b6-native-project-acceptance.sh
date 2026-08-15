@@ -65,5 +65,24 @@ else
   fi
 fi
 
+# ── native runtime CONTRACT enforcement (BH-10a/BH-10b) ──────────────────────
+#   The native compose main now routes requires/ensures through lowering, so a
+#   violated `requires` aborts via sv0_requires -> exit 1 + a stderr message
+#   (matching SML->C), instead of silently returning a value. Single-file.
+cv="$SV0C/test/integration/contract_violation/contract_violation.sv0"
+c="$TMP/contract_violation.c"; bin="$TMP/contract_violation.bin"
+if ! "$WRAP" "$cv" >"$c" 2>"$TMP/cv.emit.err" || ! grep -q 'sv0_requires' "$c"; then
+  echo "pc3b6: FAIL — contract_violation: emit missing sv0_requires"; head -5 "$TMP/cv.emit.err"; fail=1
+elif ! cc -std=c99 -O0 -w -I "$RT" "$c" "$RT/sv0_runtime.c" -o "$bin" 2>"$TMP/cv.cc.err"; then
+  echo "pc3b6: FAIL — contract_violation: cc failed"; head -5 "$TMP/cv.cc.err"; fail=1
+else
+  set +e; "$bin" 2>"$TMP/cv.run.err"; ec=$?; set -e
+  if [ "$ec" -ne 1 ] || ! grep -q 'contract violation' "$TMP/cv.run.err"; then
+    echo "pc3b6: FAIL — contract_violation: exit $ec / missing message (expected exit 1 + 'contract violation')"; fail=1
+  else
+    echo "pc3b6: OK   — contract_violation: native requires abort -> exit 1 + message"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then echo "pc3b6: acceptance FAILED"; exit 1; fi
-echo "pc3b6: acceptance PASSED (native --project + single-file include: all fixtures -> exit 42)"
+echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement: all fixtures)"
