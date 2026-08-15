@@ -54,9 +54,12 @@ assert n == 1, "compose main shape changed: `let source`"
 #    existing `return 0;` at end of main (no return here). `td` from lower is unused
 #    in the VM path but kept (lower fills out_blocks).
 needle = (
+    '    let sidx: Vec<i32> = assign_shadow_indices(it, id3, id4, id5, fpn,\n'
+    '                                               bet, bed1, bed2, bed3, bed4, pp,\n'
+    '                                               source, starts, ends);\n'
     '    let c: string = megatu_emit_program(td, out_blocks, source, starts, ends,\n'
     '                                        it, id1, id2, id3, id5, fpn,\n'
-    '                                        fpt, frt, ptt, ptd1, ptd2, pp);\n'
+    '                                        fpt, frt, ptt, ptd1, ptd2, pp, sidx);\n'
     '    if string_len(c) == 0 { return 5; }'
 )
 assert needle in src, "compose main phase-6 shape changed"
