@@ -88,6 +88,8 @@ echo "integration tests (sv0c --target=vm + sv0vm run_sv0b):"
 
 run_exit_case "hello" "test/integration/hello/hello.sv0" 0
 run_exit_case "contracts" "test/integration/contracts/contracts.sv0" 0
+# BH-10c: a runtime `requires` violation aborts cleanly on the VM (vm_exit:1).
+run_exit_case "contract_violation" "test/integration/contract_violation/contract_violation.sv0" 1
 run_exit_case "no_alias_requires" "test/data/golden/pass/no_alias_requires.sv0" 0
 run_exit_case "patterns" "test/integration/patterns/patterns.sv0" 0
 run_exit_case "structs" "test/integration/structs/structs.sv0" 0
