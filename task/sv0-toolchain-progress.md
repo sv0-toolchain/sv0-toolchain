@@ -46,7 +46,7 @@ Countable items for work that stays in the **parent repo** (`task/`, `scripts/`,
 
 Set **Done** to `1` when true. Expand the table as new cross-cutting gates appear.
 
-## Post-M3 hardening status (2026-08-12)
+## Post-M3 hardening status (COMPLETE 2026-08-16)
 
 M3 (self-hosting) is **complete** (2026-08-05; see `task/sv0-toolchain-milestone-3-self-host.Rmd`). This section tracks **post-M3 hardening** — Phase C whole-language parity + the bug-hunt remediation — which does **not** reopen M3. Detail lives in `sv0c/doc/post-m3-phase-c-plan.md` + `task/sv0-toolchain-milestone-3-checklist.Rmd` (PC-### rows) and `sv0c/doc/bug-hunt-findings.md` (BH-### tasks).
 
@@ -59,17 +59,17 @@ M3 (self-hosting) is **complete** (2026-08-05; see `task/sv0-toolchain-milestone
 - **Bug-hunt audit** — a 6-pass inspection + 3-way differential sweep (SML→C / SML→VM / native→C) → `sv0c/doc/bug-hunt-findings.md`: **13 findings** (4 P1), each with repro, root cause, and bite-sized `BH-###` tasks (sv0c `1b3960a`).
 - **BH-1 (P1)** — native method calls silently miscompiled compound args (`p.add(n+17)` → `add(p, n)`, returned 25). Fixed: tag-5 `ExprMethodCall` now carries the tag-4 `pp` arg-root sidecar; parser/resolver/checker/lowering read args via `block_stmt_index`. Fixture `mcall_compound_arg` gated on both pipelines (sv0c `034ca96`).
 - **BH-2 (P1)** — VM integer arithmetic diverged from `i32`/C (overflow didn't wrap; div/mod floored). Fixed: `Word32` wrap on ADD/SUB/MUL/NEG + `Int.quot`/`Int.rem` on DIV/MOD; regression test added (sv0vm `a0876d9`).
+- **Native-completeness cluster CLOSED** — **#8** checker under-diagnosis (now emits E0300/E0301/E0307/E0400/E0429, incl. local `let` annotation types + local field access; sv0c `23d461f`); **#10** native runtime contracts + VM clean abort; **#11** `?` operator on all 3 backends (sv0c `0573ace`), enum-return, nested-struct, tuple → E0446.
+- **Bug #6 — block-local scoping** (sv0c `e339fa0`) — resolver + checker now scope block `let`s (tombstone-on-exit; no `Vec` pop); out-of-scope use → E0300, matching SML. Gated `test/diagnostics/block_scope_leak.sv0`.
+- **Native-default compiler promotion (E6, PC-6c)** — the native mega-TU binary is now the default `SV0_SELF_HOST_COMPILER`; main CI's `./scripts/sv0 test` exercises native (behavioral acceptance), SML byte-guards pinned to the delegate, escape hatch restores byte-diff (parent `d75bdb7`).
+- **Bug hunt closed — 12 of 13 fixed** (also #3/#4/#7/#9/#12/#13 from earlier passes). Only #5 deferred (below).
 
-### 🚧 In progress / open
+### ⏸️ Deferred (non-blockers — not carried into M4)
 
-- **Bug-hunt remediation (11 of 13 findings open)** — tracked as `BH-###` in `sv0c/doc/bug-hunt-findings.md`:
-  - **Native-completeness cluster (milestone-scale, P1):** #8 checker silently accepts type errors + emits no diagnostics; #10 native drops all runtime contracts; #11 `?`/enum-return/tuple/nested-struct silently mis-emit at exit 0. These matter for the native-default promotion.
-  - **C-backend / reference bugs (P2):** #12 variable shadowing → invalid C (SML + native) + VM scope leak; #13 match guards → invalid C (guard evaluated before pattern binding).
-  - **Smaller / edge:** #3 dead-code stale pty tag scheme; #4 void+contract silent native exit (no E0409); #7 `2³¹` literal inconsistency; #9 `include` unwired on native; #5 cross-module method calls on SML `--project` (native already works).
-  - **BH-1d deferred:** the link.sv0 arena-reloc/merge path does not yet treat the tag-5 pp sidecar (latent — the CLI uses source-concat).
-  - **BH-X cross-cutting:** BH-X1 a behavioral 3-way differential-test gate (would catch #1/#2/#8/#10/#12/#13); BH-X2 expand the 7-case golden fail corpus; BH-X3 audit native silent-stub/empty-emit fallbacks.
-- **Native-default compiler promotion (Phase C Epic 6 tail)** — behavioral-mode loop + CI gate landed; flipping the local default `SV0_SELF_HOST_COMPILER` to the native binary is gated on closing the native-completeness cluster (#8/#10/#11) so native stops accepting/mis-emitting invalid programs.
-- **PC-7 tail** — the end-to-end two-module collision→mangle→merge→emit→run demo (needs re-instating the reverted mega-TU merge orchestration + a gating decision for a non-CLI mangle path; see `sv0c/doc/pc3b-linkprojectdir-scoping.md` §5j).
+Post-M3 hardening is **complete**; these two are formally deferred as non-blockers (see `task/sv0-toolchain-milestone-3-checklist.Rmd` ## POST-M3 HARDENING COMPLETE):
+
+- **Bug #5** — cross-module method calls on SML `--project` (E0401). Confined to the retired SML reference path; the native default already handles it via source-concat. Won't-fix.
+- **PC-7 tail** — optional end-to-end collision-*mangling* demo. The §5e checker blocker is fully resolved; the demo adds no capability over source-concat. Revisit only if duplicate top-level names across modules become a requirement.
 
 ## Run log (newest first)
 

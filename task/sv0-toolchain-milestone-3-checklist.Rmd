@@ -1,9 +1,9 @@
 ---
 created: "2026-04-10T00:00:00Z"
-updated: "2026-08-12T00:00:00-07:00"
+updated: "2026-08-16T00:00:00-07:00"
 id: task-sv0-toolchain-milestone-3-checklist
 key: sv0-toolchain-milestone-3-checklist
-state: active
+state: complete
 tags:
   - sv0
   - sv0-toolchain
@@ -87,16 +87,46 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 | PC-6a | E6 promotion | native-default self-host-loop mode | **DONE (2026-08-05, decision):** (i) **behavioral-mode** loop flag + (scope) **CI-gate native / keep local fast**. The byte-diff is the wrong acceptance for a second independent compiler (native C differs from SML by design — B2). | — | ✅ decision recorded |
 | PC-6b | E6 | Behavioral-mode flag + native CI gate | **DONE (2026-08-05):** `SV0_SELF_HOST_LOOP_MODE=behavioral` in `scripts/sv0` `run_self_host_sv0_loop` (compares emit+cc+run stdout+exit, not byte-diff). Native mega-TU compiler passes the full loop **98/98 behavioral**; CI step in `self-host-native.yml`. Local `sv0 test` keeps the fast SML-delegate byte-diff default (unchanged). Roadmap B3 marked resolved. | PC-6a | ✅ 98/98 behavioral (native); default byte-diff intact |
 | PC-6c | E6 | **The flip — native is the default `SV0_SELF_HOST_COMPILER`** | **DONE (2026-08-15, parent-only):** gated on the native-completeness cluster (#8/#10/#11, all closed 2026-08-15). `run_self_host_sv0_loop` now builds (`ensure_sv0_megatu_native`) and defaults to `build/sv0-megatu-compiler-native` + behavioral mode when `SV0_SELF_HOST_COMPILER` is unset; `run_test` no longer pre-exports the SML delegate, so the flip reaches main CI (`./scripts/sv0 test`) automatically. **SML byte-guards preserved:** the stage0 golden gate emits via the SML delegate in a pinned subshell, and the loop's reference leg uses the SML heap directly. Escape hatch: `SV0_SELF_HOST_COMPILER=build/sv0-self-host-compiler` (+ `SV0_SELF_HOST_LOOP_MODE=bytediff`) → the pre-promotion byte-diff path. Full `./scripts/sv0 test` green (stage0 21/21 SML + self-host-loop 98/98 native behavioral); escape hatch verified. | PC-6b, #8/#10/#11 | ✅ native default in local + CI; SML guards intact; byte-diff reachable |
-| PC-7 | E7 name-collision | Unblock the §5e checker forward-scan so genuine cross-module name-collision mangling links | **§5e BLOCKER RESOLVED (2026-08-11) — PC-7a/b/c/d done; end-to-end 2-module collision→run is the remaining tail.** PC-7a (sv0c a37c971) `pty_root_to_type_tag` arena type classifier; PC-7b (f97912d) `scan_fn_param_{type_tags,names}_arena`; PC-7c (42bfbf3) threaded id5+fn_param_ty_root+fn_param_name_toks+fn_ret_ty_root_by_item+pty arena through check_program→register_all_item_fns→item_fn_ty_to_table + `scan_fn_ret_type_tag_arena`, swapped all 3 scan sites — **id1 is now only a name-string key, never a scan anchor**; behavior-preserving (corpus+25 fixtures identical, self-host-loop 98/98, vm-parity 98). PC-7d permanent regression guard `test_check_program_mangled_name` (param-bearing fn with id1 repointed to an end-of-stream synth mangled token — old scanners OOB, arena readers pass). Full note: `doc/pc3b-linkprojectdir-scoping.md` §5j. **Tail (follow-up, not §5e):** run the mangle+merge+emit+run pipeline on two colliding modules end-to-end (§5f/§5g validated collision-FREE merge only; needs re-instating the reverted mega-TU merge orchestration + a gating decision for a non-CLI mangle path). ~~**IN PROGRESS (started 2026-08-10).**~~ The one Phase-C capability source-concat can't give: duplicate top-level names across modules (today → duplicate-def error). Root cause (`doc/pc3b-linkprojectdir-scoping.md` §5e): the defining-name mangle repoints ItemFn `id1` to an end-of-stream synth token; the checker's param scanners (`scan_fn_param_type_tags`/`scan_fn_param_names`) walk tokens FORWARD from `id1+1` → OOB/wrong-read. **Fix (confirmed feasible, §5j):** decouple the scan from `id1` — read params from the parser's already-built per-fn arenas (`ItemFn id5=pbase` → `fn_param_name_toks[pbase+j]` for names, `fn_param_ty_root[pbase+j]`→pty arena for types; `mut` via local `tok_tags[nt-1]==77`). Sub-steps: **PC-7a** pty→tag classifier (`checker_pty_root_to_type_tag`) + unit tests; **PC-7b** arena param readers (identical output to token scanners on unmangled programs); **PC-7c** thread `id5`+fn_param+pty arenas into `check_program`+callers, swap the two scan sites — gate: whole corpus+fixtures type-check identically; **PC-7d** genuine-collision fixture merged via the link.sv0 mangle primitives → resolve+check+emit+run, gated (not source-concat). | PC-3b.4a | ⬜ collision-mangled two-module program checks + runs |
+| PC-7 | E7 name-collision | Unblock the §5e checker forward-scan so genuine cross-module name-collision mangling links | **§5e BLOCKER RESOLVED (2026-08-11) — PC-7a/b/c/d done; end-to-end 2-module collision→run is the remaining tail.** PC-7a (sv0c a37c971) `pty_root_to_type_tag` arena type classifier; PC-7b (f97912d) `scan_fn_param_{type_tags,names}_arena`; PC-7c (42bfbf3) threaded id5+fn_param_ty_root+fn_param_name_toks+fn_ret_ty_root_by_item+pty arena through check_program→register_all_item_fns→item_fn_ty_to_table + `scan_fn_ret_type_tag_arena`, swapped all 3 scan sites — **id1 is now only a name-string key, never a scan anchor**; behavior-preserving (corpus+25 fixtures identical, self-host-loop 98/98, vm-parity 98). PC-7d permanent regression guard `test_check_program_mangled_name` (param-bearing fn with id1 repointed to an end-of-stream synth mangled token — old scanners OOB, arena readers pass). Full note: `doc/pc3b-linkprojectdir-scoping.md` §5j. **Tail (follow-up, not §5e):** run the mangle+merge+emit+run pipeline on two colliding modules end-to-end (§5f/§5g validated collision-FREE merge only; needs re-instating the reverted mega-TU merge orchestration + a gating decision for a non-CLI mangle path). ~~**IN PROGRESS (started 2026-08-10).**~~ The one Phase-C capability source-concat can't give: duplicate top-level names across modules (today → duplicate-def error). Root cause (`doc/pc3b-linkprojectdir-scoping.md` §5e): the defining-name mangle repoints ItemFn `id1` to an end-of-stream synth token; the checker's param scanners (`scan_fn_param_type_tags`/`scan_fn_param_names`) walk tokens FORWARD from `id1+1` → OOB/wrong-read. **Fix (confirmed feasible, §5j):** decouple the scan from `id1` — read params from the parser's already-built per-fn arenas (`ItemFn id5=pbase` → `fn_param_name_toks[pbase+j]` for names, `fn_param_ty_root[pbase+j]`→pty arena for types; `mut` via local `tok_tags[nt-1]==77`). Sub-steps: **PC-7a** pty→tag classifier (`checker_pty_root_to_type_tag`) + unit tests; **PC-7b** arena param readers (identical output to token scanners on unmangled programs); **PC-7c** thread `id5`+fn_param+pty arenas into `check_program`+callers, swap the two scan sites — gate: whole corpus+fixtures type-check identically; **PC-7d** genuine-collision fixture merged via the link.sv0 mangle primitives → resolve+check+emit+run, gated (not source-concat). **⏸️ TAIL DEFERRED (2026-08-16):** the §5e *checker* blocker is fully resolved (7a–7d shipped + regression-guarded); the only remainder is an **optional** end-to-end 2-module *collision→mangle→run* demo. Source-concat (the shipped CLI) covers every real cross-module case without mangling, so this demo delivers no user-facing capability — it needs re-instating the reverted mega-TU merge orchestration + a gating decision for a non-CLI mangle path. Deferred out of post-M3; revisit only if duplicate top-level names across modules become a real requirement. | PC-3b.4a | ⏸️ deferred — §5e unblocked; collision demo optional, not carried into M4 |
 
 **Recommended order (updated 2026-08-05):** **E2 (PC-2a ✅ → 2b → 2c → 2d)** first — highest feature-parity value; PC-2a's failing fixture is in place. Then E1 (1a→1b→1c, shares resolver-alias work with E2) → E3 (3a→3b→3c) → PC-4b/4c/5a → E6 (6a→6b). **PC-4a deprioritized** (see its row). When E1–E3 land, the two reference cross-module gaps compile+run and `sv0c/doc/transliteration-plan.md` § Feature + diagnostic parity rows can flip to **Done**.
 
 **✅ ALL NUMBERED PC SLICES DONE (2026-08-12).** E1 (PC-1a/b/c) + E2 (PC-2a–e) + E3 (PC-3a/3b/3c) cross-module; E4 standalone gaps PC-4a (`[T;N]` length), PC-4b (plain-struct field patterns), PC-4c (impl methods + method calls); E5 include; E6 native-default behavioral-mode loop. Cross-module fixtures (`modules_enum_match`, `modules_struct_type`, `modules_struct_sig`) + `struct_field_pattern` + `impl_methods` + 5 `uc_*` fixtures → **exit 42** on native `--project` **and** SML `--project`, gated in `./scripts/sv0 test` + CI. **PC-7 (§5e checker blocker) RESOLVED (2026-08-11)** — see its row; the checker no longer walks tokens from the mangled defining-name, so genuine name-collision mangling is unblocked (end-to-end 2-module collision→run demo is the only PC-7 tail).
 
-**Remaining post-M3 work (not milestone-3 transliteration):**
-- **Bug-hunt remediation** — `sv0c/doc/bug-hunt-findings.md` (13 findings, 4 P1; each with bite-sized `BH-###` tasks). **Fixed:** BH-1 (native method-call compound args, sv0c 034ca96) + BH-2 (VM i32 arithmetic, sv0vm a0876d9). **Open:** #3–#13 — the native-completeness cluster (#8 checker under-diagnoses, #10 native drops contracts, #11 `?`/enum-ret/tuple/nested-struct mis-emit) is the dominant risk for native-default promotion; plus #12/#13 (shadowing + match guards → invalid C on both C backends), #3/#4/#7/#9/#5.
-- **Native-default compiler promotion (E6) — ✅ COMPLETE (2026-08-15, PC-6c).** The native-completeness cluster (#8/#10/#11) closed, unblocking the flip: `run_self_host_sv0_loop` now defaults to the native mega-TU binary (behavioral acceptance); the SML byte-guards stay pinned to the SML delegate; main CI exercises native via the unchanged `./scripts/sv0 test`. Escape hatch keeps the SML byte-diff path reachable.
-- Live status rollup: `task/sv0-toolchain-progress.md` ## Post-M3 hardening status.
+## ✅ POST-M3 HARDENING COMPLETE (2026-08-16)
+
+All planned post-M3 work is done; the two remaining items are formally deferred as
+non-blockers (below). Nothing here blocks starting M4.
+
+**What shipped (all CI-verified green on both repos):**
+
+1. **Whole-language feature parity (Phase C, E1–E5).** Cross-module enum `match` /
+   imported-struct types / `linkProjectDir` via native `--project` source-concat;
+   standalone gaps `[T;N]` length, plain-struct field patterns, impl methods +
+   method calls; multi-file `include`. Fixtures `modules_enum_match`,
+   `modules_struct_type`, `modules_struct_sig`, `struct_field_pattern`,
+   `impl_methods`, 5 `uc_*` → exit 42 on native **and** SML `--project`, gated in
+   CI.
+2. **Native-default compiler promotion (E6, PC-6c).** The native mega-TU binary is
+   the default `SV0_SELF_HOST_COMPILER`; main CI's `./scripts/sv0 test` exercises
+   native (behavioral acceptance), SML demoted to a reference emitter with its
+   byte-guards pinned. Escape hatch restores the SML byte-diff path.
+3. **Bug hunt — 12 of 13 fixed** (`sv0c/doc/bug-hunt-findings.md`). Native-completeness
+   cluster #8 (checker under-diagnosis → E0300/E0301/E0307/E0400/E0429), #10
+   (runtime contracts), #11 (`?` / enum-return / nested-struct; tuple → E0446);
+   plus #1/#2/#3/#4/#7/#9/#12/#13; and #6 (block-local scoping → E0300, resolver +
+   checker). Every finding affecting the **native** default is resolved.
+
+**Deferred (non-blockers, not carried into M4):**
+- **Bug #5** — cross-module method calls on SML `--project` (E0401). Confined to
+  the retired SML reference path; native handles it via source-concat. Won't-fix;
+  reopen only if the SML reference is kept. See finding #5.
+- **PC-7 tail** — optional end-to-end collision-*mangling* demo. The §5e checker
+  blocker is fully resolved (PC-7a–d shipped + regression-guarded); the demo
+  delivers no user-facing capability over source-concat. Deferred; revisit only if
+  duplicate top-level names across modules become a requirement.
+
+Live status rollup: `task/sv0-toolchain-progress.md` ## Post-M3 hardening status.
 
 ## harness (already in CI)
 
