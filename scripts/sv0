@@ -53,11 +53,12 @@ usage: sv0 <command> [args]
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
-  self-host-sv0-loop     pilot sv0→sv0 loop: deterministic SML→C emit, cc+run on lib/self-host-sv0-loop.list;
-                           diffs scripts/sv0-self-host-emit-c.sh vs SML by default (override SV0_SELF_HOST_COMPILER;
-                           SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 to skip); SV0_SELF_HOST_LOOP_MODE=behavioral
-                           compares emit+cc+run stdout+exit instead of byte-diffing C (for the native sv0
-                           compiler, whose C differs from SML by design); see sv0c/doc/self-host-sv0-loop.md
+  self-host-sv0-loop     sv0→sv0 loop: deterministic emit + cc+run on lib/self-host-sv0-loop.list.
+                           DEFAULT (PC-6c promotion): the native mega-TU compiler (build/sv0-megatu-compiler-native),
+                           accepted BEHAVIORALLY vs SML (identical stdout+exit; C differs by design). Export
+                           SV0_SELF_HOST_COMPILER to pin a compiler — e.g. build/sv0-self-host-compiler for the
+                           SML delegate byte-diff (SV0_SELF_HOST_LOOP_MODE=bytediff, the pre-promotion path).
+                           SV0_SKIP_SELF_HOST_COMPILER_DIFF=1 skips the reference leg; see sv0c/doc/self-host-sv0-loop.md
   build-self-host-compiler  write build/sv0-self-host-compiler (wrapper for SV0_SELF_HOST_COMPILER — M3-S-047);
                            see sv0c/doc/native-self-host-compiler-recipe.md
   self-host-native-parity  native driver (build/sv0-driver-native) vs SML BEHAVIORAL parity on
@@ -110,6 +111,22 @@ ensure_sv0_self_host_compiler() {
   # and read_file panics when fopen fails. build-sv0-self-host-compiler.sh creates the
   # file empty, but it is skipped once the wrapper exists (and /tmp gets reaped), so
   # guarantee the control file here for every self-host path.
+  [[ -f /tmp/.sv0_drv_path ]] || printf '' > /tmp/.sv0_drv_path
+}
+
+# PC-6c (native-default promotion): materialize the native mega-TU compiler
+# (build/sv0-megatu-compiler-native), the sv0-built binary that is now the DEFAULT
+# SV0_SELF_HOST_COMPILER. Its wrapper honors the same contract (argv[1] = .sv0 path,
+# emitted C to stdout). Built from lib/*.sv0 via the full compose; rebuilt only when
+# absent (the native --project acceptance rebuilds it later in the same gate).
+ensure_sv0_megatu_native() {
+  local out="$ROOT/build/sv0-megatu-compiler-native"
+  if [[ ! -x "$out" ]]; then
+    bash "$ROOT/scripts/build-sv0-megatu-native.sh" >&2
+  fi
+  if [[ ! -x "$out" ]]; then
+    sv0_fail "ensure_sv0_megatu_native: missing executable $out (build-sv0-megatu-native.sh failed)"
+  fi
   [[ -f /tmp/.sv0_drv_path ]] || printf '' > /tmp/.sv0_drv_path
 }
 
@@ -271,7 +288,12 @@ run_test_guards() {
 run_test() {
   local ec=0
   ensure_sv0_self_host_compiler
-  export SV0_SELF_HOST_COMPILER="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
+  # PC-6c (native-default promotion): do NOT force the SML delegate as the default
+  # here. Leaving SV0_SELF_HOST_COMPILER unset lets run_self_host_sv0_loop flip to
+  # the native mega-TU binary (behavioral acceptance) as the promoted default, while
+  # the stage0 golden gate pins the SML delegate itself. A user can still force a
+  # specific compiler by exporting SV0_SELF_HOST_COMPILER before the run. The
+  # delegate is built above (ensure_sv0_self_host_compiler) for the SML byte-guards.
   (cd "$SV0C" && make test) || ec=1
   if ! run_python_guards "sv0 test"; then
     ec=1
@@ -419,6 +441,12 @@ run_self_host_stage0_golden() {
   if ! _self_host_stage0_heap_ready; then
     sv0_fail "self-host stage0 golden: sv0c make heap failed"
   fi
+  # PC-6c: this is an SML byte-guard — the committed lib/golden/stage0/*.c ARE the
+  # SML delegate's emit. Even after native became the default SV0_SELF_HOST_COMPILER,
+  # pin the emit to the SML delegate so this cross-check keeps verifying the SML
+  # reference (native emit diverges byte-for-byte by design and would spuriously
+  # fail the diff).
+  local ref_shc="$ROOT/build/sv0-self-host-compiler"
   local tmp d
   for rel in "${rel_paths[@]}"; do
     stem=$(basename "$rel" .sv0)
@@ -427,7 +455,7 @@ run_self_host_stage0_golden() {
       continue
     fi
     tmp="$(mktemp)"
-    if ! _self_host_stage0_emit_c_to "$rel" "$tmp"; then
+    if ! ( export SV0_SELF_HOST_COMPILER="$ref_shc"; _self_host_stage0_emit_c_to "$rel" "$tmp" ); then
       rm -f "$tmp"
       sv0_fail "self-host stage0 golden: emit failed for $rel"
     fi
@@ -486,7 +514,18 @@ self_host_sv0_loop_fill_paths() {
 run_self_host_sv0_loop() {
   require_sml
   ensure_sv0_self_host_compiler
-  export SV0_SELF_HOST_COMPILER="${SV0_SELF_HOST_COMPILER:-$ROOT/build/sv0-self-host-compiler}"
+  # PC-6c (native-default promotion): the native mega-TU binary is now the DEFAULT
+  # self-host compiler. It emits behaviorally-equivalent C (not byte-identical to
+  # SML by design — temp naming / decl order / expr structuring), so the loop also
+  # defaults to BEHAVIORAL acceptance (emit+cc+run: identical stdout+exit vs the SML
+  # reference). Set SV0_SELF_HOST_COMPILER to pin a specific compiler (e.g. the SML
+  # delegate for a byte-diff run); the SML byte-guards — the stage0 golden gate and
+  # this loop's reference leg — stay on SML regardless.
+  if [[ -z "${SV0_SELF_HOST_COMPILER:-}" ]]; then
+    ensure_sv0_megatu_native
+    export SV0_SELF_HOST_COMPILER="$ROOT/build/sv0-megatu-compiler-native"
+    export SV0_SELF_HOST_LOOP_MODE="${SV0_SELF_HOST_LOOP_MODE:-behavioral}"
+  fi
   local _cc="${CC:-cc}"
   if ! command -v "$_cc" >/dev/null 2>&1; then
     sv0_fail "self-host-sv0-loop: C compiler not found (install cc or set CC)"
