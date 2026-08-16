@@ -39,7 +39,10 @@ def main(argv: list[str] | None = None) -> int:
         if "|" not in line:
             print(f"verify_behavior_corpus_native: bad line: {raw!r}", file=sys.stderr)
             return 1
-        rel, want_s = (s.strip() for s in line.split("|", 1))
+        # Format: rel | exit [ | leg ]   leg in {both (default), native}.
+        # The native C leg runs every row regardless of the leg tag.
+        parts = [s.strip() for s in line.split("|")]
+        rel, want_s = parts[0], parts[1]
         try:
             want = int(want_s)
         except ValueError:

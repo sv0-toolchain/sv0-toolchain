@@ -311,6 +311,10 @@ run_test() {
   if ! python3 "$ROOT/scripts/verify_behavior_corpus_native.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "sv0 test: behavioral PASS corpus — VM leg (SML --target=vm + sv0vm vs expected exit)"
+  if ! python3 "$ROOT/scripts/verify_behavior_corpus_vm.py" --root "$ROOT"; then
+    ec=1
+  fi
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml"; OS.Process.exit OS.Process.success;' | sml >/dev/null); then
     ec=1
   fi
