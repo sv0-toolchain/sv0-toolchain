@@ -42,7 +42,13 @@ def main(argv: list[str] | None = None) -> int:
         if "|" not in line:
             print(f"verify_diagnostics_corpus_behavior_native: bad line: {raw!r}", file=sys.stderr)
             return 1
-        rel, needle = (s.strip() for s in line.split("|", 1))
+        # Format: rel | needle [ | backend ]   backend in {both (default), native, sml}.
+        # This (native) verifier runs rows tagged "both" or "native"; skips "sml".
+        parts = [p.strip() for p in line.split("|")]
+        rel, needle = parts[0], parts[1]
+        backend = parts[2] if len(parts) > 2 and parts[2] else "both"
+        if backend == "sml":
+            continue
         case = root / "sv0c" / rel
         proc = subprocess.run(
             [str(wrapper), str(case)],

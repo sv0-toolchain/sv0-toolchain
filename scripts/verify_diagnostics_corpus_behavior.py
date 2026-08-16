@@ -30,9 +30,13 @@ def main(argv: list[str] | None = None) -> int:
         if "|" not in line:
             print(f"verify_diagnostics_corpus_behavior: bad line: {raw!r}", file=sys.stderr)
             return 1
-        rel, needle = line.split("|", 1)
-        rel = rel.strip()
-        needle = needle.strip()
+        # Format: rel | needle [ | backend ]   backend in {both (default), native, sml}.
+        # This (SML) verifier runs rows tagged "both" or "sml"; skips "native".
+        parts = [p.strip() for p in line.split("|")]
+        rel, needle = parts[0], parts[1]
+        backend = parts[2] if len(parts) > 2 and parts[2] else "both"
+        if backend == "native":
+            continue
         script = (
             f'CM.make "sources.cm"; '
             f'OS.Process.exit(Main.main ((), ["{rel}"]));'
