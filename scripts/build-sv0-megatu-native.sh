@@ -11,7 +11,7 @@
 # Bar is BEHAVIORAL parity (emit + cc + run), NOT byte-identical vs SML: the composed
 # emit diverges from SML's C by design (measured ~109% line churn on real modules), so
 # self-host-sv0-loop (emit+cc+run + self-determinism) is the acceptance surface, not the
-# vs-SML byte diff. See sv0c/doc/native-compose-tradeoffs.md.
+# vs-SML byte diff. See sv0c/doc/archive/native-compose-tradeoffs.md.
 #
 # Build is one-time bootstrap (SML compiles the mega-TU sv0 -> C, then cc); the RESULT
 # runs with no SML heap. Produces:

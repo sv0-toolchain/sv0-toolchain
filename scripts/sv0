@@ -67,7 +67,7 @@ usage: sv0 <command> [args]
   assemble-megatu [--check]  native-compose (A): assemble sv0c/lib/megaTU-modules.list into one
                            build/megaTU.sv0 (strip test mains/tests, auto-namespace collisions);
                            --check also SML->C->cc compiles it. Full 18-module pipeline compiles
-                           (A1) — see sv0c/doc/native-compose-tradeoffs.md
+                           (A1) — see sv0c/doc/archive/native-compose-tradeoffs.md
   sml-retirement-preflight   print blast-radius scan for `sml/` path refs before M3-S-051 (no edits)
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/

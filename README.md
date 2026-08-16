@@ -1,171 +1,93 @@
 # sv0-toolchain
 
-development workspace for the sv0 programming language compiler and toolchain.
+Development workspace for **sv0**, a Rust-like systems language with built-in
+contracts (`requires` / `ensures` / `loop_invariant`). This meta-repo pins four
+submodules that together form the language, its self-hosting compiler, a bytecode
+VM, and developer tooling.
 
-## subprojects
+## the subprojects
 
+| project | what it is | language | status |
+|---|---|---|---|
+| [**sv0doc**](sv0doc/) | the language + bytecode **specification** (grammar, types, contracts, memory model, keywords) — the source of truth | Markdown | spec complete (M0) |
+| [**sv0c**](sv0c/) | the **compiler** — `.sv0` → C and → bytecode. **Self-hosting**: written in sv0, compiles itself | sv0 (+ retired SML reference) | self-hosting; M3 complete + post-M3 hardening done |
+| [**sv0vm**](sv0vm/) | the **bytecode VM** that runs sv0c's `--target=vm` output | SML/NJ | M2 complete |
+| [**sv0-mcp**](sv0-mcp/) | Neo4j knowledge graph + MCP servers for AI-assisted development | Python | M0 complete |
 
-| project             | purpose                                                                                 | language | status                                                                                                        |
-| ------------------- | --------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------- |
-| [sv0doc](sv0doc/)   | **documentation hub**: formal language spec, bytecode spec, roadmap links to vision doc | markdown | **Milestone 0 (task) complete**; bytecode under `bytecode/`; hub text in [sv0doc/README.md](sv0doc/README.md) |
-| [sv0c](sv0c/)       | compiler implementation + in-repo docs (`doc/`)                                         | SML/NJ   | **Milestones 1–2 (task) complete** — C backend + VM backend (`--target=vm`, `--target=vm --project`)          |
-| [sv0vm](sv0vm/)     | bytecode VM interpreter implementation + notes                                          | SML/NJ   | **Milestone 2 (task) complete**                                                                               |
-| [sv0-mcp](sv0-mcp/) | MCP server + Neo4j graph to aid developing / debugging the toolchain                    | Python   | **Milestone 0 (task) complete** — see `**task/sv0-mcp-milestone-0.Rmd`**                                      |
+**Dependency flow:** sv0doc (spec) → sv0c (compiler) → C backend + VM backend →
+sv0vm. sv0-mcp cross-cuts all of them.
 
+## start here
 
-**Design milestones 0–2 (task-tracked)** are **met** at the level described in `[task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd)`. **Milestone 3** (self-hosting compiler in **sv0**) — **stakeholder completion criteria met** (closure-authority ruling **2026-08-05**; evidence map `[sv0c/doc/m3-closure-evidence.md](sv0c/doc/m3-closure-evidence.md)`): full pipeline in sv0 (native mega-TU, 98/98 C + 18/18 VM byte-identical, no SML at runtime), documented native self-compile, VM strict parity v1 (18/18 byte-identical via the native emitter), diagnostics behavioral baseline, and SML retirement (`bootstrap-sml-final` + `sml-legacy/`). See `[task/sv0-toolchain-milestone-3-self-host.Rmd](task/sv0-toolchain-milestone-3-self-host.Rmd)`. **Post-M3 hardening** (whole-language feature parity + default native-compiler promotion) continues per `[sv0c/doc/l0-closure-roadmap.md](sv0c/doc/l0-closure-roadmap.md)` **Phase C** and does not reopen M3.
+New to the toolchain? Read in this order:
 
-**Tracking:** start from `[task/sv0-toolchain-workspace.Rmd](task/sv0-toolchain-workspace.Rmd)` for the full workspace map, env vars, and submodule checks. **Progress rollup / run log:** `[task/sv0-toolchain-progress.md](task/sv0-toolchain-progress.md)`. **LLM/agent on-ramp:** `[AGENTS.md](AGENTS.md)` and `./scripts/sv0 milestone-orient` (see `[task/milestone-orientation.json](task/milestone-orientation.json)`).
+1. **[sv0c/README.md](sv0c/README.md)** — how the compiler is structured and how
+   to run it. This is the heart of the project.
+2. **[sv0c/examples/learn/](sv0c/examples/learn/README.md)** — numbered `.sv0`
+   tutorials (`01_hello.sv0` … `22_*.sv0`, plus a multi-file project) you can
+   compile and run.
+3. **[sv0doc/](sv0doc/README.md)** — the language spec, when you want the precise
+   rules ([type system](sv0doc/type-system/rules.md),
+   [contracts](sv0doc/contracts/semantics.md),
+   [memory model](sv0doc/memory-model/ownership.md)).
+4. **[sv0c/doc/](sv0c/doc/README.md)** — deeper compiler documentation (pass-by-pass
+   walkthrough, self-hosting, archived milestone history).
 
-**Learning:** small `**.sv0`** sources (numbered tutorials through `**22_*`**, plus multi-file `**examples/learn/23_project_minimal/`**) and commands for `**vm-compile**`, `**vm-project-compile**`, `**vm-run**`, and `**emit-c**` are under `[sv0c/examples/learn/](sv0c/examples/learn/README.md)`. Educational library-shaped packages (future `**std`/`core` pedagogy**, not compiler bootstrap seeds) are under `[sv0c/examples/libs/](sv0c/examples/libs/README.md)`. `**vm-compile`**, `**vm-project-compile`**, and `**emit-c**` take paths relative to `**sv0c/**`; `**vm-run**` accepts `**sv0c/build/vm/<stem>.sv0b**` relative to this **meta-repo root** (or an absolute path).
-
-**GitHub SSH:** if `**git push`** times out on port 22, use `**./scripts/with-github-ssh443.sh git push …`** (SSH over port 443); see `[task/sv0-toolchain-workspace.Rmd](task/sv0-toolchain-workspace.Rmd)`.
-
-## bootstrap compiler reference (support)
-
-The SML bootstrap retirement tag `**bootstrap-sml-final`** is defined on **[sv0c](https://github.com/sv0-toolchain/sv0c) only** (see `[task/sv0-toolchain-milestone-3-self-host.Rmd](task/sv0-toolchain-milestone-3-self-host.Rmd)`). This meta-repo always records the **pinned sv0c commit** next to that tag name so support and triage can correlate a checkout with the compiler sources.
-
-
-|                                                |                                            |
-| ---------------------------------------------- | ------------------------------------------ |
-| **sv0c tag (when cut)**                        | `bootstrap-sml-final`                      |
-| **sv0c commit pinned on this branch (`main`)** | `8fa0df3b8a5e52f2bd42119bb4199e622369e55e` |
-
-
-**Maintainers:** whenever you bump the `**sv0c`** submodule, **update the SHA in this table in the same commit.** Confirm from the repo root with `git ls-files -s sv0c` (staged/index gitlink; matches **HEAD** when the index is clean) or `git ls-tree HEAD sv0c`. **CI / local:** `**./scripts/sv0 test-guards`** runs `**scripts/verify_readme_sv0c_gitlink.py`** (README vs index gitlink, **HEAD** fallback) and `**scripts/verify_vm_parity_manifest_bootstrap.py`** (among other Python checks) so the README table matches the submodule pointer you are committing and `**test/vm-parity/manifest.txt`** stays a subset of `**sv0c/lib/bootstrap-sources.list`**.
-
-## agent workflow
-
-this workspace uses the [AI agent workflow structure](http://development.sasankvishnubhatla.net/tcowmbh/note/ai-agent-workflow-structure.html) to organize development work. agent files (`.Rmd`) in `task/` orchestrate implementation through directives and companion scripts.
-
-**Cursor IDE:** numbered rule modules under `**.cursor/rules/`** (start with `**00-workspace-context.mdc`**) spell out boundaries for sv0c, sv0vm, sv0-mcp, spec-first work, and `**.Rmd`** tasks. `**25-sv0-design-invariants-vision.mdc`** ties agents to the [public vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html), `**sv0doc/`** as normative semantics, and the **milestones 0–3** snapshot in `**task/sv0-toolchain-roadmap-full.Rmd`**. `**26-sv0-contracts-clauses.mdc`** scopes `**requires`/`ensures`/`loop_invariant**`, quantifiers, and aliasing contracts to `**sv0doc/**` + implementation discipline. `**27-examples-libraries-boundary.mdc**` separates `**sv0c/examples/libs/**` (pedagogy) from `**sv0c/lib/**` (bootstrap transliteration). `**28-sml-retirement-and-self-host-bar.mdc**` states that `**self-host-sv0-loop.list**` CI is not `**bootstrap-sml-final**`. They sit alongside `**.cursor/rules/agent-directives.mdc**`, which defines how to execute `**task/*.Rmd**` directives.
-
-### milestone structure
-
-```
-task/sv0doc-milestone-0.Rmd       milestone 0: extract formal specification
-  ├── sv0doc-extract-grammar.Rmd      EBNF grammar
-  ├── sv0doc-extract-type-rules.Rmd   type system rules
-  ├── sv0doc-extract-contracts.Rmd    contract semantics
-  ├── sv0doc-extract-memory-model.Rmd memory model
-  └── sv0doc-extract-keywords.Rmd     keyword/operator reference
-
-task/sv0c-milestone-1.Rmd         milestone 1: bootstrap compiler
-  ├── sv0c-project-setup.Rmd          SML/NJ project scaffolding
-  ├── sv0c-error-reporting.Rmd        error infrastructure
-  ├── sv0c-lexer.Rmd                  tokenizer
-  ├── sv0c-parser.Rmd                 recursive descent parser + AST
-  ├── sv0c-name-resolution.Rmd        scope resolution
-  ├── sv0c-type-checker.Rmd           type inference and checking
-  ├── sv0c-contract-analyzer.Rmd      contract validation + runtime checks
-  ├── sv0c-ir.Rmd                     intermediate representation
-  └── sv0c-c-backend.Rmd              C99 code generation
-
-task/sv0vm-milestone-2.Rmd        milestone 2: bytecode VM
-  ├── sv0vm-bytecode-format.Rmd       instruction set + binary format
-  ├── sv0vm-interpreter.Rmd           stack machine dispatch loop
-  ├── sv0vm-runtime.Rmd               memory management + built-ins
-  └── sv0vm-vm-backend.Rmd            sv0c VM backend (IR -> bytecode)
-
-task/sv0-toolchain-milestone-2-prep.Rmd   milestone 2 prep: sv0 test, doctest, fmt, doc, lib/ bootstrap track
-task/sv0-toolchain-roadmap-full.Rmd       option C roadmap index (milestones 2–6 + cross-cutting)
-
-task/sv0-toolchain-workspace.Rmd   meta: four submodules, env, aggregate commands
-task/sv0-mcp-milestone-0.Rmd       MCP server, sync, tests, doc alignment
-```
-
-### developer commands (toolchain root)
+## quickstart
 
 ```bash
-make help             # lists make targets; "make test" help matches ./scripts/sv0 test pipeline
-make milestone-orient # same as ./scripts/sv0 milestone-orient list
-make milestone-orient-show ID=M3  # ./scripts/sv0 milestone-orient show M3
-./scripts/sv0 check   # sv0c heap + SV0_SELF_HOST_COMPILER smoke + load sv0vm (fast)
-./scripts/sv0 test    # sv0c units; Python guards; sv0vm; C+VM integration; bootstrap .sv0; VM parity (SML .sv0b vs golden/sml); stage0 golden C; doctests
-./scripts/sv0 test-guards  # Python only: same guards as start of `sv0 test` incl. vm-parity manifest ⊆ bootstrap, milestone-orientation JSON ↔ workspace milestone table (bidirectional; fast; no SML)
-./scripts/sv0 milestone-orient list   # milestone id → owning task/*.Rmd + validation hints (for humans and agents)
-./scripts/sv0 milestone-orient show M3   # example: M3 self-host guardrails (anti-patterns, closure authority)
-# Inner loop (one file; paths relative to sv0c/): ./scripts/sv0 vm-compile <rel>  # --target=vm
-# Inner loop: ./scripts/sv0 emit-c <rel>   # C to stdout via SML heap — see .cursor/commands/continue-development.md (Fast validation loop)
-./scripts/sv0 doctest  # Markdown doctests only (see task/sv0-toolchain-milestone-2-prep/doctests.md)
-./scripts/sv0 fmt     # .sv0 whitespace (scripts/fmt_sv0.py) + shell fmt (fmt-shell)
-./scripts/sv0 fmt-shell  # bash -n / shfmt on repo shell scripts only
-./scripts/sv0 doc     # generate build/sv0-toolchain-doc/index.md; verify sv0doc paths
-./scripts/sv0 bootstrap-build  # VM-compile entries in sv0c/lib/bootstrap-sources.list (exit 0)
-./scripts/sv0 test-mcp   # sv0-mcp pytest via uv (skips if uv missing)
-./scripts/sv0 repl    # line-at-a-time eval (VM): i32 expr or println("...")
-./scripts/sv0 ci      # check + full ./scripts/sv0 test (no sv0-mcp)
-./scripts/sv0 ci-all  # ci, then sv0-mcp pytest when uv is installed
-./scripts/capture_vm_parity_goldens.sh   # refresh sv0c/test/vm-parity/golden/sml/*.sv0b (SML --target=vm; needs sml)
-./scripts/sv0 self-host-sv0-loop       # SML→C→native + diff scripts/sv0-self-host-emit-c.sh (see sv0c/doc/self-host-sv0-loop.md)
-./scripts/sv0-self-host-emit-c.sh /abs/path/file.sv0   # bootstrap C emit (stdout); same contract as SV0_SELF_HOST_COMPILER
+git clone --recurse-submodules <this-repo>
+cd sv0-toolchain
+
+./scripts/sv0 test                 # full gate: units, integration, VM parity, self-host loop
+./scripts/sv0 vm-compile sv0c/examples/learn/01_hello.sv0   # compile a program to bytecode
+./scripts/sv0 vm-run build/vm/01_hello.sv0b                 # run it on sv0vm
+./scripts/sv0 emit-c <path-relative-to-sv0c/>              # see the C a file compiles to
+./scripts/sv0 repl                 # line-at-a-time evaluation
 ```
 
-**Neo4j dev graph (sv0-mcp):** after you change `**task/*.Rmd`** milestones or normative **sv0doc** files, run `cd sv0-mcp && ./scripts/sync-graph.sh all` so MCP queries stay in sync (or use the **sv0-graph** MCP `**sync_graph`** tool). If Bolt is not on the default host port `**7688`**, set `**SV0_MCP_NEO4J_URI`** (and the cypher MCP `**NEO4J_URI**`) — see `[sv0-mcp/README.md](sv0-mcp/README.md)` (*custom host ports*).
+`./scripts/sv0` is the single driver for the whole workspace; run it with no
+arguments for the full command list. See **[CONTRIBUTING.md](CONTRIBUTING.md)**
+for the developer workflow, git hooks, the agent task system, and maintainer
+notes.
 
-From **sv0c**: `make check` (**heap** + **`SV0_SELF_HOST_COMPILER`** smoke), `make legacy-bootstrap-check` (full **CM.make**), `make integration-vm` (same as `./scripts/sv0 integration-vm`). From **sv0vm**: `make check`, `make test`. From **sv0-mcp**: `uv sync && uv run pytest tests/`.
+## status
 
-### git hooks
+Design **milestones 0–2** (spec, C-backend compiler, bytecode VM) are complete,
+and **milestone 3** — a self-hosting compiler written in sv0 — is closed
+(closure ruling 2026-08-05). The **native sv0-built compiler is now the default**;
+the original SML bootstrap is a retired reference. Post-M3 hardening
+(whole-language parity + native-default promotion) is complete. Details:
+[task/sv0-toolchain-progress.md](task/sv0-toolchain-progress.md) and
+[task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd).
 
-Install once per clone (wires `core.hooksPath` for **both** the parent repo and the `sv0c` submodule; idempotent):
-
-```bash
-make hooks            # or: ./scripts/install-git-hooks.sh
-```
-
-The single tracked source is `scripts/git-hooks/` (repo-aware scripts) plus `scripts/verify_commit_msg_no_ai_signoff.py`. What they enforce:
-
-| Hook | When | Checks |
-| --- | --- | --- |
-| `commit-msg` | every commit (parent + sv0c) | **No LLM/agent/assistant sign-off** — rejects `Co-Authored-By:`/`Signed-off-by:`/`Generated with …` lines naming an AI (Claude, Anthropic, GPT, Copilot, …) and the `🤖` signature. Topic mentions (e.g. `fix: Claude API retry`) still pass. |
-| `pre-commit` | every commit (fast, no SML) | `.sv0` whitespace formatting (staged) + block-comment nesting guard; `bash -n` on staged shell; `ruff check`/`format --check` on staged sv0-mcp Python (syntax-only for other `*.py`); **documentation pins + fast guards** via `./scripts/sv0 test-guards` (parent repo). |
-| `pre-push` | every push (slow, needs SML) | **Full test suite** — parent: `./scripts/sv0 test` (units + C/VM integration + self-host sv0 loop 98/98 + goldens + doctests + guards); sv0c: `make check test`. |
-
-Bypass a single run with `git commit --no-verify` / `git push --no-verify`, or disable all sv0 hooks for a shell with `SV0_SKIP_HOOKS=1`. The `verify_commit_msg_no_ai_signoff.py` checker has a `--selftest` accept/reject corpus.
-
-### running agents
-
-```bash
-# via CLI runner
-.agent/runner.sh task/sv0c-lexer.Rmd
-
-# dry run (show what would execute)
-.agent/runner.sh --dry-run task/sv0c-milestone-1.Rmd
-
-# via Cursor: open any .Rmd file and use /run-ai-tasks-in-doc
-```
-
-### dependency flow
-
-```
-sv0doc (spec + hub pointers)
-  |
-  v
-sv0c (compiler)
-  |
-  ├── C backend (milestone 1)
-  └── VM backend (milestone 2) ---> sv0vm (interpreter)
-
-sv0-mcp (graph + MCP tools) — cross-cuts spec, compiler, VM, and task/ for development
-```
-
-## design document
-
-the language design is documented at:
-[http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html)
-
-## directory layout
+## repository layout
 
 ```
 sv0-toolchain/
-├── .agent/          agent infrastructure (runner, config, adapters)
-├── .cursor/         cursor IDE integration (rules, commands)
-├── lib/             shared scripts (shell utilities, SML helpers)
-├── scripts/         aggregate driver (`sv0`) for check/test/ci
-├── task/            agent workflow files (.Rmd) + companion scripts
-├── sv0doc/          specification + documentation hub (git submodule)
-├── sv0c/            compiler (git submodule)
-├── sv0vm/           bytecode VM (git submodule)
-└── sv0-mcp/         MCP server + graph sync (git submodule)
+├── scripts/         the `sv0` driver + CI verifiers
+├── task/            project tracking: milestones, roadmap, progress (.Rmd + progress.md)
+├── lib/             shared shell/SML helpers
+├── .agent/ .cursor/ agent + IDE integration
+├── sv0doc/          specification + documentation hub   (submodule)
+├── sv0c/            compiler                              (submodule)
+├── sv0vm/           bytecode VM                           (submodule)
+└── sv0-mcp/         MCP server + graph sync               (submodule)
 ```
 
+## pinned sv0c commit
+
+This meta-repo records the sv0c submodule commit next to the SML retirement tag
+so a checkout can be correlated with the compiler sources. Maintainers: bump this
+SHA in the same commit as any `sv0c` submodule bump (CI enforces the match via
+`scripts/verify_readme_sv0c_gitlink.py`; confirm with `git ls-files -s sv0c`).
+
+| | |
+|---|---|
+| **sv0c tag (when cut)** | `bootstrap-sml-final` |
+| **sv0c commit pinned on `main`** | `62404d224647efa59227258fd75130297f84b64d` |
+
+## design document
+
+The language vision and design narrative:
+<http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html>

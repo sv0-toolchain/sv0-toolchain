@@ -73,7 +73,7 @@ Changes that span `sv0doc/` + `sv0c/` + `sv0vm/` multiply the complexity of each
 
 ## Related
 
-- **`sv0c/doc/transliteration-plan.md`** — living map of what is done vs remaining.
+- **`sv0c/doc/archive/transliteration-plan.md`** — living map of what is done vs remaining.
 - **`sv0c/doc/bootstrap-compiler-workarounds.md`** — SML compiler limitation catalog.
 - **`28-sml-retirement-and-self-host-bar.mdc`** — pilot loop vs retirement distinction.
 - **`41-sml-process-and-vm-hang-prevention.mdc`** — process-level SML constraints.

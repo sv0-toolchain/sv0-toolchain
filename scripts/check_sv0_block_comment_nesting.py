@@ -173,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
         print(
             "check_sv0_block_comment_nesting: fix comments or paths so `/` is not "
             "immediately followed by `*` inside `/* ... */` (see "
-            "sv0c/doc/transliteration-include.md).",
+            "sv0c/doc/archive/transliteration-include.md).",
             file=sys.stderr,
         )
         return 1

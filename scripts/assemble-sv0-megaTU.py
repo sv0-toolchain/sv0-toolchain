@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Assemble the sv0 pipeline modules into one mega-TU (`.sv0`) — native-compose (A).
 
-Per `sv0c/doc/native-compose-tradeoffs.md`, the recommended native full-compose is
+Per `sv0c/doc/archive/native-compose-tradeoffs.md`, the recommended native full-compose is
 option (A): concatenate the real `lib/*.sv0` pipeline modules into a single
 translation unit whose one `main` drives the phases. Each module is a standalone
 bootstrap unit with its own test `fn main` and `fn test_*`; concatenating them
