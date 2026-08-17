@@ -1,0 +1,91 @@
+---
+created: "2026-08-16T00:00:00-07:00"
+updated: "2026-08-16T00:00:00-07:00"
+id: task-sv0c-contract-vcgen
+key: sv0c-contract-vcgen
+state: todo
+tags:
+  - sv0
+  - sv0c
+  - milestone-4
+  - verification
+  - vcgen
+title: "sv0c: contract VC generation (M4 Epic A)"
+type: task
+---
+
+# sv0c: contract verification-condition generation
+
+## purpose
+
+Milestone 4, **Epic A**. Build the front half of the verifier in sv0: a
+**contract-expression IR** and a **verification-condition (VC) generator** that
+turns each function + its `requires`/`ensures`/`loop_invariant` clauses into
+proof obligations. The SMT backend (`task/sv0c-smt-backend.Rmd`) discharges them.
+
+Hub: `task/sv0-toolchain-milestone-4-verification.Rmd`. Slices: **M4-S-001…006**.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+New sv0 module(s) under `sv0c/lib/` (e.g. `verify_vcgen.sv0`), consuming the
+existing parsed contract clauses (the parser already records requires/ensures/
+loop_invariant expressions; see the contract clause handling in `parser.sv0` /
+`checker.sv0` / `lowering.sv0`).
+
+1. **Contract-expr IR (M4-S-001).** A flat, arena-style representation of the
+   boolean/arithmetic sub-language contracts use: variables (by name handle),
+   integer/bool literals, comparisons (`== != < <= > >=`), boolean ops
+   (`&& || !`), arithmetic (`+ - * / %`), and the contract builtins `old(e)`,
+   `result`, `forall`, `exists`. Keep it a strict subset — this is what maps to
+   SMT-LIB (`sv0c-smt-backend.Rmd`). Unit-test construction + a debug printer.
+2. **Clause extraction (M4-S-002).** Walk a function's parsed clauses into the IR;
+   resolve variable references to parameters/locals. Round-trip tested.
+3. **VC generation (M4-S-003…006).** For each function:
+   - assume each `requires` as a hypothesis;
+   - symbolically execute the body (assignment updates, `if/else` path
+     conditions), collecting obligations: each `ensures` at every `return`, each
+     `assert`, and loop-invariant obligations;
+   - **loops** are handled by their `loop_invariant` (invariant holds on entry,
+     is preserved by the body, and `invariant ∧ ¬cond ⟹ post`) — no unrolling;
+   - `old(e)` snapshots the pre-state value; `result` binds the return value.
+   Represent a VC as `hypotheses ⟹ obligation` in the contract-expr IR.
+
+**Fragment:** target QF_LIA (linear integer arithmetic) + booleans first;
+nonlinear (`*` of two variables), quantifiers, and arrays are later stretches,
+not P1 blockers — emit them as `unknown`/residual rather than crashing.
+
+**Soundness rule:** if the body uses a construct the VCgen cannot model, the
+contract must stay **residual** (runtime), never be reported proven.
+
+## slices
+
+- **M4-S-001** contract-expr IR + printer + unit tests.
+- **M4-S-002** clause extraction from parsed AST → IR.
+- **M4-S-003** VC gen: straight-line body (assume requires, assert ensures at return).
+- **M4-S-004** VC gen: branches (path conditions).
+- **M4-S-005** VC gen: loops via loop_invariant (entry/preservation/exit).
+- **M4-S-006** `old`/`result` handling.
+
+## acceptance
+
+- Unit tests in the new module build the IR and generate expected VCs for sample
+  functions (straight-line, branching, and a loop with an invariant).
+- A trivially-true `ensures(true)` and a simple `ensures(result == x)` (identity)
+  produce obligations the SMT backend later discharges.
+- Behavior-preserving for the existing gate (new module compiles + self-hosts;
+  refresh its stage0 + vm-parity goldens).
+
+## related
+
+- `task/sv0-toolchain-milestone-4-verification.Rmd` (hub) · `task/sv0-toolchain-milestone-4-checklist.Rmd`
+- `task/sv0c-smt-backend.Rmd` — consumes the VCs
+- `sv0doc/contracts/semantics.md` §2 (builtins: `old`/`result`/`forall`/`exists`), §3 (phases)

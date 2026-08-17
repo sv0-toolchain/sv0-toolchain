@@ -1,0 +1,120 @@
+---
+created: "2026-08-16T00:00:00-07:00"
+updated: "2026-08-16T00:00:00-07:00"
+id: task-sv0-toolchain-milestone-4-checklist
+key: sv0-toolchain-milestone-4-checklist
+state: active
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-4
+  - verification
+title: "milestone 4: verification slice backlog (M4-S-###)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 4: verification slice backlog
+
+## purpose
+
+The trackable **`M4-S-###`** slice backlog for milestone 4 (advanced verification).
+The **definition of done**, scope decisions, macro phases (P0–P4), and completion
+criteria live in the hub **`task/sv0-toolchain-milestone-4-verification.Rmd`**; the
+per-epic engineering notes live in the owning sub-tasks (`task/sv0c-*.Rmd`). This
+file is a **living index** — flip status as slices land and keep it aligned with
+the hub's phase narrative.
+
+## how to use
+
+- Pick the next slice by macro phase (hub P0→P4); slices within a phase are roughly
+  ordered by dependency.
+- Each slice names its **owning sub-task**, an **acceptance** signal, and its
+  **phase**. Add a one-line result + commit when a slice lands (like the M3 checklist).
+- Keep the spec (`sv0doc`) aligned before claiming new `sv0 verify` behavior (Epic F).
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"m4.checklist.session","title":"M4 verification checklist — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"M4"} -->
+- [ ] Slice status flipped + one-line result recorded when a `M4-S-###` lands
+- [ ] Verify corpus kept deterministic (fixed z3 options/timeouts) after solver changes
+- [ ] `./scripts/sv0 test-guards` after `task/` edits; `./scripts/sv0 test` when implementation touched
+<!-- sv0-track:end {"id":"m4.checklist.session"} -->
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## slice backlog
+
+Status: **todo** / **wip** / **done** / **deferred**.
+
+### Epic A — VC generation (`task/sv0c-contract-vcgen.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M4-S-001 | contract-expression IR (vars, literals, comparisons, `&&`/`||`/`!`, `+ - * / %`, `old`, `result`, `forall`/`exists`) | P0 | todo | unit tests build the IR + evaluate/print it |
+| M4-S-002 | extract parsed contract clauses (requires/ensures/loop_invariant) into the IR | P0 | todo | round-trip a fn's clauses → IR, asserted in tests |
+| M4-S-003 | VC generator — straight-line body (assume `requires`, assert `ensures` at return) | P0/P1 | todo | a fn with a trivially-true `ensures` yields a discharged obligation |
+| M4-S-004 | VC generator — branches (if/else path conditions) | P1 | todo | contract proven on one branch, residual on the other |
+| M4-S-005 | VC generator — loops via `loop_invariant` (entry ∧ preservation ∧ exit) | P1 | todo | a loop-based `ensures` proven via its invariant |
+| M4-S-006 | `old(expr)` snapshot + `result` binding in VCs | P1 | todo | `ensures(result > old(x))`-style obligation encoded correctly |
+
+### Epic B — SMT backend (`task/sv0c-smt-backend.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M4-S-010 | SMT-LIB2 emitter for the contract-expr IR (QF_LIA + bool) | P0 | todo | emits well-formed SMT-LIB2 for a sample VC |
+| M4-S-011 | `z3` subprocess driver (invoke, timeout, parse `sat`/`unsat`/`unknown`) | P0 | todo | drives z3 on a known sat + unsat query |
+| M4-S-012 | obligation → result mapping (`unsat(¬P)`=proven; `sat`=counterexample model; `unknown`/timeout=residual) | P1 | todo | proven/residual classification correct on samples |
+| M4-S-013 | **[DECISION]** host-process story (driver-orchestrated vs. a `run_process` runtime builtin) + graceful degradation when `z3` is absent | P0 | todo | design recorded; no-z3 path degrades to all-runtime cleanly |
+| M4-S-014 | determinism (fixed z3 options/seed/timeout) so the verify corpus never flakes | P1 | todo | repeated runs give identical status |
+
+### Epic C — `sv0 verify` + contract-mode (`task/sv0c-verify-cli.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M4-S-020 | `sv0 verify` command (check → VCgen → solver → report) | P0/P1 | todo | `./scripts/sv0 verify <file>` runs end-to-end |
+| M4-S-021 | per-contract human report (`[verified]`/`[runtime]` + reason, `sv0doc` §3.2 format) | P1 | todo | output matches the spec example shape |
+| M4-S-022 | machine-readable (JSON) output for tooling/CI | P1 | todo | stable JSON schema documented + emitted |
+| M4-S-023 | `--contract-mode` flag (runtime / verified / disabled) | P1 | todo | each mode selectable; default `runtime` |
+| M4-S-024 | verified-mode codegen — strip proven contracts' runtime checks in lowering, keep unproven | P1 | todo | proven `ensures` emits no runtime check; unproven still aborts |
+| M4-S-025 | minimal `sv0.toml` `[build] contract-mode` parsing (flag overrides file) | P1 | todo | file + flag both honored |
+
+### Epic D — refinement types + modular (`task/sv0c-refinement-types.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M4-S-030 | `type T = i32 where <expr>` syntax (parser) + spec delta in `sv0doc/type-system/` | P2 | todo | refinement type parses; spec section added |
+| M4-S-031 | refinement checking at assignment/binding (a VC per assignment) | P2 | todo | out-of-refinement assignment reported; valid one passes |
+| M4-S-032 | modular verification — caller args proven against callee `requires` (contracts as summaries) | P2 | todo | a call proven safe without re-verifying the callee body |
+| M4-S-033 | trait-contract contravariance (`sv0doc` §5) — impl must satisfy/strengthen trait contracts | P2 | todo | violating impl rejected; strengthening impl accepted |
+| M4-S-034 | narrowing-cast contracts (`sv0doc` §6) — implicit contract insertion + verification | P2 | todo | a narrowing cast's implicit obligation verified/residual |
+
+### Epic E — pilots + proof corpus (`task/sv0c-verify-pilots.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M4-S-040 | verification corpus format + verifier (expected proof status per contract), gated in `./scripts/sv0 test` | P3 | todo | corpus of `.sv0` + expected `[verified]`/`[runtime]` runs in the gate |
+| M4-S-041 | pilot proofs — a non-trivial module verified end-to-end | P3 | todo | ≥1 module's critical contracts all `[verified]` |
+| M4-S-042 | `sv0 verify` wired into CI on the corpus (deterministic) | P3 | todo | CI green with the verify corpus |
+| M4-S-043 | **[DECISION]** pilot target (numeric/std vs crypto) once solver capability is known | P3 | todo | target chosen + rationale recorded |
+
+### Epic F — spec / doc alignment (`sv0doc`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M4-S-050 | `sv0doc/contracts/semantics.md` §3–4 updated to match shipped `sv0 verify` / contract-mode behavior | P4 | todo | no normative drift; examples reflect real output |
+| M4-S-051 | `sv0doc/type-system/` refinement-type section finalized | P4 | todo | refinement grammar + rules documented |
+
+## refinement log
+
+- 2026-08-16: initial backlog created alongside the M4 hub. 26 slices across Epics A–F, tagged by macro phase P0–P4. Scope = full Phase 2+3 verification with a Z3-via-SMT-LIB2 backend (see hub scope decisions).
+
+## related
+
+- `task/sv0-toolchain-milestone-4-verification.Rmd` — hub (definition of done, phases, criteria)
+- `task/sv0c-contract-vcgen.Rmd` · `task/sv0c-smt-backend.Rmd` · `task/sv0c-verify-cli.Rmd` · `task/sv0c-refinement-types.Rmd` · `task/sv0c-verify-pilots.Rmd`
+- `sv0doc/contracts/semantics.md` §3–4

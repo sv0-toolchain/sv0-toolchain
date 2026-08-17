@@ -1,0 +1,76 @@
+---
+created: "2026-08-16T00:00:00-07:00"
+updated: "2026-08-16T00:00:00-07:00"
+id: task-sv0c-verify-pilots
+key: sv0c-verify-pilots
+state: todo
+tags:
+  - sv0
+  - sv0c
+  - milestone-4
+  - verification
+  - pilots
+title: "sv0c: verification pilots + proof corpus (M4 Epic E)"
+type: task
+---
+
+# sv0c: verification pilots + proof corpus
+
+## purpose
+
+Milestone 4, **Epic E**. Prove that the verifier works on real code and lock it in
+with a **gated verification corpus**: `.sv0` programs with an expected proof
+status per contract, checked in `./scripts/sv0 test`. Demonstrate a non-trivial
+module verified end-to-end.
+
+Hub: `task/sv0-toolchain-milestone-4-verification.Rmd`. Slices: **M4-S-040…043**.
+Depends on Epics A–C (a working `sv0 verify`).
+
+## dependencies
+
+/require: bash
+/require: z3
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+
+## approach
+
+1. **Verify corpus format + verifier (M4-S-040).** Mirror the behavioral PASS
+   corpus pattern (`sv0c/test/behavior/`): `sv0c/test/verify/cases/*.sv0` +
+   `manifest.txt` rows mapping a contract site to its expected status
+   (`verified` / `runtime`). A new `scripts/verify_contract_corpus.py` runs
+   `sv0 verify --format=json` and asserts each contract's status. **Must be
+   deterministic** (fixed z3 options) or CI flakes. Skip cleanly when `z3` absent.
+2. **Pilot proofs (M4-S-041).** Take a non-trivial module and drive its critical
+   contracts to `[verified]`. Candidate routines already exist under
+   `sv0c/examples/` (gcd, abs, clamp, bounds) — pure integer logic that QF_LIA can
+   discharge.
+3. **CI integration (M4-S-042).** Wire the verify corpus into `./scripts/sv0 test`
+   (guarded by z3 availability), so a verification regression breaks CI.
+4. **[DECISION] pilot target (M4-S-043).** Choose numeric/std vs crypto once the
+   solver's real capability is known from Epics A/B. Numeric/std is the safe first
+   target (linear arithmetic); crypto (constant-time, modular/field arithmetic) is
+   a stretch that needs nonlinear support — record the decision + rationale.
+
+## slices
+
+- **M4-S-040** verify corpus format + `verify_contract_corpus.py` (gated, deterministic).
+- **M4-S-041** pilot: a non-trivial module fully verified.
+- **M4-S-042** `sv0 verify` in CI on the corpus.
+- **M4-S-043** [DECISION] pilot target (numeric vs crypto).
+
+## acceptance
+
+- A corpus of `.sv0` + expected `[verified]`/`[runtime]` per contract runs in the
+  gate and is stable across runs.
+- ≥1 non-trivial module has all critical contracts `[verified]`.
+- CI green with the verify corpus (and clean-skips when z3 is unavailable).
+
+## related
+
+- `task/sv0-toolchain-milestone-4-verification.Rmd` (hub) · `task/sv0-toolchain-milestone-4-checklist.Rmd`
+- `task/sv0c-verify-cli.Rmd` — the tool under test
+- `sv0c/test/behavior/` — the corpus pattern to mirror

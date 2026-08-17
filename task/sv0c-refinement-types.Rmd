@@ -1,0 +1,82 @@
+---
+created: "2026-08-16T00:00:00-07:00"
+updated: "2026-08-16T00:00:00-07:00"
+id: task-sv0c-refinement-types
+key: sv0c-refinement-types
+state: todo
+tags:
+  - sv0
+  - sv0c
+  - milestone-4
+  - verification
+  - refinement-types
+title: "sv0c: refinement types + modular verification (M4 Epic D)"
+type: task
+---
+
+# sv0c: refinement types + modular verification
+
+## purpose
+
+Milestone 4, **Epic D** (Phase 3). Extend static verification across function
+boundaries: **refinement types** (`type T = i32 where self > 0`), refinement
+checks at assignment, **modular** caller/callee proof, and the trait- and
+cast-contract rules from the spec.
+
+Hub: `task/sv0-toolchain-milestone-4-verification.Rmd`. Slices: **M4-S-030…034**.
+Depends on Epics A–C (VCgen + solver + verify CLI) being in place.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+1. **Refinement syntax + spec (M4-S-030).** `type Name = BaseTy where <bool-expr
+   over self>` in the parser; a normative section in `sv0doc/type-system/`
+   (grammar + typing rule: a refinement type is its base type plus a predicate).
+2. **Assignment checks (M4-S-031).** At each binding/assignment to a refinement
+   type, emit a VC (`value satisfies predicate`) discharged by Epic B. Reuse the
+   contract-expr IR for the predicate.
+3. **Modular verification (M4-S-032).** Use each callee's `requires` as a
+   **summary**: at a call site, prove the caller's arguments satisfy the callee's
+   preconditions (and assume its `ensures` after) **without** re-verifying the
+   callee body. This is what makes verification scale.
+4. **Trait contracts (M4-S-033, `sv0doc` §5).** An `impl` method must satisfy the
+   trait method's contract; `impl` may **strengthen** (contravariant `requires`,
+   covariant `ensures`). Reject violations.
+5. **Narrowing-cast contracts (M4-S-034, `sv0doc` §6).** A narrowing cast inserts
+   an implicit range obligation; verify it (proven ⇒ no runtime check; else
+   residual), consistent with contract-mode.
+
+**Soundness:** modular reasoning is only sound if callee contracts are themselves
+verified (or explicitly trusted). Track which contracts are assumed vs proven.
+
+## slices
+
+- **M4-S-030** refinement type syntax (parser) + `sv0doc/type-system/` delta.
+- **M4-S-031** refinement checking at assignment (VC per assignment).
+- **M4-S-032** modular caller-arg-vs-callee-requires (contracts as summaries).
+- **M4-S-033** trait-contract contravariance (§5).
+- **M4-S-034** narrowing-cast contracts (§6).
+
+## acceptance
+
+- A refinement type parses; an out-of-refinement assignment is reported, a valid
+  one passes.
+- A call is proven safe using the callee's `requires` without re-verifying its body.
+- A contract-violating trait `impl` is rejected; a strengthening one is accepted.
+- A narrowing cast's implicit obligation is verified or kept residual per mode.
+- Spec (`sv0doc/type-system/`) documents the refinement grammar + rules.
+
+## related
+
+- `task/sv0-toolchain-milestone-4-verification.Rmd` (hub) · `task/sv0-toolchain-milestone-4-checklist.Rmd`
+- `task/sv0c-contract-vcgen.Rmd` · `task/sv0c-smt-backend.Rmd` · `task/sv0c-verify-cli.Rmd`
+- `sv0doc/contracts/semantics.md` §3.3 (modular), §5 (trait contracts), §6 (cast contracts)
+- `sv0doc/type-system/rules.md`

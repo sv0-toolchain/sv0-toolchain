@@ -1,0 +1,89 @@
+---
+created: "2026-08-16T00:00:00-07:00"
+updated: "2026-08-16T00:00:00-07:00"
+id: task-sv0c-smt-backend
+key: sv0c-smt-backend
+state: todo
+tags:
+  - sv0
+  - sv0c
+  - milestone-4
+  - verification
+  - smt
+  - z3
+title: "sv0c: SMT-LIB2 backend + z3 driver (M4 Epic B)"
+type: task
+---
+
+# sv0c: SMT backend (SMT-LIB2 + z3)
+
+## purpose
+
+Milestone 4, **Epic B**. Discharge the verification conditions from Epic A
+(`task/sv0c-contract-vcgen.Rmd`) with **Z3 via SMT-LIB2**: emit SMT-LIB2 text,
+run the `z3` binary, parse the result, and classify each obligation as
+**proven** / **residual** / **counterexample**.
+
+Hub: `task/sv0-toolchain-milestone-4-verification.Rmd`. Slices: **M4-S-010…014**.
+
+## dependencies
+
+/require: bash
+/require: z3
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+
+## approach
+
+1. **SMT-LIB2 emitter (M4-S-010).** Translate a VC (`hypotheses ⟹ obligation`)
+   into `(set-logic QF_LIA)`, `declare-const` for each variable, `(assert H)` for
+   hypotheses, `(assert (not obligation))`, `(check-sat)`. Proven ⇔ **unsat**.
+   Bool + linear-int only initially; anything outside the fragment is emitted as a
+   residual (never a false "proven").
+2. **z3 driver (M4-S-011).** Run `z3 -smt2` on the query with a fixed timeout,
+   parse `sat` / `unsat` / `unknown`. On `sat`, request a model (counterexample)
+   for diagnostics.
+3. **Result mapping (M4-S-012).** `unsat` → **verified**; `sat` → **residual +
+   counterexample** (feed the model into a diagnostic); `unknown`/timeout →
+   **residual**.
+4. **Host-process story — [DECISION] (M4-S-013).** The compiler is sv0→C/VM with
+   no FFI and no subprocess builtin. Two options:
+   - **(a) driver-orchestrated** — the sv0 compiler emits SMT-LIB2 to a file (via
+     the existing `write_file` runtime builtin); the `./scripts/sv0 verify` shell
+     driver runs `z3`, and feeds results back for a second codegen pass. No
+     runtime change; verification is a driver-level loop.
+   - **(b) `run_process` runtime builtin** — add a subprocess primitive to
+     `sv0c/runtime/` so the compiler calls z3 directly. More capable, larger
+     surface, needs a portable (macOS + Linux) implementation.
+   Recommend **(a)** first (no runtime/self-host risk), keeping (b) as a later
+   option. Record the decision here.
+5. **Graceful degradation.** When `z3` is not on PATH: `sv0 verify` reports every
+   contract as `[runtime]` (reason: "solver unavailable") and exits 0 — never a
+   hard failure. Normal compilation never needs z3.
+6. **Determinism (M4-S-014).** Fixed z3 options (logic, timeout, `:random-seed`)
+   so results are stable — the verify corpus must not flake in CI.
+
+## slices
+
+- **M4-S-010** SMT-LIB2 emitter (QF_LIA + bool).
+- **M4-S-011** z3 subprocess driver (invoke + timeout + parse).
+- **M4-S-012** obligation → result mapping (+ counterexample model).
+- **M4-S-013** [DECISION] host-process story + graceful degradation.
+- **M4-S-014** determinism (fixed options).
+
+## acceptance
+
+- Emits well-formed SMT-LIB2 for a sample VC; z3 returns `unsat` for a valid
+  obligation and `sat` (with a model) for an invalid one.
+- Proven/residual classification is correct on a small fixture set.
+- With `z3` removed from PATH, the pipeline degrades to all-runtime cleanly.
+- Repeated runs are byte-stable (determinism).
+
+## related
+
+- `task/sv0-toolchain-milestone-4-verification.Rmd` (hub) · `task/sv0-toolchain-milestone-4-checklist.Rmd`
+- `task/sv0c-contract-vcgen.Rmd` — produces the VCs
+- `task/sv0c-verify-cli.Rmd` — consumes the classification
+- `sv0doc/contracts/semantics.md` §3.2 (SMT-backed local verification)

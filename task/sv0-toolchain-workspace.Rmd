@@ -71,6 +71,7 @@ use these as entry points for scoped work:
 | self-hosting compiler (design M3) | `task/sv0-toolchain-milestone-3-self-host.Rmd` | sv0c (+ future sv0 sources) |
 | M3 transliteration checklist (child) | `task/sv0-toolchain-milestone-3-checklist.Rmd` | sv0c `sml-legacy/` vs `lib/` / `lexer/` / `parser/` seeds |
 | advanced verification (design M4) | `task/sv0-toolchain-milestone-4-verification.Rmd` | sv0c + sv0doc |
+| M4 verification slice backlog (child) | `task/sv0-toolchain-milestone-4-checklist.Rmd` | sv0c + sv0doc (`M4-S-###`) |
 | LLVM + crypto (design M5) | `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` | sv0c + sv0doc |
 | kernel / bare metal (design M6) | `task/sv0-toolchain-milestone-6-kernel.Rmd` | sv0c + sv0doc |
 | cross-cutting backlog | `task/sv0-toolchain-milestone-cross-cutting.Rmd` | multi |

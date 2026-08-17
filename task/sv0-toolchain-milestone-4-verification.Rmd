@@ -1,9 +1,9 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-08-16T00:00:00-07:00"
 id: task-sv0-toolchain-milestone-4-verification
 key: sv0-toolchain-milestone-4-verification
-state: draft
+state: active
 tags:
   - sv0
   - sv0-toolchain
@@ -19,7 +19,57 @@ roadmap_parent: sv0-toolchain-roadmap-full
 
 ## purpose
 
-match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 4**: **SMT-backed** static reasoning where possible, **refinement types**, **`sv0 verify`**, and using verification on **real libraries** (e.g. crypto-oriented examples in the design).
+Implement the **static verification** described in [vision & design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 4** and normatively specified in **`sv0doc/contracts/semantics.md`** §3–4: move the contract system from **runtime-only** (Phase 1, shipped) to **SMT-backed static proof** (Phase 2 local + Phase 3 modular), add **refinement types**, ship **`sv0 verify`** + **`--contract-mode`**, and demonstrate it on real code.
+
+## where we start (2026-08-16)
+
+- **Phase 1 (runtime contracts) is DONE.** `requires`/`ensures`/`loop_invariant` parse, type-check (clause well-formedness — E0502/E0520–E0526/E0540–E0541), and lower to runtime checks; a failed check aborts. Covered by the golden-fail corpus + the behavioral PASS corpus contract cases.
+- **`lib/contract_analyzer.sv0` is a stub.** Contract clause handling currently lives in the parser/checker/lowering; M4 builds the verification pipeline as new sv0 modules.
+- **No static verification, `sv0 verify`, SMT, or refinement types exist yet.**
+
+## scope decisions (2026-08-16)
+
+1. **Solver backend = external Z3 via SMT-LIB2.** `sv0 verify` emits SMT-LIB2 text, runs the `z3` binary as a subprocess, parses `sat`/`unsat`/`unknown`. Full solver power with no FFI. Verification (not normal compilation) depends on `z3` on PATH; absence degrades gracefully (every contract → runtime). See **`task/sv0c-smt-backend.Rmd`** for the host-process design (driver-orchestrated vs. a runtime subprocess builtin — open).
+2. **Full spec scope: Phase 2 + Phase 3.** M4 delivers local *and* modular static verification + refinement types + pilots (not a Phase-2-only cut).
+3. **Pilot target: decided during Epic E** once the solver's real capabilities are known (numeric/std routines are the likely first target; crypto is a stretch).
+
+## epics → owning sub-tasks
+
+| epic | scope | sub-task |
+|---|---|---|
+| **A — VC generation** | contract-expr IR + verification-condition generator over the fn body (assume `requires`, symbolic execution / WP, loop invariants, `old`/`result`) | `task/sv0c-contract-vcgen.Rmd` |
+| **B — SMT backend** | SMT-LIB2 emitter + `z3` subprocess driver + obligation→result mapping + graceful degradation | `task/sv0c-smt-backend.Rmd` |
+| **C — `sv0 verify` + contract-mode** | the CLI, per-contract `[verified]`/`[runtime]` report, machine-readable output, `--contract-mode` (runtime/verified/disabled), verified-mode stripping of proven checks, minimal `sv0.toml` | `task/sv0c-verify-cli.Rmd` |
+| **D — refinement types + modular** | `type T = i32 where self > 0`, refinement checks at assignment, modular caller/callee proof, trait-contract contravariance, narrowing-cast contracts | `task/sv0c-refinement-types.Rmd` |
+| **E — pilots + proof corpus** | a gated verification corpus (expected proof status per contract) + end-to-end pilot proofs | `task/sv0c-verify-pilots.Rmd` |
+| **F — spec/doc alignment** | keep `sv0doc/contracts/semantics.md` + `sv0doc/type-system/` normative as behavior lands (a directive inside each epic, not a separate module) | — |
+
+Slice-level backlog (`M4-S-###`) lives in **`task/sv0-toolchain-milestone-4-checklist.Rmd`**.
+
+## macro phases (sequencing)
+
+- **P0 — foundation.** Contract-expr IR extraction (A) + SMT-LIB2 emitter skeleton + `z3` driver (B) + `sv0 verify` plumbing with a trivial solver (C). Goal: an end-to-end path that proves a hand-picked `ensures(true)`.
+- **P1 — local static verification (Phase 2).** Full VC generation incl. branches + loop invariants (A); real Z3 discharge with counterexamples + timeouts (B); `verified` contract-mode strips proven runtime checks (C). **Exit: intra-function `requires`/`ensures`/`loop_invariant` proven where decidable; `sv0 verify` reports per-contract status.**
+- **P2 — modular + refinement (Phase 3).** Refinement type syntax + checking; caller-arg-vs-callee-`requires`; trait/cast contracts (D).
+- **P3 — pilots + corpus.** Gated verify corpus + a fully-verified non-trivial module (E); `sv0 verify` in CI.
+- **P4 — hardening + spec finalization.** Robustness (solver flakiness, resource limits, determinism), diagnostics quality, and `sv0doc` sign-off (F).
+
+## completion criteria (refine as you implement)
+
+- **SMT backend:** Z3-via-SMT-LIB2 integrated; `sat`/`unsat`/`unknown`/timeout handled; deterministic; **graceful degradation when `z3` is absent** (all contracts → runtime, no hard failure).
+- **`sv0 verify`:** reports `[verified]`/`[runtime]` + a reason per contract (matching `sv0doc` §3.2); machine-readable (JSON) output for tooling/CI.
+- **contract-mode:** `verified` strips proven contracts' runtime checks and keeps unproven; `runtime` and `disabled` behave per §4; selectable via `--contract-mode` and minimal `sv0.toml`.
+- **Phase 2:** intra-function `requires`/`ensures`/`loop_invariant` proven where the fragment is decidable (linear integer arithmetic + booleans at minimum).
+- **Phase 3:** refinement types checked at assignment + call sites; modular caller/callee proof; trait-contract contravariance + narrowing-cast contracts.
+- **pilots:** ≥1 non-trivial module fully verified; a **gated verification corpus** asserts per-contract proof status and runs in `./scripts/sv0 test`.
+- **spec:** `sv0doc/contracts/semantics.md` + `sv0doc/type-system/` reflect shipped behavior; no normative drift.
+
+## key design/risk notes
+
+- **Self-hosting constraint.** The compiler is sv0→C/VM with no FFI and (currently) no subprocess builtin. Running `z3` is either (a) orchestrated by the `./scripts/sv0 verify` driver (compiler writes SMT-LIB to a file; the shell driver runs z3 + feeds results back for a second codegen pass), or (b) a new `run_process` runtime builtin. **Decide in Epic B (`sv0c-smt-backend.Rmd`) — this gates the `verify` architecture.**
+- **Soundness over completeness.** Unproven ⇒ keep the runtime check (never silently drop). A wrong `[verified]` is a soundness bug; a spurious `[runtime]` is only a missed optimization.
+- **Determinism for CI.** Solver results must be stable (fixed z3 options, timeouts) or the verify corpus flakes.
+- **VC fragment.** Start with QF_LIA (linear int + bool); nonlinear (crypto field arithmetic) is a later stretch, not a P1 blocker.
 
 ## progress dashboard (sv0-track)
 
@@ -27,7 +77,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 <!-- sv0-track:begin {"id":"m4.verify.dashboard","title":"M4 verification — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M4"} -->
 - [ ] **sv0doc/** contract / verification prose aligned before claiming new tool behavior
-- [ ] Solver or **`sv0 verify`** harness notes updated when experiments land
+- [ ] Solver / `sv0 verify` harness notes updated when experiments land; verify corpus kept deterministic
 - [ ] `./scripts/sv0 test-guards` after **`task/`** edits; broader **`./scripts/sv0 test`** when implementation touched
 <!-- sv0-track:end {"id":"m4.verify.dashboard"} -->
 
@@ -43,39 +93,37 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 ## prerequisites
 
-- self-hosting or stable bootstrap compiler with frozen enough IR + contract AST (`task/sv0-toolchain-milestone-3-self-host.Rmd` or agreed partial state)
-- **sv0doc** contract semantics and verification phases documented (`sv0doc/contracts/semantics.md`)
-
-## completion criteria (refine as you implement)
-
-- **solver integration**: chosen SMT (or other) engine; error reporting when proof fails or times out
-- **`sv0 verify`**: runs static checks after `sv0 check` (or equivalent); reports proven vs residual runtime checks
-- **refinement types**: subset or full design per spec updates in **sv0doc**
-- **library proofs**: at least one non-trivial module uses `verified` contract mode for critical routines (scope TBD)
+- **Self-hosting compiler (M3) — DONE.** Native sv0-built compiler is the default; contract AST + runtime lowering are stable.
+- **`sv0doc/contracts/semantics.md` §3–4** (verification phases + contract-mode) — normative, present.
+- **`z3`** available for the solver backend (Epic B decides how it is invoked).
 
 ## phases
 
-### phase 1: contract → solver pipeline
+### phase 1: contract → VC → solver pipeline (Epics A + B)
 
-/ai: map contract AST fragments to solver queries; define which builtins are in scope for phase 2 in the design vs deferred.
+/ai: extract a contract-expression IR from the parsed clauses; generate verification conditions over the fn body (assume requires, symbolic execution with loop invariants, old/result); emit SMT-LIB2; drive z3; map unsat(¬obligation) → proven. Define the decidable fragment (QF_LIA + bool) and defer nonlinear. Decide the host-process story.
 
-### phase 2: `sv0 verify` UX and CI hooks
+### phase 2: `sv0 verify` UX + contract-mode (Epic C)
 
-/ai: stable JSON or machine-readable output for tooling; timeout and resource limits.
+/ai: `sv0 verify` reports per-contract status (human + JSON); `--contract-mode=verified` strips proven runtime checks in lowering while keeping unproven; minimal `sv0.toml`; timeouts + resource limits + graceful degradation without z3.
 
-### phase 3: refinement types
+### phase 3: refinement types + modular verification (Epic D)
 
-/ai: spec delta in **sv0doc/type-system/**; integration with type checker in sv0 compiler.
+/ai: `type T = i32 where self > 0` in the parser + a spec delta in `sv0doc/type-system/`; refinement checks at assignment; modular caller-arg-vs-callee-requires using contracts as summaries; trait-contract contravariance (§5) + narrowing-cast contracts (§6).
 
-### phase 4: crypto / std pilots
+### phase 4: pilots + proof corpus (Epic E)
 
-/ai: pick pilot APIs from design `crypto::*` vision; document proof obligations.
+/ai: build a gated verification corpus (per-contract expected proof status) + a verifier wired into `./scripts/sv0 test`; prove a non-trivial module end-to-end; pick pilot routines once solver capability is known (numeric/std first; crypto stretch).
 
 ## refinement log
 
 - 2026-03-25: initial scaffold from design milestone 4.
+- 2026-08-16: fleshed out after M3 closure + post-M3 hardening. Locked scope decisions (Z3-via-SMT-LIB2 backend; full Phase 2+3; pilot TBD). Added epic → sub-task map, macro phases (P0–P4), refined completion criteria + design/risk notes. `state: draft → active`. Sub-tasks + `M4-S-###` slice backlog created; see the checklist.
 
 ## related
 
+- `task/sv0-toolchain-milestone-4-checklist.Rmd` — `M4-S-###` slice backlog + epic status
+- `task/sv0c-contract-vcgen.Rmd`, `task/sv0c-smt-backend.Rmd`, `task/sv0c-verify-cli.Rmd`, `task/sv0c-refinement-types.Rmd`, `task/sv0c-verify-pilots.Rmd`
 - `task/sv0-toolchain-roadmap-full.Rmd`
-- `sv0doc/contracts/semantics.md` — verification phases
+- `sv0doc/contracts/semantics.md` §3–4 — verification phases + contract-mode
+- `sv0doc/type-system/rules.md` — refinement type integration point
