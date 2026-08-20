@@ -38,27 +38,43 @@ Hub: `task/sv0-toolchain-milestone-4-verification.Rmd`. Slices: **M4-S-010…014
 ## approach
 
 1. **SMT-LIB2 emitter (M4-S-010).** Translate a VC (`hypotheses ⟹ obligation`)
-   into `(set-logic QF_LIA)`, `declare-const` for each variable, `(assert H)` for
+   into `(set-logic …)`, `declare-const` for each variable, `(assert H)` for
    hypotheses, `(assert (not obligation))`, `(check-sat)`. Proven ⇔ **unsat**.
-   Bool + linear-int only initially; anything outside the fragment is emitted as a
-   residual (never a false "proven").
+   **Fragment:** default `QF_LIA` (linear int + bool). A VC that multiplies two
+   variables or uses `div`/`mod` on variables needs `QF_NIA` — detect this and
+   set the logic accordingly (validated: `(= (* (div vx 2) 2) vx)` under
+   `QF_NIA` returns `unsat`). Anything still outside (quantifiers, arrays,
+   strings) is emitted as a **residual**, never a false "proven".
 2. **z3 driver (M4-S-011).** Run `z3 -smt2` on the query with a fixed timeout,
    parse `sat` / `unsat` / `unknown`. On `sat`, request a model (counterexample)
    for diagnostics.
 3. **Result mapping (M4-S-012).** `unsat` → **verified**; `sat` → **residual +
    counterexample** (feed the model into a diagnostic); `unknown`/timeout →
    **residual**.
-4. **Host-process story — [DECISION] (M4-S-013).** The compiler is sv0→C/VM with
-   no FFI and no subprocess builtin. Two options:
-   - **(a) driver-orchestrated** — the sv0 compiler emits SMT-LIB2 to a file (via
-     the existing `write_file` runtime builtin); the `./scripts/sv0 verify` shell
-     driver runs `z3`, and feeds results back for a second codegen pass. No
-     runtime change; verification is a driver-level loop.
-   - **(b) `run_process` runtime builtin** — add a subprocess primitive to
-     `sv0c/runtime/` so the compiler calls z3 directly. More capable, larger
-     surface, needs a portable (macOS + Linux) implementation.
-   Recommend **(a)** first (no runtime/self-host risk), keeping (b) as a later
-   option. Record the decision here.
+4. **Host-process story — DECIDED 2026-08-17 (M4-S-013): driver-orchestrated (a).**
+   The sv0 compiler never spawns z3. It uses the existing `write_file` /
+   `read_file` runtime builtins; the `./scripts/sv0 verify` **shell driver** runs
+   `z3`. No FFI, no `run_process` builtin, z3 stays out of the self-hosted compiler
+   process. (Option (b), a `run_process` runtime builtin, is deferred — a possible
+   later optimization, not needed now.)
+
+   **Validated 2026-08-17:** runtime has `write_file`/`read_file`/`read_dir`; z3
+   4.16.0 is on PATH; the emitter's operator forms (`and`, `+`, `distinct`, `div`,
+   `mod`, comparisons) all check-sat correctly — a provable VC returns `unsat`, an
+   unprovable one `sat` + a counterexample model.
+
+   **Two flows:**
+   - **`sv0 verify` (report).** A compiler mode emits, per obligation, an SMT-LIB2
+     query (tagged with a contract id) to a file/dir via `write_file`. The shell
+     driver runs `z3` per query, parses `sat`/`unsat`/`unknown`, and prints the
+     per-contract report. z3 stays entirely in the driver.
+   - **`--contract-mode=verified` (two-pass codegen).** Pass 1 emits the VC
+     queries; the driver runs z3 and writes a **proof-results file**
+     (`contract_id → verified|residual`). Pass 2 = normal compile, where lowering
+     `read_file`s the proof-results and strips only the `verified` contracts'
+     runtime checks. No proof-results file (verify not run / no z3) ⇒ nothing
+     stripped (all runtime). This keeps proof discharge outside the compiler while
+     still letting codegen act on results.
 5. **Graceful degradation.** When `z3` is not on PATH: `sv0 verify` reports every
    contract as `[runtime]` (reason: "solver unavailable") and exits 0 — never a
    hard failure. Normal compilation never needs z3.
