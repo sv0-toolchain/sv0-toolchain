@@ -130,6 +130,78 @@ ensure_sv0_megatu_native() {
   [[ -f /tmp/.sv0_drv_path ]] || printf '' > /tmp/.sv0_drv_path
 }
 
+# M4-S-020: materialize the native contract-VERIFY binary (build/sv0-megatu-verify),
+# which tokenizes + parses a .sv0 and emits SMT-LIB2 obligation records (see
+# build-sv0-megatu-verify-native.sh). Rebuilt only when absent.
+ensure_sv0_megatu_verify() {
+  local out="$ROOT/build/sv0-megatu-verify"
+  if [[ ! -x "$out" ]]; then
+    bash "$ROOT/scripts/build-sv0-megatu-verify-native.sh" >&2
+  fi
+  if [[ ! -x "$out" ]]; then
+    sv0_fail "ensure_sv0_megatu_verify: missing executable $out (build-sv0-megatu-verify-native.sh failed)"
+  fi
+  [[ -f /tmp/.sv0_verify_path ]] || printf '' > /tmp/.sv0_verify_path
+}
+
+# M4-S-020: `sv0 verify <file>` — driver-orchestrated static contract verification.
+# The native verify binary emits one obligation record per `ensures` clause
+# (`VC<TAB>fn<TAB>line<TAB>smt2|RESIDUAL`); this driver runs each query through
+# scripts/sv0-z3.sh and reports per-contract [verified]/[runtime]. z3 `unsat` ⇒
+# proven; anything else (sat/unknown/absent/unsupported) ⇒ keep the runtime check
+# (soundness: only a solid unsat strips an obligation). Exit 0 always (a report,
+# not a gate) unless the file can't be parsed.
+run_verify() {
+  local file="${1:?}"
+  [[ -f "$file" ]] || sv0_fail "verify: no such file: $file"
+  ensure_sv0_megatu_verify
+  local abs
+  abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  printf '' > /tmp/.sv0_drv_path
+  local records
+  if ! records="$("$ROOT/build/sv0-megatu-verify" "$abs")"; then
+    sv0_fail "verify: parse/emit failed for $file (does it compile?)"
+  fi
+  if [[ -z "$records" ]]; then
+    echo "verify: $(basename "$file") — no ensures clauses to verify"
+    return 0
+  fi
+  local have_z3=1
+  command -v z3 >/dev/null 2>&1 || have_z3=0
+  if [[ "$have_z3" -eq 0 ]]; then
+    sv0_info "verify: z3 not on PATH — all obligations reported [runtime] (install z3 to prove)"
+  fi
+  local n_verified=0 n_runtime=0
+  local tmpq
+  tmpq="$(mktemp)"
+  while IFS=$'\t' read -r tag fn line query; do
+    [[ "$tag" == "VC" ]] || continue
+    local status="runtime"
+    if [[ "$query" == "RESIDUAL" ]]; then
+      status="runtime"
+      n_runtime=$((n_runtime + 1))
+    elif [[ "$have_z3" -eq 0 ]]; then
+      status="runtime"
+      n_runtime=$((n_runtime + 1))
+    else
+      printf '%s\n' "$query" > "$tmpq"
+      local verdict
+      verdict="$(bash "$ROOT/scripts/sv0-z3.sh" "$tmpq" 2>/dev/null | head -1)"
+      if [[ "$verdict" == "unsat" ]]; then
+        status="verified"
+        n_verified=$((n_verified + 1))
+      else
+        status="runtime"
+        n_runtime=$((n_runtime + 1))
+      fi
+    fi
+    printf '  %s: ensures (line %s) [%s]\n' "$fn" "$line" "$status"
+  done <<< "$records"
+  rm -f "$tmpq"
+  printf 'verify: %s — %d verified, %d runtime\n' "$(basename "$file")" "$n_verified" "$n_runtime"
+  return 0
+}
+
 _abs_sv0c_rel() {
   local rel="${1:?}"
   local p="$SV0C/$rel"
@@ -317,6 +389,10 @@ run_test() {
   fi
   sv0_info "sv0 test: z3 driver (M4-S-011; verifies scripts/sv0-z3.sh, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_z3_driver.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: sv0 verify e2e (M4-S-020; parse→VC→z3 on test/verify/basic.sv0, skips if z3 absent)"
+  if ! python3 "$ROOT/scripts/verify_sv0_verify_e2e.py" --root "$ROOT"; then
     ec=1
   fi
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml"; OS.Process.exit OS.Process.success;' | sml >/dev/null); then
@@ -1183,6 +1259,11 @@ case "$cmd" in
     rel="${1:-}"
     if [[ -z "$rel" ]]; then usage; exit 1; fi
     run_compile_run "$rel"
+    ;;
+  verify)
+    file="${1:-}"
+    if [[ -z "$file" ]]; then usage; exit 1; fi
+    run_verify "$file"
     ;;
   self-host-capture-stage0)
     rel="${1:-}"
