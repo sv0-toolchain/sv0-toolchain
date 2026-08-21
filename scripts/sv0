@@ -144,13 +144,17 @@ ensure_sv0_megatu_verify() {
   [[ -f /tmp/.sv0_verify_path ]] || printf '' > /tmp/.sv0_verify_path
 }
 
-# M4-S-020: `sv0 verify <file>` — driver-orchestrated static contract verification.
-# The native verify binary emits one obligation record per `ensures` clause
-# (`VC<TAB>fn<TAB>line<TAB>smt2|RESIDUAL`); this driver runs each query through
-# scripts/sv0-z3.sh and reports per-contract [verified]/[runtime]. z3 `unsat` ⇒
+# M4-S-020/021: `sv0 verify <file>` — driver-orchestrated static contract
+# verification with a per-contract report (sv0doc/contracts/semantics.md §3.2).
+# The native verify binary emits one record per contract clause
+# (`VC<TAB>line<TAB>kind<TAB>clause<TAB>payload`; payload = smt2 query | RESIDUAL |
+# PRECOND); this driver runs each ensures query through scripts/sv0-z3.sh and
+# prints `<file>:<line>  <clause>  [verified|runtime]  -- <reason>`. z3 `unsat` ⇒
 # proven; anything else (sat/unknown/absent/unsupported) ⇒ keep the runtime check
-# (soundness: only a solid unsat strips an obligation). Exit 0 always (a report,
-# not a gate) unless the file can't be parsed.
+# (soundness: only a solid unsat strips an obligation). requires clauses are
+# preconditions (assumed locally, discharged at call sites under modular
+# verification); loop invariants are not yet handled — both stay [runtime]. Exit 0
+# always (a report, not a gate) unless the file can't be parsed.
 run_verify() {
   local file="${1:?}"
   [[ -f "$file" ]] || sv0_fail "verify: no such file: $file"
@@ -163,41 +167,63 @@ run_verify() {
     sv0_fail "verify: parse/emit failed for $file (does it compile?)"
   fi
   if [[ -z "$records" ]]; then
-    echo "verify: $(basename "$file") — no ensures clauses to verify"
+    echo "verify: $(basename "$file") — no contracts to verify"
     return 0
   fi
   local have_z3=1
   command -v z3 >/dev/null 2>&1 || have_z3=0
   if [[ "$have_z3" -eq 0 ]]; then
-    sv0_info "verify: z3 not on PATH — all obligations reported [runtime] (install z3 to prove)"
+    sv0_info "verify: z3 not on PATH — ensures obligations reported [runtime] (install z3 to prove)"
   fi
-  local n_verified=0 n_runtime=0
+  local -a o_line=() o_clause=() o_status=() o_reason=()
+  local n_verified=0 n_runtime=0 maxw=0 maxp=0
   local tmpq
   tmpq="$(mktemp)"
-  while IFS=$'\t' read -r tag fn line query; do
+  local tag line kind clause payload status reason verdict
+  while IFS=$'\t' read -r tag line kind clause payload; do
     [[ "$tag" == "VC" ]] || continue
-    local status="runtime"
-    if [[ "$query" == "RESIDUAL" ]]; then
-      status="runtime"
-      n_runtime=$((n_runtime + 1))
-    elif [[ "$have_z3" -eq 0 ]]; then
-      status="runtime"
-      n_runtime=$((n_runtime + 1))
-    else
-      printf '%s\n' "$query" > "$tmpq"
-      local verdict
-      verdict="$(bash "$ROOT/scripts/sv0-z3.sh" "$tmpq" 2>/dev/null | head -1)"
-      if [[ "$verdict" == "unsat" ]]; then
-        status="verified"
-        n_verified=$((n_verified + 1))
+    status="runtime"
+    reason="not checked"
+    if [[ "$payload" == "PRECOND" ]]; then
+      reason="input precondition (assumed locally)"
+    elif [[ "$payload" == "RESIDUAL" ]]; then
+      if [[ "$kind" == "loop_invariant" ]]; then
+        reason="loop invariants not yet supported"
       else
-        status="runtime"
-        n_runtime=$((n_runtime + 1))
+        reason="outside supported fragment"
       fi
+    elif [[ "$have_z3" -eq 0 ]]; then
+      reason="no solver (z3 not found)"
+    else
+      printf '%s\n' "$payload" > "$tmpq"
+      verdict="$(bash "$ROOT/scripts/sv0-z3.sh" "$tmpq" 2>/dev/null | head -1)"
+      case "$verdict" in
+        unsat) status="verified"; reason="proven" ;;
+        sat) reason="not proven (counterexample)" ;;
+        *) reason="not proven (solver: ${verdict:-timeout})" ;;
+      esac
     fi
-    printf '  %s: ensures (line %s) [%s]\n' "$fn" "$line" "$status"
+    if [[ "$status" == "verified" ]]; then
+      n_verified=$((n_verified + 1))
+    else
+      n_runtime=$((n_runtime + 1))
+    fi
+    o_line+=("$line")
+    o_clause+=("$clause")
+    o_status+=("$status")
+    o_reason+=("$reason")
+    ((${#clause} > maxw)) && maxw=${#clause}
+    local plen=$((${#file} + 1 + ${#line}))
+    ((plen > maxp)) && maxp=$plen
   done <<< "$records"
   rm -f "$tmpq"
+  local i sb prefix
+  for i in "${!o_clause[@]}"; do
+    sb="[${o_status[$i]}]"
+    prefix="$file:${o_line[$i]}"
+    printf '%-*s  %-*s  %-10s -- %s\n' \
+      "$maxp" "$prefix" "$maxw" "${o_clause[$i]}" "$sb" "${o_reason[$i]}"
+  done
   printf 'verify: %s — %d verified, %d runtime\n' "$(basename "$file")" "$n_verified" "$n_runtime"
   return 0
 }
