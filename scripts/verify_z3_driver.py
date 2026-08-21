@@ -41,6 +41,18 @@ CASES = [
      "(set-logic QF_NIA)(declare-const vx Int)"
      "(assert (= (mod vx 2) 0))(assert (not (= (* (div vx 2) 2) vx)))(check-sat)",
      ["unsat"]),
+    # M4-S-003/010: the EXACT query verify_vcgen's vc_gen_ensures_query produces
+    # for `f(x) requires(x>0) ensures(result>=1) { return x; }` (kept byte-identical
+    # to the string asserted in test_vc_gen_ensures) — must be provable (unsat).
+    ("vcgen_requires_implies_ensures",
+     "(set-logic QF_LIA) (declare-const v0 Int) (declare-const result Int) "
+     "(assert (> v0 0)) (assert (= result v0)) (assert (not (>= result 1))) (check-sat)",
+     ["unsat"]),
+    # the negative case: without the requires, result>=1 is NOT provable (sat).
+    ("vcgen_no_requires_residual",
+     "(set-logic QF_LIA) (declare-const v0 Int) (declare-const result Int) "
+     "(assert (= result v0)) (assert (not (>= result 1))) (check-sat)",
+     ["sat"]),
 ]
 
 
