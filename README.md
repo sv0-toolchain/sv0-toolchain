@@ -85,9 +85,15 @@ SHA in the same commit as any `sv0c` submodule bump (CI enforces the match via
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on `main`** | `ac272be5f089ea7eee2208ab03498c1446e5280f` |
+| **sv0c commit pinned on `main`** | `79e5add7f4994a663bf3a92bda4664415a13aa01` |
 
 ## design document
 
 The language vision and design narrative:
 <http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html>
+
+## license
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
+[MIT license](LICENSE-MIT) at your option. This applies to this meta-repo and
+to each of the sv0c, sv0vm, sv0doc, and sv0-mcp submodules.
