@@ -50,6 +50,9 @@ usage: sv0 <command> [args]
   bootstrap-build    VM-compile programs listed in sv0c/lib/bootstrap-sources.list (fallback: lib/*.sv0)
   emit-c <rel>       print C for one .sv0 (path relative to sv0c/; heap + SV0_SELF_HOST_COMPILER — default build/sv0-self-host-compiler)
   compile-run <rel>  emit-c + cc + run for one .sv0 (exit 0 = pass; non-zero = fail)
+  verify [--json] <file>  static contract verification (M4): parse -> VCgen -> z3, report
+                       per-contract [verified]/[runtime] + reason (sv0doc contracts §3.2);
+                       --json emits a machine-readable object (needs z3; degrades to runtime without)
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
@@ -155,8 +158,22 @@ ensure_sv0_megatu_verify() {
 # preconditions (assumed locally, discharged at call sites under modular
 # verification); loop invariants are not yet handled — both stay [runtime]. Exit 0
 # always (a report, not a gate) unless the file can't be parsed.
+# Minimal JSON string escaper (backslash + double-quote + control chars we might
+# see in a clause/reason). Clauses are whitespace-collapsed already.
+_json_esc() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//	/\\t}"
+  printf '%s' "$s"
+}
+
+# M4-S-022: `sv0 verify [--json] <file>`. With --json, emit one machine-readable
+# object for tooling/CI (the verify corpus, M4-S-040/042) instead of the §3.2
+# table. $2 = 1 selects JSON.
 run_verify() {
   local file="${1:?}"
+  local json="${2:-0}"
   [[ -f "$file" ]] || sv0_fail "verify: no such file: $file"
   ensure_sv0_megatu_verify
   local abs
@@ -167,15 +184,19 @@ run_verify() {
     sv0_fail "verify: parse/emit failed for $file (does it compile?)"
   fi
   if [[ -z "$records" ]]; then
-    echo "verify: $(basename "$file") — no contracts to verify"
+    if [[ "$json" == "1" ]]; then
+      printf '{"file":"%s","contracts":[],"summary":{"verified":0,"runtime":0}}\n' "$(_json_esc "$file")"
+    else
+      echo "verify: $(basename "$file") — no contracts to verify"
+    fi
     return 0
   fi
   local have_z3=1
   command -v z3 >/dev/null 2>&1 || have_z3=0
-  if [[ "$have_z3" -eq 0 ]]; then
+  if [[ "$have_z3" -eq 0 && "$json" != "1" ]]; then
     sv0_info "verify: z3 not on PATH — ensures obligations reported [runtime] (install z3 to prove)"
   fi
-  local -a o_line=() o_clause=() o_status=() o_reason=()
+  local -a o_line=() o_kind=() o_clause=() o_status=() o_reason=()
   local n_verified=0 n_runtime=0 maxw=0 maxp=0
   local tmpq
   tmpq="$(mktemp)"
@@ -209,6 +230,7 @@ run_verify() {
       n_runtime=$((n_runtime + 1))
     fi
     o_line+=("$line")
+    o_kind+=("$kind")
     o_clause+=("$clause")
     o_status+=("$status")
     o_reason+=("$reason")
@@ -217,7 +239,18 @@ run_verify() {
     ((plen > maxp)) && maxp=$plen
   done <<< "$records"
   rm -f "$tmpq"
-  local i sb prefix
+  local i
+  if [[ "$json" == "1" ]]; then
+    local body="" sep=""
+    for i in "${!o_clause[@]}"; do
+      body+="${sep}{\"line\":${o_line[$i]},\"kind\":\"$(_json_esc "${o_kind[$i]}")\",\"clause\":\"$(_json_esc "${o_clause[$i]}")\",\"status\":\"${o_status[$i]}\",\"reason\":\"$(_json_esc "${o_reason[$i]}")\"}"
+      sep=","
+    done
+    printf '{"file":"%s","contracts":[%s],"summary":{"verified":%d,"runtime":%d}}\n' \
+      "$(_json_esc "$file")" "$body" "$n_verified" "$n_runtime"
+    return 0
+  fi
+  local sb prefix
   for i in "${!o_clause[@]}"; do
     sb="[${o_status[$i]}]"
     prefix="$file:${o_line[$i]}"
@@ -1287,9 +1320,14 @@ case "$cmd" in
     run_compile_run "$rel"
     ;;
   verify)
+    verify_json=0
+    if [[ "${1:-}" == "--json" ]]; then
+      verify_json=1
+      shift
+    fi
     file="${1:-}"
     if [[ -z "$file" ]]; then usage; exit 1; fi
-    run_verify "$file"
+    run_verify "$file" "$verify_json"
     ;;
   self-host-capture-stage0)
     rel="${1:-}"

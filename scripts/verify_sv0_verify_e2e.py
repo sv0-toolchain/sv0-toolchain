@@ -22,7 +22,7 @@ this runs there. Building the native verify binary is a one-time SML→C→cc
 bootstrap driven by `./scripts/sv0 verify` itself.
 """
 from __future__ import annotations
-import argparse, re, shutil, subprocess, sys
+import argparse, json, re, shutil, subprocess, sys
 from pathlib import Path
 
 FIXTURE = "sv0c/test/verify/basic.sv0"
@@ -90,11 +90,41 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         failures += 1
 
+    # M4-S-022: --json output must parse and agree with the text report.
+    jproc = subprocess.run(
+        ["bash", str(root / "scripts" / "sv0"), "verify", "--json", str(fixture)],
+        capture_output=True, text=True, timeout=600,
+    )
+    if jproc.returncode != 0:
+        print(f"verify_sv0_verify_e2e: `sv0 verify --json` exit {jproc.returncode}\n"
+              f"{(jproc.stdout + jproc.stderr)[-1500:]}", file=sys.stderr)
+        failures += 1
+    else:
+        try:
+            doc = json.loads(jproc.stdout.strip().splitlines()[-1])
+        except Exception as e:  # noqa: BLE001
+            print(f"verify_sv0_verify_e2e: --json not valid JSON: {e}\n{jproc.stdout[-800:]}",
+                  file=sys.stderr)
+            doc = None
+            failures += 1
+        if doc is not None:
+            jby = {c["clause"]: c["status"] for c in doc.get("contracts", [])}
+            for clause, want in EXPECT_ENSURES.items():
+                if jby.get(clause) != want:
+                    print(f"verify_sv0_verify_e2e: --json {clause!r} got [{jby.get(clause)}], want [{want}]",
+                          file=sys.stderr)
+                    failures += 1
+            jsum = (doc.get("summary", {}).get("verified"), doc.get("summary", {}).get("runtime"))
+            if jsum != EXPECT_SUMMARY:
+                print(f"verify_sv0_verify_e2e: --json summary got {jsum}, want {EXPECT_SUMMARY}",
+                      file=sys.stderr)
+                failures += 1
+
     if failures:
         print(f"verify_sv0_verify_e2e: {failures} failure(s)\n--- output ---\n{out}",
               file=sys.stderr)
         return 1
-    print("verify_sv0_verify_e2e: OK (§3.2 report; 2 ensures proven, 1 sound residual, "
+    print("verify_sv0_verify_e2e: OK (§3.2 report + --json; 2 ensures proven, 1 sound residual, "
           "requires as preconditions)", file=sys.stderr)
     return 0
 
