@@ -37,11 +37,16 @@ python3 - "$MAIN_SRC" "$CLI_MAIN" <<'PY'
 import re, sys, pathlib
 src = pathlib.Path(sys.argv[1]).read_text()
 
-# Replace the hardcoded smoke source with a CLI read of /tmp/.sv0_drv_path.
-# The control file holds EITHER a single .sv0 path (file mode) OR "--project <dir>"
-# (project mode -> collision-free source-concat of every .sv0 under <dir> via
-# link_project_concat_sources_from_dir; PC-3b.5). One control file => no stale
-# cross-contamination with the single-file corpus/self-host harnesses.
+# Replace the hardcoded smoke source (+ the committed contract-mode defaults) with
+# a CLI read of /tmp/.sv0_drv_path. The control file holds ONE of:
+#   <path.sv0>                     file mode
+#   --project <dir>                project mode (source-concat every .sv0 under dir)
+#   --verified <proof> <src.sv0>   verified contract-mode (M4-S-024): strip the
+#                                  `ensures` whose source lines are listed in the
+#                                  proof-results file <proof>, then compile <src>.
+# One control file => no stale cross-contamination with the single-file corpus /
+# self-host harnesses. Verified mode only reads <proof> when the prefix is present,
+# so a missing proof file never panics normal compiles.
 cli_read = (
     'let _drv_p: string = read_file("/tmp/.sv0_drv_path");\n'
     '    let _drv_n: i32 = string_len(_drv_p);\n'
@@ -54,14 +59,33 @@ cli_read = (
     '    let _is_proj: bool = if _drv_cn >= 10 {\n'
     '        string_eq(string_substr(_drv_c, 0, 10), "--project ")\n'
     '    } else { false };\n'
-    '    let source: string = if _is_proj {\n'
+    '    let _is_verified: bool = if _drv_cn >= 11 {\n'
+    '        string_eq(string_substr(_drv_c, 0, 11), "--verified ")\n'
+    '    } else { false };\n'
+    '    let _contract_mode: i32 = if _is_verified { 1 } else { 0 };\n'
+    '    let proven_lines: Vec<i32> = if _is_verified {\n'
+    '        let _rest: string = string_substr(_drv_c, 11, _drv_cn - 11);\n'
+    '        let _sp: i32 = megatu_index_of(_rest, 32, 0);\n'
+    '        megatu_parse_ints(read_file(string_substr(_rest, 0, _sp)))\n'
+    '    } else { vec_new() };\n'
+    '    let source: string = if _is_verified {\n'
+    '        let _rest2: string = string_substr(_drv_c, 11, _drv_cn - 11);\n'
+    '        let _sp2: i32 = megatu_index_of(_rest2, 32, 0);\n'
+    '        expand_from_file(string_substr(_rest2, _sp2 + 1, string_len(_rest2) - _sp2 - 1))\n'
+    '    } else { if _is_proj {\n'
     '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
     '    } else {\n'
     '        expand_from_file(_drv_c)\n'
-    '    };'
+    '    } };'
 )
-src, n = re.subn(r'let source: string = "[^"]*";', cli_read, src, count=1)
-assert n == 1, "compose main shape changed: could not find hardcoded `let source`"
+# Replace the committed 3-line block (source + contract-mode defaults) atomically.
+committed_block = (
+    r'let source: string = "[^"]*";\n'
+    r'    let _contract_mode: i32 = 0;\n'
+    r'    let proven_lines: Vec<i32> = vec_new\(\);'
+)
+src, n = re.subn(committed_block, cli_read, src, count=1)
+assert n == 1, "compose main shape changed: could not find committed source+contract-mode block"
 
 # Emit the composed C to stdout, just before the empty-C phase-5 gate.
 needle = "    if string_len(c) == 0 { return 5; }"

@@ -53,6 +53,8 @@ usage: sv0 <command> [args]
   verify [--json] <file>  static contract verification (M4): parse -> VCgen -> z3, report
                        per-contract [verified]/[runtime] + reason (sv0doc contracts §3.2);
                        --json emits a machine-readable object (needs z3; degrades to runtime without)
+  emit-verified <file>  verified contract-mode (M4): verify, then emit C with the PROVEN
+                       ensures' runtime checks stripped (unproven + requires kept); C to stdout
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
@@ -261,6 +263,50 @@ run_verify() {
   return 0
 }
 
+# M4-S-023/024: `sv0 emit-verified <file>` — verified contract-mode. Two passes:
+# (1) `sv0 verify` proves what it can; (2) the native compiler recompiles with the
+# proven `ensures` runtime checks STRIPPED (unproven checks + all `requires` stay).
+# Emits the resulting C to stdout. Degrades to a normal compile (nothing stripped)
+# when z3 is absent — soundness: only a solid unsat removes a check.
+run_emit_verified() {
+  local file="${1:?}"
+  [[ -f "$file" ]] || sv0_fail "emit-verified: no such file: $file"
+  ensure_sv0_megatu_native
+  ensure_sv0_megatu_verify
+  local abs
+  abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  local proof
+  proof="$(mktemp)"
+  # pass 1: collect the source lines of proven ensures (empty if z3 absent)
+  if command -v z3 >/dev/null 2>&1; then
+    printf '' > /tmp/.sv0_drv_path
+    "$ROOT/build/sv0-megatu-verify" "$abs" 2>/dev/null \
+      | awk -F'\t' '$1=="VC" && $3=="ensures"' > "$proof.records" || true
+    # run z3 on each ensures query; keep the line when unsat (proven)
+    : > "$proof"
+    local tmpq
+    tmpq="$(mktemp)"
+    while IFS=$'\t' read -r _tag line _kind _clause query; do
+      [[ "$query" == "RESIDUAL" ]] && continue
+      printf '%s\n' "$query" > "$tmpq"
+      if [[ "$(bash "$ROOT/scripts/sv0-z3.sh" "$tmpq" 2>/dev/null | head -1)" == "unsat" ]]; then
+        printf '%s\n' "$line" >> "$proof"
+      fi
+    done < "$proof.records"
+    rm -f "$tmpq" "$proof.records"
+  else
+    sv0_info "emit-verified: z3 not on PATH — nothing proven, all checks kept" >&2
+    : > "$proof"
+  fi
+  # pass 2: compile with the proven ensures stripped
+  printf '%s\n' "--verified $proof $abs" > /tmp/.sv0_drv_path
+  local ec=0
+  "$ROOT/build/sv0-megatu-native" || ec=$?
+  printf '' > /tmp/.sv0_drv_path
+  rm -f "$proof"
+  return "$ec"
+}
+
 _abs_sv0c_rel() {
   local rel="${1:?}"
   local p="$SV0C/$rel"
@@ -460,6 +506,10 @@ run_test() {
   fi
   sv0_info "sv0 test: verify determinism (M4-S-014; identical statuses across repeated runs, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_determinism.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: verified contract-mode (M4-S-023/024; proven ensures stripped in lowering, skips if z3 absent)"
+  if ! python3 "$ROOT/scripts/verify_contract_mode.py" --root "$ROOT"; then
     ec=1
   fi
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml"; OS.Process.exit OS.Process.success;' | sml >/dev/null); then
@@ -1336,6 +1386,11 @@ case "$cmd" in
     file="${1:-}"
     if [[ -z "$file" ]]; then usage; exit 1; fi
     run_verify "$file" "$verify_json"
+    ;;
+  emit-verified)
+    file="${1:-}"
+    if [[ -z "$file" ]]; then usage; exit 1; fi
+    run_emit_verified "$file"
     ;;
   self-host-capture-stage0)
     rel="${1:-}"
