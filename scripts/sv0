@@ -55,6 +55,8 @@ usage: sv0 <command> [args]
                        --json emits a machine-readable object (needs z3; degrades to runtime without)
   emit-verified <file>  verified contract-mode (M4): verify, then emit C with the PROVEN
                        ensures' runtime checks stripped (unproven + requires kept); C to stdout
+  compile [--contract-mode=runtime|verified|disabled] <file>  emit C honoring the contract
+                       mode; precedence flag > sv0.toml [build] contract-mode (beside <file>) > runtime
   self-host-capture-stage0 <rel>  write C to build/self-host-compare/stage0/<stem>.c (stage-0 snapshot)
   self-host-compare <stem>  diff stage0 vs stage1 C for <stem> when both files exist
   self-host-check-golden  diff bootstrap C vs lib/golden/stage0/<stem>.c (same rules as sv0 test)
@@ -307,6 +309,44 @@ run_emit_verified() {
   return "$ec"
 }
 
+# M4-S-025: `sv0 compile [--contract-mode=runtime|verified|disabled] <file>` — emit C
+# honoring the contract mode. Precedence: explicit flag > `[build] contract-mode`
+# in an sv0.toml beside <file> > default `runtime`. runtime keeps all checks;
+# verified strips the proven ensures (runs `sv0 verify` first); disabled strips
+# every contract check. C to stdout.
+run_compile() {
+  local flag_mode="$1"
+  local file="$2"
+  [[ -f "$file" ]] || sv0_fail "compile: no such file: $file"
+  local mode="$flag_mode"
+  if [[ -z "$mode" ]]; then
+    local toml
+    toml="$(cd "$(dirname "$file")" && pwd)/sv0.toml"
+    mode="$(python3 "$ROOT/scripts/sv0_contract_mode.py" "$toml" 2>/dev/null || true)"
+  fi
+  [[ -z "$mode" ]] && mode="runtime"
+  case "$mode" in
+    runtime | verified | disabled) ;;
+    *) sv0_fail "compile: unknown contract-mode '$mode' (want runtime|verified|disabled)" ;;
+  esac
+  if [[ "$mode" == "verified" ]]; then
+    run_emit_verified "$file"
+    return $?
+  fi
+  ensure_sv0_megatu_native
+  local abs
+  abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  if [[ "$mode" == "disabled" ]]; then
+    printf '%s\n' "--disabled $abs" > /tmp/.sv0_drv_path
+  else
+    printf '%s\n' "$abs" > /tmp/.sv0_drv_path
+  fi
+  local ec=0
+  "$ROOT/build/sv0-megatu-native" || ec=$?
+  printf '' > /tmp/.sv0_drv_path
+  return "$ec"
+}
+
 _abs_sv0c_rel() {
   local rel="${1:?}"
   local p="$SV0C/$rel"
@@ -510,6 +550,10 @@ run_test() {
   fi
   sv0_info "sv0 test: verified contract-mode (M4-S-023/024; proven ensures stripped in lowering, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_contract_mode.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: sv0.toml contract-mode (M4-S-025; [build] contract-mode + flag override, skips if z3 absent)"
+  if ! python3 "$ROOT/scripts/verify_contract_toml.py" --root "$ROOT"; then
     ec=1
   fi
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml"; OS.Process.exit OS.Process.success;' | sml >/dev/null); then
@@ -1391,6 +1435,16 @@ case "$cmd" in
     file="${1:-}"
     if [[ -z "$file" ]]; then usage; exit 1; fi
     run_emit_verified "$file"
+    ;;
+  compile)
+    compile_mode=""
+    if [[ "${1:-}" == --contract-mode=* ]]; then
+      compile_mode="${1#--contract-mode=}"
+      shift
+    fi
+    file="${1:-}"
+    if [[ -z "$file" ]]; then usage; exit 1; fi
+    run_compile "$compile_mode" "$file"
     ;;
   self-host-capture-stage0)
     rel="${1:-}"

@@ -62,7 +62,10 @@ cli_read = (
     '    let _is_verified: bool = if _drv_cn >= 11 {\n'
     '        string_eq(string_substr(_drv_c, 0, 11), "--verified ")\n'
     '    } else { false };\n'
-    '    let _contract_mode: i32 = if _is_verified { 1 } else { 0 };\n'
+    '    let _is_disabled: bool = if _drv_cn >= 11 {\n'
+    '        string_eq(string_substr(_drv_c, 0, 11), "--disabled ")\n'
+    '    } else { false };\n'
+    '    let _contract_mode: i32 = if _is_verified { 1 } else { if _is_disabled { 2 } else { 0 } };\n'
     '    let proven_lines: Vec<i32> = if _is_verified {\n'
     '        let _rest: string = string_substr(_drv_c, 11, _drv_cn - 11);\n'
     '        let _sp: i32 = megatu_index_of(_rest, 32, 0);\n'
@@ -72,11 +75,13 @@ cli_read = (
     '        let _rest2: string = string_substr(_drv_c, 11, _drv_cn - 11);\n'
     '        let _sp2: i32 = megatu_index_of(_rest2, 32, 0);\n'
     '        expand_from_file(string_substr(_rest2, _sp2 + 1, string_len(_rest2) - _sp2 - 1))\n'
+    '    } else { if _is_disabled {\n'
+    '        expand_from_file(string_substr(_drv_c, 11, _drv_cn - 11))\n'
     '    } else { if _is_proj {\n'
     '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
     '    } else {\n'
     '        expand_from_file(_drv_c)\n'
-    '    } };'
+    '    } } };'
 )
 # Replace the committed 3-line block (source + contract-mode defaults) atomically.
 committed_block = (
