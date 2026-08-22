@@ -60,7 +60,7 @@ needle = "    if vec_len(it) < 1 { return 2; }"
 assert needle in src, "compose main shape changed: missing parse gate"
 inject = (
     needle + "\n"
-    '    let _vc_out: string = verify_all_fns(it, id1, id2, id3, id4, fcb, fcr,\n'
+    '    let _vc_out: string = verify_all_fns(it, id1, id2, id3, id4, id5, fpn, fcb, fcr,\n'
     '        bet, bed1, bed2, bed3, bed4, pp, tags, source, starts, ends);\n'
     '    write_file("/dev/stdout", _vc_out);\n'
     '    return 0;'
