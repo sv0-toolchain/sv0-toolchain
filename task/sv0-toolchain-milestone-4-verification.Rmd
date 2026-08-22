@@ -3,7 +3,7 @@ created: "2026-03-25T00:00:00Z"
 updated: "2026-08-16T00:00:00-07:00"
 id: task-sv0-toolchain-milestone-4-verification
 key: sv0-toolchain-milestone-4-verification
-state: active
+state: complete
 tags:
   - sv0
   - sv0-toolchain
@@ -119,6 +119,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 - 2026-03-25: initial scaffold from design milestone 4.
 - 2026-08-16: fleshed out after M3 closure + post-M3 hardening. Locked scope decisions (Z3-via-SMT-LIB2 backend; full Phase 2+3; pilot TBD). Added epic → sub-task map, macro phases (P0–P4), refined completion criteria + design/risk notes. `state: draft → active`. Sub-tasks + `M4-S-###` slice backlog created; see the checklist.
+- 2026-08-22: **`state: active → complete`.** All 26 `M4-S-###` slices done and CI-green; every completion criterion above is met — evidence mapped in [`m4-closure-evidence.md`](m4-closure-evidence.md). Shipped: the full contract→VC→z3 pipeline (straight-line/`old`/branches/loops), `sv0 verify` report + `--json`, verified contract-mode (strip proven checks; `sv0 compile`/`emit-verified`/sv0.toml), refinement types + binding checks, modular caller→callee `requires`, trait-contract contravariance, narrowing-cast contracts; a 57-contract verify corpus gated in `./scripts/sv0 test` + CI; spec §3–6 + type-system §2.8 updated. Pilot target = numeric/std (crypto deferred — needs nonlinear + bitvector). Known limitations documented in the evidence map.
 
 ## related
 
