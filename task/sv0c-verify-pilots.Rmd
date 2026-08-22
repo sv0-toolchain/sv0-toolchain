@@ -55,6 +55,15 @@ Depends on Epics A–C (a working `sv0 verify`).
    target (linear arithmetic); crypto (constant-time, modular/field arithmetic) is
    a stretch that needs nonlinear support — record the decision + rationale.
 
+   **DECIDED 2026-08-22: numeric/std.** The shipped fragment is linear (QF_LIA;
+   `*`/`/`/`%` flip to QF_NIA but z3's nonlinear completeness is unreliable), and
+   `extract_cexpr` rejects bitwise/shift ops — exactly the operations crypto
+   (field/modular arithmetic, constant-time bitmasks) leans on. So the numeric
+   pilot `sv0c/test/verify/corpus/pilot_numeric.sv0` (abs/min/max/clamp/sum, 9
+   obligations verified end-to-end) is the M4 pilot. **Crypto is deferred** to a
+   future milestone that adds robust nonlinear + bitvector reasoning (a QF_BV or
+   bitmask-aware fragment).
+
 ## slices
 
 - **M4-S-040** verify corpus format + `verify_contract_corpus.py` (gated, deterministic).
