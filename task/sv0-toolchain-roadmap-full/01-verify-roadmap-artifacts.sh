@@ -21,6 +21,7 @@ need sv0-toolchain-milestone-3-self-host.Rmd
 need sv0-toolchain-milestone-3-checklist.Rmd
 need sv0-toolchain-milestone-4-verification.Rmd
 need sv0-toolchain-milestone-5-llvm-crypto.Rmd
+need sv0-toolchain-milestone-5-checklist.Rmd
 need sv0-toolchain-milestone-6-kernel.Rmd
 need sv0-toolchain-milestone-cross-cutting.Rmd
 need sv0-mcp-milestone-0.Rmd

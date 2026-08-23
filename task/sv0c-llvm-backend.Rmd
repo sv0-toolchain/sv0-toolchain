@@ -1,0 +1,97 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0c-llvm-backend
+key: sv0c-llvm-backend
+state: active
+tags:
+  - sv0
+  - sv0c
+  - milestone-5
+  - llvm
+  - backend
+title: "sv0c: LLVM IR backend + differential testing (M5 Epics A & C)"
+type: task
+---
+
+# sv0c: LLVM IR backend + differential testing
+
+## purpose
+
+Milestone 5, **Epic A** (LLVM IR emitter) and **Epic C** (differential testing). A
+third code-generation backend that lowers **sv0-IR → textual LLVM IR (`.ll`)**,
+plus the harness that proves it observably agrees with the C (and VM) backends.
+
+Hub: `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`. Slices: **M5-S-001…009**
+(emitter), **M5-S-020…024** (differential). Toolchain/opt/link is the sibling
+`task/sv0c-llvm-toolchain.Rmd` (Epic B).
+
+## scope decision
+
+**Emit textual `.ll` and shell out** (no FFI). sv0c writes an `.ll` file; the driver
+runs `llvm-as`/`opt`/`llc`/`clang` (Epic B). This mirrors the C backend
+(`lib/codegen.sv0` emits `.c` → `cc`), the VM backend, and the z3 subprocess — and
+keeps self-hosting intact.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+New sv0 module `sv0c/lib/llvm_codegen.sv0`, structured to **mirror `lib/codegen.sv0`**:
+same walk over `Instr` (`lib/ir.sv0`), same module boundaries, so the two text
+emitters stay diff-able and behaviorally in step.
+
+1. **Target skeleton (M5-S-001).** `--target=llvm` (+ `--project`) in `lib/main.sv0`
+   dispatch → `build/llvm/<stem>.ll`; module header + `target datalayout`/`triple`;
+   an empty/`main`-only module that `llvm-as` accepts.
+2. **Type mapping (M5-S-002).** sv0 primitives + the new fixed-width ints (Epic D) →
+   LLVM types; structs as named `%T = type {…}`; pointer/ref mapping. Document in
+   `sv0c/doc/llvm-backend.md`.
+3. **Functions + calling convention (M5-S-003).** params, entry block, `alloca`
+   locals, `ret`.
+4. **Straight-line exprs (M5-S-004).** literals, `add/sub/mul/sdiv/srem`, `icmp`,
+   bool ops, alloca load/store.
+5. **Control flow (M5-S-005).** if/else (br + phi/alloca), while (loop blocks),
+   break/continue, return.
+6. **Aggregates (M5-S-006).** struct field access via `getelementptr`; enums as
+   tagged unions.
+7. **Calls + globals (M5-S-007).** `call`, global string constants, runtime/`println`
+   shims.
+8. **Contract-mode carry-over (M5-S-008).** reuse `lower()`'s `contract_mode` +
+   `proven_lines` so verified-mode strips proven `ensures` on the LLVM path too.
+9. **Completeness sweep (M5-S-009).** match + casts; the mega-TU compiles to `.ll`.
+
+**Differential testing (Epic C).** M5-S-020: a harness that runs the behavior corpus
+through C and LLVM and compares exit code + stdout. M5-S-021: gate it as an
+`llvm-parity` tier (skips when LLVM absent; CI installs LLVM). M5-S-022: grow the
+corpus for fixed-width/bitwise/overflow/aggregate constructs. M5-S-023: a three-way
+(C/VM/LLVM) parity manifest + `test-guards` guard. M5-S-024: a few stable `.ll`
+snapshot goldens.
+
+## notes
+
+- `llvm_codegen.sv0` is new `lib/*.sv0` → it joins the mega-TU + self-host loop;
+  expect stage0/self-host golden refreshes on every emitter slice (like the M4
+  parser changes).
+- Parity is **observable behavior**, not bit-identical object code — LLVM will
+  optimize differently from `cc`.
+
+## acceptance
+
+`--target=llvm` emits `.ll` for the whole self-hostable surface; the behavior corpus
+is byte-identical in exit/stdout across C, VM, and LLVM, gated in `./scripts/sv0 test`
+and CI. See the hub's completion criteria 1–2.
+
+## related
+
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — hub
+- `task/sv0-toolchain-milestone-5-checklist.Rmd` — M5-S-### backlog
+- `task/sv0c-llvm-toolchain.Rmd` — Epic B (link/opt driver)
+- `sv0c/lib/codegen.sv0` — the C backend this mirrors

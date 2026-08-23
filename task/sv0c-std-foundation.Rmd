@@ -1,0 +1,100 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0c-std-foundation
+key: sv0c-std-foundation
+state: active
+tags:
+  - sv0
+  - sv0c
+  - milestone-5
+  - std
+title: "sv0c: std foundation — fixed-width ints, bitwise, bytes (M5 Epic D)"
+type: task
+---
+
+# sv0c: std foundation
+
+## purpose
+
+Milestone 5, **Epic D**. The language + `std` primitives that crypto (Epic E) and
+bitvector verification (Epic F) require but that don't exist yet: fixed-width integer
+types, bitwise/shift operators, byte + fixed-size arrays, `std::`/`crypto::`
+namespacing, and endian/wrapping helpers.
+
+Hub: `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`. Slices: **M5-S-030…036**.
+
+## why this is a prerequisite — and what's actually missing
+
+Crypto (Epic E) is defined over `u8/u32/u64` buffers with `& | ^ << >>` and wrapping
+arithmetic; the constant-time verifier (Epic F) reasons over fixed-width bitvectors.
+So `std` primitives must be solid before crypto. **But a source audit (2026-08-22)
+found most of this already exists** (see the hub grounding audit) — this epic is
+mostly *closing tails*, not greenfield:
+
+**Already shipped (confirm + carry to LLVM, don't rebuild):**
+- Fixed-width int types `i8…u64`, `isize/usize`, `f32/f64` — lexed, typechecked, and
+  C-lowered to exact widths (`ast_ty_to_c_string`: `u64→uint64_t`, …).
+- Bitwise/shift `& | ^ ~ << >>` — lower in **both** C (`ast_binop_to_c` tags 13–17,
+  `~`) and VM (`vm_codegen` tags 13–17 → opcodes 88/89/90/92/93).
+- `::` path resolution + import aliases (`resolver.sv0`); `Result`/`Option`/`?`.
+
+**The real gaps this epic closes:**
+- `[u8; N]` fixed arrays — `TyArray`/`ExprIndex` parse but checker/lowering fall
+  through to "unsupported"; complete them.
+- No module search path / no place to ship library `.sv0`.
+- No defined wrapping/overflow semantics (C signed overflow is UB).
+- `i32`/`bool` map to C `int` (not fixed width).
+- Thin coverage (~6 files touch widths/bitwise).
+- LLVM emission of all the above (shared with Epic A).
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+Work threads the existing pipeline (`lexer.sv0` → `checker.sv0`/`unify.sv0` →
+`lowering.sv0` → `codegen.sv0`/`vm_codegen.sv0`/`llvm_codegen.sv0`); keep `sv0doc`
+aligned. Coordinate signedness/widths with Epic F (QF_BV) so verifier + codegen agree.
+
+1. **Width audit + normalize (M5-S-030).** Confirm C+VM widths; fix `i32`/`bool`
+   where exactness matters; hand the width table to the LLVM emitter (`M5-S-002`).
+2. **Bitwise coverage + LLVM + verifier hook (M5-S-031).** C+VM done — add LLVM
+   emission (signed vs unsigned `ashr/lshr`, `sdiv/udiv`), grow the corpus, confirm
+   Epic F can extract the ops (`M5-S-051`).
+3. **Complete `[u8; N]` (M5-S-032).** Close the `TyArray` checker/lowering tails:
+   decl, index, `len`, bounds; across all three backends. **Crypto critical path.**
+4. **Module shipping (M5-S-033).** Where library `.sv0` lives (leaning
+   `sv0c/lib/std/`) + a driver search path + linking library TUs; resolve open
+   decision #3 first.
+5. **Endian/rotate helpers (M5-S-034).** `std::bytes`: `rotl/rotr`, BE/LE pack/unpack
+   (endianness per open decision #2).
+6. **Corpus + docs (M5-S-035).** grow past ~6 files to a real widths/bitwise/array/
+   wrapping corpus + a `std` overview.
+7. **Wrapping arithmetic (M5-S-036).** define + implement `wrapping_add`/… matching
+   LLVM `nsw/nuw`; verifiable under QF_BV (`M5-S-054`).
+
+## notes
+
+- New `lib/*.sv0` + checker/lowering changes shift stage0 + self-host + vm-parity
+  goldens — budget golden refreshes on every slice here.
+- This epic is **M**, not the XL it first looked — the front-end work is largely done;
+  the LLVM carry + arrays + shipping are the substance.
+
+## acceptance
+
+Fixed-width ints, bitwise/shift, byte/fixed-array ops, and `std::`/`crypto::`
+namespacing all ship with gated tests across every applicable backend. Hub
+completion criterion 4.
+
+## related
+
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — hub
+- `task/sv0c-crypto-lib.Rmd` — Epic E (consumer)
+- `task/sv0c-bitvector-verify.Rmd` — Epic F (width/sign coordination)

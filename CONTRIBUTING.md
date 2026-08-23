@@ -83,7 +83,7 @@ task/sv0c-milestone-1.Rmd                      M1 bootstrap compiler (SML)      
 task/sv0vm-milestone-2.Rmd                     M2 bytecode VM (+ -2-prep)             complete
 task/sv0-toolchain-milestone-3-self-host.Rmd   M3 self-hosting compiler (+ checklist) complete
 task/sv0-toolchain-milestone-4-verification.Rmd M4 advanced verification (+ checklist) complete
-task/sv0-toolchain-milestone-5-llvm-crypto.Rmd M5 LLVM + production crypto            active (next)
+task/sv0-toolchain-milestone-5-llvm-crypto.Rmd M5 LLVM + production crypto (+ checklist) active (current)
 task/sv0-toolchain-milestone-6-kernel.Rmd      M6 kernel development                  draft
 task/sv0-toolchain-milestone-cross-cutting.Rmd macros/std/packaging (multi-milestone) draft
 task/sv0-toolchain-roadmap-full.Rmd            roadmap index (all milestones)

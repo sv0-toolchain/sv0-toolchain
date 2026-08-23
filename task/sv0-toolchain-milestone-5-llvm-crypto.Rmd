@@ -1,9 +1,9 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
 id: task-sv0-toolchain-milestone-5-llvm-crypto
 key: sv0-toolchain-milestone-5-llvm-crypto
-state: draft
+state: active
 tags:
   - sv0
   - sv0-toolchain
@@ -19,16 +19,293 @@ roadmap_parent: sv0-toolchain-roadmap-full
 
 ## purpose
 
-match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html) **milestone 5**: **LLVM IR** lowering from sv0-IR, use of LLVM’s optimization and codegen, and **performance-oriented** work on the **crypto** standard library tier with **contract-backed** guarantees where the design promises them (e.g. constant-time patterns).
+Match [vision and design](http://development.sasankvishnubhatla.net/tcowmbh/task/sv0-compiler-vision-and-design.html)
+**milestone 5**: a third code-generation backend that lowers **sv0-IR → LLVM IR**
+(gaining LLVM's optimization and native codegen), plus a **production-candidate
+`crypto::*` tier** built on a new **`std` foundation**, with **contract-backed
+constant-time guarantees** proved by extending the M4 verifier with **bitvector
+(QF_BV)** reasoning.
+
+This is the **hub** for M5: it owns the definition of done, the scope decisions,
+the epics and their owning sub-tasks, the macro phases (P0–P5), and the completion
+criteria. The trackable slice backlog lives in the child
+**`task/sv0-toolchain-milestone-5-checklist.Rmd`** (`M5-S-###`); per-epic engineering
+notes live in the owning sub-tasks (`task/sv0c-*.Rmd`).
+
+## scope decisions (locked 2026-08-22)
+
+These are the consequential architectural forks, decided up front so the epics have
+a fixed target. Revisit only via the refinement log.
+
+1. **LLVM integration = emit textual `.ll` + shell out.** sv0c emits **textual LLVM
+   IR**; the driver runs `llvm-as` / `opt` / `llc` / `clang` as subprocesses. This
+   mirrors every existing backend (C→`cc`, VM→`sv0vm`, SMT→`z3`) and needs **no
+   FFI**, so it stays compatible with self-hosting. Rejected: libLLVM C-API via FFI
+   (needs an FFI epic first), and `C → clang -emit-llvm` (not a real sv0-IR→LLVM
+   backend).
+2. **Crypto subset = hashing + AEAD + signature.** SHA-256/512, HMAC,
+   ChaCha20-Poly1305 AEAD, and Ed25519 — each to production-candidate quality
+   (RFC/NIST known-answer tests, fuzzing, documented threat model). This is the
+   largest of the three offered scopes and pulls in big-integer/field arithmetic
+   (Ed25519) — phased accordingly.
+3. **Constant-time = extend the SMT verifier with bitvectors (QF_BV).** Rather than
+   a purely syntactic checker, M5 extends the M4 verifier to reason about
+   bitwise/shift ops over fixed-width integers (the documented M4 residual gap), and
+   backs a `#[constant_time]` analysis pass with it so crypto primitives ship with a
+   verified guarantee.
+
+## grounding audit (what already exists vs. the real gaps)
+
+A source audit (2026-08-22) corrected the plan's initial assumption that the `std`
+primitives are greenfield. They are not — which **shrinks Epic D and de-risks Epic F**:
+
+**Already shipped in the language + C **and** VM backends** (confirm + carry to LLVM,
+don't rebuild):
+
+- **Fixed-width integers** — `i8/i16/i32/i64`, `u8/u16/u32/u64`, `isize/usize`,
+  `f32/f64` are lexed, typechecked (`checker.sv0`), and C-lowered to exact widths
+  (`ast_ty_to_c_string`: `u64→uint64_t`, `u8→uint8_t`, …). Caveat: `i32`/`bool` map
+  to C `int`, not `int32_t` — width-normalize where it matters.
+- **Bitwise + shift** — `& | ^ ~ << >>` exist as AST ops and lower in **both**
+  backends: C via `ast_binop_to_c`/`ast_unop_to_c` (tags 13–17, `~`=BitNot), VM via
+  `vm_codegen` binop tags 13–17 → opcodes 88/89/90/92/93 (`bytecode.sv0` AND/OR/XOR/
+  SHL/SHR). So Epic D's bitwise work is **LLVM emission + verifier extraction + test
+  coverage**, not front-end feature work.
+- **`Result`/`Option` + `?`** — the checker validates `Result(Ok/Err)`/`Option(Some/
+  None)` as `?` targets. Crypto error surfaces (AEAD tag failure, signature reject)
+  use these — no new error machinery needed.
+- **`::` path resolution + import aliases** — `resolver.sv0` already joins/interns
+  `a::b` paths and records import aliases. `crypto::sha256::hash` *resolves*; what's
+  missing is a **place to put library source + a way to find it** (see gaps).
+
+**Genuine gaps M5 must close (the real Epic D + backend work):**
+
+- **Fixed-size arrays / buffers `[u8; N]`** — `TyArray(Box<Ty>, i32, i32)` +
+  `ExprIndex` are parsed, but the checker/lowering **fall through to "unsupported"**
+  for `TyArray` in several tails. Buffers are the substrate of every crypto
+  primitive, so completing arrays (decl, index, `len`, bounds, all three backends)
+  is on the crypto critical path.
+- **Module-shipping mechanism** — there is a C `#include "sv0_runtime.h"` prelude and
+  an `is_prelude_type` set, but **no library search path** and no shipped `std`/
+  `crypto` source. M5 must decide where library `.sv0` lives and how the driver finds
+  + links it (see open decisions).
+- **Wrapping/overflow semantics** — C signed overflow is UB; crypto needs *defined*
+  wrapping (`wrapping_add`/`wrapping_mul`). Must specify + implement, matching LLVM
+  `nsw/nuw` discipline.
+- **Test coverage is thin** — only ~6 files touch fixed widths/bitwise today. Per the
+  test-suite bar, M5 grows a real fixed-width/bitwise/array/wrapping corpus.
+- **LLVM backend + QF_BV verifier** — neither exists (Epics A/B and F).
+
+**Net effect on scope:** Epic D is smaller and mostly "close tails + add coverage +
+carry to LLVM"; the **long poles are the LLVM backend (A/B) and the crypto library
+(E)**; Epic F only teaches the *verifier* about ops the backends already emit. `std`
+is still a prerequisite for crypto (arrays, module shipping, wrapping) — but a
+lighter one than first assumed.
+
+## epics → owning sub-tasks
+
+Size is rough T-shirt effort for the whole epic (S/M/L/XL), for sequencing only.
+
+| epic | scope | owning sub-task | slices | size |
+|------|-------|-----------------|--------|------|
+| **A — LLVM IR emitter** | `sv0-IR → .ll`: `--target=llvm`, type mapping, functions/calling-convention, expr/control-flow/aggregate lowering, contract-mode carry-over | `task/sv0c-llvm-backend.Rmd` | M5-S-001…009 | **XL** |
+| **B — LLVM toolchain + optimization** | `scripts/sv0-llvm.sh` (llvm-as/opt/llc/clang), `llvm-compile`/`llvm-run` verbs, documented pass pipeline, reproducible builds, version matrix | `task/sv0c-llvm-toolchain.Rmd` | M5-S-010…015 | **M** |
+| **C — differential testing** | LLVM-vs-C(-vs-VM) observable-behavior parity harness + gate, corpus growth | `task/sv0c-llvm-backend.Rmd` (shared) | M5-S-020…024 | **M** |
+| **D — `std` foundation** | **close tails, don't rebuild** (see grounding audit): complete `[u8; N]` arrays, module-shipping mechanism, wrapping/overflow semantics, endian helpers, width-normalize `i32`/`bool`, big corpus — fixed-width ints + bitwise already lower in C+VM | `task/sv0c-std-foundation.Rmd` | M5-S-030…036 | **M** |
+| **E — crypto library** | SHA-256/512, HMAC, ChaCha20-Poly1305 AEAD, Ed25519 — KATs, fuzzing, docs | `task/sv0c-crypto-lib.Rmd` | M5-S-040…049 | **XL** |
+| **F — bitvector verification** | QF_BV SMT emission, bitwise/shift **extraction into the verifier** (ops already lower), `#[constant_time]` analysis pass, ct-verified crypto | `task/sv0c-bitvector-verify.Rmd` | M5-S-050…056 | **L** |
+| **G — release engineering** | packaging, LLVM version matrix, crypto security-advisory process, perf notes, closure evidence | `task/sv0-toolchain-llvm-release.Rmd` | M5-S-060…064 | **S** |
+
+## macro phases
+
+Order work by phase; slices within a phase are roughly dependency-ordered. Full
+per-slice detail is in the checklist.
+
+- **P0 — foundations.** std primitives that everything else needs (fixed-width
+  integers, bitwise/shift operators, byte/fixed arrays) **and** the LLVM target
+  skeleton + type mapping. `M5-S-001,002,030,031,032`.
+- **P1 — LLVM backend MVP + std surface.** End-to-end `--target=llvm` for the core
+  language (functions, exprs, control flow); toolchain driver + `llvm-run`;
+  differential harness green on the existing behavior corpus; `std::`/`crypto::`
+  namespacing, endian/wrapping helpers. `M5-S-003,004,005,010,011,020,033,034,035,036`.
+- **P2 — LLVM completeness.** Aggregates/enums/calls/match/casts to `.ll`;
+  verified-contract-mode carries into the LLVM path; documented `opt` pipeline;
+  three-way (C/VM/LLVM) parity gate. `M5-S-006,007,008,009,012,015,021,022,023,024`.
+- **P3 — bitvector verification.** QF_BV emission; bitwise/shift extraction (closes
+  the M4 residual gap); `#[constant_time]` analysis pass; verify corpus extension.
+  `M5-S-050,051,052,053,054,056`.
+- **P4 — crypto library.** Hashing → HMAC → AEAD → signature, each RFC/NIST-KAT
+  gated, fuzzed, and (where marked) ct-verified via P3. `M5-S-040…049, 055`.
+- **P5 — release engineering + closure.** Reproducible builds, LLVM version matrix,
+  packaging, security-advisory process, perf notes, docs, closure evidence map.
+  `M5-S-013,014,060,061,062,063,064`.
+
+## completion criteria (refine as you implement)
+
+1. **`--target=llvm`** emits textual LLVM IR for the whole self-hostable language
+   surface; `scripts/sv0-llvm.sh` links it via a **documented, pinned LLVM version**;
+   the toolchain **degrades cleanly** (falls back / skips gated LLVM tests) when LLVM
+   is absent, exactly as the z3 path does.
+2. **Differential parity:** the behavior corpus produces **identical observable
+   results** across the C, VM, and LLVM backends, gated in `./scripts/sv0 test` and
+   CI via a three-way manifest.
+3. **Optimization + reproducibility:** the default `opt`/`llc` pass pipeline is
+   documented, overridable, and reproducible from a pinned toolchain.
+4. **`std` foundation:** fixed-width integers, bitwise/shift, byte + fixed-array
+   ops, and `std::`/`crypto::` namespacing all ship with gated tests across every
+   applicable backend.
+5. **crypto:** SHA-256/512, HMAC, ChaCha20-Poly1305 AEAD, and Ed25519 reach
+   production-candidate quality — RFC/NIST KATs gated, fuzzed, with a documented
+   threat model and supported-primitive table.
+6. **Bitvector verification:** bitwise/shift contracts are provable under QF_BV;
+   `#[constant_time]` is enforced by a compiler pass; the shipped crypto primitives
+   carry a verified constant-time guarantee.
+7. **Release:** LLVM version matrix, packaging notes, and a crypto security-advisory
+   process are documented; an M5 closure evidence map (like
+   `task/archive/m4-closure-evidence.md`) is produced at closure.
+
+## technical design notes (the hard parts)
+
+Concrete direction for the five areas the initial scaffold left hand-wavy.
+
+**1. LLVM emitter structure + SSA strategy (Epic A).**
+- Mirror `lib/codegen.sv0`: same walk over `Instr` (`lib/ir.sv0`), same module
+  boundaries, so C and LLVM stay diff-able.
+- **`alloca`-everything, let `mem2reg` do SSA.** Every local + param gets an entry-block
+  `alloca`; reads are `load`, writes are `store`; the `opt` pipeline (Epic B) runs
+  `mem2reg`/SROA to promote to registers. This sidesteps hand-writing φ-nodes for
+  if/while and is the standard front-end approach — do **not** hand-build SSA.
+- **Type mapping.** Reuse the width table from `ast_ty_to_c_string` but to LLVM `iN`:
+  `i8/u8→i8`, `i16/u16→i16`, `i32/u32→i32`, `i64/u64→i64`, `bool→i1` (zext to `i8`
+  in memory), `isize/usize→i64` (pointer-width per triple), `unit→void`. Signedness
+  is **not** in the LLVM type — it lives in the *op* (`sdiv`/`udiv`, `icmp slt`/`ult`,
+  `ashr`/`lshr`); carry the signedness from the sv0 type into op selection.
+- **Structs** → named `%T = type { … }`, field access via `getelementptr inbounds`.
+- **Enums** → tagged-union layout matching the VM's `1 + maxPayload` slot model
+  (`vm_codegen` `enum_field_count_from_width`): `{ i32 tag, [payload] }`; a `match`
+  lowers to `switch` on the tag + per-arm blocks. Keep the tag encoding identical to
+  the VM/C so differential tests compare like-for-like.
+- **Determinism.** `.ll` output must be byte-stable (fixed value-numbering, sorted
+  globals) so snapshot goldens (`M5-S-024`) don't churn.
+
+**2. QF_BV width discipline (Epic F).**
+- A fixed-width sv0 var of type `iN`/`uN` becomes `(_ BitVec N)`; `i32`/`bool` default
+  to `BitVec 32`/`BitVec 1`. Ops: `bvadd/bvsub/bvmul`, `bvand/bvor/bvxor/bvnot`,
+  `bvshl` + `bvlshr`(unsigned)/`bvashr`(signed), comparisons `bvult/bvslt/…` chosen by
+  signedness. Division picks `bvudiv`/`bvsdiv` likewise.
+- **Mixing widths / mixing with `Int`.** Extend narrower operands with `zero_extend`
+  (unsigned) or `sign_extend` (signed) to the wider width before a binop. A VC that
+  mixes an unbounded `Int` term with a `BitVec` term that z3 cannot bridge stays
+  **RESIDUAL** (runtime-checked) — the M4 soundness rule holds: never emit a false
+  proof.
+- Wrapping contracts (`M5-S-054`) are natural in BV (modular by construction);
+  overflow-freedom contracts assert the extended result equals the truncated one.
+
+**3. Constant-time model (Epic F).** The `#[constant_time]` attribute marks a function
+whose control flow + memory-access pattern must not depend on **secret** data.
+- **Secret sources**: parameters (or fields) marked `#[secret]`; taint propagates
+  through data flow. Public/`#[public]` values are untainted.
+- **Forbidden on tainted values**: branching (`if`/`match`/`while` guard),
+  array/index subscripts, early `return`, and division/remainder (variable-time on
+  most targets). Allowed: straight-line arithmetic + bitwise + `ct_select`.
+- **Enforcement is two-layer**: a taint pass rejects source-level violations with a
+  diagnostic; `M5-S-055` re-checks the **optimized LLVM** (an `opt` pass can
+  reintroduce a data-dependent branch), so ct is validated on the artifact that runs.
+
+**4. Module-shipping model (Epic D, `M5-S-033`) — an open decision, leaning:** ship
+`std`/`crypto` as **sv0 source under `sv0c/lib/std/…` compiled into the program** (not
+precompiled objects), found via a search path the driver seeds (default = the shipped
+lib dir, overridable by an env var, mirroring how the C prelude ships
+`sv0_runtime.h`). Resolver `::` handling already interns the paths; the gap is the
+search path + linking library TUs into the mega-TU/link step. Confirm in the sub-task
+before coding (see open decisions).
+
+**5. Crypto API shapes (Epic E), using the existing `Result`/`Option`:**
+- `crypto::sha256::hash(msg: [u8; N]) -> [u8; 32]` (and streaming `Sha256` state).
+- `crypto::aead::seal(key, nonce, aad, pt) -> Vec<u8>` /
+  `open(...) -> Result<Vec<u8>, AeadError>` — `open` returns `Err` on tag mismatch,
+  **before** exposing plaintext, in constant time.
+- `crypto::ed25519::sign(sk, msg) -> [u8; 64]` /
+  `verify(pk, msg, sig) -> Result<(), SigError>` (or `bool`) — reject in constant time.
+- `crypto::ct::eq(a, b) -> bool` / `select(cond, a, b)` — branchless; ct-verified.
+
+**Cross-cutting invariants.**
+- **Self-hosting stays intact** — no FFI; new `lib/*.sv0` (LLVM emitter, std, crypto)
+  join the mega-TU + self-host loop, so budget stage0/self-host/vm-parity golden
+  refreshes on every emitter/std slice (like the M4 parser changes).
+- **LLVM in CI** mirrors z3-in-CI: install one pinned version; the gate skips cleanly
+  when absent.
+
+## slice dependency + critical path
+
+```
+P0  M5-S-001 (target skeleton) ─┬─ M5-S-002 (type map) ─┐
+    M5-S-032 ([u8;N] arrays) ───┘                        │
+                                                          ▼
+P1  M5-S-003 fns → 004 exprs → 005 control flow ── M5-S-010 (sv0-llvm.sh) → 011 (verbs)
+                                    │                        │
+                                    └──────────► M5-S-020 (C/LLVM parity harness)
+    M5-S-033 (module shipping) ── M5-S-036 (wrapping) ── M5-S-034 (endian)
+                                                          ▼
+P2  M5-S-006 aggregates → 007 calls → 009 sweep ; 008/015 (contract-mode) ; 012 (opt)
+    M5-S-021 (gate) → 023 (three-way manifest) → 022 (corpus)
+P3  M5-S-050 (QF_BV emit) → 051 (extract bitwise) → 052 (width) → 053 (ct pass) ; 054/056
+P4  M5-S-040 SHA → 041 HMAC → {043 ChaCha,044 Poly}→045 AEAD ;  046 field→047 Ed25519
+    → 048 fuzz → 049 docs ;  042 ct-eq → 055 (ct-verify, needs P3)
+P5  M5-S-013 repro → 014 matrix ; 060 pkg ; 061 advisory ; 062 perf ; 063 docs ; 064 closure
+```
+
+**Critical path (longest chain):** arrays (`032`) → LLVM fns/exprs/control (`003–005`)
+→ toolchain (`010/011`) → aggregates/calls/sweep (`006/007/009`) → SHA (`040`) → AEAD
+(`045`) → fuzz+docs (`048/049`) → closure (`064`). Ed25519 (`046/047`) is a parallel
+side-chain that can be dropped without breaking the path.
+
+**Phase exit gates** (a phase is done when):
+- **P0:** `--target=llvm` emits an `llvm-as`-clean module; `[u8; N]` decl+index
+  typechecks + C-lowers; type-map table documented.
+- **P1:** an integer/control-flow program runs identically under C and LLVM
+  (`M5-S-020` green); `std::`/`crypto::` paths resolve + link a trivial library fn.
+- **P2:** the full behavior corpus is C/VM/LLVM three-way identical and gated in CI;
+  verified-contract-mode strips proven ensures on the LLVM path.
+- **P3:** a bitwise contract proves `unsat` under QF_BV; `#[constant_time]` rejects a
+  seeded secret-dependent branch; verify corpus both-direction green.
+- **P4:** every shipped primitive passes its RFC/NIST KATs + fuzz; ct primitives pass
+  `M5-S-055` on optimized output.
+- **P5:** version matrix + packaging + advisory documented; closure evidence map done.
+
+## risk register
+
+| risk | likelihood | impact | mitigation / descope trigger |
+|------|-----------|--------|------------------------------|
+| Ed25519 field/bigint math over-runs the milestone | med | high | **Descope boundary**: drop `M5-S-046/047`; hashing+AEAD still ship a defensible crypto story. Decide by end of P3. |
+| QF_BV mixed-width VCs unprovable / z3 timeouts | med | med | Keep unprovable obligations RESIDUAL (runtime); fix z3 options/timeouts deterministically like M4. |
+| Constant-time broken by LLVM optimization | med | high | `M5-S-055` validates optimized `.ll`; if `opt` reintroduces branches, pin a ct-safe pass subset for `#[constant_time]` TUs. |
+| Golden-refresh churn from new `lib/*.sv0` slows every slice | high | low | Expect it; batch emitter changes; refresh stage0/self-host/vm-parity goldens as part of each slice's DoD. |
+| LLVM version drift across dev/CI | med | med | Pin one primary version gated in CI; matrix (`M5-S-014`) is documented-supported, not N gated legs. |
+| `[u8; N]` arrays deeper than expected (checker/lowering tails) | med | med | Time-box the array completion; if slicing/bounds balloon, ship fixed-size + indexing first, defer slices. |
+| Module-shipping design wrong → rework | low | med | Resolve the open decision + prototype `M5-S-033` before crypto (E) depends on it. |
+
+## open decisions (resolve before the dependent slice)
+
+1. **LLVM version to pin** for the gated CI leg (and the supported-matrix set). → before `M5-S-010`.
+2. **Target triple / endianness** for the default `datalayout` (host triple vs a fixed
+   default; crypto endian helpers depend on it). → before `M5-S-002`.
+3. **Where library `std`/`crypto` source lives + how it's found** (leaning `sv0c/lib/std/`
+   + driver search path; see design note 4). → before `M5-S-033`.
+4. **`f32`/`f64` in M5 scope?** Crypto needs none; recommend **out of scope** for LLVM
+   emission this milestone (integer + struct + array surface only). → before `M5-S-002`.
+5. **AEAD `open`/`verify` return type** — `Result<_, E>` vs `bool` (see design note 5).
+   → before `M5-S-045/047`.
 
 ## progress dashboard (sv0-track)
 
 Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / **`/api/digest`**.
 
 <!-- sv0-track:begin {"id":"m5.llvm.dashboard","title":"M5 LLVM + crypto — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"M5"} -->
-- [ ] **sv0doc/** and this task updated together when crypto or LLVM contracts shift
-- [ ] Dependency / licensing choices for LLVM or crypto stacks recorded when relevant
-- [ ] `./scripts/sv0 test-guards` after **`task/`** edits; **`./scripts/sv0 test`** when backend code integrated
+- [ ] Slice status flipped + one-line result recorded in the checklist when an `M5-S-###` lands
+- [ ] `sv0doc/` (crypto/LLVM spec) and this task updated together when contracts or the crypto surface shift
+- [ ] Dependency / licensing choices for LLVM and crypto stacks recorded in the refinement log when relevant
+- [ ] `./scripts/sv0 test-guards` after `task/` edits; `./scripts/sv0 test` when backend/std/crypto code is integrated
 <!-- sv0-track:end {"id":"m5.llvm.dashboard"} -->
 
 ## dependencies
@@ -43,40 +320,43 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 ## prerequisites
 
-- stable **sv0-IR** and at least one mature backend (C and/or VM) for differential testing
-- self-hosting recommended but not strictly required if LLVM work proceeds on bootstrap compiler (document the choice in refinement log)
-
-## completion criteria (refine as you implement)
-
-- **`--target=llvm`** (or equivalent) produces **LLVM IR** and links/compiles via documented LLVM toolchain version
-- **optimization path**: document which LLVM passes are run by default; how to reproduce builds
-- **crypto std**: implement a **milestone-scoped** subset of the design’s `crypto::*` modules to “production candidate” quality (define the subset in a child task when ready)
-- **constant-time / side-channel**: criteria aligned with design + verification milestone where they overlap
-
-## phases
-
-### phase 1: LLVM IR emitter
-
-/ai: module boundaries mirroring C backend; type mapping for sv0 primitives and structs; calling conventions.
-
-### phase 2: integration tests vs C backend
-
-/ai: same programs: compare observable behavior (and optionally IR-level invariants), not necessarily bit-identical object code.
-
-### phase 3: crypto library hardening
-
-/ai: module list, fuzzing, known-answer tests, optional formal/verification hooks from milestone 4.
-
-### phase 4: release engineering
-
-/ai: LLVM version matrix, packaging notes, security advisory process for crypto.
+- stable **sv0-IR** and a mature backend (C + VM, both shipped) for differential
+  testing — **met**.
+- **M4 verifier** (`lib/verify_vcgen.sv0`, `sv0 verify`, z3-via-SMT-LIB2 driver) —
+  **met**; Epic F extends it with QF_BV.
+- self-hosting compiler — **met**; the LLVM backend proceeds on the native
+  self-host compiler (no bootstrap-only path).
+- external: an installed **LLVM toolchain** (`llvm-as`/`opt`/`llc`/`clang`) for the
+  LLVM gate; CI installs it (mirror the z3-in-CI pattern).
 
 ## refinement log
 
 - 2026-03-25: initial scaffold from design milestone 5.
+- 2026-08-22: **planned out.** Scope decisions locked (textual `.ll` + shell-out;
+  hashing+AEAD+signature crypto; QF_BV bitvector verification). Fleshed the hub with
+  7 epics (A–G) → owning sub-tasks, 6 macro phases (P0–P5), refined completion
+  criteria, and design/risk notes. Created the `M5-S-###` checklist + six epic
+  sub-tasks; state `draft → active`.
+- 2026-08-22: **refined against a source audit.** Corrected the central assumption:
+  fixed-width ints + bitwise/shift already lower in **both** C and VM backends, and
+  `Result`/`Option`/`?` + `::` path resolution exist — so **Epic D shrinks** to
+  closing tails (`[u8; N]` arrays, module-shipping, wrapping semantics, coverage) and
+  **Epic F is less blocked** (verifier-only extraction). Added: grounding-audit
+  section, concrete technical-design notes (alloca+mem2reg SSA, LLVM type/enum
+  mapping, QF_BV width discipline, `#[secret]`/ct model, module-shipping model, crypto
+  API shapes), a slice dependency DAG + critical path + phase exit gates, a risk
+  register with descope triggers, epic sizing, and 5 open decisions. Epic D slices +
+  sub-task rescoped accordingly.
 
 ## related
 
-- `task/sv0-toolchain-roadmap-full.Rmd`
-- `task/sv0-toolchain-milestone-4-verification.Rmd` — overlapping guarantees
+- `task/sv0-toolchain-milestone-5-checklist.Rmd` — the `M5-S-###` slice backlog
+- `task/sv0c-llvm-backend.Rmd` — Epic A + C (emitter + differential testing)
+- `task/sv0c-llvm-toolchain.Rmd` — Epic B (opt/llc/clang driver, pass pipeline)
+- `task/sv0c-std-foundation.Rmd` — Epic D (fixed-width ints, bitwise, bytes, namespacing)
+- `task/sv0c-crypto-lib.Rmd` — Epic E (SHA/HMAC/AEAD/Ed25519)
+- `task/sv0c-bitvector-verify.Rmd` — Epic F (QF_BV + constant-time)
+- `task/sv0-toolchain-llvm-release.Rmd` — Epic G (packaging, version matrix, advisories)
+- `task/sv0-toolchain-milestone-4-verification.Rmd` — M4 verifier this milestone extends
+- `task/sv0-toolchain-roadmap-full.Rmd` — roadmap index
 - design doc: compiler architecture diagram (C / LLVM / VM backends)

@@ -207,7 +207,8 @@
    "id": "M5",
    "title": "LLVM + production crypto",
    "primary_tasks": [
-    "task/sv0-toolchain-milestone-5-llvm-crypto.Rmd"
+    "task/sv0-toolchain-milestone-5-llvm-crypto.Rmd",
+    "task/sv0-toolchain-milestone-5-checklist.Rmd"
    ],
    "submodules_hint": [
     "sv0c",

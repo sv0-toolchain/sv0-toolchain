@@ -1,0 +1,82 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0c-crypto-lib
+key: sv0c-crypto-lib
+state: active
+tags:
+  - sv0
+  - sv0c
+  - milestone-5
+  - crypto
+title: "sv0c: production crypto library (M5 Epic E)"
+type: task
+---
+
+# sv0c: production crypto library
+
+## purpose
+
+Milestone 5, **Epic E**. A production-candidate `crypto::*` tier: **hashing** (SHA-2)
++ MAC (HMAC), **AEAD** (ChaCha20-Poly1305), and a **signature** scheme (Ed25519) —
+each with RFC/NIST known-answer tests, fuzzing, and a documented threat model.
+
+Hub: `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`. Slices: **M5-S-040…049**.
+
+## scope decision
+
+**Hashing + AEAD + signature** (the largest of the three offered scopes). Ed25519
+pulls in big-integer/field arithmetic (`M5-S-046`), which is the milestone's schedule
+risk and the natural descope boundary — hashing + AEAD alone still make a defensible
+production-crypto story. Record any descope in the hub refinement log.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+Built on the Epic D `std` foundation (fixed-width ints, bitwise/shift, bytes,
+wrapping, `crypto::` namespacing). **Never hand-roll a primitive without RFC/NIST
+test vectors** — every slice is KAT-gated. Constant-time hot paths are verified via
+Epic F (`M5-S-055`) against the **optimized** LLVM output.
+
+1. **SHA-256/512 (M5-S-040).** NIST KATs incl. empty, multi-block, long messages.
+2. **HMAC (M5-S-041).** HMAC-SHA256/512; RFC 4231 vectors.
+3. **`crypto::ct` (M5-S-042).** constant-time compare + select with no data-dependent
+   branch; ct-verified in Epic F.
+4. **ChaCha20 (M5-S-043).** RFC 8439 §2.4 vectors.
+5. **Poly1305 (M5-S-044).** RFC 8439 §2.5 vectors.
+6. **ChaCha20-Poly1305 AEAD (M5-S-045).** RFC 8439 §2.8 combined vectors;
+   encrypt/decrypt round-trip + tag-mismatch rejection.
+7. **Field/bigint for Ed25519 (M5-S-046).** 2^255-19 field + scalar arithmetic; unit
+   tests vs known intermediates. **Descope boundary.**
+8. **Ed25519 (M5-S-047).** RFC 8032 §7.1 vectors; sign→verify round-trip + tampered
+   signature rejection.
+9. **Fuzzing (M5-S-048).** round-trip + differential-vs-vectors for AEAD + signature.
+10. **Docs (M5-S-049).** `sv0doc` crypto page: supported primitives, guarantees,
+    threat model, explicit non-goals.
+
+## notes
+
+- Tag-verification and signature-verification must be constant-time and must reject
+  on mismatch **before** exposing plaintext — validate against optimized output.
+- Keep test vectors as data files under `sv0c/test/` with provenance comments
+  (which RFC/NIST doc + section).
+
+## acceptance
+
+SHA-256/512, HMAC, ChaCha20-Poly1305 AEAD, and Ed25519 reach production-candidate
+quality: RFC/NIST KATs gated, fuzzed, with a documented threat model and
+supported-primitive table. Hub completion criterion 5.
+
+## related
+
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — hub
+- `task/sv0c-std-foundation.Rmd` — Epic D (prerequisite primitives)
+- `task/sv0c-bitvector-verify.Rmd` — Epic F (constant-time proofs)

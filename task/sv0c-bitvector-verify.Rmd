@@ -1,0 +1,84 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0c-bitvector-verify
+key: sv0c-bitvector-verify
+state: active
+tags:
+  - sv0
+  - sv0c
+  - milestone-5
+  - verification
+  - constant-time
+title: "sv0c: bitvector verification + constant-time (M5 Epic F)"
+type: task
+---
+
+# sv0c: bitvector verification + constant-time
+
+## purpose
+
+Milestone 5, **Epic F**. Extend the M4 verifier (`lib/verify_vcgen.sv0`) with
+**bitvector (QF_BV)** reasoning — closing the documented M4 residual gap on
+bitwise/shift arithmetic — and build a **`#[constant_time]` analysis pass** on top of
+it so the crypto primitives (Epic E) ship with a verified constant-time guarantee.
+
+Hub: `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`. Slices: **M5-S-050…056**.
+
+## scope decision
+
+**Extend SMT with bitvectors**, rather than a purely syntactic constant-time checker.
+M4 explicitly cannot reason about bitwise/bitvector ops (those obligations fall back
+to runtime); crypto arithmetic and constant-time properties need exactly that
+theory. The `#[constant_time]` pass combines taint tracking with BV-backed proofs.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+Extend the existing `extract_cexpr` → SMT-LIB2 → z3 pipeline; **keep M4's soundness
+rule** — anything the theory can't bridge stays RESIDUAL (runtime-checked), never a
+false proof.
+
+1. **QF_BV emission (M5-S-050).** fixed-width vars as `(_ BitVec N)`;
+   `bvadd/bvmul/bvand/bvor/bvxor/bvshl/bvlshr/bvult…`; auto-select QF_BV logic; the
+   driver proves a BV query `unsat`.
+2. **Bitwise/shift extraction (M5-S-051).** `extract_cexpr` handles `& | ^ ~ << >>`
+   (the M4 residual) into CExpr; unit + corpus.
+3. **Mixed int/BV discipline (M5-S-052).** sign/zero-extension rules; obligations
+   mixing unbounded `Int` and `BitVec` that z3 can't bridge stay RESIDUAL.
+4. **`#[constant_time]` pass (M5-S-053).** reject secret-dependent branch/index/
+   early-return in `#[constant_time]` fns (taint + BV-backed); diagnostics + corpus.
+5. **Wrapping/overflow contracts (M5-S-054).** verify `requires`/`ensures` over
+   wrapping arithmetic under QF_BV.
+6. **ct-verify crypto (M5-S-055, P4).** `crypto::ct` + AEAD/signature hot paths pass
+   the pass against the **optimized** LLVM output (not just source).
+7. **Verify corpus extension (M5-S-056).** BV + constant-time cases added to
+   `sv0c/test/verify/corpus`; both-direction checks green.
+
+## notes
+
+- Coordinate integer widths + signedness with Epic D so codegen and the verifier
+  agree on every fixed-width type.
+- Constant-time must survive optimization — an LLVM pass could reintroduce a
+  data-dependent branch; `M5-S-055` checks the optimized artifact.
+
+## acceptance
+
+Bitwise/shift contracts are provable under QF_BV; `#[constant_time]` is enforced by a
+compiler pass; the shipped crypto primitives carry a verified constant-time
+guarantee. Hub completion criterion 6.
+
+## related
+
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — hub
+- `task/sv0-toolchain-milestone-4-verification.Rmd` — the M4 verifier extended here
+- `sv0c/lib/verify_vcgen.sv0` — the module extended
+- `task/sv0c-crypto-lib.Rmd` — Epic E (the code proven constant-time)

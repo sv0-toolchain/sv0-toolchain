@@ -1,0 +1,195 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0-toolchain-milestone-5-checklist
+key: sv0-toolchain-milestone-5-checklist
+state: active
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-5
+  - llvm
+  - crypto
+title: "milestone 5: LLVM + crypto slice backlog (M5-S-###)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# milestone 5: LLVM + crypto slice backlog
+
+## purpose
+
+The trackable **`M5-S-###`** slice backlog for milestone 5 (LLVM backend +
+production crypto). The **definition of done**, scope decisions, macro phases
+(P0–P5), and completion criteria live in the hub
+**`task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`**; per-epic engineering notes live
+in the owning sub-tasks (`task/sv0c-*.Rmd`). This file is a **living index** — flip
+status as slices land and keep it aligned with the hub's phase narrative.
+
+## how to use
+
+- Pick the next slice by macro phase (hub P0→P5); slices within a phase are roughly
+  ordered by dependency.
+- Each slice names its **owning sub-task**, an **acceptance** signal, and its
+  **phase**. Add a one-line result + commit when a slice lands (like the M4 checklist).
+- New `lib/*.sv0` (the LLVM emitter, std, crypto) joins the mega-TU + self-host
+  loop — expect stage0/self-host golden refreshes on emitter/std slices.
+- Keep the spec (`sv0doc`) aligned before claiming new crypto or LLVM-contract
+  behavior.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"m5.checklist.session","title":"M5 LLVM+crypto checklist — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"M5"} -->
+- [ ] Slice status flipped + one-line result recorded when an `M5-S-###` lands
+- [ ] Crypto slices gated with RFC/NIST known-answer tests (no hand-rolled primitive without vectors)
+- [ ] LLVM slices keep C/VM/LLVM differential parity green
+- [ ] `./scripts/sv0 test-guards` after `task/` edits; `./scripts/sv0 test` when implementation touched
+<!-- sv0-track:end {"id":"m5.checklist.session"} -->
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## slice backlog
+
+Status: **todo** / **wip** / **done** / **deferred**.
+
+### Epic A — LLVM IR emitter (`task/sv0c-llvm-backend.Rmd`)
+
+New module `sv0c/lib/llvm_codegen.sv0`, mirroring `lib/codegen.sv0`'s `Instr` walk.
+Strategy: **`alloca`-everything + `mem2reg`** (no hand-built φ-nodes); signedness lives
+in the op, not the LLVM type (see hub design note 1).
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-001 | `--target=llvm` dispatch + module skeleton | P0 | **todo** | CLI accepts `--target=llvm` (+ `--project`) in `lib/main.sv0`; emits `build/llvm/<stem>.ll` with module header + `target datalayout`/`triple` (open decision #2); an empty/`main`-only module `llvm-as` accepts. |
+| M5-S-002a | type map — scalars | P0 | **todo** | `i8/u8→i8`, `i16/u16→i16`, `i32/u32→i32`, `i64/u64→i64`, `isize/usize→iPtr`, `bool→i1` (mem as `i8`), `unit→void`; width table shared with Epic D (`M5-S-030`). |
+| M5-S-002b | type map — pointers / refs / string | P0 | **todo** | `&T`/`&mut T`→`ptr`; `string`/`str`→`ptr` (i8*); documented in `sv0c/doc/llvm-backend.md`. |
+| M5-S-002c | type map — struct type decls | P0 | **todo** | each struct → named `%T = type { … }` in module preamble; field order matches the C/VM layout. |
+| M5-S-002d | type map — enum tagged-union layout | P0 | **todo** | enum → `{ i32 tag, [payload] }` matching the VM `1 + maxPayload` slot model; tag encoding identical across backends. |
+| M5-S-003a | fn signature + entry block + params | P1 | **todo** | `define` with mapped param/return types; entry-block `alloca` per param + `store` of the incoming value. |
+| M5-S-003b | locals + `ret` / unit returns | P1 | **todo** | `alloca` per local; `ret <ty> %v`; `unit`/void returns as `ret void`; a no-arg `main` links + exits with the right code. |
+| M5-S-004a | integer arithmetic | P1 | **todo** | `add/sub/mul`, `sdiv/udiv`, `srem/urem` chosen by signedness; matches C backend on the arithmetic corpus. |
+| M5-S-004b | comparisons + boolean ops | P1 | **todo** | `icmp` (`slt/ult/…` by signedness) → `i1`; `and/or/xor` on `i1`; `!` as `xor …, true`. |
+| M5-S-004c | bitwise + shift | P1 | **todo** | `and/or/xor`, `shl`, `lshr`(unsigned)/`ashr`(signed), `xor -1` for `~`; coordinates with Epic D `M5-S-031`; corpus parity. |
+| M5-S-004d | load/store + assignment | P1 | **todo** | var read = `load`, write/`=`/`op=` = `store`; SROA/`mem2reg` promotes; parity on assignment corpus. |
+| M5-S-004e | casts / width conversions | P1 | **todo** | `trunc`/`zext`/`sext` for `as` between int widths + `bool`; sign chosen by source type; parity. |
+| M5-S-005a | if / else | P1 | **todo** | condition `br` + then/else/merge blocks; result via alloca (mem2reg → φ); parity on branch corpus. |
+| M5-S-005b | while loops | P1 | **todo** | cond/body/exit blocks + back-edge; parity on loop corpus. |
+| M5-S-005c | break / continue | P1 | **todo** | `br` to loop exit / latch; nested-loop targets correct; parity. |
+| M5-S-006a | struct construction + field store | P2 | **todo** | literal build → alloca + per-field `store` via `getelementptr inbounds`; parity. |
+| M5-S-006b | struct field load | P2 | **todo** | field read = `getelementptr` + `load`; parity on struct corpus. |
+| M5-S-006c | enum construction | P2 | **todo** | tag `store` + payload `store` into the union slot; parity. |
+| M5-S-006d | `match` → `switch` + arm blocks | P2 | **todo** | `switch` on tag, per-arm block, payload extraction + binding; parity on enum/match corpus. |
+| M5-S-006e | `[u8; N]` array alloca + index | P2 | **todo** | array alloca; `ExprIndex` = `getelementptr` + load/store; needs Epic D `M5-S-032`; parity + bounds. |
+| M5-S-007a | direct function calls | P2 | **todo** | `call` inst, arg marshalling, return capture; parity on call corpus. |
+| M5-S-007b | global string / char constants | P2 | **todo** | string literals → private `@.str` globals (`[N x i8]`) + GEP-to-`ptr`; parity. |
+| M5-S-007c | runtime shim declarations | P2 | **todo** | `declare` + `call` for `println`/runtime helpers (link against `sv0_runtime`); parity on I/O corpus. |
+| M5-S-008 | verified-contract-mode carry-over | P2 | **todo** | reuse `lower()` `contract_mode`/`proven_lines`; verified-mode `.ll` omits proven `ensures` runtime checks. |
+| M5-S-009a | mega-TU compiles to `.ll` | P2 | **todo** | the mega-TU (or a large representative program) emits `.ll`, `llvm-as`-clean, links + runs. |
+| M5-S-009b | self-host: `llvm_codegen.sv0` in the loop | P2 | **todo** | the new emitter module compiles under the native self-host loop; stage0/self-host/vm-parity goldens refreshed. |
+
+### Epic B — LLVM toolchain + optimization (`task/sv0c-llvm-toolchain.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-010a | `sv0-llvm.sh` — assemble + validate | P1 | **todo** | `.ll` → `.bc` via `llvm-as` (syntax gate); fixed deterministic flags; single choke point for tool invocation. |
+| M5-S-010b | `sv0-llvm.sh` — codegen + link | P1 | **todo** | `.bc`/`.ll` → object (`llc`) → executable (`clang`); links `sv0_runtime`; produces a runnable binary. |
+| M5-S-010c | `sv0-llvm.sh` — version detect + degrade | P1 | **todo** | detects LLVM version; a distinct exit code signals "LLVM absent" so gated tests skip (mirrors `scripts/sv0-z3.sh` exit 2). |
+| M5-S-011 | `sv0 llvm-compile` / `llvm-run` verbs | P1 | **todo** | driver verbs take `.sv0` → `.ll` → object → executable → run; documented in CONTRIBUTING inner-loop list. |
+| M5-S-012a | default optimization pipeline | P2 | **todo** | documented default `opt` pipeline (≈-O2, incl. `mem2reg`/SROA) recorded in `sv0c/doc/llvm-backend.md`. |
+| M5-S-012b | `--llvm-opt=` override | P2 | **todo** | user override of the pass pipeline (incl. `-O0` for debugging); plumbed through the driver + wrapper. |
+| M5-S-013 | reproducible builds | P3 | **todo** | pinned LLVM version + deterministic flags produce byte-stable objects; recipe documented. |
+| M5-S-014 | LLVM version matrix | P5 | **todo** | documented supported LLVM major versions + how they're validated (one gated primary version; others documented-supported). |
+| M5-S-015 | `sv0 verify` × LLVM overlap | P2 | **todo** | verified-mode + `--target=llvm` end-to-end: proven contracts stripped in the optimized build; no false runtime check remains. |
+
+### Epic C — differential testing (`task/sv0c-llvm-backend.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-020a | LLVM-vs-C parity harness | P1 | **todo** | runs the behavior corpus through C and LLVM; compares exit code + stdout; script under `scripts/`. |
+| M5-S-020b | wire harness into the corpus + report | P1 | **todo** | per-case pass/fail report; a seeded mismatch fails the harness. |
+| M5-S-021 | gate `llvm-parity` in `./scripts/sv0 test` + CI | P2 | **todo** | a tier like `vm-parity`; skips cleanly when LLVM absent; CI installs LLVM and runs it. |
+| M5-S-022a | corpus growth — widths + bitwise | P2 | **todo** | cases for `i8…u64`, `& \| ^ ~ << >>`, signed/unsigned shift + division edge cases. |
+| M5-S-022b | corpus growth — overflow / wrapping | P2 | **todo** | wrapping + overflow-boundary cases (`M5-S-036`), where C and LLVM must agree on defined semantics. |
+| M5-S-022c | corpus growth — aggregates / arrays | P2 | **todo** | struct/enum/match + `[u8; N]` cases across backends. |
+| M5-S-023 | three-way (C/VM/LLVM) parity manifest + guard | P2 | **todo** | a manifest + Python guard asserting all three backends agree; wired into `test-guards`. |
+| M5-S-024 | representative `.ll` snapshot goldens | P2 | **todo** | a small set of byte-stable `.ll` goldens for regression (deterministic emit per hub design note 1), refreshed like other goldens. |
+
+### Epic D — `std` foundation (`task/sv0c-std-foundation.Rmd`)
+
+**Grounding (audit 2026-08-22):** fixed-width ints + bitwise/shift **already lower in
+C and VM**; `::` paths + `Result`/`Option` already exist. So these slices *close tails
++ carry to LLVM + add coverage*, not add front-end features. See the hub grounding
+audit.
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-030 | fixed-width int **audit + width-normalize** | P0 | **todo** | confirm `i8…u64/isize/usize` widths across C+VM; fix `i32`/`bool`→ exact width where it matters; carry the width table into the LLVM emitter (`M5-S-002`); regression tests. No new front-end types. |
+| M5-S-031 | bitwise/shift **coverage + LLVM + verifier hook** | P0 | **todo** | C+VM already lower `& \| ^ ~ << >>` — add LLVM emission (signed vs unsigned `ashr/lshr`, `sdiv/udiv`), grow the behavior corpus, and confirm the ops are extractable by Epic F (`M5-S-051`). |
+| M5-S-032 | complete `[u8; N]` fixed arrays / buffers | P0 | **todo** | close the checker/lowering `TyArray` "unsupported" tails: decl, `ExprIndex`, `len`, bounds semantics, across C+VM+LLVM. **On the crypto critical path** (buffers). |
+| M5-S-033 | `std::`/`crypto::` module **shipping + search path** | P1 | **todo** | resolver `::` already interns paths — add where library `.sv0` lives (leaning `sv0c/lib/std/`) + a driver search path + linking library TUs; `crypto::sha256::hash(...)` compiles + links end-to-end. Resolve open decision #3 first. |
+| M5-S-034 | `std::bytes` + endianness/rotate helpers | P1 | **todo** | `rotl/rotr`, big/little-endian pack/unpack (endianness per open decision #2); unit + behavior tests. |
+| M5-S-035 | fixed-width/bitwise/array `std` test corpus + docs | P1 | **todo** | grow beyond today's ~6 files to a real corpus (widths, wrapping, bitwise, arrays) + a `std` overview page; gated (test-suite bar). |
+| M5-S-036 | wrapping/overflow arithmetic (`wrapping_add`, …) | P1 | **todo** | define + implement wrapping semantics (C signed overflow is UB today); gated across backends; matches LLVM `nsw/nuw` discipline; verifiable under QF_BV (`M5-S-054`). |
+
+### Epic E — crypto library (`task/sv0c-crypto-lib.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+Ships as `std`/`crypto` sv0 source (Epic D `M5-S-033`). **Never hand-roll without
+RFC/NIST vectors** — vectors live as data files under `sv0c/test/` with provenance
+comments. API shapes in hub design note 5. Order: hash → MAC → AEAD → signature.
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-040a | SHA-256 core (compression + padding) | P4 | **todo** | block compression, message schedule, length padding over `[u8]` buffers; internal round vectors match. |
+| M5-S-040b | SHA-256 KATs + streaming API | P4 | **todo** | NIST KATs (empty, multi-block, long); incremental `update`/`finalize` state matches one-shot. |
+| M5-S-040c | SHA-512 core (64-bit words) | P4 | **todo** | `u64` schedule + compression; internal vectors match. |
+| M5-S-040d | SHA-512 KATs + streaming API | P4 | **todo** | NIST KATs + incremental parity. |
+| M5-S-041a | HMAC construction | P4 | **todo** | generic HMAC over a hash (ipad/opad, key sizing); parameterized by SHA-256/512. |
+| M5-S-041b | HMAC RFC 4231 vectors | P4 | **todo** | RFC 4231 test vectors (SHA-256 + SHA-512) gated. |
+| M5-S-042a | `crypto::ct::eq` (branchless compare) | P4 | **todo** | constant-time equality over `[u8; N]`, no data-dependent branch; ct-verified (`M5-S-055`). |
+| M5-S-042b | `crypto::ct::select` + cmov helpers | P4 | **todo** | branchless conditional select (mask-based); ct-verified. |
+| M5-S-043a | ChaCha20 quarter-round + block fn | P4 | **todo** | QR + 20-round block function; RFC 8439 §2.3 block-function test vector matches. |
+| M5-S-043b | ChaCha20 stream + counter | P4 | **todo** | keystream XOR + block counter/nonce handling; RFC 8439 §2.4 vector matches. |
+| M5-S-044a | Poly1305 field arithmetic + accumulator | P4 | **todo** | 2^130-5 accumulator (clamp `r`, add, mul-mod); internal vectors match. |
+| M5-S-044b | Poly1305 one-time MAC | P4 | **todo** | key split + tag emit; RFC 8439 §2.5 vector matches. |
+| M5-S-045a | AEAD seal (encrypt + MAC) | P4 | **todo** | ChaCha20 encrypt + Poly1305 over `aad ‖ ct ‖ lengths`; produces ct+tag. |
+| M5-S-045b | AEAD open (ct verify → decrypt) | P4 | **todo** | verify tag in constant time **before** exposing plaintext; `open(...) -> Result<Vec<u8>, AeadError>`; `Err` on mismatch (open decision #5). |
+| M5-S-045c | AEAD RFC 8439 §2.8 vectors | P4 | **todo** | combined AEAD vectors; round-trip + tag-tamper rejection gated. |
+| M5-S-046a | Ed25519 field element (2^255-19) add/sub/mul | P4 | **todo** | field repr + core ops; unit-tested vs known intermediates. **Descope boundary** starts here (see hub risk register). |
+| M5-S-046b | field inversion / exponentiation | P4 | **todo** | `pow`/`invert` (Fermat); tested vs known values. |
+| M5-S-046c | scalar arithmetic mod L | P4 | **todo** | reduction + `mul-add` mod the group order; tested. |
+| M5-S-046d | Edwards point ops (add/double/scalar-mul) | P4 | **todo** | group law + scalar multiply; matches known point vectors. |
+| M5-S-047a | Ed25519 keygen + sign | P4 | **todo** | key derivation + signature; deterministic-nonce per RFC 8032. |
+| M5-S-047b | Ed25519 verify (ct reject) | P4 | **todo** | verification with constant-time reject; `verify(...) -> Result<(), SigError>`. |
+| M5-S-047c | Ed25519 RFC 8032 §7.1 vectors | P4 | **todo** | official vectors; sign→verify round-trip + tampered-signature rejection. |
+| M5-S-048a | AEAD fuzz (round-trip + tamper) | P4 | **todo** | randomized seal/open round-trip; every single-bit tamper rejected. |
+| M5-S-048b | signature fuzz (round-trip + tamper) | P4 | **todo** | randomized sign/verify round-trip; tampered sig/msg rejected. |
+| M5-S-048c | differential vs reference vectors | P4 | **todo** | property harness cross-checks outputs against the vector corpus; wired into the suite. |
+| M5-S-049 | crypto docs + threat model + primitive table | P4 | **todo** | `sv0doc` crypto page: supported primitives, guarantees (incl. ct), threat model, explicit non-goals. |
+
+### Epic F — bitvector verification (`task/sv0c-bitvector-verify.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-050 | QF_BV SMT emission | P3 | **todo** | fixed-width vars as `(_ BitVec N)`; `bvadd/bvmul/bvand/bvor/bvxor/bvshl/bvlshr/bvult…`; logic auto-selects QF_BV; driver proves a BV query `unsat`. |
+| M5-S-051 | extract bitwise/shift into the contract IR | P3 | **todo** | `extract_cexpr` handles `& \| ^ ~ << >>` (the documented M4 residual) into CExpr; unit + corpus. |
+| M5-S-052 | mixed int/bitvector VC discipline | P3 | **todo** | sign/zero-extension rules; contracts z3 can't bridge stay RESIDUAL (soundness), matching M4. |
+| M5-S-053 | `#[constant_time]` analysis pass | P3 | **todo** | rejects secret-dependent branch/index/early-return in `#[constant_time]` fns (taint + BV-backed); diagnostics + corpus. |
+| M5-S-054 | verify overflow/wrapping contracts | P3 | **todo** | `ensures`/`requires` over wrapping arithmetic provable under QF_BV; verify corpus cases. |
+| M5-S-055 | ct-verify the crypto primitives | P4 | **todo** | `crypto::ct` + the AEAD/signature hot paths pass the `#[constant_time]` pass against the **optimized** LLVM output. |
+| M5-S-056 | verify corpus extension (BV + ct) | P3 | **todo** | bitvector + constant-time cases added to `sv0c/test/verify/corpus`; both-direction checks green. |
+
+### Epic G — release engineering (`task/sv0-toolchain-llvm-release.Rmd`)
+
+| ID | slice | phase | status | acceptance |
+|----|-------|-------|--------|-----------|
+| M5-S-060 | packaging + toolchain-dependency docs | P5 | **todo** | how the LLVM backend + crypto ship; required external tools + versions documented. |
+| M5-S-061 | crypto security-advisory process | P5 | **todo** | reporting channel, versioning/disclosure policy documented for the crypto tier. |
+| M5-S-062 | benchmark / perf notes | P5 | **todo** | LLVM `-O2` vs C backend on representative programs; recorded in `sv0c/doc/`. |
+| M5-S-063 | M5 docs consolidation | P5 | **todo** | `sv0doc` crypto spec + `sv0c/doc/` LLVM-backend page; cross-links from README/CONTRIBUTING. |
+| M5-S-064 | M5 closure evidence map | P5 | **todo** | `task/archive/m5-closure-evidence.md` mapping each completion criterion to shipped code/tests/CI (like M4). |

@@ -1,0 +1,68 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0-toolchain-llvm-release
+key: sv0-toolchain-llvm-release
+state: active
+tags:
+  - sv0
+  - sv0-toolchain
+  - milestone-5
+  - release
+  - crypto
+title: "sv0-toolchain: M5 release engineering + closure (M5 Epic G)"
+type: task
+---
+
+# sv0-toolchain: M5 release engineering + closure
+
+## purpose
+
+Milestone 5, **Epic G**. The production-readiness wrapper around the LLVM backend +
+crypto tier: packaging + toolchain-dependency docs, the LLVM version matrix, a crypto
+security-advisory process, performance notes, doc consolidation, and the closure
+evidence map.
+
+Hub: `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`. Slices: **M5-S-060…064**.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## approach
+
+1. **Packaging + deps (M5-S-060).** How the LLVM backend + crypto ship; required
+   external tools (LLVM tools, versions) documented for consumers.
+2. **Security-advisory process (M5-S-061).** reporting channel + versioning/
+   disclosure policy for the crypto tier ("production-oriented crypto" implies a
+   maintenance commitment).
+3. **Perf notes (M5-S-062).** LLVM `-O2` vs the C backend on representative programs;
+   recorded in `sv0c/doc/`.
+4. **Docs consolidation (M5-S-063).** `sv0doc` crypto spec + `sv0c/doc/llvm-backend.md`;
+   cross-links from README/CONTRIBUTING and `task/README.md`.
+5. **Closure evidence (M5-S-064).** `task/archive/m5-closure-evidence.md` mapping each
+   hub completion criterion (1–7) to shipped code/tests/CI — the M4 closure model.
+
+## notes
+
+- Closure is gated by the same triad as M4: on closure, flip the hub + checklist
+  `state: complete`, archive the six epic sub-tasks under `task/archive/`, and update
+  the milestone map (README/CONTRIBUTING/`task/README.md`). Keep the milestone HUBS
+  flat in `task/` (the workspace-table guard regex is flat `task/*.Rmd`).
+- Crypto docs are normative → keep `sv0doc/` and any `sv0 verify` claims aligned.
+
+## acceptance
+
+LLVM version matrix, packaging notes, and a crypto security-advisory process are
+documented; the M5 closure evidence map is produced. Hub completion criterion 7.
+
+## related
+
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — hub
+- `task/archive/m4-closure-evidence.md` — the closure-evidence model to follow

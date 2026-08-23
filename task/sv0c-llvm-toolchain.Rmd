@@ -1,0 +1,73 @@
+---
+created: "2026-08-22T00:00:00-06:00"
+updated: "2026-08-22T00:00:00-06:00"
+id: task-sv0c-llvm-toolchain
+key: sv0c-llvm-toolchain
+state: active
+tags:
+  - sv0
+  - sv0c
+  - milestone-5
+  - llvm
+  - toolchain
+title: "sv0c: LLVM toolchain driver + optimization (M5 Epic B)"
+type: task
+---
+
+# sv0c: LLVM toolchain driver + optimization
+
+## purpose
+
+Milestone 5, **Epic B**. Everything downstream of the `.ll` emitter
+(`task/sv0c-llvm-backend.Rmd`): the deterministic subprocess wrapper that turns `.ll`
+into a linked executable, the driver verbs, the documented optimization pipeline, and
+reproducible builds.
+
+Hub: `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`. Slices: **M5-S-010…015**.
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+
+## approach
+
+Model this on `scripts/sv0-z3.sh` (deterministic external-tool wrapper that degrades
+cleanly when the tool is absent).
+
+1. **`scripts/sv0-llvm.sh` (M5-S-010).** Wrap `llvm-as`/`opt`/`llc`/`clang` with
+   pinned deterministic flags; detect the LLVM version; a distinct exit code means
+   "LLVM absent" so gated LLVM tests skip rather than fail (mirrors z3 exit 2).
+2. **Driver verbs (M5-S-011).** `./scripts/sv0 llvm-compile <rel>` (`.sv0` → `.ll` →
+   object → executable) and `llvm-run`; add to the CONTRIBUTING inner-loop list.
+3. **Optimization pipeline (M5-S-012).** Document the default `opt` pipeline (≈`-O2`)
+   and expose `--llvm-opt=` to override; record in `sv0c/doc/llvm-backend.md`.
+4. **`sv0 verify` overlap (M5-S-015).** verified-mode + `--target=llvm`: proven
+   contracts are stripped in the optimized build with no false runtime check left.
+5. **Reproducible builds (M5-S-013).** pinned LLVM version + deterministic flags →
+   byte-stable objects; document the recipe.
+6. **Version matrix (M5-S-014).** One **gated** primary LLVM version; other supported
+   majors documented (not N gated CI legs — keep CI affordable).
+
+## notes
+
+- CI must install LLVM (mirror the z3-in-CI pattern in `ci.yml`) for the gated leg;
+  local runs without LLVM degrade to skips.
+- Keep the wrapper the single choke point for tool invocation so version pins and
+  flags live in one place.
+
+## acceptance
+
+`llvm-compile`/`llvm-run` produce a working executable via a pinned, documented LLVM
+toolchain; the default pass pipeline and a reproducible-build recipe are documented;
+the LLVM gate degrades cleanly when LLVM is missing. Hub completion criteria 1 & 3.
+
+## related
+
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — hub
+- `task/sv0c-llvm-backend.Rmd` — Epic A (the `.ll` emitter this consumes)
+- `scripts/sv0-z3.sh` — the deterministic-wrapper pattern to mirror

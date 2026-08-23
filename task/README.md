@@ -14,7 +14,7 @@ a sibling directory of verification shell scripts. Agents run a task with
 
 | task | state | what |
 |---|---|---|
-| [`sv0-toolchain-milestone-5-llvm-crypto.Rmd`](sv0-toolchain-milestone-5-llvm-crypto.Rmd) | draft | **next milestone** — LLVM IR backend + production crypto |
+| [`sv0-toolchain-milestone-5-llvm-crypto.Rmd`](sv0-toolchain-milestone-5-llvm-crypto.Rmd) · [checklist](sv0-toolchain-milestone-5-checklist.Rmd) | active | **current milestone** — LLVM IR backend + production crypto (7 epics A–G; sub-tasks `sv0c-llvm-backend`/`-llvm-toolchain`/`-std-foundation`/`-crypto-lib`/`-bitvector-verify` + `sv0-toolchain-llvm-release`) |
 | [`sv0-toolchain-milestone-6-kernel.Rmd`](sv0-toolchain-milestone-6-kernel.Rmd) | draft | `asm!`, boot/link, HAL, minimal kernel |
 | [`sv0-toolchain-milestone-cross-cutting.Rmd`](sv0-toolchain-milestone-cross-cutting.Rmd) | draft | macros, literate `.sv0.md`, `std`/concurrency, packaging |
 | [`sv0-vsc-extension-plan.Rmd`](sv0-vsc-extension-plan.Rmd) · [`…-checklist.Rmd`](sv0-vsc-extension-checklist.Rmd) | draft | VS Code extension |
