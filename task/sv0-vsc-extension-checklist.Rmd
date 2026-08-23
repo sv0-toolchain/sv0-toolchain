@@ -1,0 +1,418 @@
+---
+created: "2026-08-22T00:00:00-07:00"
+updated: "2026-08-22T01:00:00-07:00"
+id: task-sv0-vsc-extension-checklist
+key: sv0-vsc-extension-checklist
+state: draft
+tags:
+  - sv0
+  - vscode
+  - editor-tooling
+  - lsp
+  - planning
+title: "sv0 VS Code / Cursor extension: slice backlog (VSC-S-###)"
+type: task
+---
+
+# sv0 VS Code / Cursor extension: slice backlog
+
+## purpose
+
+The trackable **`VSC-S-###`** slice backlog for the `sv0-vsc-extension` product
+specified at `~/Documents/project-specs/sv0-vsc-extension/SPEC.md`. The
+**definition of done**, scope decisions, phase sequencing, and release gates
+live in the hub **`task/sv0-vsc-extension-plan.Rmd`**. This file is a **living
+index** — flip status as slices land and keep it aligned with the hub's phase
+narrative. No implementation has started; every slice below is `todo`.
+
+## how to use
+
+- Pick the next slice by phase band (00x → 1xx → 2xx → 3xx → 4xx → 5xx); within
+  a band, slices are ordered roughly by dependency.
+- Each slice names the **spec requirement ID(s)** it implements and a direct
+  **acceptance** signal lifted from spec §11's verification column. Cite the
+  requirement ID in the implementation PR (Appendix B traceability rule).
+- Do not start a 1xx (F0) slice before the phase-0 decisions it depends on
+  (see the hub's open-decisions table) are resolved.
+- Add a one-line result + commit/PR when a slice lands, same convention as the
+  M4 checklist (`task/sv0-toolchain-milestone-4-checklist.Rmd`).
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"vsc.checklist.session","title":"sv0 VS Code extension checklist — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"VSC"} -->
+- [ ] Slice status flipped + one-line result recorded when a `VSC-S-###` lands
+- [ ] Requirement ID(s) cited in the implementation PR
+- [ ] Hub (`task/sv0-vsc-extension-plan.Rmd`) phase narrative kept aligned with slice status
+<!-- sv0-track:end {"id":"vsc.checklist.session"} -->
+
+## configuration
+
+/env: SPEC_ROOT=~/Documents/project-specs/sv0-vsc-extension
+/env: SV0DOC_ROOT=sv0doc
+
+## slice backlog
+
+Status: **todo** / **wip** / **done** / **deferred** / **blocked**.
+
+### Phase 0 — governance and feasibility (unblocks Phase 1)
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-001 | Decide repo URL, Marketplace publisher ID, display name, package name | OD-001 | **done** | Repo `github.com/sv0-toolchain/sv0-vsc-extension`; publisher `sv0-toolchain`; `package.json.name` `sv0-lang`; `displayName` `sv0`. Canonical ID `sv0-toolchain.sv0-lang`. |
+| VSC-S-002 | Decide extension source license | OD-002 | **done** | MIT. |
+| VSC-S-003 | Resolve upstream (`sv0-toolchain`/`sv0c`/`sv0doc`/`sv0vm`) licensing + redistribution permission | OD-003, UP-001 | **done** | All 5 audited repos now carry `LICENSE-APACHE` + `LICENSE-MIT` (dual, confirmed present at repo root 2026-08-22). Fixture copying + future binary bundling unblocked (GOV-001 provenance and PKG-008 review still apply). |
+| VSC-S-004 | Decide `sv0-lsp` repository owner, maintainer, versioning authority | OD-004, UP-002 | **done** | `sv0-lsp` lives inside `sv0c`, versioned with the compiler, governed by `sv0c` maintainers. Unblocks Phase 2. |
+| VSC-S-005 | Pin initial `engines.vscode` floor from actually-used stable APIs | OD-005 | **done** | `>=1.85.0`. |
+| VSC-S-006 | Decide canonical GitHub release-workflow filename + protected Marketplace environment name | OD-008 | **done** | `.github/workflows/publish-vscode.yml` + `vscode-marketplace` (matches spec §26.6 runbook verbatim). |
+| VSC-S-007 | Create Marketplace publisher ID; confirm extension name + display name availability | PKG-010 (part) | **done** | Publisher `sv0-toolchain` created via the Marketplace publisher-management portal (2026-08-22). |
+| VSC-S-008 | Configure Marketplace trusted-publishing policy (exact GitHub owner/repo/workflow) + protected `vscode-marketplace` GitHub environment with required reviewer | SEC-015 (prep) | todo | policy scoped per runbook §26.2 steps 4–6; environment requires ≥1 reviewer who did not author the release commit |
+| VSC-S-009 | Record publisher owners, recovery contacts, trusted-policy scope, reviewer list, quarterly access-review date outside the repo's public files | §26.2 closing | todo | register exists and is referenced by SECURITY.md/ops runbook |
+| VSC-S-010 | Create compatibility-baseline manifest format + fixture-provenance schema | delivery-plan Phase 0 item 6, feeds GOV-001/TEST-002 | **wip** | Fixture-provenance half done: `schemas/provenance-manifest.json` in the new `sv0-vsc-extension` repo records upstream repo/revision/path per generated fixture (grammar + snippets entries seeded). The GOV-006-style compatibility-baseline manifest (VS Code/Cursor/LSP/server/OS/arch per release) is not yet started — that's R1-shaped and not blocking F0. |
+
+### Phase 1 — F0 lexical vertical slice (→ F0 gate §21.1)
+
+**Repo scaffold and packaging**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-101 | Scaffold TypeScript extension repo layout (spec §10 tree: `src/{common,node,web}`, `syntaxes/`, `snippets/`, `schemas/`, `test/`, `scripts/`) + build tooling | §10 | **done** | `sv0-toolchain/sv0-vsc-extension` scaffolded locally (git-initialized, not yet pushed). `npm run build` resolves both `dist/src/node/extension.js` (main) and `dist/src/web/extension.js` (browser); `npm run check` (lint+typecheck+build+test) green. |
+| VSC-S-102 | `package.json`: unique lowercase name, publisher, SemVer version, non-wildcard `engines.vscode`, license, repository, issue tracker, `Programming Languages` category | PKG-001 | **wip** | All fields present; `scripts/validate-manifest.mjs` checks them and is confirmed green in real CI (run 32594557171). Still not a JSON-schema-based automated manifest test as the spec's verification method literally names — it's a hand-written assertion script, adequate but not the final form. |
+| VSC-S-103 | Activation events restricted to sv0 documents / explicit sv0 commands, no eager activation on editor startup | PKG-002 | **wip** | `activationEvents: ["onLanguage:sv0"]` only, no `*`. No extension-host activation test/startup trace built yet. |
+| VSC-S-104 | Register language ID `sv0`, alias `sv0`, extension `.sv0` | PKG-003 | **wip** | Registered in `package.json.contributes.languages`, checked by `validate-manifest.mjs` (green in real CI). No real-editor open-file integration test yet. |
+| VSC-S-105 | `.vscodeignore` / `files` allowlist excluding tests, raw upstream repos, credentials, local paths, caches, dev-only deps | PKG-004 | **wip** | Verified empirically: `vsce package` produces a 16-file, 13.92 KB VSIX with no `.ts` sources, no `dist/test/**`, no `eslint.config.mjs`, no `node_modules`, no `.map` files. No automated secret scan yet. |
+| VSC-S-106 | Pin runtime deps via committed lockfile; record production dependency licenses | PKG-005 | **wip** | `package-lock.json` committed. No production runtime deps yet (devDependencies only) so nothing to license-inventory; no automated license-inventory test built. |
+| VSC-S-107 | VSIX install/uninstall smoke on fresh VS Code profile + fresh Cursor profile | PKG-006 | todo | not run — needs a real editor install, not just a packaged VSIX |
+| VSC-S-108 | Pin `@vscode/vsce` dev dependency resolved by lockfile; CI inspects packaged file tree pre-VSIX | PKG-012 | **done** | `@vscode/vsce@3.2.1` pinned in `devDependencies`/lockfile; `vsce ls --tree` + `vsce package --pre-release` dry run confirmed green in real GitHub Actions CI (run 32594557171, 2026-08-22). |
+| VSC-S-109 | Author README.md, LICENSE, CHANGELOG.md, SUPPORT.md, ThirdPartyNotices.txt | DOC-001 (partial) | **done** | All authored, incl. SECURITY.md (also required by the F0 gate text in §21.1 even though DOC-005 formally dates its full content to R0.1). |
+| VSC-S-110 | Marketplace listing icon (PNG ≥128×128, no SVG), HTTPS-only media, ≤30 keywords | PKG-011 | todo | Deliberately deferred — `package.json.icon` omitted rather than shipping a placeholder image; `vsce package` fails cleanly without it (confirmed) so it can't be silently forgotten. Needs real design work. |
+
+**Governance and source fidelity (F0)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-111 | Provenance manifest schema for every source-derived grammar/keyword/snippet/diagnostic fixture + generated-file headers | GOV-001 | **wip** | `schemas/provenance-manifest.json` created with entries for the grammar (`sv0doc@451fcd9`) and snippets (`sv0c@ac272be`). No automated schema-validation test yet. |
+| VSC-S-112 | Build-fails-on-drift gate: pinned `sv0doc/keywords/reference.md` keyword missing from lexical corpus | GOV-002 | **done** | `scripts/check-language-drift.mjs` extracts the 43-keyword alphabetical list from a real `sv0doc` checkout and asserts each appears in the grammar → `43/43 covered`. Confirmed in real GitHub Actions CI (run 32594557171, 2026-08-22): the workflow checks out `sv0-toolchain/sv0-toolchain` as a sibling path (with submodules) and the gate runs against the live pinned `sv0doc` revision, not a local path. |
+| VSC-S-113 | README/UI copy stating TextMate classification is not evidence of syntactic/semantic validity + negative fixture | GOV-003 | todo | not yet written |
+
+**TextMate grammar and language configuration**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-114 | `syntaxes/sv0.tmLanguage.json` skeleton (`source.sv0` root) + repository scope taxonomy from spec §13 | §13 | **done** | Grammar authored with the exact repository scope names from spec §13 (`comment.line.documentation.sv0`, `keyword.other.contract.sv0`, `variable.language.self.sv0`, etc.). |
+| VSC-S-115 | Keyword/primitive-type/literal/comment/string/char/operator/fn/type-decl/attribute/contract-clause token coverage | LANG-001 | **wip** | All categories present in the grammar (keyword-drift-verified for keywords, VSC-S-112). No golden token-scope test harness (`vscode-textmate` tokenizer + fixture corpus) built yet — that's the real LANG-001 gate. |
+| VSC-S-116 | Comment scopes: `//`, `///`, `/* ... */`, distinct scopes, non-nesting rejection fixture | LANG-002 | **wip** | Three distinct scopes implemented (`///` ordered before `//` so it matches first). No nested-comment rejection fixture test yet. |
+| VSC-S-117 | String/char escape highlighting incl. hex + Unicode escape shapes | LANG-003 | **wip** | `\n \r \t \\ \' \" \0`, `\xHH`, `\u{...}` patterns implemented inside string/char scopes. No valid/invalid escape fixture tests yet. |
+| VSC-S-118 | Numeric highlighting: decimal/hex/octal/binary, underscores, int suffixes, float literals + suffixes, no adjacent-identifier bleed | LANG-004 | **wip** | All four bases + underscores + int/float suffixes implemented with `\b` boundaries. No boundary-oriented fixture tests yet (adjacent-identifier bleed unverified). |
+| VSC-S-119 | Operator highlighting: punctuation, comparisons, shifts, borrow, dereference, logical — no parse disambiguation asserted | LANG-005 | **wip** | Comparison/logical/shift/arithmetic/bitwise/assignment/range/`?` patterns implemented (no borrow-vs-bitwise-and or deref-vs-multiply disambiguation attempted, per spec). No ambiguous-operator fixture tests yet. |
+| VSC-S-120 | `language-configuration.json`: line/block comments, bracket pairs, auto-closing pairs, surrounding pairs, word pattern, indentation rules, folding markers | LANG-006 | **done** | All fields present per spec's own field list. |
+| VSC-S-121 | Auto-closing-pair context guards: no closing quote inserted inside comments/strings | LANG-007 | **wip** | `"notIn": ["string", "comment"]` set on quote/block-comment auto-close pairs. No extension-host typing test yet. |
+| VSC-S-122 | Provenance-backed snippet set: `fn`, `main`, `struct`, `enum`, `match`, `if`, `while`, `for`, `requires`, `ensures`, `loop_invariant` | LANG-008, LANG-009 | **wip** | All 11 required snippets present, provenance recorded in `schemas/provenance-manifest.json`. No expansion-snapshot or compiler-corpus verification tests yet. |
+| VSC-S-123 | Lexical fixture inventory: LF, CRLF, Unicode, empty-file, very-long-line, malformed/incomplete-source cases | LANG-010 | todo | not yet built |
+| VSC-S-124 | Regex ReDoS/catastrophic-backtracking fuzz + 1 MiB single-line timeout suite | PERF-002 | todo | not yet built — the grammar's char-class/alternation patterns look linear but are unverified |
+
+**Phase-0 formatting**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-125 | Phase-0 formatter: strip trailing whitespace, strip trailing blank lines, exactly one final LF — differential vs audited `scripts/fmt_sv0.py` | FMT-001 | **wip** | `src/common/formatting/phase0Formatter.ts` implemented and reasoned line-by-line against `scripts/fmt_sv0.py`'s `format_sv0()` (incl. the `str.rstrip()` char set and `splitlines()` trailing-empty-pop behavior); 7 unit tests pass. Not yet the required **automated differential property test** that actually shells out to `fmt_sv0.py` and compares outputs. |
+| VSC-S-126 | Phase-0 formatter idempotence + non-whitespace character preservation | FMT-002 | **done** | Both covered by passing unit tests (`is idempotent`, `preserves every non-whitespace character`). |
+| VSC-S-127 | Formatter returns editor TextEdits via `provideDocumentFormattingEdits`, participates in undo, never writes files directly | FMT-003 | **wip** | `registerDocumentFormattingEditProvider` implemented, returns `vscode.TextEdit[]` (undo-safe by construction, no `fs` writes). No extension-host format+undo integration test run yet. |
+| VSC-S-128 | Format-on-save opt-in setting for Preview, no external process | FMT-004 | todo | `sv0.format.onSave` setting not implemented yet — formatter only registers as a manual/on-demand provider today |
+
+**Security, privacy, trust (F0)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-129 | Manifest declares limited untrusted-workspace support: lexical works, process/task features do not | SEC-001 | **wip** | `package.json.capabilities.untrustedWorkspaces.supported: "limited"` (+ description) added. No Restricted Mode integration test yet. |
+| VSC-S-130 | Prove open/preview/highlight never executes code, starts a server, hits network, or writes outside editor state (F0 + every untrusted workspace) | SEC-002 | todo | process/network/filesystem spies in fresh-profile and Restricted Mode tests |
+| VSC-S-131 | No telemetry, no runtime network requests in F0 (and R0.1) | SEC-007 | todo | static dependency review + network-deny integration test |
+| VSC-S-132 | Secret-scan + storage inspection: no secrets in settings/logs/global state/snapshots/source maps/packaged artifacts | SEC-010 | todo | secret scanning + storage inspection |
+| VSC-S-133 | Time-limited Marketplace PAT bootstrap-exception handling if a manual bootstrap publish is unavoidable before 2026-12-01 | SEC-016 | todo | secret scan, CI-variable inspection, credential register, revocation record (§26.2.1) |
+
+**Compatibility, UX, accessibility, observability, docs, tests (F0)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-134 | COMP-001 smoke matrix: VS Code desktop, Cursor desktop, `@vscode/test-web` | COMP-001 | todo | three-way smoke matrix |
+| VSC-S-135 | First open of an sv0 file provides lexical support immediately, no modal prompt | UX-001 | todo | fresh-profile open test |
+| VSC-S-136 | Language status item: `Set Up` / `Choose Server` / `View Logs`, no per-file notification spam | UX-002 | todo | notification-deduplication test |
+| VSC-S-137 | Concise accessible labels/descriptions on every command + setting, no color-only signaling | A11Y-001 | todo | manifest inspection + high-contrast test |
+| VSC-S-138 | `sv0` Output channel for lifecycle/config events, never logs source text | OBS-001 | todo | output snapshot + source-redaction test |
+| VSC-S-139 | Generated docs for every setting/command from manifest data (names/defaults can't drift) | DOC-002 | todo | docs-generation diff test |
+| VSC-S-140 | Extension activation p95 ≤ 100 ms extension-host CPU, no workspace scan | PERF-001 | todo | ten-run activation benchmark |
+| VSC-S-141 | Command-manifest snapshot proving F0 exposes no build/run/verify/debug command | TOOL-001 | todo | command-manifest snapshot |
+
+**Test governance and CI (F0)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-142 | Generated requirement-ID → test-ID → last-result traceability matrix, fails on uncovered in-scope ID | TEST-001 | todo | generated matrix with no uncovered in-scope ID |
+| VSC-S-143 | Fixture-manifest schema: source, revision, expected status, license disposition per copied/generated/hashed fixture | TEST-002 | todo | fixture-manifest schema + completeness test |
+| VSC-S-144 | Deterministic test harness: controlled clock/random seed/locale/timezone/editor profile/paths/timeout | TEST-003 | todo | test-harness unit tests + CI environment inspection |
+| VSC-S-145 | CI retry-policy lint: functional assertions never pass via retry; only classified editor-launch infra failures retry | TEST-004 | todo | CI configuration lint + deliberate-failure probe |
+| VSC-S-146 | Every registered command/setting has a manifest test; every advertised capability has positive + unavailable/degraded coverage | TEST-005 | todo | generated command/setting/capability coverage report |
+| VSC-S-147 | PR CI: fmt/lint/typecheck/`git diff --check`; unit+property; grammar golden+ReDoS; package/manifest/VSIX allowlist+secret scan; min+current VS Code extension-host tests on Linux | §20.1 items 1–5 | todo | all five jobs green on a sample PR |
+| VSC-S-148 | Dependency vulnerability, license, and SBOM-generation CI check | SEC-011, §20.1 item 8 | todo | CI dependency policy gate |
+| VSC-S-149 | Marketplace manifest/media/doc lint + pinned `vsce ls --tree` + VSIX dry run + packaged-file allowlist comparison | §20.1 items 9–10 | todo | CI job green |
+| VSC-S-150 | Run the full F0 gate (§21.1) from the packaged VSIX; record evidence | §21.1 | todo | every F0-gate bullet passes from a built VSIX, not the dev checkout |
+
+### Phase 2 — language-server protocol foundation (unblocks Phase 3)
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-201 | Confirm `sv0-lsp` repo/governance per VSC-S-004; align on protocol authority | UP-002 | todo | decision confirmed before further Phase 2 work |
+| VSC-S-202 | Author `sv0ProtocolVersion` negotiation contract + `schemas/sv0-lsp-initialization.schema.json` | LSP-002, §12.2 | todo | schema committed; matches the §12.2 initialization example |
+| VSC-S-203 | (upstream) reusable compiler front end accepting in-memory, versioned documents | UP-003 | blocked | tracked here as an extension-side dependency gate; unblocks DIA-*/NAV-* |
+| VSC-S-204 | (upstream) stable machine-readable diagnostic schema or direct LSP `Diagnostic` mapping | UP-004 | blocked | tracked here as an extension-side dependency gate; unblocks DIA-001/002 |
+| VSC-S-205 | (upstream) `sv0-lsp --stdio` and `sv0-lsp --version --format=json` executable contract | UP-002, §12.1 | blocked | `--version --format=json` returns server version, protocol version, semantic baseline revision, build revision, target triple, feature flags |
+| VSC-S-206 | LSP client transport scaffolding: stdio JSON-RPC, stderr reserved for server logs | LSP-001 | todo | protocol conformance harness |
+| VSC-S-207 | Handshake tests: compatible protocol-minor and protocol-major mismatch (single actionable message, no restart loop) | LSP-002, LSP-003 | todo | compatible/incompatible handshake tests; mock-server mismatch integration test |
+| VSC-S-208 | Server discovery precedence: explicit user setting → `SV0_LSP_SERVER` env → `PATH` executable | LSP-004 | todo | parameterized discovery tests |
+| VSC-S-209 | Workspace-provided server executable paths ignored in Restricted Mode, accepted only post-trust | LSP-005 | todo | Workspace Trust security test |
+| VSC-S-210 | Spawn processes via argv array + `shell: false`, no shell interpolation of source paths | LSP-006 | todo | unit test with metacharacter filenames + code inspection |
+| VSC-S-211 | One lazily started server per trusted workspace folder | LSP-007 | todo | multi-root lifecycle integration test |
+| VSC-S-212 | Single-file server mode gated on server advertisement; lexical support otherwise | LSP-008 | todo | loose-file capability test |
+| VSC-S-213 | Incremental text sync when advertised, full sync only as negotiated fallback | LSP-009 | todo | protocol trace test |
+| VSC-S-214 | Central UTF-16 ⇄ byte-offset conversion module + non-BMP Unicode property tests | LSP-010 | todo | Unicode position property tests |
+| VSC-S-215 | Cancellation propagation for completion/hover/references/symbols/rename/formatting | LSP-011 | todo | slow mock-server cancellation tests |
+| VSC-S-216 | Reject responses tied to superseded document versions | LSP-012 | todo | out-of-order response test |
+| VSC-S-217 | Stop servers cleanly on deactivation + workspace-folder removal, no orphan processes | LSP-013 | todo | process-leak integration test |
+| VSC-S-218 | Bounded automatic crash restart: ≤3 restarts / 5 minutes / folder, further restart needs explicit user action | LSP-014 | todo | deterministic crash-loop test with fake clock |
+| VSC-S-219 | Malformed JSON-RPC / stdout-corruption handling: treat as server failure, log with redaction, surface once | LSP-015 | todo | malformed-protocol test |
+| VSC-S-220 | Server advertises semantic baseline revision + supported experimental features at init | LSP-016 | todo | initialization snapshot test |
+| VSC-S-221 | Differential compiler/server fixture harness + LSP conformance mock-server harness | delivery-plan Phase 2 item 4 | todo | harness runs against a mock server and (once available) the real one |
+| VSC-S-222 | LS0 reliability soak: malformed input + rapidly changing documents | delivery-plan Phase 2 exit | todo | soak run shows no crash/wedge across a scripted edit sequence |
+
+### Phase 3 — R0.1 language intelligence (→ R0.1 gate §21.2)
+
+**Project and configuration model**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-301 | Nearest-ancestor `sv0.toml` discovery as project root, no traversal above the workspace folder | PROJ-001 | todo | project-root traversal tests |
+| VSC-S-302 | No-manifest fallback: workspace folder as analysis root, loose-file single-unit analysis when supported | PROJ-002 | todo | folder and loose-file tests |
+| VSC-S-303 | Default excludes: hidden dirs, VCS metadata, generated output, configurable excludes | PROJ-003 | todo | synthetic workspace indexing test |
+| VSC-S-304 | Cycle-safe symlink traversal, no escape from the workspace without explicit trusted config | PROJ-004 | todo | symlink cycle and escape tests on supported OSes |
+| VSC-S-305 | Project membership/module-path/visibility/import resolution via shared compiler logic, not client heuristics | PROJ-005, UP-005 | todo | differential compiler/server project corpus |
+| VSC-S-306 | Dynamic config application where safe; restart-requiring settings trigger a targeted restart, not a window reload | PROJ-006 | todo | configuration-change integration tests |
+| VSC-S-307 | Generated settings reference: scope, defaults, type constraints, trust sensitivity | PROJ-007, UX-007 | todo | generated settings-reference test |
+| VSC-S-308 | Unknown config keys log a warning without breaking analysis; invalid security-sensitive values rejected | PROJ-008 | todo | invalid-config tests |
+| VSC-S-309 | Implement the initial setting surface (`sv0.server.path/environment/trace/restartLimit`, `sv0.analysis.excludes`, `sv0.diagnostics.enable`, `sv0.format.mode/onSave`, `sv0.semanticHighlighting.enabled`) | §11.10 table | todo | every listed setting present with documented default/scope/trust-sensitivity |
+
+**Diagnostics**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-310 | Publish lexer/parser/name-resolution/type/ownership-borrow/contract diagnostics from the shared compiler pipeline | DIA-001 | todo | differential diagnostic corpus by phase |
+| VSC-S-311 | Diagnostic shape: URI, non-empty UTF-16 range, severity, stable code when one exists, `source: sv0`, human-readable message | DIA-002 | todo | JSON schema and range validation tests |
+| VSC-S-312 | Precise multi-line ranges when available, one-character insertion range only for truly point-like errors | DIA-003 | todo | golden range tests |
+| VSC-S-313 | `relatedInformation` for related declarations, conflicting borrows, contract origins, cross-file causes | DIA-004 | todo | cross-file related-information fixtures |
+| VSC-S-314 | Atomic per-document-version diagnostic replace; clear on valid/close/leave-project | DIA-005 | todo | edit-valid-close lifecycle tests |
+| VSC-S-315 | Stale diagnostics never reappear after a newer valid result | DIA-006 | todo | out-of-order publish test |
+| VSC-S-316 | Cascade budget: incomplete-typing diagnostics minimize cascades, preserve earliest root errors | DIA-007 | todo | keystroke-sequence golden test with cascade budget |
+| VSC-S-317 | Compatibility-gap manifest for known upstream under-diagnosis, never filled by unsound client-only checks | DIA-008 | todo | compatibility-gap manifest inspection |
+| VSC-S-318 | Verification-status decorations visually distinct from compiler errors; retain `verified` vs `runtime` + upstream reason | DIA-009 | todo | verification diagnostic/decorations test |
+
+**Navigation and language intelligence**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-319 | Document symbols: functions, structs, enums, variants, traits, impls, type aliases, newtypes, constants, statics, modules | NAV-001 | todo | symbol-kind golden tests |
+| VSC-S-320 | Workspace symbols: project-visible definitions, cancellation, capped/streamed results | NAV-002 | todo | large-workspace search test |
+| VSC-S-321 | Definition + references honoring scopes/modules/imports/overload resolution/traits/visibility | NAV-003 | todo | multi-file differential navigation corpus |
+| VSC-S-322 | Hover: resolved symbol kind, canonical type/signature, contracts, visibility, docs when available; omit unknown facts | NAV-004 | todo | hover snapshot tests |
+| VSC-S-323 | Syntax- and scope-aware completion, no inaccessible/impossible high-confidence suggestions | NAV-005 | todo | contextual completion tests |
+| VSC-S-324 | Completion items identify their source and produce valid syntax after insertion | NAV-006 | todo | completion-apply-and-compile tests |
+| VSC-S-325 | Signature help tracks active parameter + overload via compiler call resolution | NAV-007 | todo | nested-call and overload tests |
+| VSC-S-326 | Rename rejects keywords, collisions, invalid identifiers, inaccessible targets, compiler-ambiguous symbols | NAV-008 | todo | positive and adversarial rename tests |
+| VSC-S-327 | Rename returns a complete previewable `WorkspaceEdit`, never mutates files directly | NAV-009 | todo | multi-file rename preview and undo test |
+| VSC-S-328 | Semantic tokens distinguish declarations/references + major symbol kinds; modifiers only from compiler facts | NAV-010 | todo | semantic-token golden tests |
+| VSC-S-329 | Semantic tokens refine, not erase, TextMate highlighting when server unavailable/restarting | LANG-011 | todo | before/after semantic-token integration test |
+
+**Server-side (AST) formatting**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-330 | Delegate full-document formatting to server when AST formatting is advertised, with negotiated options | FMT-005, OD-007 | blocked | capability and formatting golden tests; blocked on OD-007 style-profile decision |
+| VSC-S-331 | AST-format round-trip: parses after formatting, preserves a defined structurally equivalent AST, idempotent | FMT-006 | todo | round-trip/property corpus |
+| VSC-S-332 | On-type formatting stays disabled until incomplete-syntax + cursor-stability tests pass | FMT-007 | todo | capability/default test |
+| VSC-S-333 | Formatting error/timeout leaves the document unchanged with a non-modal explanation | FMT-008 | todo | timeout/failure atomicity tests |
+
+**Security hardening (R0.1)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-334 | Language server starts only for a trusted workspace; untrusted/workspace-less documents get lexical support only | SEC-003 | todo | trust transition tests |
+| VSC-S-335 | Restricted Mode lockout: workspace settings cannot override exe paths/command args/env vars/download locations | SEC-004 | todo | malicious workspace fixture test |
+| VSC-S-336 | Adversarial cross-platform path corpus: traversal, symlinks, spaces, quotes, newlines, shell metacharacters never change command structure | SEC-005 | todo | cross-platform adversarial path corpus |
+| VSC-S-337 | Untrusted server/tool output neutralized where rendered: ANSI controls, command links, Markdown, terminal escapes | SEC-006 | todo | terminal/control-sequence injection tests |
+| VSC-S-338 | Source text/symbol names/diagnostics/paths/project metadata stay on the workspace host, never sent externally | SEC-008 | todo | data-flow review + network-deny test |
+| VSC-S-339 | Log redaction by default (home-dir prefixes, env secrets, tokens, document text); verbose protocol tracing opt-in only | SEC-009 | todo | redaction corpus tests |
+| VSC-S-340 | Binary-inventory check: no upstream executable embedded without an approved redistribution license | PKG-008 | todo | automated VSIX binary inventory + legal-release checklist |
+
+**Compatibility matrix (R0.1)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-341 | Workspace-extension placement tests: local, SSH, WSL, dev-container | COMP-002 | todo | local/SSH/WSL/dev-container placement tests as applicable |
+| VSC-S-342 | Three-VS-Code-minor CI matrix: minimum floor + previous two stable minors + current stable | COMP-003 | todo | three-version CI matrix |
+| VSC-S-343 | Recorded current-stable Cursor compatibility run (not inferred from VS Code) | COMP-004 | todo | recorded Cursor compatibility run |
+| VSC-S-344 | macOS + Linux native rich-support certification for architectures with `sv0-lsp` artifacts/local builds | COMP-005 | todo | OS/architecture matrix |
+| VSC-S-345 | Windows native lexical support; rich support certified through WSL/remote pending upstream native-Windows support | COMP-006, UP-010 | todo | Windows local lexical + WSL rich-feature tests |
+| VSC-S-346 | `vscode.dev`/`github.dev` without a remote extension host: lexical only, no semantic advertisement | COMP-007 | todo | web-host capability test |
+| VSC-S-347 | Virtual workspaces: lexical always; semantic only when the server can access a supported host/filesystem model | COMP-008 | todo | virtual-workspace tests |
+
+**Performance (R0.1)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-348 | Reference-project benchmark harness (500 `.sv0` files / 100k LOC / median ≤20 KiB / p95 ≤200 KiB) + CI machine-class recording | §11.13 preamble | todo | harness produces reproducible numbers with the machine class recorded |
+| VSC-S-349 | Server-start-to-first-diagnostics p95 ≤2 s warm / ≤5 s cold on an already-open 500-line file | PERF-003 | todo | repeated benchmark with warm/cold separation |
+| VSC-S-350 | Post-edit diagnostics latency p95 ≤500 ms, p99 ≤1.5 s on the reference project | PERF-004 | todo | keystroke replay benchmark |
+| VSC-S-351 | Completion p95 ≤200 ms, hover p95 ≤250 ms after indexing | PERF-005 | todo | LSP latency benchmark |
+| VSC-S-352 | Go-to-definition p95 ≤200 ms, workspace-symbol first page p95 ≤500 ms after indexing | PERF-006 | todo | navigation benchmark |
+| VSC-S-353 | Client adds ≤75 MiB steady-state RSS beyond the server on the reference project | PERF-007 | todo | process-separated memory benchmark |
+| VSC-S-354 | Configurable file-count/file-size safeguards, report exclusions rather than exhausting memory | PERF-008 | todo | oversized-workspace stress test |
+| VSC-S-355 | File watching debounces bursts, avoids duplicate analysis, recovers from watcher overflow with a bounded rescan | PERF-009 | todo | synthetic event-storm test |
+| VSC-S-356 | Fault-injection reliability: server crash, cancellation, malformed source, deleted files, atomic-save replacement never crash/wedge the extension host | PERF-010 | todo | reliability/fault-injection suite |
+
+**Accessibility, UX, observability (R0.1)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-357 | Status/progress changes via native accessible editor UI, no repetitive screen-reader announcements | A11Y-002 | todo | VoiceOver/NVDA (or equivalent) recorded test |
+| VSC-S-358 | Diagnostics understandable in Problems view, keyboard-navigable without custom pointer interaction | A11Y-003 | todo | keyboard-only + screen-reader manual test |
+| VSC-S-359 | Every icon has a text equivalent; severity/verification status include words, not only glyphs/color | A11Y-004 | todo | UI snapshot + accessibility-tree inspection |
+| VSC-S-360 | Status state machine: `Starting`/`Indexing`/`Ready`/`Degraded`/`Stopped`/`Incompatible`/`Crashed` | UX-003 | todo | state-machine UI snapshots |
+| VSC-S-361 | Long operations expose progress + cancellation without blocking typing/saving/closing | UX-004 | todo | responsiveness integration test |
+| VSC-S-362 | Error messages state what failed, what remains available, one concrete recovery action | UX-005 | todo | message-content snapshot review |
+| VSC-S-363 | No custom webview where native commands/settings/status/Quick Pick/Output/Problems/progress UI suffice | UX-006 | todo | UX architecture inspection |
+| VSC-S-364 | Settings holding executable paths/arguments marked restricted, ignored from untrusted workspace config | UX-008, SEC-004 (client side) | todo | trust configuration test |
+| VSC-S-365 | Configuration changes preserve user edits, reversible via standard editor settings/undo | UX-009 | todo | settings/undo manual test |
+| VSC-S-366 | Structured session logs: random correlation ID, server version, protocol version, workspace-folder hash, start/stop reason | OBS-002 | todo | structured log-schema test |
+| VSC-S-367 | Fault-classification logs: extension, transport, server, compiler, formatter, verifier, toolchain | OBS-003 | todo | fault-injection log-classification tests |
+| VSC-S-368 | User-facing errors deduplicated by cause + recovery state | OBS-004 | todo | repeated-failure notification test |
+| VSC-S-369 | `sv0: Copy Diagnostic Information` copies a redacted environment summary only after preview + explicit user action | OBS-005 | todo | redaction and clipboard integration test |
+| VSC-S-370 | No error path implies success when server/compiler/formatter/verifier returns an unknown or partial result | OBS-006 | todo | partial-result adversarial tests |
+| VSC-S-371 | `sv0: Show/Restart Language Server`, `sv0: Open Language Server Log` always explain current state + next action | TOOL-002 | todo | state-machine command tests |
+
+**Docs and test governance (R0.1)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-372 | Setup docs: local VS Code, Cursor, Remote SSH, WSL, dev containers, missing server, incompatible server, logs (resolves OD-006) | DOC-003, OD-006 | todo | scenario walkthrough review |
+| VSC-S-373 | Feature docs distinguish lexical, compiler-semantic, verification, and deferred capabilities | DOC-004 | todo | terminology lint and review |
+| VSC-S-374 | SECURITY.md: supported versions, vulnerability reporting, secret-handling expectations, supply-chain response | DOC-005 | todo | release checklist |
+| VSC-S-375 | SUPPORT.md: compatibility matrix, required diagnostic bundle, known upstream gaps, response boundaries | DOC-006 | todo | release checklist |
+| VSC-S-376 | Negative/cancellation/stale-result/server-failure tests for every applicable async language feature | TEST-006 | todo | capability coverage report |
+| VSC-S-377 | ≥90% line + branch coverage on security/discovery/lifecycle/formatting/redaction modules | TEST-007 | todo | coverage gate using instrumented unit tests |
+| VSC-S-378 | Release-candidate compatibility tested from the packaged VSIX, not only the dev checkout | TEST-008 | todo | CI artifact-consumption check |
+| VSC-S-379 | Manual-evidence schema: artifact checksum, editor/server version, platform, steps, result, date, reviewer | TEST-009 | todo | manual-evidence schema + release checklist |
+| VSC-S-380 | Differential semantic-fixture corpus (server vs compatible `sv0c` baseline) + quarantine-manifest process for upstream conflicts | GOV-004, GOV-005 | todo | automated differential corpus test; quarantine manifest + issue links |
+
+**Marketplace pre-release publication pipeline (R0.1)**
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-381 | Document + enforce single canonical extension-ID publication policy | PKG-009 | todo | Marketplace API/CLI lookup + release-evidence inspection |
+| VSC-S-382 | `vsce publish --packagePath` from the exact checksum-identified tested artifact, no rebuild between test and publish | PKG-013 | todo | artifact checksum comparison across test/publish/evidence jobs |
+| VSC-S-383 | GitHub Actions OIDC trusted publishing (`vsce publish --oidc`), no stored PAT in the standard release path | PKG-014 | todo | workflow policy lint + Marketplace trusted-publisher inspection |
+| VSC-S-384 | Publish job scoped to `contents: read` + `id-token: write`, protected environment, bound to exact repo/workflow | SEC-015 | todo | workflow permissions lint, branch/tag/environment policy inspection, OIDC publication test |
+| VSC-S-385 | Two-person-approval + retained incident/change record policy for unpublish/removal/version deletion | SEC-017 | todo | protected manual-action policy test + approval-record inspection |
+| VSC-S-386 | Pre-release flag + unique numeric `major.minor.patch` version discipline; no version reuse across channels | PKG-016 | todo | tag/version/channel policy test + Marketplace version inspection |
+| VSC-S-387 | Version/channel/tag discipline: numeric-only `package.json.version`, signed annotated tag, never `vsce publish major/minor/patch` | §26.5 | todo | CI derives version/channel from tag and fails on disagreement |
+| VSC-S-388 | Secretless publish workflow implementation (`.github/workflows/<OD-008 filename>`) | §26.6 | todo | workflow matches the reference in spec §26.6; passes a dry run |
+| VSC-S-389 | `npm run test:vsix` release-candidate suite installs the passed artifact into an isolated profile and runs the RC suite | §26.6 note | todo | script exists and is invoked by CI before publish |
+| VSC-S-390 | Local non-publishing preflight script + reviewer checklist | §26.4 | todo | preflight sequence runs `npm ci && npm run check && vsce ls --tree && vsce package && sha256sum` + clean-profile install |
+| VSC-S-391 | Post-publication clean-profile install + `--list-extensions --show-versions` verification of the exact published version | TEST-011 | todo | post-publication CLI transcript + acceptance-test report |
+| VSC-S-392 | Release-evidence bundle schema: Marketplace URL, extension ID, version, channel, tag, commit, VSIX SHA-256, workflow run, publication result, propagation verification, reviewer | TEST-012 | todo | release-evidence schema validation |
+| VSC-S-393 | Post-publication propagation polling with bounded backoff; failure (not false success) if the exact version never appears within the release timeout | §26.7 | todo | poll-and-fail-on-timeout behavior verified in a dry run |
+| VSC-S-394 | Cut the first public pre-release: `v0.1.0-preview` signed tag, published VSIX, full evidence bundle | AC-011 | todo | scenario AC-011 passes end-to-end |
+| VSC-S-395 | Run the full R0.1 gate (§21.2) incl. AC-002…AC-011; record evidence | §21.2 | todo | every R0.1-gate bullet passes with recorded evidence |
+
+### Phase 4 — R0.2 workflows (each capability promoted only with its own gate)
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-401 | Stabilize an installed `sv0` CLI version contract for toolchain commands, not repo-relative paths | TOOL-003, UP-008 | blocked | CLI compatibility tests against minimum + current supported versions; blocked on UP-008 |
+| VSC-S-402 | Quick fixes/code actions registered only for stable diagnostic codes with deterministic, previewable, semantics-preserving edits | DIA-010 | todo | per-code positive/negative code-action tests |
+| VSC-S-403 | Verify/compile/emit/run actions require an explicit user command + a trusted workspace | TOOL-004 | todo | trust and invocation tests |
+| VSC-S-404 | External command hardening: argv arrays, bounded working directory, sanitized env overrides, cancellation, timeout, output-channel streaming | TOOL-005 | todo | metacharacter, cancellation, timeout, and environment tests |
+| VSC-S-405 | `sv0 verify` integration consumes a versioned machine-readable schema; never infers proof status from colored/human text | TOOL-006, UP-007 | blocked | schema-contract + malformed-output tests; blocked on a versioned range-complete `sv0 verify` schema (current `--json` from M4-S-022 is a starting point, not yet versioned) |
+| VSC-S-406 | Verification status mapping: `runtime` never presented as proven; unknown/timeout/missing-solver/unsupported stay `runtime` | TOOL-007 | todo | verification status mapping corpus |
+| VSC-S-407 | Run-action result display: exact target, backend, exit status, duration, artifact path; nonzero program exit ≠ extension crash | TOOL-008 | todo | run-result integration tests |
+| VSC-S-408 | Generated C/bytecode/temp files written only to documented build or extension-storage locations, never overwrite source | TOOL-009 | todo | filesystem boundary test |
+| VSC-S-409 | VS Code task provider + problem matchers for sv0 workflows | §8.3 | todo | task provider registers, problem matcher parses sample output |
+| VSC-S-410 | `sv0.toml` configuration-file JSON schema + completion | §8.3 | todo | schema validates sample `sv0.toml` files; completion offers documented keys |
+| VSC-S-411 | Call hierarchy + type hierarchy shipped only when compiler indexes can produce complete, project-aware answers | NAV-011 | todo | completeness corpus + capability-advertisement test |
+| VSC-S-412 | Inlay hints disabled by default until a usability study shows they clarify sv0 types/contracts/ownership | NAV-012 | todo | default-setting test + recorded usability review |
+| VSC-S-413 | Selection ranges + folding ranges providers | §8.3 | todo | providers registered, tested against nested-scope fixtures |
+| VSC-S-414 | Import-sorting formatter extension, shipped only after upstream establishes resolution/side-effect preservation | FMT-009 | blocked | upstream decision link + semantic equivalence corpus |
+| VSC-S-415 | Test Explorer integration, gated on a sv0 project-test discovery contract | §8.3 | blocked | requires an upstream test-discovery contract that does not yet exist |
+| VSC-S-416 | Signed, checksummed toolchain-acquisition downloader design, gated on licensing/release infra | SEC-013, §8.3 | blocked | downloader threat-model + adversarial integration suite; blocked on OD-003/licensing |
+| VSC-S-417 | Implement `sv0.verifyFile`, `sv0.emitC`, `sv0.compileProject`, `sv0.runProject` commands | Appendix A | todo | commands registered per Appendix A availability rules |
+| VSC-S-418 | Z3/optional-solver invocation gated to an explicit verification action only; normal editing/compilation never requires it | SEC-014 | todo | process-spy workflow tests |
+| VSC-S-419 | Promote each R0.2 capability only once it has a requirement, threat model, compatibility row, and passing acceptance test | delivery-plan Phase 4 exit | todo | promotion checklist applied per capability before enabling by default |
+
+### Phase 5 — R1 stabilization (→ R1 gate §21.3)
+
+| ID | slice | requirement(s) | status | acceptance |
+|----|-------|----------------|--------|-----------|
+| VSC-S-501 | Two consecutive R0.x releases with no unresolved data-loss/command-injection/editor-host-crash-loop/semantic-corruption defect | §21.3 precondition | todo | release history review shows the required clean streak |
+| VSC-S-502 | Applicable LSP specification conformance suite + adversarial protocol corpus | LSP-017 | todo | CI conformance gate |
+| VSC-S-503 | Release manifest publishes VS Code/Cursor/LSP/server/toolchain/OS/architecture compatibility baseline | GOV-006 | todo | release-manifest inspection |
+| VSC-S-504 | Upgrade from each supported prior extension release preserves settings or performs a documented, tested migration | COMP-009 | todo | upgrade-matrix tests |
+| VSC-S-505 | Externalize user-visible strings into localization files even for an English-only first release | A11Y-005 | todo | localization-key coverage test |
+| VSC-S-506 | 30-minute edit/save/rename/navigation soak shows no unbounded process/listener/document/cache growth | PERF-011 | todo | automated soak with leak thresholds |
+| VSC-S-507 | Signed, provenance-bearing release artifacts + SBOM + third-party notices | PKG-007, SEC-012 | todo | release-pipeline policy test + artifact inspection |
+| VSC-S-508 | Support policy + deprecation-window documentation | §21.3 | todo | documented and linked from SUPPORT.md |
+| VSC-S-509 | Changelog policy: user-visible changes, breaking changes, migrations, known limitations, fixed security issues per release | DOC-007 | todo | changelog policy test |
+| VSC-S-510 | Publish R1 as a regular Marketplace release (`package.json.preview: false`, no `--pre-release`); pre-release-to-stable upgrade preserves settings/functionality | PKG-017 | todo | Marketplace channel inspection + clean-profile upgrade scenario |
+| VSC-S-511 | Automated pre-release→R1 upgrade integration test + recorded editor UI smoke | TEST-013 | todo | scenario AC-013 passes end-to-end |
+| VSC-S-512 | Accessibility sign-off: keyboard, high contrast, ≥1 screen reader per release candidate | §20.2 accessibility row | todo | recorded sign-off per RC |
+| VSC-S-513 | Pass the full R1 gate (§21.3) on two consecutive release candidates | §21.3 | todo | two RCs in a row pass every gate bullet |
+
+## refinement log
+
+- 2026-08-22: initial backlog created alongside the hub plan, from a full read
+  of `~/Documents/project-specs/sv0-vsc-extension/SPEC.md`. 195 slices across
+  six phase bands (000s governance, 100s F0, 200s LSP foundation, 300s R0.1,
+  400s R0.2, 500s R1), one slice per normative requirement ID or a tightly
+  coupled 2–3-ID cluster, each carrying its spec requirement ID(s) and
+  verification method for traceability (Appendix B). No implementation
+  started — planning only.
+- 2026-08-22: **VSC-S-001…006 done** — OD-001/002/003/004/005/008 all resolved
+  in one pass (see `task/sv0-vsc-extension-plan.Rmd` §decisions record).
+  Phase-0 governance is now down to three human account-setup actions
+  (VSC-S-007…009, Marketplace publisher creation + trusted-publishing policy +
+  contact recording) before Phase 1 (F0) implementation can start.
+- 2026-08-22: **VSC-S-007 done** — Marketplace publisher `sv0-toolchain`
+  created via the publisher-management portal. Remaining Phase-0 actions:
+  VSC-S-008 (trusted-publishing policy + protected `vscode-marketplace`
+  GitHub environment) and VSC-S-009 (record owners/recovery contacts).
+- 2026-08-22: **F0 scaffold started** — local repo `sv0-vsc-extension`
+  created. Landed and verified locally (`npm run check` green; a real
+  `.vsix` packages cleanly via `vsce package --pre-release`, 16 files /
+  13.92 KB):
+  VSC-S-101 (done), 109/114/120/126 (done), 112 (done, 43/43 keywords
+  verified against a real `sv0doc` checkout), and partial ("wip") progress
+  on 102/103/104/105/106/108/111/115…119/121/122/125/127/129 — see each
+  row for exactly what's real vs. still needed (mostly: golden/property/
+  extension-host test harnesses, not the underlying behavior). Untouched:
+  107 (needs a real editor), 110 (real icon design, deliberately deferred —
+  `package.json.icon` omitted rather than faked), 113/123/124/128 (not
+  started). No LSP client code exists (correct per AE-002/Phase 2 scope).
+- 2026-08-22: **Pushed to `github.com/sv0-toolchain/sv0-vsc-extension`**
+  (the org's empty pre-created repo — 2 commits, `main` branch, SSH remote).
+  First real GitHub Actions run of `.github/workflows/ci.yml` passed
+  (32594557171, 25s) — confirms VSC-S-108's `vsce ls --tree`/package dry run
+  and VSC-S-112's drift gate both work against a real CI-checked-out
+  `sv0-toolchain`/`sv0doc`, not just a local sibling path. One harmless
+  annotation: `actions/checkout@v4`/`setup-node@v4` target a deprecated
+  Node 20 runner image (still functions, forced onto Node 24) — worth
+  bumping to `@v5` in a later pass, not blocking.
+
+## related
+
+- `task/sv0-vsc-extension-plan.Rmd` — hub (purpose, scope decisions, phases, gates, open decisions)
+- `~/Documents/project-specs/sv0-vsc-extension/SPEC.md` — governing specification

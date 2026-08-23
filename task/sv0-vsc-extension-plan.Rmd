@@ -1,0 +1,305 @@
+---
+created: "2026-08-22T00:00:00-07:00"
+updated: "2026-08-22T01:00:00-07:00"
+id: task-sv0-vsc-extension-plan
+key: sv0-vsc-extension-plan
+state: draft
+tags:
+  - sv0
+  - vscode
+  - editor-tooling
+  - lsp
+  - planning
+title: "sv0 VS Code / Cursor extension: delivery plan (F0 → R1)"
+type: task
+---
+
+# sv0 VS Code / Cursor extension: delivery plan
+
+## purpose
+
+Plan — **not yet implement** — an independently versioned VS Code/Cursor extension for
+`sv0`, governed by the product/engineering specification at
+`~/Documents/project-specs/sv0-vsc-extension/SPEC.md` (source-audit date
+2026-08-22; audited revisions: `sv0-toolchain@8a1eeb2`, `sv0c@ac272be`,
+`sv0doc@451fcd9`, `sv0vm@504eeaa`, `sv0-mcp@6ef9926`). This file is the **hub**:
+scope, architecture, phase sequencing, gates, and open decisions. The trackable
+**`VSC-S-###`** slice backlog lives in **`task/sv0-vsc-extension-checklist.Rmd`**.
+
+This is a **separate product** from the `sv0-toolchain` design-milestone roadmap
+(`task/sv0-toolchain-roadmap-full.Rmd`, milestones 0–6): the extension is its own
+repository (AE-003) consuming `sv0-toolchain`/`sv0c`/`sv0doc`/`sv0vm` as read-only
+upstream authorities. No `roadmap_parent` is set on this file for that reason —
+link from here, don't nest under the compiler roadmap.
+
+## where we start (2026-08-22)
+
+- **No extension repository exists yet.** The spec is a governing draft; nothing
+  in `sv0-vsc-extension/` has been scaffolded.
+- **No `sv0-lsp` exists.** The audit found no LSP server, no machine-readable
+  general diagnostic schema, no editor-safe in-memory `check`, no AST formatter,
+  no DAP, no cross-platform installed-toolchain layout, and **no license files**
+  in any of the five audited repos.
+- **What upstream already gives us for free (F0 can build on this without a
+  server):** a normative EBNF grammar + keyword/operator reference (`sv0doc`),
+  compiler source spans (file/line/col/byte-offset), stable `E####` diagnostic
+  codes on a curated rejection corpus, single-file + recursive project
+  compilation, `sv0 verify --json`, a conservative whitespace formatter
+  (`scripts/fmt_sv0.py`), and a learning-examples corpus.
+- **Consequence (spec §4.3):** two-layer delivery. F0 ships safe declarative
+  support with zero semantic pretense; R0.1 adds semantic intelligence only
+  through a compiler-backed, versioned LSP contract. The extension **never**
+  scrapes human stderr or embeds a second parser/type-checker (AE-002).
+
+## scope decisions (locked by the spec)
+
+1. **Architecture = thin TypeScript client + out-of-process `sv0-lsp` over LSP/stdio** (AE-001). Runs on the workspace host (local or remote extension host).
+2. **No semantic fallback parser** (AE-002) — missing/incompatible server ⇒ disabled features + one actionable status, never regex-emulated intelligence.
+3. **Independent extension repository**, read-only upstream authorities, generated fixtures are reviewed changes (AE-003).
+4. **Stable common `vscode` APIs only through R1**; Cursor-specific APIs are a separate future decision (AE-004).
+5. **No bundled upstream executable** (`sv0c`/`sv0vm`/`sv0-lsp`/Z3/scripts) until licensing is explicit and reviewed (AE-005, PKG-008).
+6. **Canonical distribution = official VS Code Marketplace** under one extension ID, published via GitHub Actions OIDC trusted publishing — no steady-state PAT (AE-010, AE-011).
+
+## open decisions blocking implementation (resolve before the named phase)
+
+| ID | Decision | Status | Due | Tracking slice |
+|---|---|---|---|---|
+| OD-001 | Repo URL, Marketplace publisher ID, display name, package name | **resolved 2026-08-22** — see §decisions record | Before Phase 1 | VSC-S-001 |
+| OD-002 | Extension source license | **resolved 2026-08-22** — MIT | Before Phase 1 / any public source release | VSC-S-002 |
+| OD-003 | Upstream repo licensing + redistribution permission | **resolved 2026-08-22** — dual Apache-2.0/MIT added to all 5 audited repos | Before copying distributable fixtures or bundling binaries | VSC-S-003 |
+| OD-004 | `sv0-lsp` repo owner, maintainer, versioning authority | **resolved 2026-08-22** — lives inside `sv0c` | Before Phase 2 | VSC-S-004 |
+| OD-005 | Initial `engines.vscode` floor from actually-used APIs | **resolved 2026-08-22** — `>=1.85.0` | Before F0 packaging | VSC-S-005 |
+| OD-006 | Supported `sv0-lsp` installation story for R0.1 | open | Before R0.1 documentation freeze | VSC-S-372 (docs) |
+| OD-007 | AST formatter style-profile defaults + discovery | open | Before `sv0.format.mode=ast` ships | VSC-S-330 |
+| OD-008 | Canonical release-workflow filename + protected Marketplace environment name | **resolved 2026-08-22** — `.github/workflows/publish-vscode.yml` + `vscode-marketplace` | Before Phase 1 | VSC-S-006 |
+
+These are **controlled gates, not permission to improvise** (spec §25.2) — do not
+default them silently inside an implementation PR. OD-006 and OD-007 remain open
+by design: both depend on work (the R0.1 server-installation story, the AST
+formatter style contract) that hasn't happened yet.
+
+## decisions record
+
+Resolved 2026-08-22, in order:
+
+- **OD-001.** Repository: `github.com/sv0-toolchain/sv0-vsc-extension` (same org
+  as `sv0c`/`sv0doc`/`sv0vm`/`sv0-mcp`). Marketplace publisher ID:
+  `sv0-toolchain` (immutable once created — matches the GitHub org for
+  consistent branding). `package.json.name`: `sv0-lang`. `displayName`: `sv0`.
+  **Canonical extension identifier: `sv0-toolchain.sv0-lang`** — treat as
+  public API from the moment the publisher first publishes under it.
+- **OD-002.** Extension source license: **MIT**.
+- **OD-003.** All five audited upstream repos (`sv0-toolchain`, `sv0c`,
+  `sv0doc`, `sv0vm`, `sv0-mcp`) now carry `LICENSE-APACHE` + `LICENSE-MIT`
+  (dual Apache-2.0/MIT, the standard Rust-ecosystem pattern) under the user's
+  copyright — confirmed present at repo root of each on 2026-08-22. Fixture
+  copying (GOV-001/TEST-002 provenance still required) and future upstream
+  binary bundling (PKG-008, still gated on an explicit redistribution review)
+  are unblocked.
+- **OD-004.** `sv0-lsp` lives **inside `sv0c`** as a component/binary reusing
+  the compiler front end directly — no cross-repo API boundary, versioned
+  together with `sv0c` releases. Governed by the `sv0c` maintainers.
+- **OD-005.** `engines.vscode` floor: **`>=1.85.0`**.
+- **OD-008.** Release workflow: **`.github/workflows/publish-vscode.yml`**.
+  Protected Marketplace environment: **`vscode-marketplace`** — matches the
+  spec's own runbook example verbatim (§26.6), so the runbook stays directly
+  copy-pasteable.
+
+Still-open follow-up **actions** (not decisions) this unblocks but does not
+itself complete: creating the `sv0-toolchain` Marketplace publisher record and
+confirming `sv0-lang`/`sv0` availability (VSC-S-007), configuring the
+trusted-publishing policy + GitHub protected environment (VSC-S-008), and
+recording publisher owners/recovery contacts (VSC-S-009) — these need a human
+in the Marketplace publisher-management portal and GitHub org settings, not
+just a decision.
+
+## epics → owning areas
+
+The full requirement catalog (spec §11, ~150 normative IDs across GOV/PKG/LANG/
+LSP/PROJ/DIA/NAV/FMT/TOOL/UX/SEC/COMP/PERF/A11Y/OBS/DOC/TEST) is sliced in the
+checklist by **delivery phase**, mirroring spec §22:
+
+| phase | scope | release gate | slice band |
+|---|---|---|---|
+| **Phase 0 — governance & feasibility** | publisher/licensing/decision-register closure, compatibility-baseline + fixture-provenance format | none (unblocks Phase 1) | VSC-S-00# |
+| **Phase 1 — F0 lexical vertical slice** | manifest/packaging, TextMate grammar, language-configuration, snippets, phase-0 formatting, F0 security/UX/a11y/observability/docs/test-governance foundation | **F0 gate** (§21.1) | VSC-S-1## |
+| **Phase 2 — LSP protocol foundation** | `sv0-lsp` upstream contract, client transport/discovery/lifecycle/cancellation/versioning, LS0 reliability | unblocks Phase 3 | VSC-S-2## |
+| **Phase 3 — R0.1 language intelligence** | project/config model, diagnostics, navigation, server formatting, R0.1 security/compat/perf/a11y/observability/docs/test-governance, Marketplace pre-release pipeline | **R0.1 gate** (§21.2) | VSC-S-3## |
+| **Phase 4 — R0.2 workflows** | installed-CLI toolchain commands, quick fixes, hierarchies/hints, task provider, `sv0.toml` schema, signed downloader design | promoted capability gate (per-capability) | VSC-S-4## |
+| **Phase 5 — R1 stabilization** | conformance, upgrade/migration, signing/SBOM, soak, a11y sign-off, stable Marketplace release | **R1 gate** (§21.3) | VSC-S-5## |
+
+Per-epic engineering-note sub-tasks (`task/sv0-vsc-extension-<epic>.Rmd`, mirroring
+the M4 `sv0c-*.Rmd` pattern) should be created **as work on that epic begins**, not
+pre-scaffolded during planning — the checklist slice itself carries the spec
+requirement IDs needed to start.
+
+## upstream work required (blocks the extension, not extension-owned)
+
+| ID | capability | owner | blocks | tracking slice |
+|---|---|---|---|---|
+| UP-001 | Source/binary license + redistribution terms | all producing repos | fixture copying, binary bundling | VSC-S-003 |
+| UP-002 | `sv0-lsp --stdio` executable + protocol version | `sv0c` or new governed repo | R0.1 | VSC-S-201, VSC-S-205 |
+| UP-003 | Reusable compiler front end, in-memory versioned documents | `sv0c` | accurate live analysis | VSC-S-203 |
+| UP-004 | Stable machine-readable diagnostic schema or LSP mapping | `sv0c`/`sv0-lsp` | R0.1 diagnostics | VSC-S-204 |
+| UP-005 | Project model + installed-toolchain discovery contract | `sv0c`/`sv0-toolchain` | multi-file reliability, R0.2 | VSC-S-305, VSC-S-401 |
+| UP-006 | AST formatting policy + implementation | `sv0c` + policy owner | full formatting | VSC-S-330, OD-007 |
+| UP-007 | Stable JSON verification schema, complete ranges + version | `sv0-toolchain`/`sv0c` | R0.2 verification UI | VSC-S-405 |
+| UP-008 | Stable build/run CLI independent of repo-relative layout | `sv0-toolchain` | R0.2 tasks | VSC-S-401 |
+| UP-009 | DAP + debug info + VM/compiler source mapping | `sv0c`/`sv0vm` | future debugging (deferred from R1) | — |
+| UP-010 | Native Windows support policy + artifacts | toolchain maintainers | native Windows rich support | VSC-S-345 |
+
+This extension's own `sv0 verify --json` schema (`M4-S-022`, `task/archive/sv0c-verify-cli.Rmd`)
+is the closest existing upstream artifact toward UP-007 — it exists but is not yet
+the versioned, range-complete contract R0.2 needs; confirm before consuming it in
+`TOOL-006`.
+
+## design/risk notes carried from the spec
+
+- **Compiler accuracy over plausibility.** Every semantic answer traces to the
+  shared compiler pipeline; a wrong `[verified]`-style false-positive is a
+  soundness bug, not a UX nit (same discipline as `sv0 verify`, see
+  `task/sv0-toolchain-milestone-4-verification.Rmd`).
+- **Byte offsets vs UTF-16.** The compiler stores byte offsets; LSP positions are
+  UTF-16. Centralize conversion (`VSC-S-214`) with non-BMP property tests —
+  spec calls this out as risk #4 (§24).
+- **Diagnostic storms while typing.** Batch/incremental-version assumptions,
+  cancellation, and a cascade budget (`DIA-007`) prevent UI thrash.
+- **Command injection surface.** All external process invocation (server spawn,
+  future `sv0`/`z3` CLI actions) uses argv arrays + `shell: false`, trust-gated,
+  with an adversarial path corpus (`SEC-005`, `SEC-006`, `TOOL-005`).
+- **Marketplace identity is the real blast radius.** A compromised publisher or
+  release workflow can push updates to every installed user; OIDC scoped to
+  `contents: read` + `id-token: write`, a protected environment, and two-person
+  approval for any unpublish/removal are non-negotiable (`SEC-015`–`SEC-017`).
+- **Tested artifact ≠ published artifact** is an explicit failure mode: publish
+  only via `vsce publish --packagePath` on the checksum-identified candidate,
+  never rebuild between test and publish (`PKG-013`).
+
+## completion criteria per gate
+
+- **F0 (§21.1):** PKG-001…006 + PKG-010…012; LANG-001…010; FMT-001…004;
+  SEC-001/002/007/010/011/016; COMP-001 across VS Code + Cursor + web; no
+  semantic feature advertised; README/CHANGELOG/LICENSE/SECURITY/SUPPORT exist;
+  publisher + canonical ID + trusted-publishing policy + protected environment
+  configured; packaged VSIX matches the source tag and allowlist.
+- **R0.1 (§21.2):** upstream `sv0-lsp` satisfies LS0–LS2 + LSP-001…016;
+  diagnostic/project/navigation/semantic-token/server-formatting requirements
+  pass; Workspace Trust + process-invocation security tests pass; VS Code +
+  Cursor evidence recorded independently; performance budgets pass on the
+  declared reference machine; known semantic gaps documented, never
+  client-fabricated; no unlicensed upstream binary in public artifacts;
+  PKG-009 + PKG-013…016, SEC-015…017, TEST-011…012 pass; exact tested artifact
+  is a discoverable, installable Marketplace pre-release.
+- **R1 (§21.3):** two consecutive R0.x releases with no unresolved
+  data-loss/injection/crash-loop/semantic-corruption defect; LSP conformance +
+  upgrade/migration tests; support/deprecation policy; signed provenance
+  artifacts; PKG-017 + TEST-013 pass for the regular release + supported
+  pre-release upgrade; 30-minute soak clean; accessibility sign-off; no
+  unresolved severity-critical/high security finding.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"vsc.plan.session","title":"sv0 VS Code extension — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"VSC"} -->
+- [ ] Open decisions (OD-001…008) still resolved outside this repo — confirm before starting the blocked phase
+- [ ] Checklist (`task/sv0-vsc-extension-checklist.Rmd`) slice status flipped + one-line result recorded when a `VSC-S-###` lands
+- [ ] Requirement ID cited in every implementation PR (Appendix B traceability rule)
+<!-- sv0-track:end {"id":"vsc.plan.session"} -->
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0DOC_ROOT=sv0doc
+/env: SV0C_ROOT=sv0c
+/env: SPEC_ROOT=~/Documents/project-specs/sv0-vsc-extension
+
+## phases
+
+### phase 0: governance and feasibility
+
+/ai: resolve OD-001…003, OD-005, OD-008; create the Marketplace publisher ID and
+confirm name/display-name availability; configure the trusted-publishing policy
+and protected `vscode-marketplace` GitHub environment; create the
+compatibility-baseline manifest and fixture-provenance format. No extension code
+before this closes.
+
+### phase 1: F0 lexical vertical slice
+
+/ai: scaffold the TypeScript extension per spec §10; author the TextMate grammar
+and language configuration from the audited `sv0doc` grammar/keyword reference;
+add provenance-backed snippets; implement pure phase-0 formatting identical to
+`scripts/fmt_sv0.py`; build the complete Marketplace listing assets; pass the
+F0 gate from the packaged VSIX.
+
+### phase 2: language-server protocol foundation
+
+/ai: specify `sv0ProtocolVersion` negotiation and `sv0-lsp --version --format=json`
+output; stand up the client transport (stdio JSON-RPC, argv spawn, discovery
+precedence, cancellation, UTF-16 conversion, bounded restart); build the
+differential compiler/server fixture harness and an LSP conformance mock-server
+harness. Depends on OD-004 and upstream UP-002/UP-003.
+
+### phase 3: R0.1 language intelligence
+
+/ai: implement symbols/hover/definition/references/completion/signature-help/
+rename/workspace-symbols/semantic-tokens against the real server; add AST
+formatting only if OD-007 is resolved; harden security/compat/performance/
+accessibility; publish the exact tested VSIX as the public Marketplace
+pre-release and retain post-publication evidence (TEST-011/012).
+
+### phase 4: R0.2 workflows
+
+/ai: stabilize an installed `sv0` CLI contract and JSON schemas (depends on
+UP-007/UP-008); add explicit verify/build/run/task workflows gated on trust;
+add only diagnostic-code-backed quick fixes; evaluate hierarchies/hints/Test
+Explorer/signed toolchain acquisition separately, each with its own
+requirement + threat model + compatibility row.
+
+### phase 5: R1 stabilization
+
+/ai: close Preview reliability/UX findings; complete protocol/deprecation
+policy and migrations; establish signing/SBOM/provenance/support/security
+response; test the Marketplace pre-release-to-stable upgrade path; publish the
+exact tested R1 artifact as a regular Marketplace release; pass the R1 gate on
+two consecutive release candidates.
+
+## refinement log
+
+- 2026-08-22: initial plan created from a full read of
+  `~/Documents/project-specs/sv0-vsc-extension/SPEC.md` (source-audit date
+  2026-08-22). Locked scope = spec's own accepted architecture decisions
+  (AE-001…011); phased per spec §22; ~190-slice `VSC-S-###` backlog created in
+  the companion checklist, one slice per normative requirement ID (or tightly
+  coupled 2–3-ID cluster). No implementation started — planning only.
+- 2026-08-22: **OD-001, OD-002, OD-003, OD-004, OD-005, OD-008 resolved** — see
+  §decisions record. Repo `sv0-toolchain/sv0-vsc-extension`; publisher
+  `sv0-toolchain`; canonical ID `sv0-toolchain.sv0-lang`; MIT extension
+  license; upstream repos confirmed dual Apache-2.0/MIT (fixture copying now
+  permitted); `sv0-lsp` lives inside `sv0c`; `engines.vscode >=1.85.0`;
+  release workflow `.github/workflows/publish-vscode.yml` +
+  `vscode-marketplace` environment. OD-006 (server-installation story) and
+  OD-007 (AST style-profile) remain open by design — both depend on later
+  work. Phase 1 (F0) is now unblocked pending only the human Marketplace
+  publisher-account actions (VSC-S-007…009).
+- 2026-08-22: **VSC-S-007 done** (publisher `sv0-toolchain` created). **F0
+  scaffold started** at `~/Documents/sv0-vsc-extension` (local git repo,
+  two commits). `npm run check` green; `vsce package --pre-release`
+  produces a real, clean 16-file/13.92 KB VSIX. See
+  `task/sv0-vsc-extension-checklist.Rmd` refinement log for the exact
+  per-slice landing state — most F0 slices are genuinely `wip`, not `done`:
+  the underlying behavior exists but the golden/property/extension-host test
+  harnesses the spec requires do not yet.
+- 2026-08-22: **Pushed to `github.com/sv0-toolchain/sv0-vsc-extension`**
+  (the org's empty pre-created repo — `main` branch, SSH remote). First real
+  GitHub Actions `ci.yml` run passed (32594557171), including the
+  cross-repo `sv0-toolchain`/`sv0doc` checkout for the GOV-002 drift gate —
+  the repo now exists on GitHub, unblocking VSC-S-008 (trusted-publishing
+  policy + protected `vscode-marketplace` environment, which needs a real
+  repo to bind to).
+
+## related
+
+- `task/sv0-vsc-extension-checklist.Rmd` — `VSC-S-###` slice backlog
+- `~/Documents/project-specs/sv0-vsc-extension/SPEC.md` — governing specification
+- `task/sv0-toolchain-milestone-4-verification.Rmd` — `sv0 verify` / contract-mode (source for UP-007 gap analysis)
+- `sv0doc/grammar/`, `sv0doc/keywords/reference.md` — LANG-* authority
+- `sv0c/doc/tooling-formatter-linter.md` — FMT-* upstream design notes

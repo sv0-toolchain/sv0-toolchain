@@ -70,12 +70,12 @@ ensure milestone 0 is complete before starting.
 
 ## phase 1: project scaffolding and error infrastructure
 
-/include: task/sv0c-project-setup.Rmd
+/include: task/archive/sv0c-project-setup.Rmd
 
 /capture: SETUP_STATUS
 /assert: test "$SETUP_STATUS" != "FAIL"
 
-/include: task/sv0c-error-reporting.Rmd
+/include: task/archive/sv0c-error-reporting.Rmd
 
 /capture: ERROR_REPORTING_STATUS
 /assert: test "$ERROR_REPORTING_STATUS" != "FAIL"
@@ -87,35 +87,35 @@ on the output of the previous one.
 
 ### lexer (source text -> token stream)
 
-/include: task/sv0c-lexer.Rmd
+/include: task/archive/sv0c-lexer.Rmd
 
 /capture: LEXER_STATUS
 /assert: test "$LEXER_STATUS" != "FAIL"
 
 ### parser (token stream -> untyped AST)
 
-/include: task/sv0c-parser.Rmd
+/include: task/archive/sv0c-parser.Rmd
 
 /capture: PARSER_STATUS
 /assert: test "$PARSER_STATUS" != "FAIL"
 
 ### name resolution (untyped AST -> resolved AST)
 
-/include: task/sv0c-name-resolution.Rmd
+/include: task/archive/sv0c-name-resolution.Rmd
 
 /capture: RESOLVER_STATUS
 /assert: test "$RESOLVER_STATUS" != "FAIL"
 
 ### type checker (resolved AST -> typed AST)
 
-/include: task/sv0c-type-checker.Rmd
+/include: task/archive/sv0c-type-checker.Rmd
 
 /capture: TYPECHECKER_STATUS
 /assert: test "$TYPECHECKER_STATUS" != "FAIL"
 
 ## phase 3: contract analysis (typed AST -> annotated AST)
 
-/include: task/sv0c-contract-analyzer.Rmd
+/include: task/archive/sv0c-contract-analyzer.Rmd
 
 /capture: CONTRACT_STATUS
 /assert: test "$CONTRACT_STATUS" != "FAIL"
@@ -124,14 +124,14 @@ on the output of the previous one.
 
 ### IR definition and lowering
 
-/include: task/sv0c-ir.Rmd
+/include: task/archive/sv0c-ir.Rmd
 
 /capture: IR_STATUS
 /assert: test "$IR_STATUS" != "FAIL"
 
 ### C code generation
 
-/include: task/sv0c-c-backend.Rmd
+/include: task/archive/sv0c-c-backend.Rmd
 
 /capture: CBACKEND_STATUS
 /assert: test "$CBACKEND_STATUS" != "FAIL"

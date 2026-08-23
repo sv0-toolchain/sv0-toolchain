@@ -3,7 +3,7 @@ created: "2026-08-16T00:00:00-07:00"
 updated: "2026-08-16T00:00:00-07:00"
 id: task-sv0c-verify-cli
 key: sv0c-verify-cli
-state: todo
+state: complete
 tags:
   - sv0
   - sv0c

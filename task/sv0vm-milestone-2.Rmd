@@ -69,28 +69,28 @@ bytecode.
 
 ## phase 1: bytecode format design
 
-/include: task/sv0vm-bytecode-format.Rmd
+/include: task/archive/sv0vm-bytecode-format.Rmd
 
 /capture: BYTECODE_STATUS
 /assert: test "$BYTECODE_STATUS" != "FAIL"
 
 ## phase 2: interpreter core
 
-/include: task/sv0vm-interpreter.Rmd
+/include: task/archive/sv0vm-interpreter.Rmd
 
 /capture: INTERPRETER_STATUS
 /assert: test "$INTERPRETER_STATUS" != "FAIL"
 
 ## phase 3: runtime support
 
-/include: task/sv0vm-runtime.Rmd
+/include: task/archive/sv0vm-runtime.Rmd
 
 /capture: RUNTIME_STATUS
 /assert: test "$RUNTIME_STATUS" != "FAIL"
 
 ## phase 4: VM backend for sv0c
 
-/include: task/sv0vm-vm-backend.Rmd
+/include: task/archive/sv0vm-vm-backend.Rmd
 
 /capture: VMBACKEND_STATUS
 /assert: test "$VMBACKEND_STATUS" != "FAIL"

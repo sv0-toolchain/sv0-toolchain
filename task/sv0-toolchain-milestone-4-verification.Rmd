@@ -29,7 +29,7 @@ Implement the **static verification** described in [vision & design](http://deve
 
 ## scope decisions (2026-08-16)
 
-1. **Solver backend = external Z3 via SMT-LIB2.** `sv0 verify` emits SMT-LIB2 text, runs the `z3` binary as a subprocess, parses `sat`/`unsat`/`unknown`. Full solver power with no FFI. Verification (not normal compilation) depends on `z3` on PATH; absence degrades gracefully (every contract → runtime). See **`task/sv0c-smt-backend.Rmd`** for the host-process design (driver-orchestrated vs. a runtime subprocess builtin — open).
+1. **Solver backend = external Z3 via SMT-LIB2.** `sv0 verify` emits SMT-LIB2 text, runs the `z3` binary as a subprocess, parses `sat`/`unsat`/`unknown`. Full solver power with no FFI. Verification (not normal compilation) depends on `z3` on PATH; absence degrades gracefully (every contract → runtime). See **`task/archive/sv0c-smt-backend.Rmd`** for the host-process design (driver-orchestrated vs. a runtime subprocess builtin — open).
 2. **Full spec scope: Phase 2 + Phase 3.** M4 delivers local *and* modular static verification + refinement types + pilots (not a Phase-2-only cut).
 3. **Pilot target: decided during Epic E** once the solver's real capabilities are known (numeric/std routines are the likely first target; crypto is a stretch).
 
@@ -37,11 +37,11 @@ Implement the **static verification** described in [vision & design](http://deve
 
 | epic | scope | sub-task |
 |---|---|---|
-| **A — VC generation** | contract-expr IR + verification-condition generator over the fn body (assume `requires`, symbolic execution / WP, loop invariants, `old`/`result`) | `task/sv0c-contract-vcgen.Rmd` |
-| **B — SMT backend** | SMT-LIB2 emitter + `z3` subprocess driver + obligation→result mapping + graceful degradation | `task/sv0c-smt-backend.Rmd` |
-| **C — `sv0 verify` + contract-mode** | the CLI, per-contract `[verified]`/`[runtime]` report, machine-readable output, `--contract-mode` (runtime/verified/disabled), verified-mode stripping of proven checks, minimal `sv0.toml` | `task/sv0c-verify-cli.Rmd` |
-| **D — refinement types + modular** | `type T = i32 where self > 0`, refinement checks at assignment, modular caller/callee proof, trait-contract contravariance, narrowing-cast contracts | `task/sv0c-refinement-types.Rmd` |
-| **E — pilots + proof corpus** | a gated verification corpus (expected proof status per contract) + end-to-end pilot proofs | `task/sv0c-verify-pilots.Rmd` |
+| **A — VC generation** | contract-expr IR + verification-condition generator over the fn body (assume `requires`, symbolic execution / WP, loop invariants, `old`/`result`) | `task/archive/sv0c-contract-vcgen.Rmd` |
+| **B — SMT backend** | SMT-LIB2 emitter + `z3` subprocess driver + obligation→result mapping + graceful degradation | `task/archive/sv0c-smt-backend.Rmd` |
+| **C — `sv0 verify` + contract-mode** | the CLI, per-contract `[verified]`/`[runtime]` report, machine-readable output, `--contract-mode` (runtime/verified/disabled), verified-mode stripping of proven checks, minimal `sv0.toml` | `task/archive/sv0c-verify-cli.Rmd` |
+| **D — refinement types + modular** | `type T = i32 where self > 0`, refinement checks at assignment, modular caller/callee proof, trait-contract contravariance, narrowing-cast contracts | `task/archive/sv0c-refinement-types.Rmd` |
+| **E — pilots + proof corpus** | a gated verification corpus (expected proof status per contract) + end-to-end pilot proofs | `task/archive/sv0c-verify-pilots.Rmd` |
 | **F — spec/doc alignment** | keep `sv0doc/contracts/semantics.md` + `sv0doc/type-system/` normative as behavior lands (a directive inside each epic, not a separate module) | — |
 
 Slice-level backlog (`M4-S-###`) lives in **`task/sv0-toolchain-milestone-4-checklist.Rmd`**.
@@ -124,7 +124,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 ## related
 
 - `task/sv0-toolchain-milestone-4-checklist.Rmd` — `M4-S-###` slice backlog + epic status
-- `task/sv0c-contract-vcgen.Rmd`, `task/sv0c-smt-backend.Rmd`, `task/sv0c-verify-cli.Rmd`, `task/sv0c-refinement-types.Rmd`, `task/sv0c-verify-pilots.Rmd`
+- `task/archive/sv0c-contract-vcgen.Rmd`, `task/archive/sv0c-smt-backend.Rmd`, `task/archive/sv0c-verify-cli.Rmd`, `task/archive/sv0c-refinement-types.Rmd`, `task/archive/sv0c-verify-pilots.Rmd`
 - `task/sv0-toolchain-roadmap-full.Rmd`
 - `sv0doc/contracts/semantics.md` §3–4 — verification phases + contract-mode
 - `sv0doc/type-system/rules.md` — refinement type integration point

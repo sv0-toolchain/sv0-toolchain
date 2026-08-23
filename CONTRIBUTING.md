@@ -67,23 +67,29 @@ Development is organized with `.Rmd` task files under `task/` (the
 Each `.Rmd` orchestrates a slice of work through directives + companion scripts.
 
 ```bash
-.agent/runner.sh task/sv0c-lexer.Rmd            # run a task
-.agent/runner.sh --dry-run task/sv0c-milestone-1.Rmd
+.agent/runner.sh --dry-run task/sv0-toolchain-milestone-5-llvm-crypto.Rmd  # inspect a task
+.agent/runner.sh task/archive/sv0c-lexer.Rmd                               # run a (completed) task
 ```
 
 Cursor IDE: numbered rule modules live under `.cursor/rules/` (start at
 `00-workspace-context.mdc`); open any `.Rmd` and use `/run-ai-tasks-in-doc`.
 
-**Milestone map** (task files own phase tracking):
+**Start at [`task/README.md`](task/README.md)** — the planning index (active work,
+milestone hubs, and the archive of completed sub-tasks). Milestone map:
 
 ```
-task/sv0doc-milestone-0.Rmd          spec extraction (grammar, types, contracts, memory, keywords)
-task/sv0c-milestone-1.Rmd            bootstrap compiler (setup, lexer, parser, resolver, checker, contracts, IR, C backend)
-task/sv0vm-milestone-2.Rmd           bytecode VM (format, interpreter, runtime, VM backend)
-task/sv0-toolchain-milestone-3-self-host.Rmd   self-hosting compiler (closed)
-task/sv0-toolchain-roadmap-full.Rmd  roadmap index (milestones 2–6 + cross-cutting)
-task/sv0-toolchain-workspace.Rmd     workspace map, env vars, aggregate commands
-task/sv0-toolchain-progress.md       run log + progress rollup
+task/sv0doc-milestone-0.Rmd                    M0 spec extraction                     complete
+task/sv0c-milestone-1.Rmd                      M1 bootstrap compiler (SML)            complete
+task/sv0vm-milestone-2.Rmd                     M2 bytecode VM (+ -2-prep)             complete
+task/sv0-toolchain-milestone-3-self-host.Rmd   M3 self-hosting compiler (+ checklist) complete
+task/sv0-toolchain-milestone-4-verification.Rmd M4 advanced verification (+ checklist) complete
+task/sv0-toolchain-milestone-5-llvm-crypto.Rmd M5 LLVM + production crypto            active (next)
+task/sv0-toolchain-milestone-6-kernel.Rmd      M6 kernel development                  draft
+task/sv0-toolchain-milestone-cross-cutting.Rmd macros/std/packaging (multi-milestone) draft
+task/sv0-toolchain-roadmap-full.Rmd            roadmap index (all milestones)
+task/sv0-toolchain-workspace.Rmd               workspace map, env vars, milestone table
+task/sv0-toolchain-progress.md                 run log + progress rollup
+task/archive/                                  completed granular sub-tasks (provenance)
 ```
 
 ## the dev graph (sv0-mcp)

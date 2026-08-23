@@ -61,7 +61,7 @@ each sub-agent extracts one section into a formal, implementable format.
      modules and imports, closures, generics, and attributes.
      write the grammar to sv0doc/grammar/sv0.ebnf.
 
-/include: task/sv0doc-extract-grammar.Rmd
+/include: task/archive/sv0doc-extract-grammar.Rmd
 
 ### step 2: type system rules
 
@@ -75,7 +75,7 @@ each sub-agent extracts one section into a formal, implementable format.
      - Send/Sync inference rules
      write the rules to sv0doc/type-system/rules.md.
 
-/include: task/sv0doc-extract-type-rules.Rmd
+/include: task/archive/sv0doc-extract-type-rules.Rmd
 
 ### step 3: contract semantics
 
@@ -90,7 +90,7 @@ each sub-agent extracts one section into a formal, implementable format.
      - contract-mode settings (runtime, verified, disabled)
      write the semantics to sv0doc/contracts/semantics.md.
 
-/include: task/sv0doc-extract-contracts.Rmd
+/include: task/archive/sv0doc-extract-contracts.Rmd
 
 ### step 4: memory model
 
@@ -105,7 +105,7 @@ each sub-agent extracts one section into a formal, implementable format.
      - Copy/Clone trait semantics
      write the specification to sv0doc/memory-model/ownership.md.
 
-/include: task/sv0doc-extract-memory-model.Rmd
+/include: task/archive/sv0doc-extract-memory-model.Rmd
 
 ### step 5: keyword and operator reference
 
@@ -113,7 +113,7 @@ each sub-agent extracts one section into a formal, implementable format.
      design document. include the trait mapping for each operator.
      write the reference to sv0doc/keywords/reference.md.
 
-/include: task/sv0doc-extract-keywords.Rmd
+/include: task/archive/sv0doc-extract-keywords.Rmd
 
 ## validation
 

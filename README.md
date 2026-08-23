@@ -10,7 +10,7 @@ VM, and developer tooling.
 | project | what it is | language | status |
 |---|---|---|---|
 | [**sv0doc**](sv0doc/) | the language + bytecode **specification** (grammar, types, contracts, memory model, keywords) — the source of truth | Markdown | spec complete (M0) |
-| [**sv0c**](sv0c/) | the **compiler** — `.sv0` → C and → bytecode. **Self-hosting**: written in sv0, compiles itself | sv0 (+ retired SML reference) | self-hosting; M3 complete + post-M3 hardening done |
+| [**sv0c**](sv0c/) | the **compiler** — `.sv0` → C and → bytecode. **Self-hosting**: written in sv0, compiles itself; **`sv0 verify`** static contract verification (M4) | sv0 (+ retired SML reference) | self-hosting (M3); advanced verification (M4) complete |
 | [**sv0vm**](sv0vm/) | the **bytecode VM** that runs sv0c's `--target=vm` output | SML/NJ | M2 complete |
 | [**sv0-mcp**](sv0-mcp/) | Neo4j knowledge graph + MCP servers for AI-assisted development | Python | M0 complete |
 
@@ -32,6 +32,12 @@ New to the toolchain? Read in this order:
    [memory model](sv0doc/memory-model/ownership.md)).
 4. **[sv0c/doc/](sv0c/doc/README.md)** — deeper compiler documentation (pass-by-pass
    walkthrough, self-hosting, archived milestone history).
+5. **[task/README.md](task/README.md)** — the **planning index**: active milestones,
+   milestone hubs, and the archive of completed sub-tasks.
+
+**Where docs live:** normative spec → [`sv0doc/`](sv0doc/README.md); compiler
+internals → [`sv0c/doc/`](sv0c/doc/README.md); planning & milestone status →
+[`task/`](task/README.md).
 
 ## quickstart
 
@@ -53,12 +59,15 @@ notes.
 
 ## status
 
-Design **milestones 0–2** (spec, C-backend compiler, bytecode VM) are complete,
-and **milestone 3** — a self-hosting compiler written in sv0 — is closed
-(closure ruling 2026-08-05). The **native sv0-built compiler is now the default**;
-the original SML bootstrap is a retired reference. Post-M3 hardening
-(whole-language parity + native-default promotion) is complete. Details:
-[task/sv0-toolchain-progress.md](task/sv0-toolchain-progress.md) and
+Design **milestones 0–4 are complete.** M0–M2 (spec, C-backend compiler, bytecode
+VM); **M3** — a self-hosting compiler written in sv0 — closed 2026-08-05 (the native
+sv0-built compiler is the default; the SML bootstrap is a retired reference);
+post-M3 hardening (whole-language parity + native-default promotion) done; and
+**M4 — advanced verification** (SMT-backed `sv0 verify`, verified contract-mode,
+refinement types, modular verification) closed 2026-08-22. The next milestone is
+**M5 — LLVM backend + production crypto**. Status detail:
+[task/README.md](task/README.md),
+[task/sv0-toolchain-progress.md](task/sv0-toolchain-progress.md), and
 [task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd).
 
 ## repository layout
@@ -85,7 +94,7 @@ SHA in the same commit as any `sv0c` submodule bump (CI enforces the match via
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on `main`** | `54a475973c93a7d0ca1d9aeb2c03a5322817e9b5` |
+| **sv0c commit pinned on `main`** | `0705d68386d0e3e26ef01f7f641be4d690969f23` |
 
 ## design document
 
