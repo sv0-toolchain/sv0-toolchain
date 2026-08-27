@@ -512,6 +512,29 @@ Resolved 2026-08-23, in order:
   fully-closed F0 and F0/R0 bands, every NEX-### slice through NEX-027 is
   done (25 of 58). Next band is R0 corpus/project/reliability (NEX-028…038).
 
+  **Re-scoping pass on NEX-028…038** (planned via `EnterPlanMode`): a direct
+  codebase look found none of NEX-001…027's pieces had been wired together
+  into a real build yet, and several of the stock slice descriptions
+  (029/032/033/036) overlapped heavily with what NEX-007/008/019/021/023/024/026
+  already mutation-tested at the unit level. Re-sliced around **NEX-028
+  absorbing the actual assembly function** (`build_native_executable`) —
+  every later slice in the band reuses it instead of deriving its own
+  mini-pipeline. Also found: `sv0c/test/behavior/manifest.txt` already has
+  112 rows that all pass through the native path today; real fixtures
+  already exist for Box (`test/integration/box_expr/`) and project mode
+  (`test/integration/modules/`); Z3 4.16.0 is installed in this dev
+  environment, so the verified-contract-mode leg is directly testable, not
+  just documented. Full re-slicing recorded in
+  `/Users/sasank/.claude/plans/starry-discovering-quokka.md`.
+
+  **NEX-028 landed** (re-scoped, see above): `scripts/native_exe_build.py`
+  — `build_native_executable`, the first real wiring of the whole pipeline,
+  and `scripts/native_exe_behavior_corpus.py`, proving all 112 behavior-manifest
+  rows build+run correctly through it (not a hand-rolled separate recipe).
+  Mutation testing caught a real selftest gap on the first pass — the
+  fixture set was positive-only, so removing entry validation went
+  unnoticed until a no-main negative case was added — fixed before landing.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
