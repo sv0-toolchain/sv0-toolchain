@@ -844,6 +844,22 @@ Resolved 2026-08-23, in order:
   ran every NEX-048b fixture at both `-O0` and `-O2`, confirming both GCC/
   Clang honor the last-specified `-O` flag rather than assuming it.
 
+  **NEX-050c landed**: `scripts/native_exe_sanitizer_corpus.py` ran the
+  FULL 114-fixture behavior corpus under ASan+UBSan for real, not just a
+  sample — **114 programs, 1 known/expected finding
+  (`overflow_wrap_mask.sv0`, already-known Site 4 evidence), 0 unexpected
+  findings**. Landed as a new CI *step* inside the existing `verify` job
+  rather than a wholly separate job (avoids re-paying the SML/NJ bootstrap
+  cost the job already pays) — a pragmatic, honestly-noted deviation from
+  the plan's literal "new job" wording; the substance (a real, wired
+  sanitizer check) is unchanged. Caught a genuine bug in the selftest
+  itself before landing: the first version derived its fast-sample rows
+  from `KNOWN_SANITIZER_FINDINGS`, so a mutation emptying that dict
+  silently shrank the sample instead of failing — the exact
+  self-defeating-test pattern NEX-034/036 caught earlier this project;
+  fixed by hardcoding the known-finding fixture's name independently of
+  the data under test.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
