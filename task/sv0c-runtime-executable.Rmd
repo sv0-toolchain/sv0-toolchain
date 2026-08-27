@@ -468,6 +468,13 @@ Resolved 2026-08-23, in order:
   through to `CC`/`PATH` (the exact bug TOOL-002 exists to prevent) fails
   both explicit-rejection selftest cases.
 
+  **NEX-022 landed**: `scripts/native_exe_cc_probe.py` — `probe_compiler`,
+  `--version` + family classification followed by an actual compile+link+run
+  of a minimal hosted program (catches a compiler that answers `--version`
+  but can't produce a working binary, which a bare version check would
+  miss). Confirmed load-bearing by mutation (disabling the compile-failure
+  check still fails, one stage later, at the run step).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
