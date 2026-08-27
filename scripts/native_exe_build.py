@@ -70,6 +70,7 @@ def build_native_executable(
     quiet: bool = False,
     probe: bool = True,
     runtime_override=None,
+    scratch_base_dir: str | None = None,
 ) -> BuildResult:
     """Run the full R0 build pipeline for one file or project input.
 
@@ -77,7 +78,10 @@ def build_native_executable(
     spec §13.1 — no step past a failure ever runs. `runtime_override`
     (a `RuntimeLocation`) exists purely for tests that need to force a
     RUNTIME-phase failure end to end (NEX-032) — production callers never
-    pass it, letting `resolve_runtime_dir()` run normally.
+    pass it, letting `resolve_runtime_dir()` run normally. `scratch_base_dir`
+    is a similar test-only seam (NEX-033) forcing this build's scratch dir
+    to share a parent with a test's own neighbor directory, to make
+    scratch-cleanup-scoping tests genuinely adjacency-sensitive.
     """
     # 1. Entry validation (NEX-013/014/015/017) -- before anything else runs.
     validate_entry_exists(input_kind, input_path)
@@ -120,7 +124,7 @@ def build_native_executable(
     validate_staging_c(emission.c_source)
 
     # 7. Scratch dir, argv, sanitized env, host compile (NEX-008/023/024/025).
-    with ScratchDir() as scratch:
+    with ScratchDir(base_dir=scratch_base_dir) as scratch:
         program_c_path = os.path.join(scratch.path, "program.c")
         with open(program_c_path, "w", encoding="utf-8") as f:
             f.write(emission.c_source)
