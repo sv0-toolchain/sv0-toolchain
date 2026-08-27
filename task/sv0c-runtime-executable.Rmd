@@ -686,6 +686,14 @@ Resolved 2026-08-23, in order:
   construction. Confirmed load-bearing by mutation: removing the
   nonnegative clamp is caught immediately.
 
+  **NEX-042 landed**: `scripts/native_exe_build_record.py` — `build_record`
+  matches Appendix C's exact shape, computing the two hash-bearing pieces
+  itself (`hashlib.sha256` over the real published bytes and each input
+  source file) rather than trusting caller-supplied digests, since the
+  whole point of a build record is independent verifiability. Confirmed
+  load-bearing by mutation: hardcoding the artifact hash is caught
+  immediately by the digest-mismatch check.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
