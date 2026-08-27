@@ -793,6 +793,18 @@ Resolved 2026-08-23, in order:
   and is deferred to NEX-048b for fixture-driven resolution rather than
   guessed at here.
 
+  **NEX-048b landed**: 5 sanitizer fixtures registered in
+  `sv0c/doc/native-executable-sanitizer-fixtures.md`. The two safe stress
+  fixtures (`box_deref_chain_stress.sv0`, `vec_growth_stress.sv0`) joined
+  the ordinary 114-program behavior-corpus PASS manifest with observed
+  (not hand-computed) exit codes. The three UB-only fixtures for Site 4
+  were deliberately kept out of the manifest and instead directly
+  *observed*: on this dev machine's arm64/Apple Clang at `-O0`, none crash
+  today — ARM's `SDIV`/negate silently wrap on signed overflow rather than
+  trapping the way x86's `IDIV` does. That's real, platform-specific
+  evidence (not an assumption) that a program relying on this UB could
+  behave differently across NEX-051d's eventual host matrix.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
