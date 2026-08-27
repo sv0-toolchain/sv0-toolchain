@@ -995,6 +995,16 @@ Resolved 2026-08-23, in order:
   scope, touching the compiler's own entry-reading logic and self-host
   bootstrap correctness. REL-004 remains honestly open.
 
+  **NEX-056a/b landed**: `native_exe_release_evidence.py` assembles one
+  evidence bundle from four already-existing sources (never recomputing
+  any of them), rejecting a dirty tree outright.
+  `sv0c/doc/release-signing-workflow.md` documents the actual signing
+  step as policy — never a fabricated-signature script — explicitly
+  rejecting CI-automated signing to keep one deliberate human control
+  point. Confirmed load-bearing by mutation: a no-op dirty-tree check is
+  caught immediately. **NEX-056 (release-candidate evidence) is now fully
+  closed, 2/2.**
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
