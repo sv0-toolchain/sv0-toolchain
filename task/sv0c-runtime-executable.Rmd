@@ -872,6 +872,19 @@ Resolved 2026-08-23, in order:
   self-defeating tests, applied proactively this time instead of after
   the fact.
 
+  **NEX-051c landed**: new `profile` parameter on `build_native_executable`,
+  validated at phase 0, before entry validation — matching NEX-028 case5's
+  own "usage errors first" precedent, but only after the FIRST version
+  validated it too late (deep after the core compiler ran) and got caught
+  by its own ordering mutation test. That mutation test's proof (a
+  nonexistent input path) surfaced a real, separate, pre-existing gap:
+  `validate_entry_exists` has no clean handling for a missing file at all
+  — an unhandled `FileNotFoundError`, not a `BuildError`. Filed as its own
+  follow-up task (`task_8b10596d`) rather than fixed inline; the
+  ordering proof still uses a nonexistent path deliberately (profile
+  validation now intercepts before ever reaching the broken code, so the
+  correct implementation never triggers it — only a regression would).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
