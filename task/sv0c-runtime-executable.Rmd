@@ -775,8 +775,23 @@ Resolved 2026-08-23, in order:
 
   Sequencing follows the spec's own NEX-048…058 order (051's release
   profile needs 048's audit and 050's sanitizer clearance; 057's docs need
-  nearly everything else written first; 058 is independent). Not yet
-  started — checklist rows are all `todo`; execution begins with NEX-048a.
+  nearly everything else written first; 058 is independent).
+
+  **NEX-048a landed**: `sv0c/doc/native-executable-ub-audit.md`. Reading
+  the actual source turned up two real, concrete sites beyond the generic
+  "raw box representation" risk register entry: `sv0__box_deref_raw`'s
+  pointer-cast-and-deref (write via `memcpy`, read via cast — an
+  asymmetric, genuine strict-aliasing violation), and a second, more
+  fragile instance of the same root cause already deliberately documented
+  in the bootstrap compiler itself — `lowering.sv0::Value` and
+  `codegen.sv0::Value` are nominally-distinct C struct types the megaTU
+  emitter cross-reinterprets via the same box-deref macro, relying on a
+  documented but compiler-unenforced "prefix-compatible layout" convention.
+  Both need `-fno-strict-aliasing`, one flag covering both — feeding
+  directly into NEX-051a's release-profile argv. A third finding (signed
+  arithmetic overflow at type-minimum values) has no documented sv0 policy
+  and is deferred to NEX-048b for fixture-driven resolution rather than
+  guessed at here.
 
 ## related
 
