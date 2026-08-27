@@ -535,6 +535,19 @@ Resolved 2026-08-23, in order:
   fixture set was positive-only, so removing entry validation went
   unnoticed until a no-main negative case was added — fixed before landing.
 
+  **NEX-029 landed**: `scripts/native_exe_runtime_feature_smoke.py` — Box
+  (`test/integration/box_expr/box_expr.sv0`, real existing fixture) +
+  stdout/stderr channel separation on a real compiled `requires`-violation
+  binary. Found and corrected a stale assumption along the way: a doc
+  comment in `test/integration/contract_violation/README.md` claims native
+  contract checks are dropped — verified directly against the current
+  compiler that this is no longer true (the `requires` check fires
+  correctly, diagnostic on stderr, `println` on stdout). Filesystem I/O
+  left undone, documented, since no fixture exists yet. Confirmed
+  genuinely discriminating (not just "passes trivially") by swapping the
+  stdout/stderr assertions and by asserting a deliberately wrong Box exit
+  code — both fail as expected against the real binary.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
