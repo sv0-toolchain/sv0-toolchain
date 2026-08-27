@@ -494,6 +494,13 @@ Resolved 2026-08-23, in order:
   check misclassifies the phase (`HOST_LINK` instead of `HOST_COMPILE`) and
   loses the original stderr — caught immediately.
 
+  **NEX-026 landed**: `scripts/native_exe_output_path.py` —
+  `default_output_path`/`validate_output_path`/`ensure_output_parent_dir`.
+  Reuses `native_exe_publish`'s lexists/islink symlink-safety pattern,
+  applied pre-flight on the *destination* rather than post-flight on the
+  temp source. Confirmed load-bearing by mutation (removing the
+  symlink-leaf check fails that case).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
