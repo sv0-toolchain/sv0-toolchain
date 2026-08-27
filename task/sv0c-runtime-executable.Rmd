@@ -805,6 +805,31 @@ Resolved 2026-08-23, in order:
   evidence (not an assumption) that a program relying on this UB could
   behave differently across NEX-051d's eventual host matrix.
 
+  **NEX-049a/b/c landed**: `scripts/native_exe_warning_policy.py` +
+  `native_exe_warning_report.py` + `native_exe_no_blanket_suppression.py`.
+  Grounding the policy in a real full-corpus run under `-Wall -Wextra`
+  surfaced a genuine finding, not just noise: every enum `match` lowers to
+  an if/else-if chain with an empty final else branch, so the result temp
+  is provably uninitialized on any tag the C compiler can't prove
+  exhaustive (`-Wsometimes-uninitialized`, 16 occurrences across the
+  corpus) — confirmed real via generated-C inspection
+  (`enum_match_payload.sv0` and others), not dismissed as a false
+  positive. Rather than either silently suppressing it (dishonest) or
+  rewriting match codegen inline in a warning-policy slice (out of
+  proportion), added a new `TRACKED_GAPS` concept distinct from
+  `SUPPRESSED_WARNINGS` — a real gap stays *visible* in every future
+  report rather than hidden, with the actual fix filed as a spawned
+  follow-up task (`task_69df0050`, "Add defensive panic branch to match
+  codegen"). The other three observed warning categories
+  (`-Wparentheses-equality`, `-Wunused-variable`,
+  `-Wunused-but-set-variable`) plus `-Winteger-overflow` (which turned out
+  to be the pre-existing `overflow_wrap_mask.sv0` fixture already
+  deliberately exercising Site 4's exact overflow-wraps assumption — more
+  direct evidence for that audit finding) were genuinely narrow and
+  suppressed with grounded rationales. Final real run: 114 fixtures, 56
+  suppressed, 16 tracked, **0 unclassified**. Confirmed load-bearing by
+  mutation on all three modules.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
