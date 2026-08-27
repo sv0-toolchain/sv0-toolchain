@@ -575,6 +575,16 @@ Resolved 2026-08-23, in order:
   lower layers) by mutating `build_native_executable`'s entry-validation
   call and watching this test catch it too.
 
+  **NEX-033 landed**: `scripts/native_exe_hardening_smoke.py` —
+  consolidation over NEX-008/026, not new logic. Added a `scratch_base_dir`
+  test seam to `build_native_executable` so the neighbor-scratch check is
+  genuinely adjacency-sensitive (the neighbor lives under the same parent
+  the real build's own scratch dir uses), not just "some unrelated
+  directory elsewhere." Confirmed genuinely load-bearing: mutating the real
+  symlink-rejection check and mutating scratch cleanup to a prefix-glob
+  (SEC-005's exact bug class) are both caught end-to-end here, not just by
+  their own originating modules' isolated tests.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
