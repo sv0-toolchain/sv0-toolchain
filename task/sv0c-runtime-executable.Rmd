@@ -585,6 +585,19 @@ Resolved 2026-08-23, in order:
   (SEC-005's exact bug class) are both caught end-to-end here, not just by
   their own originating modules' isolated tests.
 
+  **NEX-034 landed** — the most genuinely new capability in this band:
+  extended `native_exe_subprocess.py` with `run_argv_cancellable`, launching
+  the child as a process-group leader (`start_new_session=True`) so
+  cancellation can terminate the whole group, not just the immediate child.
+  **Caught a real gap in my own test, not the production code**: the first
+  mutation check (targeting only the leader PID) silently passed, because
+  the test's timing let the background-grandchild marker-file check get
+  skipped before the marker was ever created — fixed the test's timing and
+  made "marker never created" a hard failure instead of a silent skip, then
+  re-confirmed the mutation is genuinely caught. A useful reminder that "the
+  mutation check passed" isn't itself proof of anything until you've
+  confirmed *why* it passed.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
