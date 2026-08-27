@@ -927,6 +927,15 @@ Resolved 2026-08-23, in order:
   satisfy) — added a direct classifier unit test on two genuinely
   different builds before the mutation actually caught anything.
 
+  **NEX-053b landed**: `build_record` gained an optional `reproducibility`
+  field, recorded verbatim from the caller (never recomputed or
+  reinterpreted) — an explicit `None` when unchecked, never an omitted
+  key. "CI job running 053a" turned out to already be satisfied:
+  `native_exe_repro_harness.py --selftest` is already wired into `sv0
+  test-guards`, which the existing `verify` job's `./scripts/sv0 test`
+  step runs — no separate job needed. Confirmed load-bearing by mutation:
+  hardcoding the field to `None` is caught immediately.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

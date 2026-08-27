@@ -65,8 +65,17 @@ def build_record(
     contract_mode_effective: str,
     hermetic: bool = False,
     config: dict | None = None,
+    reproducibility: dict | None = None,
 ) -> dict:
-    """Build one Appendix-C-shaped record dict from a real published artifact."""
+    """Build one Appendix-C-shaped record dict from a real published artifact.
+
+    `reproducibility` (NEX-053b, REPRO-004/§21.3) is the caller-supplied
+    classification from `native_exe_repro_harness.build_twice_and_compare`
+    (or `None` if reproducibility hasn't been checked for this build) --
+    this module never runs a double-build itself, it only records the
+    classification a caller already computed, distinguishing byte- from
+    semantic-only reproducibility rather than conflating the two.
+    """
     artifact_bytes_sha256 = _sha256_file(artifact_path)
     artifact_size = os.path.getsize(artifact_path)
 
@@ -111,6 +120,7 @@ def build_record(
         "contract_mode_effective": contract_mode_effective,
         "hermetic": hermetic,
         "config": config,
+        "reproducibility": reproducibility,
     }
 
 
@@ -154,7 +164,42 @@ def _selftest() -> int:
             profile="dev",
             contract_mode_requested="runtime",
             contract_mode_effective="runtime",
+            reproducibility={"status": "semantic-only", "reason": "LC_UUID"},
         )
+
+        # Case 0 (NEX-053b): the reproducibility field round-trips exactly
+        # as supplied -- this module records the classification, it never
+        # recomputes or reinterprets it.
+        if record.get("reproducibility") != {"status": "semantic-only", "reason": "LC_UUID"}:
+            failures.append(f"case0: reproducibility field did not round-trip: {record.get('reproducibility')}")
+
+        # A build record with no reproducibility check performed at all
+        # records None explicitly, not an omitted key -- so a consumer can
+        # tell "not checked" apart from "checked and empty."
+        record_no_repro = build_record(
+            artifact_path=result.output_path,
+            input_kind="file",
+            input_root=src,
+            source_paths=[src],
+            sv0c_version="0.0.0-dev",
+            sv0c_revision="unknown",
+            backend="c",
+            runtime_abi=1,
+            runtime_manifest_sha256="deadbeef",
+            runtime_header_sha256="deadbeef",
+            runtime_source_sha256="deadbeef",
+            host_os="darwin",
+            host_arch="arm64",
+            c_compiler_path="/usr/bin/cc",
+            c_compiler_family="clang",
+            c_compiler_version="Apple clang version 15.0.0",
+            c_compiler_argv=["-std=gnu99", "-O0", "-g", src, "-o", out],
+            profile="dev",
+            contract_mode_requested="runtime",
+            contract_mode_effective="runtime",
+        )
+        if "reproducibility" not in record_no_repro or record_no_repro["reproducibility"] is not None:
+            failures.append("case0: omitted reproducibility must be an explicit None key, not missing/wrong")
 
         # Case 1: the record's artifact sha256 equals a direct hash of the
         # actually-published bytes (the load-bearing property of REPRO-002/003).
@@ -194,7 +239,7 @@ def _selftest() -> int:
             print(f"native_exe_build_record selftest FAIL: {f}")
         return 1
 
-    print("native_exe_build_record: selftest OK (4 cases)")
+    print("native_exe_build_record: selftest OK (5 cases)")
     return 0
 
 
