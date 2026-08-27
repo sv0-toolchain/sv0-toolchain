@@ -1,0 +1,66 @@
+{
+  "$comment": "Requirement catalog for the sv0c native runtime executable spec (NEX-001, task/sv0c-runtime-executable-checklist.Rmd). Transcribed from ~/Documents/project-specs/sv0c-runtime-executable/SPEC.md §23 (PERF) + §24 (GOV/CLI/PIPE/ENTRY/ART/RT/TOOL/ERR/SEC/PORT/REPRO/REL/DOC/TEST). Each id maps to the release it first becomes normatively active in (F0 < R0 < R0.1 < R1). Update this file only alongside a change-controlled spec revision (spec Appendix F).",
+  "spec_path": "~/Documents/project-specs/sv0c-runtime-executable/SPEC.md",
+  "releases_ordered": ["F0", "R0", "R0.1", "R1"],
+  "requirements": {
+    "GOV-001": "F0", "GOV-002": "F0", "GOV-003": "F0", "GOV-004": "F0", "GOV-005": "F0",
+    "GOV-006": "R0", "GOV-007": "R0", "GOV-008": "R0",
+    "GOV-009": "R1",
+
+    "CLI-001": "F0", "CLI-002": "F0", "CLI-003": "F0", "CLI-004": "F0", "CLI-005": "F0", "CLI-006": "F0",
+    "CLI-007": "R0", "CLI-008": "R0", "CLI-009": "R0", "CLI-010": "R0", "CLI-011": "R0", "CLI-012": "R0", "CLI-013": "R0",
+    "CLI-014": "R0.1", "CLI-015": "R0.1", "CLI-016": "R0.1",
+    "CLI-017": "R1",
+
+    "PIPE-001": "F0", "PIPE-002": "F0", "PIPE-003": "F0", "PIPE-004": "F0", "PIPE-005": "F0",
+    "PIPE-006": "R0", "PIPE-007": "R0", "PIPE-008": "R0", "PIPE-009": "R0", "PIPE-010": "R0", "PIPE-011": "R0",
+    "PIPE-012": "R1",
+
+    "ENTRY-001": "F0", "ENTRY-002": "F0", "ENTRY-003": "F0", "ENTRY-004": "F0",
+    "ENTRY-005": "R0", "ENTRY-006": "R0", "ENTRY-007": "R0", "ENTRY-008": "R0", "ENTRY-009": "R0",
+    "ENTRY-010": "R1",
+
+    "ART-001": "F0", "ART-002": "F0", "ART-003": "F0", "ART-004": "F0",
+    "ART-005": "R0", "ART-006": "R0", "ART-007": "R0", "ART-008": "R0", "ART-009": "R0", "ART-010": "R0", "ART-011": "R0",
+    "ART-012": "R0.1",
+    "ART-013": "R1",
+
+    "RT-001": "F0", "RT-002": "F0", "RT-003": "F0",
+    "RT-004": "R0", "RT-005": "R0", "RT-006": "R0", "RT-007": "R0", "RT-008": "R0",
+    "RT-009": "R1",
+
+    "TOOL-001": "F0", "TOOL-002": "F0", "TOOL-003": "F0", "TOOL-004": "F0",
+    "TOOL-005": "R0", "TOOL-006": "R0", "TOOL-007": "R0", "TOOL-008": "R0", "TOOL-009": "R0", "TOOL-010": "R0", "TOOL-011": "R0",
+    "TOOL-012": "R1", "TOOL-013": "R1",
+
+    "ERR-001": "F0", "ERR-002": "F0", "ERR-003": "F0", "ERR-004": "F0",
+    "ERR-005": "R0", "ERR-006": "R0", "ERR-007": "R0", "ERR-008": "R0",
+    "ERR-009": "R0.1", "ERR-010": "R0.1", "ERR-011": "R0.1",
+
+    "SEC-001": "F0", "SEC-002": "F0", "SEC-003": "F0",
+    "SEC-004": "R0", "SEC-005": "R0", "SEC-006": "R0", "SEC-007": "R0", "SEC-008": "R0", "SEC-009": "R0", "SEC-010": "R0",
+    "SEC-011": "R1", "SEC-012": "R1",
+
+    "PORT-001": "R0", "PORT-002": "R0", "PORT-003": "R0", "PORT-004": "R0",
+    "PORT-005": "R1",
+
+    "REPRO-001": "R0",
+    "REPRO-002": "R0.1", "REPRO-003": "R0.1",
+    "REPRO-004": "R1",
+
+    "REL-001": "R0", "REL-002": "R0", "REL-003": "R0",
+    "REL-004": "R1",
+
+    "DOC-001": "R0", "DOC-002": "R0", "DOC-003": "R0",
+    "DOC-004": "R0.1",
+    "DOC-005": "R1",
+
+    "TEST-001": "F0", "TEST-002": "F0",
+    "TEST-003": "R0", "TEST-004": "R0", "TEST-005": "R0", "TEST-006": "R0",
+    "TEST-007": "R1", "TEST-008": "R1", "TEST-009": "R1",
+
+    "PERF-001": "R0", "PERF-002": "R0", "PERF-003": "R0",
+    "PERF-004": "R0.1",
+    "PERF-005": "R1", "PERF-006": "R1", "PERF-007": "R1"
+  }
+}
