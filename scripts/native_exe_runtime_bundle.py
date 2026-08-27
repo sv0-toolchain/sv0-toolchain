@@ -29,6 +29,7 @@ _REQUIRED_MEMBERS = [
     "sv0_runtime.c",
     "abi-version.txt",
     "runtime-manifest.json",
+    "entry-abi-manifest.json",  # NEX-054a/b: ships alongside the runtime ABI manifest.
     os.path.join("licenses", "LICENSE-APACHE"),
     os.path.join("licenses", "LICENSE-MIT"),
 ]

@@ -29,6 +29,7 @@ import json
 import os
 
 from native_exe_entry_reserved import RESERVED_ENTRY_SYMBOLS
+from native_exe_errors import BuildError, DiagnosticPhase
 
 ENTRY_ABI_VERSION = 1
 
@@ -100,6 +101,35 @@ def verify_entry_abi_manifest(manifest_path: str | None = None) -> None:
             )
 
 
+def verify_entry_abi_compat(runtime_dir: str) -> None:
+    """The RUNTIME-facing half of ENTRY-010 (NEX-054b), distinct from
+    `verify_entry_abi_manifest`'s repo-hygiene drift check: reads
+    `<runtime_dir>/entry-abi-manifest.json` (part of the runtime bundle
+    since NEX-054a) and raises `BuildError(RUNTIME)` if its declared
+    `entry_abi_version` doesn't match this compiled driver's own
+    `ENTRY_ABI_VERSION` -- mirroring
+    `native_exe_runtime_manifest.verify_manifest`'s existing ABI-version
+    compat check for the runtime bundle itself, applied to the entry
+    contract instead.
+    """
+    manifest_path = os.path.join(runtime_dir, "entry-abi-manifest.json")
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            data = json.load(f)
+    except FileNotFoundError as exc:
+        raise BuildError(DiagnosticPhase.RUNTIME, f"missing entry ABI manifest: {manifest_path}") from exc
+    except json.JSONDecodeError as exc:
+        raise BuildError(DiagnosticPhase.RUNTIME, f"malformed entry ABI manifest {manifest_path}: {exc}") from exc
+
+    declared = data.get("entry_abi_version")
+    if declared != ENTRY_ABI_VERSION:
+        raise BuildError(
+            DiagnosticPhase.RUNTIME,
+            f"{manifest_path}: entry_abi_version {declared!r} is not supported "
+            f"by this compiler (expected {ENTRY_ABI_VERSION})",
+        )
+
+
 def write_manifest(manifest_path: str | None = None) -> None:
     path = manifest_path if manifest_path is not None else _manifest_path()
     content = json.dumps(compute_entry_abi_hashes(), indent=2) + "\n"
@@ -157,12 +187,47 @@ def _selftest() -> int:
         except EntryAbiMismatchError as exc:
             failures.append(f"case4: freshly-written manifest failed its own verification: {exc}")
 
+    # Case 5 (NEX-054b): verify_entry_abi_compat -- the real, shipped
+    # sv0c/runtime/ bundle's entry-abi-manifest.json is compatible with
+    # this compiled driver's own ENTRY_ABI_VERSION.
+    real_runtime_dir = os.path.normpath(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sv0c", "runtime")
+    )
+    try:
+        verify_entry_abi_compat(real_runtime_dir)
+    except BuildError as exc:
+        failures.append(f"case5: real runtime bundle failed entry-ABI compat check: {exc}")
+
+    # Case 6: an installed bundle declaring an unsupported entry_abi_version
+    # fails closed with BuildError(RUNTIME), naming the mismatch clearly.
+    with tempfile.TemporaryDirectory() as td:
+        bad_manifest = os.path.join(td, "entry-abi-manifest.json")
+        with open(bad_manifest, "w", encoding="utf-8") as f:
+            json.dump({"entry_abi_version": 999}, f)
+        try:
+            verify_entry_abi_compat(td)
+            failures.append("case6: expected BuildError for an unsupported entry_abi_version, none raised")
+        except BuildError as exc:
+            if exc.phase is not DiagnosticPhase.RUNTIME:
+                failures.append(f"case6: expected RUNTIME phase, got {exc.phase}")
+            if "999" not in exc.message:
+                failures.append(f"case6: error didn't name the unsupported version: {exc.message!r}")
+
+    # Case 7: a missing entry-abi-manifest.json also fails closed, not a raw crash.
+    with tempfile.TemporaryDirectory() as td:
+        try:
+            verify_entry_abi_compat(td)
+            failures.append("case7: expected BuildError for a missing manifest, none raised")
+        except BuildError as exc:
+            if exc.phase is not DiagnosticPhase.RUNTIME:
+                failures.append(f"case7: expected RUNTIME phase, got {exc.phase}")
+
     if failures:
         for f in failures:
             print(f"native_exe_entry_abi selftest FAIL: {f}")
         return 1
 
-    print("native_exe_entry_abi: selftest OK (4 cases)")
+    print("native_exe_entry_abi: selftest OK (7 cases)")
     return 0
 
 

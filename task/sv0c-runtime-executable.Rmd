@@ -945,6 +945,16 @@ Resolved 2026-08-23, in order:
   is a real drift. Confirmed load-bearing by mutation: changing an adapter
   shape string without a version bump is caught immediately.
 
+  **NEX-054b landed**: `verify_entry_abi_compat` — the RUNTIME-facing half
+  of ENTRY-010, distinct from 054a's repo-hygiene drift check — wired
+  directly into `build_native_executable`'s pipeline, plus
+  `entry-abi-manifest.json` added to `native_exe_runtime_bundle.py`'s
+  required-members list. `native_exe_entry_abi_install_mismatch.py`
+  reuses NEX-046's installed-layout copy machinery to corrupt a copied
+  manifest's version and confirm the build fails closed. Confirmed
+  load-bearing by two separate mutations: the compat function itself, and
+  its wiring into the real pipeline.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

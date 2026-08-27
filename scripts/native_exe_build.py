@@ -34,11 +34,12 @@ from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_core_compiler import CoreCompilerClient, CoreCompilerRequest
 from native_exe_emit import classify_emission
-from native_exe_errors import BuildError, DiagnosticPhase
+from native_exe_entry_abi import verify_entry_abi_compat
 from native_exe_entry_reserved import validate_no_reserved_collisions
 from native_exe_entry_scan import validate_entry_exists
 from native_exe_entry_signature import validate_entry_signature
 from native_exe_env import sanitized_child_env
+from native_exe_errors import BuildError, DiagnosticPhase
 from native_exe_host_compile import run_host_compile
 from native_exe_human_output import format_success_message
 from native_exe_output_path import default_output_path, ensure_output_parent_dir, validate_output_path
@@ -125,9 +126,12 @@ def build_native_executable(
     validate_output_path(final_output)
     ensure_output_parent_dir(final_output, is_default=is_default_output)
 
-    # 3. Runtime resolution + ABI manifest verification (NEX-019/020).
+    # 3. Runtime resolution + ABI manifest verification (NEX-019/020),
+    # plus the entry-ABI compat check (NEX-054b) against the same runtime
+    # bundle -- entry-abi-manifest.json ships alongside runtime-manifest.json.
     runtime = runtime_override if runtime_override is not None else resolve_runtime_dir()
     verify_manifest(runtime)
+    verify_entry_abi_compat(runtime.dir)
 
     # 4. Host C compiler selection + capability probe (NEX-021/022).
     cc_path, _cc_selection = select_cc(explicit_cc, os.environ)
