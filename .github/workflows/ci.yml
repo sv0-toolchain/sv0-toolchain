@@ -82,3 +82,49 @@ jobs:
 
       - name: sv0-mcp tests (pytest when uv available)
         run: ./scripts/sv0 test-mcp
+
+  # NEX-051d (PORT-005): a genuinely separate host-compiler-family leg,
+  # not just the default `cc` the `verify` job above uses. Scoped to the
+  # native-exe checks specifically (not the full ./scripts/sv0 test suite)
+  # to keep this leg's own SML/NJ re-bootstrap cost proportionate -- the
+  # `verify` job above already proves the whole toolchain end to end on
+  # GCC/default-cc; this job's only new claim is "the native-exe pipeline
+  # also passes under Clang, in both dev and release profile."
+  native-exe-clang:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    env:
+      CC: clang
+    steps:
+      - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Cache SML/NJ install
+        uses: actions/cache@v4
+        id: smlnj-cache
+        with:
+          path: ~/smlnj-110.99.9
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-curl-v2
+
+      - name: Install SML/NJ (110.99.x; apt package is too old)
+        run: bash scripts/ci-install-smlnj.sh
+
+      - name: Confirm clang is available and selected
+        run: clang --version && cc --version
+
+      - name: Build the native mega-TU compiler under Clang
+        run: bash scripts/build-sv0-megatu-native.sh
+
+      - name: Native-exe behavior corpus under Clang (NEX-028, dev profile)
+        run: PYTHONPATH=scripts python3 scripts/native_exe_behavior_corpus.py --root .
+
+      - name: Native-exe dev-vs-release parity under Clang (NEX-051b/d)
+        run: PYTHONPATH=scripts python3 scripts/native_exe_release_parity.py --root .
+
+      - name: Native-exe ASan/UBSan full behavior corpus under Clang (NEX-050c/051d)
+        run: PYTHONPATH=scripts python3 scripts/native_exe_sanitizer_corpus.py --root .

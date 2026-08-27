@@ -885,6 +885,18 @@ Resolved 2026-08-23, in order:
   validation now intercepts before ever reaching the broken code, so the
   correct implementation never triggers it — only a regression would).
 
+  **NEX-051d landed partial**: a real `native-exe-clang` CI job (`CC=clang`,
+  scoped to the native-exe checks) — verified locally first (114/114
+  programs across all 3 checks), with an honest caveat recorded: this dev
+  machine's `cc`/`clang` are the same Apple Clang binary, so the local
+  proof is of the mechanism, not an actual GCC-vs-Clang divergence. The
+  macOS Apple Clang arm64 leg stays deliberately deferred — needs its own
+  unverified-runner-type SML/NJ bootstrap with no meaningful way to
+  dry-run it locally, so it's documented (updated in
+  `sv0c/doc/native-executable.md`) rather than applied speculatively.
+  PORT-005 is therefore **partial**, not fully closed — recorded honestly
+  as such rather than claimed done.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
