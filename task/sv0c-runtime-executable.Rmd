@@ -605,6 +605,22 @@ Resolved 2026-08-23, in order:
   reliably reproduces real cross-contamination and outright `read_file`
   panics across all 6 builds, on every one of 3 separate runs.
 
+  **NEX-036 landed** — another real bug caught in the test, not the
+  production code: `scripts/native_exe_hostile_paths.py`'s first version
+  embedded a full sentinel *path* (with slashes) inside a hostile output
+  filename, so `ensure_output_parent_dir` correctly rejected it as a
+  malformed path before the test could exercise anything real — every
+  "hostile" build was silently caught as an unrelated, legitimate
+  `BuildError`, and mutating the exit-code assertion had zero observable
+  effect because that code was never reached. Root-caused with debug
+  tracing (not guesswork), fixed by using a bare sentinel *name* with no
+  embedded separators. Confirmed genuinely load-bearing afterward: 6/6
+  hostile shapes now build+run+exit correctly end to end, and a wrong
+  expected-exit mutation fails all 6. The "no shell injection" check itself
+  holds by construction here (hostile paths never become subprocess argv —
+  they're laundered through fixed scratch-internal names first), documented
+  as a defensive guard rather than an active mutation-proof.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
