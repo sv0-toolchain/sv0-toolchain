@@ -69,11 +69,15 @@ def build_native_executable(
     compiler_path: str | None = None,
     quiet: bool = False,
     probe: bool = True,
+    runtime_override=None,
 ) -> BuildResult:
     """Run the full R0 build pipeline for one file or project input.
 
     Raises `BuildError` (from whichever step fails) on any failure, per
-    spec §13.1 — no step past a failure ever runs.
+    spec §13.1 — no step past a failure ever runs. `runtime_override`
+    (a `RuntimeLocation`) exists purely for tests that need to force a
+    RUNTIME-phase failure end to end (NEX-032) — production callers never
+    pass it, letting `resolve_runtime_dir()` run normally.
     """
     # 1. Entry validation (NEX-013/014/015/017) -- before anything else runs.
     validate_entry_exists(input_kind, input_path)
@@ -89,7 +93,7 @@ def build_native_executable(
     ensure_output_parent_dir(final_output, is_default=is_default_output)
 
     # 3. Runtime resolution + ABI manifest verification (NEX-019/020).
-    runtime = resolve_runtime_dir()
+    runtime = runtime_override if runtime_override is not None else resolve_runtime_dir()
     verify_manifest(runtime)
 
     # 4. Host C compiler selection + capability probe (NEX-021/022).
