@@ -24,16 +24,26 @@ def build_dev_profile_argv(
     runtime: RuntimeLocation,
     program_c_path: str,
     output_path: str,
+    extra_cc_args: list[str] | None = None,
 ) -> list[str]:
     """The canonical R0 dev-profile argv (Appendix B), in exact logical order:
-    dialect, optimization, debug info, trusted include dir, program C,
-    runtime C, output.
+    dialect, optimization, debug info, [extra_cc_args], trusted include dir,
+    program C, runtime C, output.
+
+    `extra_cc_args` (NEX-050a) is an argv-native seam for callers that need
+    one or more additional compiler flags -- e.g. `-fsanitize=address,undefined`
+    for `native_exe_sanitizer_build.py` -- inserted as-is, one argv element
+    each, right after the R0 dialect/optimization/debug flags and before the
+    trusted include dir. Never a parsed flag string (§16.6); production
+    callers never pass this (it stays `None`, producing byte-identical argv
+    to before this parameter existed).
     """
     return [
         cc_path,
         "-std=gnu99",
         "-O0",
         "-g",
+        *(extra_cc_args or []),
         f"-I{runtime.dir}",
         program_c_path,
         runtime.source,
@@ -76,12 +86,38 @@ def _selftest() -> int:
     if "-std=c99" in argv:
         failures.append("argv must never claim strict -std=c99 (OD-005)")
 
+    # extra_cc_args (NEX-050a): omitted -> byte-identical to the no-seam call;
+    # supplied -> inserted after -g, before the trusted -I, each as its own
+    # argv element (never joined into one string).
+    argv_no_extra = build_dev_profile_argv(
+        "/usr/bin/cc", runtime, "/scratch/program.c", "/scratch/program.tmp-exe"
+    )
+    argv_default_extra = build_dev_profile_argv(
+        "/usr/bin/cc", runtime, "/scratch/program.c", "/scratch/program.tmp-exe", extra_cc_args=None
+    )
+    if argv_no_extra != argv_default_extra:
+        failures.append("omitting extra_cc_args must be byte-identical to extra_cc_args=None")
+
+    argv_sanitized = build_dev_profile_argv(
+        "/usr/bin/cc",
+        runtime,
+        "/scratch/program.c",
+        "/scratch/program.tmp-exe",
+        extra_cc_args=["-fsanitize=address,undefined"],
+    )
+    if "-fsanitize=address,undefined" not in argv_sanitized:
+        failures.append("extra_cc_args entry did not appear in the argv at all")
+    elif argv_sanitized.index("-fsanitize=address,undefined") <= argv_sanitized.index("-g"):
+        failures.append("extra_cc_args must come after -g")
+    elif argv_sanitized.index("-fsanitize=address,undefined") >= argv_sanitized.index("-I/abs/runtime"):
+        failures.append("extra_cc_args must come before the trusted -I")
+
     if failures:
         for f in failures:
             print(f"native_exe_argv_builder selftest FAIL: {f}")
         return 1
 
-    print("native_exe_argv_builder: selftest OK (3 cases)")
+    print("native_exe_argv_builder: selftest OK (4 cases)")
     return 0
 
 

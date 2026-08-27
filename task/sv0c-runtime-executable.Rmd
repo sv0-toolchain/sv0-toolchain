@@ -830,6 +830,20 @@ Resolved 2026-08-23, in order:
   suppressed, 16 tracked, **0 unclassified**. Confirmed load-bearing by
   mutation on all three modules.
 
+  **NEX-050a/b landed**: new `extra_cc_args` seam threaded through
+  `build_dev_profile_argv` → `build_native_executable` (omitted stays
+  byte-identical). `native_exe_sanitizer_build.py` confirmed, by direct
+  observation, that UBSan's default mode is print-and-continue (not
+  fatal) — the deliberately-UB fixture from NEX-048b still exits 0, but
+  prints a real runtime-error diagnostic to stderr, which is what the
+  check actually asserts on. `sv0c/runtime/lsan-suppressions.txt`
+  documents the `Vec<T>` table's intentional never-freed allocation, and
+  honestly records that LeakSanitizer doesn't run on macOS at all (this
+  dev machine), so the file is inert-but-present here and load-bearing
+  only on NEX-050c's future Linux CI job. `native_exe_sanitizer_matrix.py`
+  ran every NEX-048b fixture at both `-O0` and `-O2`, confirming both GCC/
+  Clang honor the last-specified `-O` flag rather than assuming it.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

@@ -72,6 +72,7 @@ def build_native_executable(
     runtime_override=None,
     scratch_base_dir: str | None = None,
     keep_c_path: str | None = None,
+    extra_cc_args: list[str] | None = None,
 ) -> BuildResult:
     """Run the full R0 build pipeline for one file or project input.
 
@@ -86,7 +87,10 @@ def build_native_executable(
     (NEX-040, `--keep-c`) retains the exact staging C there — written
     unconditionally right after `validate_staging_c` succeeds, so it survives
     whether the *later* host-compile/link step succeeds or fails (CLI-015,
-    ART-012).
+    ART-012). `extra_cc_args` (NEX-050a) threads straight through to
+    `build_dev_profile_argv`'s own seam of the same name -- production
+    callers never pass it; `native_exe_sanitizer_build.py` is the one real
+    caller, adding `-fsanitize=...` without duplicating this whole pipeline.
     """
     # 1. Entry validation (NEX-013/014/015/017) -- before anything else runs.
     validate_entry_exists(input_kind, input_path)
@@ -140,7 +144,9 @@ def build_native_executable(
             f.write(emission.c_source)
         tmp_output_path = os.path.join(scratch.path, "program.tmp-exe")
 
-        argv = build_dev_profile_argv(cc_path, runtime, program_c_path, tmp_output_path)
+        argv = build_dev_profile_argv(
+            cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=extra_cc_args
+        )
         env = sanitized_child_env(os.environ)
         run_host_compile(argv, env, tmp_output_path)
 
