@@ -1005,6 +1005,14 @@ Resolved 2026-08-23, in order:
   caught immediately. **NEX-056 (release-candidate evidence) is now fully
   closed, 2/2.**
 
+  **NEX-057 landed**: a new `sv0c/doc/native-executable-stable.md`
+  (splitting off `native-executable.md`, which stays F0/R0-scoped per its
+  own title) — indexes and links the runtime/entry ABI, build-record
+  schema, profiles, sanitizer/warning gates, reproducibility, performance,
+  and release-evidence material already landed across NEX-042/048-056,
+  plus the GOV-009 compatibility policy. Every claim checked against
+  real, already-landed code, not aspirational.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
