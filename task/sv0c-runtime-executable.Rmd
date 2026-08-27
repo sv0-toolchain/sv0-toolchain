@@ -621,6 +621,34 @@ Resolved 2026-08-23, in order:
   they're laundered through fixed scratch-internal names first), documented
   as a defensive guard rather than an active mutation-proof.
 
+  **NEX-037 landed** (documentation, not a CI change): recorded the required
+  R0 host-matrix job configuration in `sv0c/doc/native-executable.md`
+  against current CI reality (one Ubuntu job, no Clang leg, no macOS job at
+  all) — the macOS arm64/Apple Clang leg has been continuously proven on
+  this dev machine throughout the whole session; the Linux legs aren't
+  locally reproducible here. Adding the actual CI jobs is a separate change
+  with its own review (billed minutes, supported-platform claim), correctly
+  left undone in this doc-only slice.
+
+  **NEX-038 landed**: `sv0c/doc/native-executable.md` — user docs
+  (DOC-001…003), stating current status honestly (engine real and tested,
+  public CLI not wired up yet). Every example was verified against the real
+  engine before being written down — the direct-Python-call example was
+  wrong twice on the first attempts (missing `PYTHONPATH`; an explicit
+  output path that doesn't auto-create its parent per ART-007) and was
+  corrected against actual runs, not left as unverified prose.
+
+  **R0 corpus/project/reliability band (NEX-028…038) is now fully closed,
+  11/11, all green in `sv0 test-guards`, all mutation-verified (where
+  applicable) or explicitly, honestly scoped as documentation-only where
+  not.** Combined with the already-closed F0 (NEX-001…010) and F0/R0
+  (NEX-011…018) bands and the R0 runtime+toolchain band (NEX-019…027), the
+  entire R0 release is now closed: 20 slices from NEX-019 through NEX-038,
+  every one of NEX-001 through NEX-038 done. Next up is R0.1 (NEX-039…047:
+  `sv0.toml`, `--message-format=json`, build records, `--keep-c`,
+  installed-layout tests) — a genuinely different kind of work (config
+  parsing, JSON schemas) from anything in this band.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
