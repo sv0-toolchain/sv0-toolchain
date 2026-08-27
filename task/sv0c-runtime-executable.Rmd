@@ -909,6 +909,24 @@ Resolved 2026-08-23, in order:
   construction — the lock's actual contribution is coordination, not new
   safety.
 
+  **NEX-053a landed**: a genuine, unassumed finding — two builds of the
+  identical source from different scratch dirs are never byte-identical
+  on this dev machine, root-caused via `dwarfdump --uuid` to Mach-O's
+  `LC_UUID` load command (`ld64` regenerates it randomly on every link,
+  no known suppression flag) — exactly §21.3's anticipated
+  platform-prevents-byte-identity case. `native_exe_repro_harness.py`
+  classifies each comparison `byte-identical`/`semantic-only`/`divergent`,
+  confirming the divergence is fully explained by the UUID region plus
+  its derived trailing signature bytes, not just present alongside a
+  separate real bug. A second, independent nondeterminism source
+  (debug-info-embedded scratch paths under `-g`) was found and
+  deliberately left undocumented-as-solved rather than silently masked —
+  flagged as its own gap. Confirmed load-bearing by mutation, after the
+  first mutation-test attempt was itself insufficient (only checked the
+  platform-level classification, which a real divergence would also
+  satisfy) — added a direct classifier unit test on two genuinely
+  different builds before the mutation actually caught anything.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
