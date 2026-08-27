@@ -668,6 +668,17 @@ Resolved 2026-08-23, in order:
   the fake tool in a mode that actually records, which then caught the
   regression immediately.
 
+  **NEX-040 landed**: `scripts/native_exe_keep_c.py` + a new `keep_c_path`
+  parameter on `build_native_executable` — writes the staging C atomically
+  right after `validate_staging_c` succeeds, unconditionally, before host
+  compile ever runs, so it survives a later host-compile/link failure.
+  Selftest needed a wrapper-script indirection (baking
+  `SV0_FAKE_CC_MODE=fail` into an executable, the same trick
+  `native_exe_preservation.py` uses) rather than a plain env-var injection,
+  since `sanitized_child_env` correctly strips that var by design. Confirmed
+  load-bearing by mutation: moving the write to after a successful host
+  compile correctly fails the forced-failure retention case.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

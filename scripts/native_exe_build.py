@@ -45,7 +45,7 @@ from native_exe_publish import publish_atomically
 from native_exe_runtime import resolve_runtime_dir
 from native_exe_runtime_manifest import verify_manifest
 from native_exe_scratch import ScratchDir
-from native_exe_staging import validate_staging_c
+from native_exe_staging import validate_staging_c, write_text_atomically
 
 DEFAULT_COMPILER_PATH = os.path.normpath(
     os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "build", "sv0-megatu-native")
@@ -71,6 +71,7 @@ def build_native_executable(
     probe: bool = True,
     runtime_override=None,
     scratch_base_dir: str | None = None,
+    keep_c_path: str | None = None,
 ) -> BuildResult:
     """Run the full R0 build pipeline for one file or project input.
 
@@ -81,7 +82,11 @@ def build_native_executable(
     pass it, letting `resolve_runtime_dir()` run normally. `scratch_base_dir`
     is a similar test-only seam (NEX-033) forcing this build's scratch dir
     to share a parent with a test's own neighbor directory, to make
-    scratch-cleanup-scoping tests genuinely adjacency-sensitive.
+    scratch-cleanup-scoping tests genuinely adjacency-sensitive. `keep_c_path`
+    (NEX-040, `--keep-c`) retains the exact staging C there — written
+    unconditionally right after `validate_staging_c` succeeds, so it survives
+    whether the *later* host-compile/link step succeeds or fails (CLI-015,
+    ART-012).
     """
     # 1. Entry validation (NEX-013/014/015/017) -- before anything else runs.
     validate_entry_exists(input_kind, input_path)
@@ -122,6 +127,11 @@ def build_native_executable(
     # 6. Emission protocol classification + staging validation (NEX-012/018).
     emission = classify_emission(core_result)
     validate_staging_c(emission.c_source)
+
+    # 6b. Retain the staging C (NEX-040) -- unconditionally, before host
+    # compile runs, so it survives a later host-compile/link failure too.
+    if keep_c_path is not None:
+        write_text_atomically(emission.c_source, keep_c_path)
 
     # 7. Scratch dir, argv, sanitized env, host compile (NEX-008/023/024/025).
     with ScratchDir(base_dir=scratch_base_dir) as scratch:
