@@ -40,7 +40,8 @@ usage: sv0 <command> [args]
                        Markdown doctests — see task/sv0-toolchain-milestone-2-prep.Rmd for order
   test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA, vm-parity manifest ⊆ bootstrap list,
                        task/milestone-orientation.json (primary_tasks exist + bidirectional sync with workspace milestone table),
-                       compiler .sv0 no-raise guard (sv0c/lib|lexer|parser — M3-S-014)
+                       compiler .sv0 no-raise guard (sv0c/lib|lexer|parser — M3-S-014); NEX-001 native-exe
+                       requirement traceability (checklist ⊇ active-release catalog)
                        (no SML — use after editing task/*.Rmd, sv0doc, README bootstrap table, or .sv0)
   test-mcp           sv0-mcp pytest via uv (skips if uv not installed)
   doc                generate build/sv0-toolchain-doc/index.md; verify sv0doc + sv0-mcp paths
@@ -492,6 +493,62 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/verify_m3_gx_bootstrap_policy_docs.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "$label: NEX-001 native-exe requirement traceability (checklist ⊇ active-release catalog)"
+  if ! python3 "$ROOT/scripts/verify_native_exe_traceability.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-002 native-exe CLI parser selftest (table-driven corpus)"
+  if ! python3 "$ROOT/scripts/native_exe_cli.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-003 native-exe phase-machine selftest (§12.5 state machine)"
+  if ! python3 "$ROOT/scripts/native_exe_phases.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-003 native-exe build-request normalization selftest (Appendix A)"
+  if ! python3 "$ROOT/scripts/native_exe_request.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-004 native-exe fake core-compiler selftest (§26.2 modes)"
+  if ! python3 "$ROOT/scripts/native_exe_fake_emitter.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-005 native-exe fake C compiler/linker selftest (§26.3 modes)"
+  if ! python3 "$ROOT/scripts/native_exe_fake_cc.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-006 native-exe error phase → exit-class mapping selftest (§18.2)"
+  if ! python3 "$ROOT/scripts/native_exe_errors.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-007 native-exe atomic publication selftest (ART-002..004)"
+  if ! python3 "$ROOT/scripts/native_exe_publish.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-008 native-exe scratch-dir lifecycle selftest (ART-009..010)"
+  if ! python3 "$ROOT/scripts/native_exe_scratch.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-009 native-exe argv-only subprocess selftest (TOOL-003, SEC-001)"
+  if ! python3 "$ROOT/scripts/native_exe_subprocess.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-011 native-exe core-compiler lock-migration-shim selftest (REL-004)"
+  if ! python3 "$ROOT/scripts/native_exe_core_compiler.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-012 native-exe emission protocol selftest (PIPE-003..005, ERR-002)"
+  if ! python3 "$ROOT/scripts/native_exe_emit.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-013/014 native-exe entry existence+uniqueness scan selftest (ENTRY-001/004, PIPE-002)"
+  if ! python3 "$ROOT/scripts/native_exe_entry_scan.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-015 native-exe entry signature validation selftest (ENTRY-002/003)"
+  if ! python3 "$ROOT/scripts/native_exe_entry_signature.py" --selftest; then
+    ec=1
+  fi
   return "$ec"
 }
 
@@ -499,7 +556,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007 atomic publication selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009 argv-only subprocess selftest + NEX-011 core-compiler lock shim selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest"
 }
 
 run_test() {
