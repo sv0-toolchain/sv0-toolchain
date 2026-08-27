@@ -447,6 +447,13 @@ Resolved 2026-08-23, in order:
   with the fully-closed §31.1 F0 band, every NEX-### slice through NEX-018
   is done. Next band is R0 runtime + host toolchain (NEX-019…027).
 
+  **NEX-019 landed** (first slice of the R0 runtime+toolchain band, planned
+  via `EnterPlanMode` — see `/Users/sasank/.claude/plans/starry-discovering-quokka.md`):
+  `scripts/native_exe_runtime.py` — `resolve_runtime_dir`/`RuntimeLocation`,
+  derived from this script's own toolchain-root location, never cwd/env/
+  project-relative. Confirmed load-bearing by mutation (disabling the
+  missing-file check fails the fail-closed case).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

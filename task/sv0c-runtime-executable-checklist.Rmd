@@ -101,7 +101,7 @@ Status: **todo** / **wip** / **done** / **deferred** / **blocked**.
 
 | ID | slice | requirement(s) | status | red test / acceptance |
 |----|-------|-----------------|--------|-----------|
-| NEX-019 | Build the compiler-relative runtime resolver (never cwd/`CPATH`/project-relative) | RT-001…003, SEC-002 | todo | AC-008 (unrelated-cwd build), AC-016 (project-local `sv0_runtime.h` shadow is ignored). |
+| NEX-019 | Build the compiler-relative runtime resolver (never cwd/`CPATH`/project-relative) | RT-001…003, SEC-002 | **done** | `scripts/native_exe_runtime.py` — `resolve_runtime_dir`/`RuntimeLocation`, derived from `__file__`'s own toolchain root (matching every `verify_*.py`'s `--root` default), never cwd/env/project-relative. 3-case `--selftest`: resolves correctly from an unrelated cwd; a fake toolchain root with no `sv0c/runtime` fails closed rather than wandering to a project-local shadow file; the real root resolves to the real files. Wired into `sv0 test-guards`. Verified load-bearing by mutation (disabling the missing-file check fails the fail-closed case). |
 | NEX-020 | Runtime ABI manifest + content-hash verification | RT-004…005 | todo | AC-009 (edited manifest/version or corrupted runtime fixture fails closed, exit 7, prior output preserved). |
 | NEX-021 | Implement C-compiler selection precedence (`--cc` → `sv0.toml` → `SV0_CC` → `CC` → sanitized `PATH` `cc`) | TOOL-001…002 | todo | An invalid explicit `--cc` never falls back to a different compiler. |
 | NEX-022 | Family/version/minimal-hosted-program capability probe | TOOL-005 | todo | An incompatible fake tool is rejected by the probe. |
