@@ -679,6 +679,13 @@ Resolved 2026-08-23, in order:
   load-bearing by mutation: moving the write to after a successful host
   compile correctly fails the forced-failure retention case.
 
+  **NEX-041 landed**: `scripts/native_exe_json_output.py` — `PhaseTimer` +
+  `build_event`/`encode_event` matching §18.6's exact JSON schema. `total`
+  is computed as the sum of already-rounded per-phase values (not a
+  separately rounded raw sum) so it's exactly consistent with its parts by
+  construction. Confirmed load-bearing by mutation: removing the
+  nonnegative clamp is caught immediately.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
