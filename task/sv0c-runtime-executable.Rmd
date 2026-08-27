@@ -955,6 +955,10 @@ Resolved 2026-08-23, in order:
   load-bearing by two separate mutations: the compat function itself, and
   its wiring into the real pipeline.
 
+  **NEX-054c landed**: `sv0c/doc/entry-abi.md` — every claim checked
+  against real, already-landed code, not aspirational. **NEX-054 (entry/
+  runtime ABI) is now fully closed, 3/3.**
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

@@ -94,7 +94,7 @@ SHA in the same commit as any `sv0c` submodule bump (CI enforces the match via
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on `main`** | `930d6dfe3eb8c5261f77cbb7b159dd8d49922b8f` |
+| **sv0c commit pinned on `main`** | `2749c48ed99381ef0cf1b30ecec385c451d1cd67` |
 
 ## design document
 
