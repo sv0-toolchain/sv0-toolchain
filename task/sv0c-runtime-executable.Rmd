@@ -563,6 +563,18 @@ Resolved 2026-08-23, in order:
   prevent) is caught immediately; a wrong disabled-mode exit assertion fails
   too, confirming the check-stripping behavior is real.
 
+  **NEX-032 landed**: `scripts/native_exe_preservation.py` — drives the
+  real `build_native_executable` through all 6 directly-injectable failure
+  phases, confirming a seeded known-good output survives byte-for-byte and
+  mode-for-mode every time. Added a `runtime_override` seam to
+  `build_native_executable` to make the RUNTIME phase injectable
+  end-to-end. Mid-implementation discovery: `sanitized_child_env`
+  correctly (by design) strips the env var used to steer the fake host
+  compiler in tests — fixed by baking the mode into a tiny wrapper script.
+  Confirmed genuinely load-bearing (not just individually-already-proven
+  lower layers) by mutating `build_native_executable`'s entry-validation
+  call and watching this test catch it too.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
