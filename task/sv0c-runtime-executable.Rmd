@@ -980,6 +980,21 @@ Resolved 2026-08-23, in order:
   by mutation: forcing full serialization drops the measured speedup to
   1.02x, correctly failing the bar.
 
+  **NEX-055c scoped (not implemented)**: the flagged highest-risk item got
+  its own dedicated `EnterPlanMode` investigation pass, per the original
+  plan. Confirmed by direct investigation: sv0 the language has no argv/
+  getenv/stdin host builtin today (only `read_file`/`write_file`/
+  `read_dir`) — the actual root cause of the global-control-file design,
+  not merely a migration-shim laziness. Design settled on a minimal
+  `getenv(name) -> string` builtin (not full argv) plus a non-flag-day
+  migration path, following the exact precedent the three existing host
+  I/O builtins already set. Recorded as a durable design doc
+  (`sv0c/doc/native-executable-reentrant-core-compiler-design.md`) and
+  deliberately deferred to its own dedicated future session — comparable
+  in kind to NEX-016/017 (which each got their own pass) but larger in
+  scope, touching the compiler's own entry-reading logic and self-host
+  bootstrap correctness. REL-004 remains honestly open.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
