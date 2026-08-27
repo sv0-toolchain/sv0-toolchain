@@ -28,6 +28,7 @@ Run `python3 scripts/native_exe_staging.py --selftest` for the corpus.
 from __future__ import annotations
 
 import hashlib
+import os
 
 from native_exe_errors import BuildError, DiagnosticPhase
 
@@ -47,6 +48,19 @@ def validate_staging_c(c_source: str) -> None:
 def hash_staging_c(c_source: str) -> str:
     """SHA-256 hex digest of the exact staging C bytes (OD-008: SHA-256)."""
     return hashlib.sha256(c_source.encode("utf-8")).hexdigest()
+
+
+def write_text_atomically(content: str, output_path: str) -> None:
+    """Write `content` to `output_path` atomically (NEX-039/040) — write to a
+    same-directory temp file, then `os.replace` it into place, mirroring
+    `native_exe_publish.publish_atomically`'s pattern for a plain text
+    artifact (retained C, a build record) instead of an executable. A reader
+    of `output_path` never observes a partially-written file.
+    """
+    tmp_path = f"{output_path}.tmp-{os.getpid()}"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(content)
+    os.replace(tmp_path, output_path)
 
 
 def _selftest() -> int:
@@ -108,12 +122,28 @@ def _selftest() -> int:
     except BuildError as exc:
         failures.append(f"PIPE-006/011: real emitted C failed marker validation: {exc}")
 
+    # Case 5 (NEX-039/040): write_text_atomically writes exactly the given
+    # content, and a reader never observes a partial write (the temp file is
+    # renamed into place, not written directly).
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        target = os.path.join(td, "retained.c")
+        content = '#include "sv0_runtime.h"\n\nint main(void) { return 0; }\n'
+        write_text_atomically(content, target)
+        if not os.path.isfile(target):
+            failures.append("write_text_atomically: target file was not created")
+        elif open(target, encoding="utf-8").read() != content:
+            failures.append("write_text_atomically: written content does not match exactly")
+        if os.path.isfile(f"{target}.tmp-{os.getpid()}"):
+            failures.append("write_text_atomically: temp file was left behind")
+
     if failures:
         for f in failures:
             print(f"native_exe_staging selftest FAIL: {f}")
         return 1
 
-    print("native_exe_staging: selftest OK (4 cases)")
+    print("native_exe_staging: selftest OK (5 cases)")
     return 0
 
 
