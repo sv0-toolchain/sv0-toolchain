@@ -554,6 +554,15 @@ Resolved 2026-08-23, in order:
   `bump(41)`). Confirmed genuinely discriminating (a deliberately wrong
   expected exit fails against the real build).
 
+  **NEX-031 landed**: `scripts/native_exe_contract_mode.py` —
+  `compute_proof_lines`, reusing `scripts/sv0`'s own `run_emit_verified`
+  pass-1 machinery (`build/sv0-megatu-verify` + `scripts/sv0-z3.sh`) rather
+  than reimplementing Z3 orchestration. Tested against the real, installed
+  Z3 4.16.0, not just documented. Confirmed load-bearing by mutation: making
+  the z3-absent path falsely claim a proof (the exact bug PIPE-009 exists to
+  prevent) is caught immediately; a wrong disabled-mode exit assertion fails
+  too, confirming the check-stripping behavior is real.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
