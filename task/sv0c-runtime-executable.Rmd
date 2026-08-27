@@ -694,6 +694,12 @@ Resolved 2026-08-23, in order:
   load-bearing by mutation: hardcoding the artifact hash is caught
   immediately by the digest-mismatch check.
 
+  **NEX-043 landed**: `scripts/native_exe_config.py` — `discover_config`/
+  `load_config`/`resolve_precedence`, using Python's built-in `tomllib`
+  (no third-party dependency). Confirmed load-bearing by two independent
+  mutations: dropping the key/type validation, and reordering the
+  precedence tiers -- both caught immediately by their respective cases.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
