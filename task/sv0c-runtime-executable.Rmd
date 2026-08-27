@@ -396,6 +396,30 @@ Resolved 2026-08-23, in order:
   case. Confirmed load-bearing by mutation: disabling either the params or
   return-type check fails exactly its corresponding cases.
 
+  **NEX-016 landed** (first real compiler change, planned via `EnterPlanMode`
+  given the scope shift — see `/Users/sasank/.claude/plans/starry-discovering-quokka.md`).
+  Investigation found 3 different C-backend `main`-emission sites in `sv0c`;
+  only `sv0c/lib/megaTU-main.sv0`'s `megatu_emit_program` is on the path any
+  currently-invoked binary (`build/sv0-megatu-native`, behind `sv0 compile`)
+  actually runs — `codegen.sv0`'s `emit_program` is compiled but dead for
+  output, `driver.sv0` only matters for native-parity testing. Modified only
+  `megaTU-main.sv0` (the recognized-shape branch: zero params, `i32`/unit
+  return → `sv0_user_main` + hosted `int main(argc, argv)` + `sv0_runtime_init`
+  call; every other shape keeps the old plain emission unchanged) and
+  `sv0c/runtime/sv0_runtime.h` (new no-op `sv0_runtime_init`, ABI slot
+  reserved). Verified: 3 manual smoke fixtures (AC-001/002/003) plus the
+  existing 112-program native behavior corpus
+  (`verify_behavior_corpus_native.py`, part of `./scripts/sv0 test`) passing
+  unmodified through the new shape — stronger evidence than adding synthetic
+  fixtures, so none were added. Two `./scripts/sv0 test` failures observed
+  (an SML-side checker self-test, and `self-host-sv0-loop` exit 232 for
+  `lib/checker.sv0`) were confirmed **pre-existing and unrelated**: the SML
+  one runs via `make -C sv0c test`, entirely independent of the two files
+  touched here; the 232 one was reproduced byte-for-byte by `git stash`ing
+  this change, rebuilding, and re-running the same check on the clean tree
+  before restoring. Neither blocks this slice. `codegen.sv0`/`driver.sv0`
+  deliberately untouched per the plan's documented scope.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
