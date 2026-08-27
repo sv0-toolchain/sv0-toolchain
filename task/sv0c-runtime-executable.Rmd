@@ -202,7 +202,7 @@ separately accepted through change control (spec §31.7).
 | OD-002 | Direct argv/request mechanism for the self-hosted core compiler | before NEX-011 | **partially resolved 2026-08-23** — investigated; the real ABI needs a new sv0 language/runtime argv host function (out of scope for this driver work, own future slice). NEX-011 shipped as the spec-sanctioned lock-based migration shim instead; see decisions record below. |
 | OD-003 | Exact new `E####` codes for entry errors | before NEX-013 | Allocate from compiler diagnostic governance; keep missing/duplicate/params/return-type cases distinguishable. |
 | OD-004 | Runtime ABI manifest schema + version numbering | before NEX-020 | **resolved 2026-08-27** — schema/ABI version 1, SHA-256 file hashes; see `sv0c/runtime/runtime-manifest.json` and `scripts/native_exe_runtime_manifest.py`. |
-| OD-005 | `-std=gnu99` vs. documented `-std=c99` with accepted extensions | before NEX-023 | `gnu99` until runtime extensions are removed; test emitted-program syntax separately. |
+| OD-005 | `-std=gnu99` vs. documented `-std=c99` with accepted extensions | before NEX-023 | **resolved 2026-08-27** — `gnu99`; see `scripts/native_exe_argv_builder.py`. |
 | OD-006 | Exact sanitized child environment allowlist on macOS/Linux | before NEX-024 | Clear include/library injection vars; preserve minimal locale/PATH/temp/SDK inputs. |
 | OD-007 | Same-output publication locking primitive across macOS/Linux | before NEX-052 | Filesystem atomic create/rename + ownership token; do not rely on `flock` alone. |
 | OD-008 | Build-record digest algorithm | before NEX-042 | SHA-256. |
@@ -474,6 +474,12 @@ Resolved 2026-08-23, in order:
   but can't produce a working binary, which a bare version check would
   miss). Confirmed load-bearing by mutation (disabling the compile-failure
   check still fails, one stage later, at the run step).
+
+  **NEX-023 landed**: `scripts/native_exe_argv_builder.py` —
+  `build_dev_profile_argv`, the one canonical Appendix B argv builder;
+  OD-005 resolved (`-std=gnu99`, never `c99`). Confirmed load-bearing by
+  mutation (swapping to `-std=c99` fails both the argv snapshot and the
+  dedicated dialect check).
 
 ## related
 
