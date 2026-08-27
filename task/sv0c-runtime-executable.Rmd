@@ -707,6 +707,14 @@ Resolved 2026-08-23, in order:
   Confirmed load-bearing by mutation: bypassing the cache lookup is caught
   immediately by the invocation-count checks.
 
+  **NEX-045 landed**: `sv0c` gained `runtime/abi-version.txt` and
+  `runtime/licenses/{LICENSE-APACHE,LICENSE-MIT}` (copies of the
+  already-existing top-level license files -- no new licensing decision).
+  New `scripts/native_exe_runtime_bundle.py` verifies the full §15.1 bundle
+  shape. Confirmed load-bearing by mutation: checking only the first
+  required member is caught immediately by the per-member missing-member
+  loop.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
