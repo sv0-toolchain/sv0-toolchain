@@ -700,6 +700,13 @@ Resolved 2026-08-23, in order:
   mutations: dropping the key/type validation, and reordering the
   precedence tiers -- both caught immediately by their respective cases.
 
+  **NEX-044 landed**: `native_exe_cc_probe.py` gained `probe_compiler_cached`
+  (in-process, keyed by `os.path.realpath`). Its selftest had to wrap the
+  *real* host `cc` rather than the fake tool, since `probe_compiler` runs
+  the produced binary and a fake placeholder file isn't a real executable.
+  Confirmed load-bearing by mutation: bypassing the cache lookup is caught
+  immediately by the invocation-count checks.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

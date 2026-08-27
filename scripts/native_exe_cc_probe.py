@@ -90,6 +90,29 @@ def probe_compiler(cc_path: str) -> CompilerInfo:
     return CompilerInfo(path=cc_path, family=family, version_text=version_text)
 
 
+def probe_compiler_cached(cc_path: str, cache: dict[str, CompilerInfo] | None = None) -> CompilerInfo:
+    """Like `probe_compiler`, but reuses a prior result for the same resolved
+    tool identity instead of re-invoking `--version`/the compile-probe every
+    time (NEX-044, TOOL-006's "record compiler identity" + PERF-007's "no
+    more than one probe per unique tool identity per invocation" spirit).
+
+    `cache` is caller-owned and in-process only -- a fresh dict per driver
+    invocation is the intended lifetime; a persistent cross-invocation
+    on-disk cache is explicitly deferred to R1 (PERF-007's fuller form).
+    Keyed by `os.path.realpath(cc_path)` so two different argv spellings of
+    the same tool (a relative path vs. its absolute form, or a symlink vs.
+    its target) still share one cached probe.
+    """
+    if cache is None:
+        cache = {}
+    key = os.path.realpath(cc_path)
+    if key in cache:
+        return cache[key]
+    info = probe_compiler(cc_path)
+    cache[key] = info
+    return info
+
+
 def _selftest() -> int:
     import shutil
     import stat
@@ -149,12 +172,58 @@ def _selftest() -> int:
             if exc.phase is not DiagnosticPhase.TOOL_DISCOVERY:
                 failures.append(f"missing tool: expected TOOL_DISCOVERY, got {exc.phase}")
 
+        # Case 5 (NEX-044): probe_compiler_cached invokes the real subprocess
+        # probe exactly once for repeated calls against the same tool
+        # identity, proven via a wrapper around the REAL host `cc` that
+        # counts its own invocations (a counter file it appends to on every
+        # call) -- the wrapper has to delegate to a real compiler, not
+        # `native_exe_fake_cc.py`'s "valid" mode, since `probe_compiler`
+        # actually *runs* the produced binary and a fake placeholder file
+        # isn't a real executable on this host.
+        if real_cc is None:
+            failures.append("case5: no real `cc` on PATH to wrap for the caching test")
+            counting_wrapper = None
+        else:
+            counter_path = os.path.join(td, "probe_calls.txt")
+            counting_wrapper = os.path.join(td, "counting_cc.sh")
+            with open(counting_wrapper, "w", encoding="utf-8") as f:
+                f.write(f'#!/bin/sh\necho x >> "{counter_path}"\nexec "{real_cc}" "$@"\n')
+            os.chmod(
+                counting_wrapper, os.stat(counting_wrapper).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+            )
+
+        if counting_wrapper is not None:
+            cache: dict = {}
+            info1 = probe_compiler_cached(counting_wrapper, cache)
+            info2 = probe_compiler_cached(counting_wrapper, cache)
+            calls_after_two = sum(1 for _ in open(counter_path)) if os.path.exists(counter_path) else 0
+            # Each real probe invokes the tool twice (--version, then compile) --
+            # so two CACHED calls should still show only ONE probe's worth of
+            # underlying invocations, not two.
+            if calls_after_two != 2:
+                failures.append(
+                    f"case5: expected exactly 2 underlying invocations (one cached probe), got {calls_after_two}"
+                )
+            if info1 is not info2:
+                failures.append("case5: expected the identical cached CompilerInfo object on the second call")
+
+            # A THIRD, uncached call (fresh cache dict) must re-probe -- proves
+            # the cache is doing real work, not just always returning early.
+            info3 = probe_compiler_cached(counting_wrapper, {})
+            calls_after_three = sum(1 for _ in open(counter_path))
+            if calls_after_three != 4:
+                failures.append(
+                    f"case5: expected 4 underlying invocations after a fresh-cache re-probe, got {calls_after_three}"
+                )
+            if info3 == info1 and info3 is info1:
+                failures.append("case5: fresh-cache probe unexpectedly reused the old cache entry")
+
     if failures:
         for f in failures:
             print(f"native_exe_cc_probe selftest FAIL: {f}")
         return 1
 
-    print("native_exe_cc_probe: selftest OK (4 cases)")
+    print("native_exe_cc_probe: selftest OK (5 cases)")
     return 0
 
 
