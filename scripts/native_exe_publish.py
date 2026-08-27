@@ -34,6 +34,7 @@ import os
 import stat
 
 from native_exe_errors import BuildError, DiagnosticPhase
+from native_exe_output_lock import OutputLock
 
 
 def validate_temp_output(path: str) -> None:
@@ -59,13 +60,23 @@ def publish_atomically(tmp_path: str, final_path: str) -> None:
     Never touches `final_path` unless validation of `tmp_path` succeeds
     (ART-003). If `final_path` already exists, its bytes and mode are
     unchanged unless this call fully succeeds (ART-004) — `os.replace` is
-    atomic on POSIX when both paths share a filesystem.
+    atomic on POSIX when both paths share a filesystem, so the artifact at
+    `final_path` is always fully one build's output, never bytes mixed
+    from two, with or without the lock below.
+
+    NEX-052b wraps the validate+rename step in an `OutputLock` keyed on
+    the exact normalized `final_path` (§22.1: same-output builds serialize
+    only at publication, not the whole build) — this only ever affects
+    *coordination* between same-output builds (each takes its turn rather
+    than racing pointlessly), not the correctness `os.replace` already
+    provides on its own.
     """
-    validate_temp_output(tmp_path)
-    try:
-        os.replace(tmp_path, final_path)
-    except OSError as exc:
-        raise BuildError(DiagnosticPhase.PUBLISH, f"failed to publish {final_path}: {exc}") from exc
+    with OutputLock(final_path):
+        validate_temp_output(tmp_path)
+        try:
+            os.replace(tmp_path, final_path)
+        except OSError as exc:
+            raise BuildError(DiagnosticPhase.PUBLISH, f"failed to publish {final_path}: {exc}") from exc
 
 
 def _selftest() -> int:

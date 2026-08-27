@@ -897,6 +897,18 @@ Resolved 2026-08-23, in order:
   PORT-005 is therefore **partial**, not fully closed — recorded honestly
   as such rather than claimed done.
 
+  **NEX-052a/b landed**: `OutputLock` + wiring into
+  `native_exe_publish.publish_atomically` + a 6-way same-output stress
+  test. Caught a genuine bug in the lock's own first implementation: a
+  rename-based claim scheme, which isn't actually mutually exclusive
+  (POSIX `rename` silently overwrites an existing destination) — the
+  6-thread concurrent-holder test observed 6 simultaneous holders where
+  exactly 1 was expected, root-caused, and fixed with a real `O_EXCL`
+  create. Documented honestly that `os.replace` was already atomic before
+  this slice, so AC-021's core correctness bar was already met by
+  construction — the lock's actual contribution is coordination, not new
+  safety.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
