@@ -649,6 +649,25 @@ Resolved 2026-08-23, in order:
   installed-layout tests) — a genuinely different kind of work (config
   parsing, JSON schemas) from anything in this band.
 
+  **Re-slicing pass on NEX-039…047 for the R0.1 band** (planned via
+  `EnterPlanMode`): confirmed `sv0c/LICENSE-APACHE`/`LICENSE-MIT` already
+  exist (no new licensing decision needed for NEX-045) and Python 3.13 here
+  has `tomllib` built in (no third-party TOML dependency for NEX-043).
+  Structural decision: `--emit=c`'s "front half" duplicates a few lines of
+  *sequencing* from `build_native_executable` rather than factoring out a
+  shared internal helper — refactoring already-mutation-tested code carries
+  more risk than five lines of repeated glue. Full re-slicing recorded in
+  `/Users/sasank/.claude/plans/starry-discovering-quokka.md`.
+
+  **NEX-039 landed**: `scripts/native_exe_emit_c.py` — `emit_c_only`, plus
+  `native_exe_staging.write_text_atomically` (new, mirrors
+  `native_exe_publish`'s atomic-write pattern for text). Confirmed load-bearing
+  by mutation, on the second attempt: the first mutation (calling the fake
+  cc with `--version`) silently passed because that mode never reaches the
+  fake tool's own call-recording logic — root-caused and fixed by invoking
+  the fake tool in a mode that actually records, which then caught the
+  regression immediately.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
