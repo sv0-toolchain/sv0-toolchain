@@ -968,6 +968,18 @@ Resolved 2026-08-23, in order:
   no-op regression check is caught by both the plain-regression and
   waiver-scoping selftest cases.
 
+  **NEX-055b landed**: a real, measured finding contrary to this band's
+  own a-priori worry — `native_exe_core_compiler.py`'s `flock` does
+  serialize the core-compiler sub-step, but measured to NOT be a
+  practical bottleneck. 2 and 4 concurrent builds consistently showed
+  1.7×–6.6× real speedup over sequential across repeated runs, because
+  the host compile/link step (never serialized) dominates real build
+  time. PERF-006 is genuinely met today; the flock's removal (NEX-055c)
+  remains warranted for REL-004's own static-guard requirement, not
+  because this measurement found a perf blocker. Confirmed load-bearing
+  by mutation: forcing full serialization drops the measured speedup to
+  1.02x, correctly failing the bar.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
