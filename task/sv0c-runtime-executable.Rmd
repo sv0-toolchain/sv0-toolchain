@@ -501,6 +501,17 @@ Resolved 2026-08-23, in order:
   temp source. Confirmed load-bearing by mutation (removing the
   symlink-leaf check fails that case).
 
+  **NEX-027 landed**: `scripts/native_exe_human_output.py` —
+  `format_success_message`/`maybe_print_success`/`render_argv_for_display`.
+  Confirmed load-bearing by mutation (dropping `shlex.quote` fails the
+  hostile-argv round-trip case).
+
+  **R0 runtime + host toolchain band (NEX-019…027) is now fully closed,
+  9/9, all green in `sv0 test-guards`, all mutation-verified.** OD-004,
+  OD-005, and OD-006 all resolved along the way. Combined with the
+  fully-closed F0 and F0/R0 bands, every NEX-### slice through NEX-027 is
+  done (25 of 58). Next band is R0 corpus/project/reliability (NEX-028…038).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
