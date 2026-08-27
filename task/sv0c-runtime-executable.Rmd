@@ -1013,6 +1013,23 @@ Resolved 2026-08-23, in order:
   plus the GOV-009 compatibility policy. Every claim checked against
   real, already-landed code, not aspirational.
 
+  **NEX-058 landed — R1 closed**: `native_exe_canonical_compile.py` shares
+  the exact canonical host-compile pieces `build_native_executable` uses
+  (not a new implementation, not the full pipeline either — these scripts
+  emit C themselves via the core compiler's own behavior). All 3 legacy
+  scripts migrated off `cc -std=c99 -O0 -w`; full before/after
+  differential parity confirmed for each by git-stashing the migration and
+  re-running the originals — byte-identical results, including the two
+  pre-existing, unrelated failures (`lib/checker.sv0` exit 232,
+  `lib/parser.sv0` exit 197) that exist with or without this change. The
+  new static duplication guard's own first run surfaced 3 *more*
+  pre-existing manual recipes outside this slice's scope, exempted with a
+  spec §26.5-grounded rationale and flagged as a real follow-up task
+  rather than silently fixed or silently left unenforced. **R1 —
+  optimization, reproducibility, and stability (NEX-048…058, 34
+  sub-slices) is now closed: 33/34 done, NEX-055c scoped and honestly
+  deferred to its own future dedicated session.**
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

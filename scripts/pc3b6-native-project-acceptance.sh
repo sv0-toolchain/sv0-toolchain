@@ -36,7 +36,7 @@ for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field
   if ! "$WRAP" --project "$dir" >"$c" 2>"$TMP/$fx.emit.err" || ! grep -q '#include' "$c"; then
     echo "pc3b6: FAIL — $fx: emit failed"; head -5 "$TMP/$fx.emit.err"; fail=1; continue
   fi
-  if ! cc -std=c99 -O0 -w -I "$RT" "$c" "$RT/sv0_runtime.c" -o "$bin" 2>"$TMP/$fx.cc.err"; then
+  if ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$c" "$bin" 2>"$TMP/$fx.cc.err"; then
     echo "pc3b6: FAIL — $fx: cc failed"; head -5 "$TMP/$fx.cc.err"; fail=1; continue
   fi
   set +e; "$bin"; ec=$?; set -e
@@ -54,7 +54,7 @@ inc="$SV0C/test/integration/include_basic/main.sv0"
 c="$TMP/include_basic.c"; bin="$TMP/include_basic.bin"
 if ! "$WRAP" "$inc" >"$c" 2>"$TMP/include_basic.emit.err" || ! grep -q '#include' "$c"; then
   echo "pc3b6: FAIL — include_basic: single-file emit failed"; head -5 "$TMP/include_basic.emit.err"; fail=1
-elif ! cc -std=c99 -O0 -w -I "$RT" "$c" "$RT/sv0_runtime.c" -o "$bin" 2>"$TMP/include_basic.cc.err"; then
+elif ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$c" "$bin" 2>"$TMP/include_basic.cc.err"; then
   echo "pc3b6: FAIL — include_basic: cc failed"; head -5 "$TMP/include_basic.cc.err"; fail=1
 else
   set +e; "$bin"; ec=$?; set -e
@@ -73,7 +73,7 @@ cv="$SV0C/test/integration/contract_violation/contract_violation.sv0"
 c="$TMP/contract_violation.c"; bin="$TMP/contract_violation.bin"
 if ! "$WRAP" "$cv" >"$c" 2>"$TMP/cv.emit.err" || ! grep -q 'sv0_requires' "$c"; then
   echo "pc3b6: FAIL — contract_violation: emit missing sv0_requires"; head -5 "$TMP/cv.emit.err"; fail=1
-elif ! cc -std=c99 -O0 -w -I "$RT" "$c" "$RT/sv0_runtime.c" -o "$bin" 2>"$TMP/cv.cc.err"; then
+elif ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$c" "$bin" 2>"$TMP/cv.cc.err"; then
   echo "pc3b6: FAIL — contract_violation: cc failed"; head -5 "$TMP/cv.cc.err"; fail=1
 else
   set +e; "$bin" 2>"$TMP/cv.run.err"; ec=$?; set -e

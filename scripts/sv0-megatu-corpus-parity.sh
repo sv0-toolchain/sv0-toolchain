@@ -68,7 +68,7 @@ PY
 # 2. Assemble + SML->C->cc the corpus binary once.
 python3 scripts/assemble-sv0-megaTU.py --root "$ROOT" --main "$CORPUS_MAIN" --out "$CORPUS_TU" >/dev/null
 sml "@SMLload=$SV0C" "$CORPUS_TU" > "$CORPUS_C" 2>/dev/null
-cc -std=c99 -O0 -w -I "$RT" "$CORPUS_C" "$RT/sv0_runtime.c" -o "$CORPUS_BIN"
+python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$CORPUS_C" "$CORPUS_BIN"
 
 # 3. Run every corpus seed through it.
 # driver.sv0's test main reads /tmp/.sv0_drv_path (CLI mode: compile that path when
@@ -96,7 +96,7 @@ while IFS= read -r f; do
     esac
     continue
   fi
-  if ! cc -std=c99 -O0 -w -I "$RT" "$OUT" "$RT/sv0_runtime.c" -o /tmp/megatu_run 2>/dev/null; then
+  if ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$OUT" /tmp/megatu_run 2>/dev/null; then
     ccfail=$((ccfail + 1)); fails+="CCFAIL $f"$'\n'; continue
   fi
   set +e

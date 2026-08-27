@@ -41,7 +41,7 @@ while IFS= read -r f; do
   [ -s "$NAT_C" ] || { fails+="EMPTY $f"$'\n'; fail=$((fail+1)); continue; }
   cmp -s "$NAT_C" "$NAT_C2" || { fails+="NONDET $f"$'\n'; fail=$((fail+1)); continue; }
   # cc + run (exit 0).
-  if ! cc -std=c99 -O0 -w -I "$RT" "$NAT_C" "$RT/sv0_runtime.c" -o "$NAT_BIN" 2>/dev/null; then
+  if ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$NAT_C" "$NAT_BIN" 2>/dev/null; then
     fails+="CC $f"$'\n'; fail=$((fail+1)); continue
   fi
   printf "" > /tmp/.sv0_drv_path
