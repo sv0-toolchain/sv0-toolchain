@@ -959,6 +959,15 @@ Resolved 2026-08-23, in order:
   against real, already-landed code, not aspirational. **NEX-054 (entry/
   runtime ABI) is now fully closed, 3/3.**
 
+  **NEX-055a landed**: another real, directly-observed finding — a single
+  benchmark capture showed a 506ms cold-start outlier on the minimal
+  fixture, vs. a stable ~78-80ms median across 3 repeats.
+  `capture_baseline` takes the median of `n_runs` for exactly this reason,
+  rather than trusting one sample. Real baseline persisted to
+  `sv0c/doc/perf-baseline.json`. Confirmed load-bearing by mutation: a
+  no-op regression check is caught by both the plain-regression and
+  waiver-scoping selftest cases.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
