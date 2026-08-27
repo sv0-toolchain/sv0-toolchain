@@ -860,6 +860,18 @@ Resolved 2026-08-23, in order:
   fixed by hardcoding the known-finding fixture's name independently of
   the data under test.
 
+  **NEX-051a/b landed**: `build_release_profile_argv` (`-O2
+  -fno-strict-aliasing`, explicitly none of §16.5's prohibited flags) plus
+  `native_exe_release_parity.py`'s full-corpus dev-vs-release diff — real
+  run: **114 programs, exactly 1 known-divergent
+  (`overflow_wrap_mask.sv0`), 0 unexpected**. Since the real corpus never
+  diverges, mutation-testing the comparison itself required extracting it
+  as a pure function (`observations_diverge`) and unit-testing it with
+  synthetic tuples — an end-to-end-only test could never prove this
+  load-bearing, the same lesson as NEX-034/036/050c's caught
+  self-defeating tests, applied proactively this time instead of after
+  the fact.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

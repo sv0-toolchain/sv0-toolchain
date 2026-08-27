@@ -52,6 +52,44 @@ def build_dev_profile_argv(
     ]
 
 
+def build_release_profile_argv(
+    cc_path: str,
+    runtime: RuntimeLocation,
+    program_c_path: str,
+    output_path: str,
+    extra_cc_args: list[str] | None = None,
+) -> list[str]:
+    """The R1 release-profile argv (NEX-051a, §16.5): `-O2` plus
+    `-fno-strict-aliasing` -- explicitly NOT `-O3`, link-time optimization,
+    `-ffast-math`, or `NDEBUG`-based contract removal, per §16.5's exact
+    prohibition list.
+
+    `-fno-strict-aliasing` is here because `native-executable-ub-audit.md`
+    (NEX-048a) found two real strict-aliasing violations (Sites 1/2: the
+    box-pool pointer-cast deref, and the `lowering.sv0`/`codegen.sv0`
+    `Value` cross-reinterpretation) that `-O2`'s type-based alias analysis
+    is entitled to exploit -- this flag is the audit's own concluded
+    mitigation, not a speculative addition.
+
+    Otherwise identical in shape to `build_dev_profile_argv`: same dialect,
+    same trusted-include-before-program-C ordering, same `extra_cc_args`
+    seam.
+    """
+    return [
+        cc_path,
+        "-std=gnu99",
+        "-O2",
+        "-fno-strict-aliasing",
+        "-g",
+        *(extra_cc_args or []),
+        f"-I{runtime.dir}",
+        program_c_path,
+        runtime.source,
+        "-o",
+        output_path,
+    ]
+
+
 def _selftest() -> int:
     failures: list[str] = []
 
@@ -112,12 +150,40 @@ def _selftest() -> int:
     elif argv_sanitized.index("-fsanitize=address,undefined") >= argv_sanitized.index("-I/abs/runtime"):
         failures.append("extra_cc_args must come before the trusted -I")
 
+    # Case 5 (NEX-051a): the release-profile argv has -O2 + -fno-strict-aliasing,
+    # and explicitly none of §16.5's prohibited flags (-O3, LTO, -ffast-math,
+    # NDEBUG-based contract removal).
+    release_argv = build_release_profile_argv(
+        "/usr/bin/cc", runtime, "/scratch/program.c", "/scratch/program.tmp-exe"
+    )
+    if "-O2" not in release_argv:
+        failures.append("release argv missing -O2")
+    if "-fno-strict-aliasing" not in release_argv:
+        failures.append("release argv missing -fno-strict-aliasing (audit Sites 1/2's mitigation)")
+    prohibited = ["-O3", "-flto", "-ffast-math", "-DNDEBUG"]
+    found_prohibited = [f for f in prohibited if f in release_argv]
+    if found_prohibited:
+        failures.append(f"release argv contains a §16.5-prohibited flag: {found_prohibited}")
+    if "-std=c99" in release_argv:
+        failures.append("release argv must never claim strict -std=c99 either (OD-005)")
+
+    # Release argv also honors extra_cc_args, same as dev profile.
+    release_argv_extra = build_release_profile_argv(
+        "/usr/bin/cc",
+        runtime,
+        "/scratch/program.c",
+        "/scratch/program.tmp-exe",
+        extra_cc_args=["-fsanitize=address,undefined"],
+    )
+    if "-fsanitize=address,undefined" not in release_argv_extra:
+        failures.append("release argv did not honor extra_cc_args")
+
     if failures:
         for f in failures:
             print(f"native_exe_argv_builder selftest FAIL: {f}")
         return 1
 
-    print("native_exe_argv_builder: selftest OK (4 cases)")
+    print("native_exe_argv_builder: selftest OK (5 cases)")
     return 0
 
 
