@@ -724,6 +724,15 @@ Resolved 2026-08-23, in order:
   prove the pipeline reads from the copy, not a cached/real location) is
   caught immediately.
 
+  **NEX-047 landed**: `scripts/native_exe_benchmark.py` — `run_benchmark`
+  wraps `build_native_executable` with `PhaseTimer` (NEX-041) across 4
+  representative fixtures (minimal, median-size, largest, and the modules
+  project fixture). A real report (`--run`) confirmed all 4 present with
+  60–120ms timings. Confirmed load-bearing by mutation: dropping the
+  `total` key from a fixture's timings is caught immediately by the schema
+  check. **R0.1 — inspection, configuration, and provenance band
+  (NEX-039…047) is now fully closed, 9/9.**
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
