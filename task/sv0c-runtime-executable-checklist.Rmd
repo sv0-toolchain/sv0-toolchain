@@ -143,19 +143,109 @@ Status: **todo** / **wip** / **done** / **deferred** / **blocked**.
 
 ### R1 — optimization, reproducibility, and stability (spec §31.6)
 
-| ID | slice | requirement(s) | status | red test / acceptance |
-|----|-------|-----------------|--------|-----------|
-| NEX-048 | C/runtime UB and strict-aliasing audit (raw box/vector representation) | TOOL-012 | todo | Known box/vector stress fixtures pass under sanitizers. |
-| NEX-049 | Accepted generated-C/runtime warning policy; remove blanket `-w` from the canonical driver | TEST-008 | todo | Full-corpus warning report with documented fix/suppress/error classification. |
-| NEX-050 | ASan/UBSan matrix with intentional process-lifetime allocations classified separately from real UB | TEST-007 | todo | Sanitizer jobs green, both optimized and unoptimized. |
-| NEX-051 | Enable canonical `--profile=release` (`-O2`, not `-O3`/LTO/`-ffast-math`; no contract-mode change) | TOOL-012, PORT-005 | todo | AC-024 (full behavior corpus identical stdout/stderr/exit in dev vs. release, modulo documented contract-mode differences). |
-| NEX-052 | Same-output publication lock/token protocol (resolves OD-007) | ART-013, REL-002 | todo | AC-021 stress (concurrent same-output builds: always exactly one complete artifact, never mixed; failure never overwrites a successful build). |
-| NEX-053 | Pinned double-build reproducibility job and report | REPRO-004 | todo | AC-025 (two clean builds in the pinned environment: identical emitted C, and either identical executables or a documented platform-specific semantic-equivalence result). |
-| NEX-054 | Stable entry/runtime ABI manifest and compatibility tests (resolves OD-004 schema) | ENTRY-010, RT-009 | todo | ABI-manifest snapshot + install-mismatch rejection tests. |
-| NEX-055 | Release-to-release performance regression budget + concurrent-build certification | PERF-005…007 | todo | Baseline comparison (≤20% p95 regression without a waiver); 2- and 4-process parallel timing test; ≤1 probe per unique tool identity per invocation. |
-| NEX-056 | Signed release-candidate evidence workflow (spec §28.4 retained artifacts) | TEST-009 | todo | Workflow/policy inspection against the retained-evidence list. |
-| NEX-057 | Publish stable CLI, ABI, build-record schema, profile, and compatibility docs | DOC-005 | todo | Release-doc gate. |
-| NEX-058 | Remove/migrate duplicated manual `cc` link recipes (tests, `compile-run`, scripts) onto the canonical driver | GOV-008 | todo | Static duplication guard + full differential-parity pass between the old manual recipes and the canonical driver before deletion. |
+Re-sliced into 34 bite-sized sub-slices (planned via
+`/Users/sasank/.claude/plans/starry-discovering-quokka.md`): each spec-level
+`NEX-04x` row is too large to land as one TDD slice (sanitizer
+certification, release-profile enablement, ABI versioning, reproducibility
+evidence, a perf regression harness, a signed-release workflow, and a
+legacy-recipe dedup sweep are each multi-part work), so it becomes a
+letter-suffixed group (`NEX-048a`, `NEX-048b`, …) — same convention as the
+`PC-2b/2c/2d` M3 Phase C epic slicing. The spec's own `NEX-04x` number stays
+the requirement-traceability anchor; the letter is the actual unit of work.
+Investigation already done while scoping (not assumptions): `REL-004`
+(retiring `/tmp/.sv0_drv_path`) needs a genuinely new sv0c-side reentrant
+core-compiler entry point that doesn't exist yet, flagged below as NEX-055c
+with its own dedicated future planning pass; `GOV-008` is already R0-closed
+for the Python driver itself, but three legacy shell scripts
+(`scripts/pc3b6-native-project-acceptance.sh`,
+`scripts/sv0-megatu-native-parity.sh`,
+`scripts/sv0-megatu-corpus-parity.sh`) still hand-roll `cc -std=c99 -O0 -w`
+recipes with blanket `-w`, which is what NEX-058/049c actually migrate;
+`ENTRY-010` has no code today (only the runtime *bundle* is ABI-versioned,
+not the entry contract itself); CI today is a single Ubuntu job with no
+Clang/macOS/sanitizer/release legs, so every CI-job sub-slice below is
+genuinely new, not a doc-only restatement.
+
+#### NEX-048 — TOOL-012: C/runtime UB and strict-aliasing audit
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-048a | Write the audit doc (`sv0c/doc/native-executable-ub-audit.md`): enumerate every raw pointer punning / union-based box storage / signed-overflow-reliant site in `sv0_runtime.h`/`.c` and the megaTU C emitter; classify each "safe under `-O2`" / "needs `-fno-strict-aliasing`" / "needs a representation change". Investigation + decision record; gates NEX-048b and all of NEX-051. | todo | Audit doc reviewed against the actual runtime/emitter source, not written from memory. |
+| NEX-048b | Turn 048a's flagged sites into concrete UBSan/ASan fixture programs under `sv0c/test/behavior/` (one per flagged pattern: box punning, vector bounds, signed-overflow-adjacent arithmetic), with documented expected sanitizer verdicts. Fixtures are inert until NEX-050 wires a sanitizer job. | todo | "Known box/vector stress fixtures" (spec's literal red test) exist and each has a documented expected verdict. |
+
+#### NEX-049 — TEST-008: warning policy, remove blanket suppression
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-049a | `scripts/native_exe_warning_policy.py`: accepted GCC/Clang-common warning flags for the stable gate + a narrow suppression list, each suppression entry carrying a one-line rationale (argv-native data, not a shell flag string, per §16.6). | todo | Accepted/suppressed lists disjoint; mutation — an empty-rationale suppression entry is rejected. |
+| NEX-049b | Run the full behavior corpus through the accepted warning flags; report warnings actually emitted, classified fixed/suppressed/unclassified — an unclassified warning is a hard failure (§26.6's enforcement point). | todo | Full-corpus warning report with documented fix/suppress/error classification; zero unclassified warnings. |
+| NEX-049c | Prove the behavior corpus still passes cleanly under 049a's flags (no blanket `-w`) — the acceptance check that unblocks NEX-058's actual script edits. | todo | Corpus green under the accepted flag set, no `-w` anywhere in the check path. |
+
+#### NEX-050 — TEST-007: ASan/UBSan matrix + intentional-leak classification
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-050a | `scripts/native_exe_sanitizer_build.py`: wraps the real `build_native_executable` with `-fsanitize=address,undefined` via a new `extra_cc_args` seam on `build_dev_profile_argv` (one argv-native seam, no flag-string parsing). | todo | A planted UB fixture (048b) is caught; a clean fixture passes. |
+| NEX-050b | Run 048b's fixtures under 050a in both `-O2` and unoptimized builds; classify intentional process-lifetime allocations via a documented suppression file (e.g. `sv0c/runtime/lsan-suppressions.txt`), rationale per entry. | todo | Sanitizer jobs green, both optimized and unoptimized; every suppression entry has a rationale. |
+| NEX-050c | Wire a new CI job running 050a across the full behavior corpus on the Ubuntu runner (first genuinely new CI job in this plan). | todo | Job steps run locally once, transcript recorded in this row, before landing the workflow YAML. |
+
+#### NEX-051 — TOOL-012, PORT-005: enable `--profile=release`
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-051a | `native_exe_argv_builder.build_release_profile_argv`: `-O2` + whatever 048a's audit requires (e.g. `-fno-strict-aliasing`) — explicitly not `-O3`/LTO/`-ffast-math`/`NDEBUG`-contract-stripping. | todo | Argv shape matches exactly; a contract-mode build under release still enforces contracts. |
+| NEX-051b | Behavioral-parity gate: full behavior corpus through both dev and release argv, byte-identical observable stdout/stderr/exit. | todo | AC-024 (identical dev vs. release behavior on the full corpus). |
+| NEX-051c | Wire `--profile=release` into `build_native_executable` (`profile: str = "dev"` parameter) — gated on 048a/050/051b all green; deliberately last in this group. | todo | Flag only ships once every gate above is green. |
+| NEX-051d | Extend CI to the declared host matrix in dev *and* release profile (actually applies the macOS/Linux-Clang legs NEX-037 documented but didn't apply). | todo | PORT-005 (every supported host tuple passes both profiles); transcript recorded before landing. |
+
+#### NEX-052 — ART-013, REL-002: same-output lock/publication protocol
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-052a | `scripts/native_exe_output_lock.py`: ownership/token lock adjacent to the exact normalized output path (not basename-derived), with stale-lock recovery (dead-PID reclaim), per §22.5. | todo | Two racing processes: one wins, one waits/fails cleanly; a stale lock is reclaimed; a live lock is respected. |
+| NEX-052b | Wire 052a into `native_exe_publish.publish_atomically` so same-output builds serialize only at publication (§22.1), reusing NEX-035's fingerprint-verification approach for the stress test. | todo | AC-021 stress (N concurrent same-output builds, distinct fingerprints: published artifact is always fully one build's, never mixed). |
+
+#### NEX-053 — REPRO-004: pinned double-build reproducibility
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-053a | `scripts/native_exe_repro_harness.py`: build the same fixture twice with pinned compiler/runtime/flags/environment (§21.3's narrow definition), normalizing known nondeterminism (scratch path, embedded timestamps/build-IDs) before comparing. | todo | Two builds in two different scratch dirs produce byte-identical artifacts; a varied scratch path alone doesn't change the hash. |
+| NEX-053b | Extend `native_exe_build_record.py` with a `reproducibility` field (byte- vs. semantically-reproducible, per §21.3's fallback); CI job running 053a and recording the classification. | todo | AC-025; report distinguishes byte- from semantic-reproducibility honestly. |
+
+#### NEX-054 — ENTRY-010, RT-009: stable entry/runtime ABI manifest
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-054a | `scripts/native_exe_entry_abi.py`: a new `ENTRY_ABI_VERSION` (parallel to, not reusing, the runtime bundle's `ABI_VERSION`) covering the reserved-symbol set + `sv0_user_main`/hosted-adapter shape, snapshotted in `sv0c/runtime/entry-abi-manifest.json`. | todo | Current reserved-symbol list + adapter shape hash-match the snapshot; mutation — changing either without a version bump is caught. |
+| NEX-054b | Install-mismatch test (reusing NEX-046's installed-layout machinery): an installed layout declaring an unsupported entry-ABI version fails closed with a clear diagnostic. | todo | ABI-manifest snapshot + install-mismatch rejection tests. |
+| NEX-054c | Publish `sv0c/doc/entry-abi.md`: reserved-symbol list, adapter contract, versioning/compatibility policy (folds into NEX-057, not duplicated there). | todo | ENTRY-010's "documented" half satisfied directly. |
+
+#### NEX-055 — PERF-005…007: regression budget + concurrent perf certification
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-055a | Persist NEX-047's benchmark report as a versioned baseline (`sv0c/doc/perf-baseline.json`) + `scripts/native_exe_perf_regression.py` comparing a fresh run against it, failing on >20% p95 regression without a waiver-file entry. | todo | Synthetic 25% regression fails; 10% passes; waivered 25% passes with the waiver recorded. |
+| NEX-055b | `scripts/native_exe_concurrent_perf.py`: 2- and 4-process concurrent distinct-output builds (reusing NEX-035's harness shape), timed, asserting real wall-clock parallelism. | todo | PERF-006 (total time well under N × single-build time); if `/tmp/.sv0_drv_path` serializes it, documents the gap honestly against NEX-055c rather than claiming the gate is met. |
+| NEX-055c | `scripts/native_exe_core_compiler_reentrant.py` — retires `CoreCompilerClient`'s `flock`+`/tmp/.sv0_drv_path` shim via a genuinely new sv0c-side reentrant entry point. **Highest-risk item in this band** — needs its own dedicated `EnterPlanMode` investigation pass when reached, the same way NEX-016/017 did for comparably-sized sv0c changes. | todo | REL-004 (static guard: the global control file no longer appears in the stable executable path) + concurrency test. |
+
+#### NEX-056 — TEST-009: signed release-candidate evidence workflow
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-056a | `scripts/native_exe_release_evidence.py`: assembles one evidence bundle (revision SHA, clean-tree check, build record, benchmark report, reproducibility classification) into one JSON document. | todo | A dirty tree is rejected; a clean tree with all four inputs produces a well-formed bundle. |
+| NEX-056b | Document the actual signing step (`git tag -s` / an external signing process) as a checklist-driven workflow doc — policy, not a fabricated-signature script. | todo | Workflow/policy inspection against the retained-evidence list. |
+
+#### NEX-057 — DOC-005: publish stable docs
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-057 | Extend `sv0c/doc/native-executable.md` (or split if length demands) to cover the runtime ABI (links 054c), the build-record schema (Appendix C, already in NEX-042), profiles (051's argv shapes), and the compatibility policy (GOV-009's versioned-change-control statement). | todo | Every claim checked against a real script/test already landed in this plan — no aspirational claims, matching NEX-038's discipline. |
+
+#### NEX-058 — GOV-008: remove/migrate duplicated manual C-link recipes
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-058 | Migrate `pc3b6-native-project-acceptance.sh`, `sv0-megatu-native-parity.sh`, `sv0-megatu-corpus-parity.sh` off hand-rolled `cc -std=c99 -O0 -w ...` onto the canonical driver; add a static duplication guard (`test-guards` check for `cc -std=`/`gcc -std=`/`clang -std=` outside `native_exe_argv_builder.py`). | todo | Static duplication guard + full differential-parity pass (each script's pass/fail behavior unchanged, before/after output diffed) before deletion. |
 
 ## dependency notes (spec §30.2, condensed)
 

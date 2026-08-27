@@ -733,6 +733,51 @@ Resolved 2026-08-23, in order:
   check. **R0.1 — inspection, configuration, and provenance band
   (NEX-039…047) is now fully closed, 9/9.**
 
+  **R1 scoped and re-sliced** (planned via
+  `/Users/sasank/.claude/plans/starry-discovering-quokka.md`, `EnterPlanMode`/
+  `ExitPlanMode`): the spec's own §31.6 lists R1 as 11 slices, NEX-048…058,
+  but several are too large for one TDD slice each (sanitizer
+  certification, release-profile enablement, ABI versioning,
+  reproducibility evidence, a perf regression harness, a signed-release
+  workflow, a legacy-recipe dedup sweep). Re-sliced into **34 bite-sized
+  sub-slices** using the same letter-suffix convention as the `PC-2b/2c/2d`
+  M3 Phase C epics (`NEX-048a`, `NEX-048b`, …) — the spec's `NEX-04x`
+  number stays the requirement-traceability anchor, the letter is the real
+  unit of work. Full breakdown in
+  `task/sv0c-runtime-executable-checklist.Rmd`'s R1 section.
+
+  Investigation done while scoping (grounding the plan, not assumptions):
+  **REL-004** ("global `/tmp/.sv0_drv_path` SHALL not appear in the stable
+  executable path") is currently violated by design — `CoreCompilerClient`
+  (NEX-011) is an explicitly-documented migration shim built on that exact
+  global file plus an `flock`; retiring it needs a genuinely new sv0c-side
+  reentrant core-compiler entry point that doesn't exist yet. Flagged as
+  its own sub-slice, **NEX-055c, the single highest-risk item in this
+  band** — it touches sv0c compiler internals rather than only the Python
+  driver/CI layer, and gets its own dedicated `EnterPlanMode` investigation
+  pass when R1 work reaches it (the same treatment NEX-016/017 got for
+  comparably-sized sv0c changes), rather than being scoped in fine detail
+  now. **GOV-008** is already R0-closed for the `native_exe_*.py` driver
+  itself (`build_dev_profile_argv` is the one canonical argv site), but
+  three legacy shell scripts still hand-roll `cc -std=c99 -O0 -w ...`
+  recipes with blanket `-w` (forbidden at the stable gate by §26.6):
+  `scripts/pc3b6-native-project-acceptance.sh`,
+  `scripts/sv0-megatu-native-parity.sh`,
+  `scripts/sv0-megatu-corpus-parity.sh` — NEX-058/049c's real content.
+  **ENTRY-010** has no code today: only the runtime *bundle* is
+  ABI-versioned (`native_exe_runtime_manifest.ABI_VERSION`), not the entry
+  contract itself (reserved symbols, `sv0_user_main`/hosted-adapter shape)
+  — NEX-054a adds a genuinely new, parallel `ENTRY_ABI_VERSION`. CI today
+  (`.github/workflows/ci.yml`) is a single Ubuntu job with no Clang,
+  macOS, sanitizer, or release-profile leg — every CI-job sub-slice in
+  this band (NEX-050c, NEX-051d) is genuinely new work, not a doc-only
+  restatement of NEX-037's documented-but-unapplied jobs.
+
+  Sequencing follows the spec's own NEX-048…058 order (051's release
+  profile needs 048's audit and 050's sanitizer clearance; 057's docs need
+  nearly everything else written first; 058 is independent). Not yet
+  started — checklist rows are all `todo`; execution begins with NEX-048a.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
