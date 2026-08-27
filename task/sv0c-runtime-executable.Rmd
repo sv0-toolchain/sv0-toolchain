@@ -598,6 +598,13 @@ Resolved 2026-08-23, in order:
   mutation check passed" isn't itself proof of anything until you've
   confirmed *why* it passed.
 
+  **NEX-035 landed**: `scripts/native_exe_parallel_builds.py` — 6 real
+  concurrent `build_native_executable` calls under `threading`, each
+  program's exit code its own fingerprint. Confirmed dramatically
+  load-bearing: removing `native_exe_core_compiler.py`'s `flock` call
+  reliably reproduces real cross-contamination and outright `read_file`
+  panics across all 6 builds, on every one of 3 separate runs.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
