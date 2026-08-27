@@ -936,6 +936,15 @@ Resolved 2026-08-23, in order:
   step runs — no separate job needed. Confirmed load-bearing by mutation:
   hardcoding the field to `None` is caught immediately.
 
+  **NEX-054a landed**: `native_exe_entry_abi.py` — `ENTRY_ABI_VERSION = 1`,
+  a genuinely new concept parallel to (not reusing) the runtime bundle's
+  own `ABI_VERSION`. Both hosted-adapter shape strings are copied
+  byte-for-byte from `megaTU-main.sv0`'s actual emission code, not
+  paraphrased. A version-number difference is treated as the allowed
+  escape hatch (not an error) — only a hash mismatch AT the same version
+  is a real drift. Confirmed load-bearing by mutation: changing an adapter
+  shape string without a version bump is caught immediately.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
