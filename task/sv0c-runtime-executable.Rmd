@@ -1,0 +1,409 @@
+---
+created: "2026-08-23T00:00:00-06:00"
+updated: "2026-08-23T00:00:00-06:00"
+id: task-sv0c-runtime-executable
+key: sv0c-runtime-executable
+state: active
+tags:
+  - sv0
+  - sv0c
+  - native-executable
+  - c-backend
+  - host-driver
+  - planning
+title: "sv0c native runtime executable output: delivery plan (F0 → R1)"
+type: task
+---
+
+# sv0c native runtime executable output: delivery plan
+
+## purpose
+
+Plan — **not yet implement** — the missing production step after the sv0 C
+backend: a thin host driver that turns the C translation unit `sv0c` already
+emits into a durable, runnable, host-native executable, governed by the
+specification at `~/Documents/project-specs/sv0c-runtime-executable/SPEC.md`
+(source-audit date 2026-08-23; audited revisions: `sv0-toolchain@f46144f`,
+`sv0c@0705d68`, `sv0doc@f4dabf6`, `sv0vm@e9698f6`, `sv0-mcp@6f38d20`). This
+file is the **hub**: scope, architecture, release ladder, phase sequencing,
+gates, risks, and open decisions. The trackable **`NEX-###`** slice backlog
+lives in **`task/sv0c-runtime-executable-checklist.Rmd`**, using the exact
+slice IDs already assigned by the spec's own implementation backlog (§31), so
+citing an ID in a PR is directly traceable back to the governing document.
+
+This feature is **owned by `sv0c`** (the C backend, entry ABI, and runtime
+bundle) with a thin `sv0-toolchain` driver adapter — it is **not** part of the
+active M5 milestone (`task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`). The
+spec is explicit that the LLVM path is separate future work and **must not**
+silently redefine this C-backend contract (spec §4.5, ownership table §3.3,
+decision register note in §33.1). No `roadmap_parent` is set for the same
+reason the VS Code extension hub omits one — this is adjacent to, not nested
+under, the numbered design-milestone roadmap.
+
+## where we start (2026-08-23)
+
+A source audit (spec §4) found real capability but no production feature:
+
+- **What already works:** the self-hosted compiler emits one C translation
+  unit beginning `#include "sv0_runtime.h"`; `sv0_runtime.h`/`sv0_runtime.c`
+  cover panic/assert/contract/string/vector/box/filesystem support; single-file
+  and recursive `--project` composition both work; contract modes
+  `runtime`/`verified`/`disabled` all lower correctly on the C path; a repeated
+  working link recipe (`cc -std=c99 -O0 -I<runtime> program.c sv0_runtime.c -o
+  program`) is proven by `make e2e test-contract-runtime` at the pinned
+  revision on macOS arm64 with Apple Clang (42 / precondition-1 confirmed).
+- **What does not exist:** `./scripts/sv0 compile-run` (`scripts/sv0:1088`) is
+  the *only* thing resembling this feature today, and it is explicitly a test
+  convenience, not the spec'd driver — it accepts only `sv0c/`-relative paths,
+  writes into a temp dir, **deletes the binary after running it**, treats any
+  nonzero program exit as a failed *compile* test, suppresses emitter stderr,
+  hard-codes `-O0`, and has no stable output path, profile, or provenance
+  contract (spec §4.2). There is no `--emit=exe`, no atomic publication, no
+  entry-point ABI validation, no compiler-relative runtime resolution, no
+  argv-safe hostile-path handling, and no structured exit-class taxonomy.
+- **The concurrency blocker:** the current native compiler wrapper depends on
+  a single global mutable file, `/tmp/.sv0_drv_path` (also called out in
+  `[[feedback_drv_path_reset]]` — it must be reset to empty before any
+  gate/push, and build scripts must never run concurrently with a pre-push
+  `sv0 test` for exactly this reason). The spec makes retiring this dependency
+  from the *stable* path a hard release blocker (AE-008, REL-004) — F0/R0 MAY
+  serialize legacy invocations behind a lock as a migration shim, but that
+  lock is not R0 completion.
+- **C portability is honest, not strict.** `sv0_runtime.h` uses GCC/Clang
+  extensions (`__typeof__`, statement expressions); `sv0_runtime.c` uses POSIX
+  directory/file APIs. R0 is therefore a hosted POSIX, GCC/Clang-compatible
+  build — it explicitly does not claim strict C99 or native Windows support
+  merely because the generated source resembles C99 (spec §4.3, §20.3).
+
+## scope decisions (locked by the spec, §10 + §33.1)
+
+1. **Host-driver phase after C emission (AE-001).** The IR emitter never
+   learns shell syntax, process spawning, or platform packaging; a thin driver
+   invokes the core compiler and the host C compiler and owns artifacts.
+2. **One generated `program.c` + the compiler-matched `sv0_runtime.c`, linked
+   in a single host-compiler invocation through R1 (AE-002).** Separate
+   sv0-module compilation, a runtime archive, LTO, and foreign libraries are
+   deferred.
+3. **Existing C-stdout and `--target=vm` behavior stays compatible; new
+   executable output is opt-in via `--emit=exe`** (or the workspace adapter
+   `./scripts/sv0 native-compile` during development) (AE-003).
+4. **Explicit executable-entry adapter (AE-004).** The C backend must not emit
+   a nonconforming `void`/aggregate/parameterized `main` directly as the
+   hosted C entry, and must not fabricate a successful `main` for a source
+   library that has none.
+5. **Compiler-relative runtime discovery only (AE-005).** The driver resolves
+   `sv0_runtime.h`/`.c` from the compiler installation, never from cwd,
+   `CPATH`, or the source project — a malicious project-local
+   `sv0_runtime.h` must never win.
+6. **Atomic final publication (AE-006).** The host compiler writes to a
+   private temporary target; only a validated, successfully linked regular
+   executable is renamed over the requested final path. A failed rebuild
+   leaves the prior executable byte-for-byte unchanged.
+7. **Absolute bytecode isolation (AE-007).** `--target=vm`, `.sv0b` input, or
+   VM-emission requests combined with `--emit=exe` are usage errors; `sv0vm`
+   is never invoked by this path.
+8. **No production global control file (AE-008).** The stable path passes
+   inputs through ordinary argv or a unique per-invocation private channel;
+   `/tmp/.sv0_drv_path` may remain inside legacy bootstrap tests only.
+9. **Host-native only (AE-009).** Target triples, sysroots, cross-linkers, and
+   remote builders are rejected or deferred rather than guessed.
+10. **Development profile first; `--profile=release` is blocked until R1**
+    optimized/sanitizer/UB-parity gates pass. No arbitrary `CFLAGS`/`LDFLAGS`
+    shell strings in R0 (avoids quoting ambiguity and irreproducibility).
+
+## explicit non-goals through R1 (spec §7.5)
+
+`.sv0b`-to-executable conversion, bundling `sv0vm` into a launcher, LLVM/Wasm
+executable construction, cross-compilation, universal/fat binaries, static
+linking as a supported guarantee, shared-library/object/header SDK output,
+incremental compilation or caching, a package registry, foreign-library
+discovery (`pkg-config`, C FFI manifests), user `fn main` arguments,
+source-level native debugging, code signing/notarization/installers, and
+native Windows support before the runtime and driver are ported and gated.
+These exclusions do not block a later spec — they keep untested behavior out
+of this release implicitly.
+
+## release ladder
+
+| release | meaning | gate (spec §29) |
+|---|---|---|
+| **F0** | Feasibility + contract-locking slice; CLI grammar, phase/artifact state machines, executable-entry validation, discovery contracts, an argv-safe fake-tool harness, one minimal `-O0` proof; no public stability claim. | §29.1 |
+| **R0** | Preview: durable dev-profile executables for single-file and `--project` inputs on the macOS-arm64/Linux-x86_64 matrix, atomic publication, human diagnostics with stable exit classes, behavior/project-corpus coverage. | §29.2 |
+| **R0.1** | Hardened preview: `--emit=c`/`--keep-c` retention, `sv0.toml` config, `--message-format=json`, build-record JSON, installed-layout tests. | §29.3 |
+| **R1** | Stable: `--profile=release` after optimized/sanitizer parity, ABI version checks, concurrent-build certification, reproducibility evidence, packaged-driver discovery, deprecation completion. | §29.4 |
+
+## phases → checklist bands
+
+Full per-slice detail (deliverable + red test) is in the checklist, using the
+spec's own `NEX-###` numbering verbatim (§31) so the mapping never drifts.
+
+| band | scope | release | slice range |
+|---|---|---|---|
+| **F0 — contract, harness, state machine** | requirement/traceability IDs, CLI parse for `--emit=exe`/`--project`/`-o`/`--`, normalized build request + phase enum, fake emitter + fake C-compiler executables, error-phase→exit-class map, atomic-publication abstraction, private scratch lifecycle, argv subprocess abstraction, VM/exe rejection | F0 | NEX-001…010 |
+| **F0/R0 — core compiler + entry ABI** | reentrant core-compiler request interface (retires `/tmp/.sv0_drv_path` from the stable path), stdout/stderr/exit protocol normalization, no-`main`/duplicate-`main` rejection, entry signature/return-type validation, `sv0_user_main` + hosted C adapter + runtime init, reserved-symbol mangling, staging-C hash validation | F0/R0 | NEX-011…018 |
+| **R0 — runtime + host toolchain** | compiler-relative runtime resolver, ABI manifest + hash verification, compiler-selection precedence (no fallback), capability probe, central dev-profile argv builder, sanitized child env + trusted include order, host-failure diagnostics, default/explicit path + permission/symlink rules, human quiet/verbose/success output | R0 | NEX-019…027 |
+| **R0 — corpus, project, reliability** | native-executable manifest from the behavior corpus, runtime-feature suite (println/string/Vec/Box/contracts), project-mode build via compiler composition, contract-mode matrix, per-failure-phase preservation tests, symlink/scratch/race hardening, cancellation, parallel distinct-output builds, hostile-path corpus, Linux GCC/Clang + macOS Apple Clang jobs, user docs | R0 | NEX-028…038 |
+| **R0.1 — inspection, config, provenance** | `--emit=c` atomic output, `--keep-c` retention, JSON event encoder/schema/timing, atomic build-record JSON with hashes, `sv0.toml` schema/discovery/precedence, compiler-identity probe cache, installed runtime manifest/licenses, installed-layout E2E, benchmark harness | R0.1 | NEX-039…047 |
+| **R1 — optimization, reproducibility, stability** | UB/strict-aliasing audit, warning policy (drop blanket `-w`), ASan/UBSan matrix, `--profile=release` enablement, same-output lock/publication protocol, pinned double-build reproducibility, stable entry/runtime ABI manifest, regression-budget + concurrent perf certification, signed release-candidate evidence, stable published docs, duplicated manual `cc` recipe removal | R1 | NEX-048…058 |
+
+`Future backlog, not scheduled by this specification` (native Windows,
+cross-compilation, static/shared libraries, prebuilt runtime archive, program
+arguments, C FFI manifests, LTO, signing/notarization, source-level debug
+mapping, cache/incremental builds, and eventual convergence with a
+backend-neutral CLI once LLVM ships) stays out of the checklist until
+separately accepted through change control (spec §31.7).
+
+## completion criteria per gate (condensed from spec §29)
+
+- **F0:** AE-001…009 accepted; CLI/phase state-machine tests pass; missing or
+  invalid `main` is rejected before host invocation; one minimal executable
+  is produced through the canonical driver; fake-process injection, failure,
+  and atomic-preservation tests pass; VM/executable combinations are rejected;
+  no public stability claim is made.
+- **R0:** every R0 requirement has passing traceability; single-file and
+  project builds pass on the R0 host matrix; every supported behavior-manifest
+  row passes through the canonical driver; runtime/verified/disabled contract
+  modes are sound; runtime-bundle integrity checks pass; prior-output
+  preservation, hostile paths, symlinks, cancellation, and distinct-output
+  concurrency all pass; global-control-file dependence is absent from the R0
+  path; existing full toolchain tests remain green; docs are complete.
+- **R0.1:** retained-C identity + atomicity, configuration discovery/
+  precedence, JSON message + build-record schema tests, installed-layout
+  tests, a benchmark baseline report, and no unresolved R0 correctness or
+  output-preservation defect.
+- **R1:** all active R1 requirements pass; release profile passes behavior
+  parity on every supported host tuple; ASan/UBSan + accepted warnings policy
+  pass; compiler/runtime ABI is versioned and documented; same-output
+  concurrency is certified; reproducibility scope is tested and documented;
+  package contents include manifest/licenses/checksums/support policy; all
+  waivers are time-bounded, owned, and noncritical; no known defect can
+  corrupt, mispublish, or silently miscompile an executable.
+
+## risk register (top items, full table at spec §32)
+
+| risk | mitigation / descope trigger |
+|---|---|
+| Global `/tmp/.sv0_drv_path` race under concurrent builds | Reentrant argv/private request interface (NEX-011); static guard that the string never appears on the stable path; parallel-fingerprint tests (NEX-035). |
+| Runtime header/source shadowing by a malicious project file | Private staging dir, trusted include order before inherited paths, content hashes, malicious-shadow fixture (NEX-019, NEX-024, AC-008/AC-016). |
+| Nonconforming C `main` (void/aggregate/parameterized, or a fabricated no-op) | Entry validation + hosted adapter before host compile, never after (NEX-013…017). |
+| Failed link truncates/replaces a known-good binary | Compile to a private temp leaf, validate, atomic rename only after success (NEX-007, NEX-026). |
+| `-O2` exposes UB in raw box/vector representation | R0 stays `-O0`; UB audit, sanitizers, and dev/release parity are R1 gates before `--profile=release` unblocks (NEX-048…051). |
+| Overstating "C99"/Windows portability | Runtime uses GCC/Clang extensions + POSIX APIs; docs claim only the honest GNU/Clang-compatible hosted matrix; Windows stays deferred (spec §20.3, DOC-003). |
+| Shell injection via source/output/flag paths | Direct argv only, no shell-string flags, metacharacter corpus (NEX-009, NEX-036, AC-015). |
+| Same-output concurrent publication mixes artifacts | Unique scratch + validated atomic publish now; an output lock/token protocol is an explicit R1 slice (NEX-052, AC-021). |
+| Verified-mode false proof (missing/unknown Z3 misreported) | Requested-vs-effective contract mode always distinguished; only *proven* checks are ever stripped (NEX-031, PIPE-009, AC-017). |
+| Test driver diverges from the user-facing driver | One canonical host-link implementation shared by tests and commands (GOV-008); duplication guard lands after parity (NEX-058). |
+
+## open decisions (resolve before the named slice, spec §33.2)
+
+| ID | decision | due | default recommendation |
+|---|---|---|---|
+| OD-001 | Implementation language/module for the host driver | before NEX-003 | **resolved 2026-08-23** — Python, alongside existing `scripts/verify_*.py`; see decisions record above. |
+| OD-002 | Direct argv/request mechanism for the self-hosted core compiler | before NEX-011 | **partially resolved 2026-08-23** — investigated; the real ABI needs a new sv0 language/runtime argv host function (out of scope for this driver work, own future slice). NEX-011 shipped as the spec-sanctioned lock-based migration shim instead; see decisions record below. |
+| OD-003 | Exact new `E####` codes for entry errors | before NEX-013 | Allocate from compiler diagnostic governance; keep missing/duplicate/params/return-type cases distinguishable. |
+| OD-004 | Runtime ABI manifest schema + version numbering | before NEX-020 | Schema/ABI version 1, exact SHA-256 file hashes. |
+| OD-005 | `-std=gnu99` vs. documented `-std=c99` with accepted extensions | before NEX-023 | `gnu99` until runtime extensions are removed; test emitted-program syntax separately. |
+| OD-006 | Exact sanitized child environment allowlist on macOS/Linux | before NEX-024 | Clear include/library injection vars; preserve minimal locale/PATH/temp/SDK inputs. |
+| OD-007 | Same-output publication locking primitive across macOS/Linux | before NEX-052 | Filesystem atomic create/rename + ownership token; do not rely on `flock` alone. |
+| OD-008 | Build-record digest algorithm | before NEX-042 | SHA-256. |
+| OD-009 | Stable installed-command transition from the workspace adapter | before R1 | `sv0c --emit=exe` canonical; `./scripts/sv0 native-compile` forwards, deprecates later. |
+| OD-010 | Release-profile overflow/aliasing flags | before NEX-051 | Decide only from language semantics + UB/sanitizer evidence; no `-ffast-math`. |
+
+These are controlled gates, not permission to improvise (mirrors the VS Code
+extension hub's own framing) — do not silently default them inside an
+implementation PR; record the resolution here when made.
+
+## decisions record
+
+Resolved 2026-08-23, in order:
+
+- **OD-001.** Host driver implementation: **Python**, alongside the existing
+  `scripts/verify_*.py` guard/test infrastructure this repo already trusts for
+  exactly this kind of testable, argv-safe, atomic-filesystem code. `./scripts/sv0
+  native-compile` becomes a thin bash→Python forward. `sv0c --emit=exe` is
+  documented as the canonical spelling and delegates to this same Python
+  driver until sv0's runtime gains process-spawn/exec host functions (tracked
+  as a prerequisite for the self-hosted-driver alternative, not scheduled by
+  this spec). Unblocks NEX-003 and the whole F0 band (NEX-001…010).
+- **OD-002.** Investigated 2026-08-23 while implementing NEX-011: sv0 (the
+  language) has no argv/CLI-args host function today — `sv0_runtime.h`/`.c`
+  expose no such symbol, and the native mega-TU compiler's own CLI entry
+  point is synthesized at build time by `scripts/build-sv0-megatu-native.sh`
+  string-injecting a `/tmp/.sv0_drv_path` read into generated sv0 source,
+  because `read_file(path)` is the only external-input channel a self-hosted
+  sv0 program has. A real reentrant ABI needs a new host function threaded
+  through the resolver/checker/C-lowering/runtime — and `sv0doc`, which owns
+  language capabilities per §3.3's ownership table — a compiler-feature
+  addition, not a driver change. **Decision: land the spec-sanctioned lock
+  migration shim now (§22.2), scope the real argv builtin as its own future
+  slice, not undertaken here.** NEX-011 shipped on this basis.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"nex.plan.session","title":"sv0c native runtime executable — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"NEX"} -->
+- [ ] Open decisions (OD-001…010) resolved before the slice that depends on them starts
+- [ ] Checklist (`task/sv0c-runtime-executable-checklist.Rmd`) slice status flipped + one-line result recorded when a `NEX-###` lands
+- [ ] Requirement/acceptance ID cited in every implementation PR (spec Appendix D traceability rule)
+- [ ] `/tmp/.sv0_drv_path` reset to empty (`printf '' > /tmp/.sv0_drv_path`) before any gate/push touching this area — see `[[feedback_drv_path_reset]]`
+- [ ] `./scripts/sv0 test-guards` after `task/` edits; `./scripts/sv0 test` when driver/compiler code is integrated
+<!-- sv0-track:end {"id":"nex.plan.session"} -->
+
+## dependencies
+
+/require: bash
+
+## configuration
+
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+/env: SPEC_ROOT=~/Documents/project-specs/sv0c-runtime-executable
+
+## prerequisites
+
+- A self-hosted compiler that emits one C translation unit per program —
+  **met** (existing `--target=c` default path, native mega-TU compiler).
+- Repeated working `cc` link recipes proving the emitted C runs — **met**
+  (`make e2e test-contract-runtime`, C integration fixtures).
+- Contract-mode lowering (`runtime`/`verified`/`disabled`) on the C path —
+  **met**; this feature reuses it unchanged (PIPE-008/009).
+- external: a supported GCC/Clang-compatible host `cc` on the R0 matrix
+  (Ubuntu 22.04 default `cc` + a supported Clang; macOS Apple Clang arm64).
+
+## refinement log
+
+- 2026-08-23: initial scaffold from `~/Documents/project-specs/sv0c-runtime-executable/SPEC.md`
+  (draft governing specification, source-audit date 2026-08-23). Hub created
+  with scope decisions (AE-001…009), release ladder, phase→checklist-band
+  mapping onto the spec's own `NEX-###` numbering, condensed completion
+  criteria, risk register, and open decisions. Confirmed by direct repo audit
+  (`scripts/sv0:1088` `compile-run`) that no part of the spec'd feature exists
+  yet — every checklist slice starts `todo`. State `draft`; flip to `active`
+  when work begins on NEX-001.
+- 2026-08-23: **OD-001 resolved** (Python host driver, alongside existing
+  `scripts/verify_*.py`) — see decisions record above. State `draft → active`.
+  **NEX-001 landed**: `scripts/native_exe_requirements.json` (140-id catalog)
+  + `scripts/verify_native_exe_traceability.py`, wired into
+  `sv0 test-guards`. The lint surfaced 4 real F0 citation gaps in the
+  checklist as-drafted (ERR-002, PIPE-002, SEC-002, TEST-001) before it went
+  green — fixed by adding the missing ids to their correct slices rather than
+  loosening the check. F0 is now 0/40 blocking gaps; 27 higher-release ids are
+  reported informationally and become blocking only when `--active-release`
+  advances past F0. **NEX-002 landed**: `scripts/native_exe_cli.py`
+  (`parse_args`/`ParsedArgs`/`UsageError`), 15-case table-driven parser
+  corpus, wired into `sv0 test-guards`. Confirmed load-bearing by mutation
+  (removing the `-o -` guard fails exactly that case). No production entry
+  point yet — this is CLI-001…006 argv parsing only; wiring into
+  `./scripts/sv0 native-compile` follows once NEX-003's `NativeBuildRequest`
+  type exists. **NEX-003 landed**: `scripts/native_exe_phases.py`
+  (`Phase`/`PhaseSequencer`, spec §12.5 atomic-publication state machine) and
+  `scripts/native_exe_request.py` (`NativeBuildRequest`/`normalize_request`,
+  Appendix A shape). Phase machine confirmed load-bearing by mutation
+  (loosening the linear-order check fails the skip-ahead case). Path
+  resolution is CLI-007 only (relative-to-invocation-cwd); default output
+  naming (§12.1) and full path validation are still NEX-026. **NEX-004
+  landed**: `scripts/native_exe_fake_emitter.py` — a real subprocess-invocable
+  fake core compiler with all 7 spec §26.2 modes, mode selected via env var
+  (not argv) so it stays indistinguishable from a real compiler call to
+  driver code under test. Confirmed load-bearing by mutation (dropping the
+  `diag` mode's stderr write fails that case). **NEX-005 landed**:
+  `scripts/native_exe_fake_cc.py` — the host-compiler counterpart, all 7 spec
+  §26.3 modes plus a `--version` probe responder, argv-recording proves
+  hostile paths pass through literally (never shell-interpreted). Confirmed
+  load-bearing by mutation (`zero-no-output` writing the file anyway fails
+  that case). F0's harness pair (NEX-004/005) is now complete — every later
+  PIPE/TOOL/ART/SEC slice can drive fully-fake builds before any real
+  compiler is involved. **NEX-006 landed**: `scripts/native_exe_errors.py` —
+  `DiagnosticPhase`/`exit_code_for`/`BuildError` centralizing the §18.2
+  phase→exit-code table (2/3/4/5/6/7/8/70/130) so no driver code hand-rolls a
+  `sys.exit` number. Confirmed load-bearing by mutation (misassigning
+  `host-compile`'s exit code fails exactly that phase). **NEX-007 landed**:
+  `scripts/native_exe_publish.py` — `validate_temp_output`/`publish_atomically`,
+  enforcing ART-002…004 (validate-before-touch, byte-for-byte preservation on
+  failure, correct `HOST_LINK` vs. `PUBLISH` phase classification). ART-004
+  preservation exercised through `native_exe_fake_cc.py`'s real failure
+  modes, not synthetic stand-ins. Confirmed load-bearing: removing the
+  pre-publish validation call reproduces the exact bug this module exists to
+  prevent (final-output corruption on a failed rebuild). **NEX-008 landed**:
+  `scripts/native_exe_scratch.py` — `ScratchDir`, a context manager whose
+  cleanup only ever removes the exact path `mkdtemp` handed back, never a
+  prefix/glob scan (SEC-005). Confirmed load-bearing: swapping exact-path
+  cleanup for a prefix-glob (the precise bug class this module exists to
+  prevent) fails the neighbor-survival case. **NEX-009 landed**:
+  `scripts/native_exe_subprocess.py` — `run_argv`, which structurally cannot
+  invoke a shell (`shell` isn't a parameter; a bare string argument is a
+  `TypeError`). Confirmed load-bearing by mutation (joining argv into a
+  string + `shell=True` fails 4 of 6 cases immediately). **NEX-010 landed**:
+  extended `native_exe_cli.parse_args` to reject `--target=vm` (any position)
+  and `.sv0b` input with a distinct "bytecode isolation" message, exit 2,
+  before `ParsedArgs` is ever built. GOV-003 (`sv0vm` never invoked) holds by
+  construction — no subprocess-invoking code exists in this module yet; a
+  real call-log assertion is deferred to when driver orchestration exists.
+  Mutation testing caught a real gap on the first pass (the pre-existing
+  generic "unknown option" fallback already raised *a* `UsageError`, so the
+  dedicated guard wasn't actually proven load-bearing until the corpus was
+  strengthened to assert on message content) — fixed before landing.
+
+  **§31.1 F0 backlog (NEX-001…010) is now fully landed, 10/10, all green in
+  `sv0 test-guards`, all mutation-verified.** This is not the same as the F0
+  *release gate* (§29.1): that additionally needs the F0-labeled entry-ABI
+  requirements (ENTRY-001…004) from §31.2's NEX-013…017, plus real
+  end-to-end orchestration (NEX-011/012) — those are next.
+
+  **NEX-011 landed** (as a documented migration shim, not the stable ABI —
+  see OD-002 above): `scripts/native_exe_core_compiler.py` —
+  `CoreCompilerClient`, a POSIX-`flock`-serialized wrapper around the legacy
+  control-file binary. 4-case selftest incl. a genuine "before/after" proof:
+  a fake compiler with a deliberate read-then-sleep-then-echo widens the race
+  window so the unlocked path reliably cross-contaminates, while 6 concurrent
+  requests through the real locked `invoke()` are always correctly isolated
+  (stable across 15 repeated runs). Confirmed load-bearing by mutation:
+  removing the `flock` call reproduces cross-contamination in 10/10 runs.
+  Documented limitation: the lock only protects calls made through this
+  module, not unrelated `scripts/sv0`/self-host-loop touches of the same
+  file — matches existing `[[feedback_drv_path_reset]]` guidance.
+
+  **NEX-012 landed**: `scripts/native_exe_emit.py` — `classify_emission`
+  (PIPE-003 nonzero-exit-governs-first ordering, PIPE-004 empty-stdout
+  detection, PIPE-005 stream separation preserved even on success, ERR-002
+  verbatim diagnostic passthrough). 5-case selftest driven through the real
+  fake emitter. Confirmed load-bearing by mutation: checking stdout
+  emptiness before exit code — the exact ordering bug PIPE-003 exists to
+  prevent — fails the `partial` case.
+
+  **NEX-013 landed**: `scripts/native_exe_entry_scan.py` —
+  `validate_entry_exists`, a comment/string-aware source scan for `fn main`.
+  Investigated the C backend first: it currently *fabricates*
+  `int main(void) { return 0; }` for a missing `main`, byte-identical in the
+  emitted C to a real trivial one — confirming detection must happen on
+  source text, not compiler output. Deliberately scoped as a pre-filter, not
+  a reimplementation of project composition or semantic entry validation
+  (§13.3). 8-case selftest incl. main mentioned only in a `//`/`/* */`
+  comment, a string literal, or a hidden directory — none of which count.
+  Confirmed load-bearing by mutation (dropping comment-masking fails 3
+  cases; inverting the core check fails 5). **NEX-014 landed**: extended the
+  same module — `count_main_declarations` + updated `validate_entry_exists`
+  reject >1 `fn main` occurrence, whether within one file or spread across
+  separate project files (10 cases total). Confirmed load-bearing by
+  mutation: relaxing either the file- or project-mode uniqueness check fails
+  exactly its corresponding case.
+
+  **NEX-015 landed**: `scripts/native_exe_entry_signature.py` —
+  `extract_main_signatures` (balanced-paren param extraction + return-type
+  text scan, reusing NEX-013's comment-masking) + `validate_entry_signature`.
+  11-case selftest: 3 accepted shapes + 7 rejected shapes (params, bool,
+  wrong int width, struct, enum-shaped, reference, string) + 1 project-mode
+  case. Confirmed load-bearing by mutation: disabling either the params or
+  return-type check fails exactly its corresponding cases.
+
+## related
+
+- `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
+- `~/Documents/project-specs/sv0c-runtime-executable/SPEC.md` — governing spec
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd` — active M5 (LLVM backend);
+  explicitly a separate, non-conflicting future backend per spec §3.3/§4.5
+- `task/sv0-toolchain-milestone-4-checklist.Rmd` — checklist-convention
+  precedent (one-line result + commit per landed slice)
+- `task/sv0-vsc-extension-plan.Rmd` / `-checklist.Rmd` — structural precedent
+  for a spec-governed hub+checklist pair with no `roadmap_parent`
+- `task/sv0-toolchain-roadmap-full.Rmd` — roadmap index

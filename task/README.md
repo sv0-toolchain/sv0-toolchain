@@ -18,6 +18,7 @@ a sibling directory of verification shell scripts. Agents run a task with
 | [`sv0-toolchain-milestone-6-kernel.Rmd`](sv0-toolchain-milestone-6-kernel.Rmd) | draft | `asm!`, boot/link, HAL, minimal kernel |
 | [`sv0-toolchain-milestone-cross-cutting.Rmd`](sv0-toolchain-milestone-cross-cutting.Rmd) | draft | macros, literate `.sv0.md`, `std`/concurrency, packaging |
 | [`sv0-vsc-extension-plan.Rmd`](sv0-vsc-extension-plan.Rmd) · [`…-checklist.Rmd`](sv0-vsc-extension-checklist.Rmd) | draft | VS Code extension |
+| [`sv0c-runtime-executable.Rmd`](sv0c-runtime-executable.Rmd) · [checklist](sv0c-runtime-executable-checklist.Rmd) | draft | native host executable from the C backend (`sv0c --emit=exe`); F0–R1 backlog `NEX-001…058`; not part of M5 |
 
 ## index & rollups
 
