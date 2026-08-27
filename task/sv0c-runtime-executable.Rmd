@@ -715,6 +715,15 @@ Resolved 2026-08-23, in order:
   required member is caught immediately by the per-member missing-member
   loop.
 
+  **NEX-046 landed**: `scripts/native_exe_installed_layout.py` copies the
+  full installed layout (`sv0c/runtime/*` + `build/sv0-megatu-native`) into
+  a fresh temp dir with a space in its path and no `sv0c` tree beside it,
+  then drives a real build off the copy via the existing
+  `runtime_override`/`compiler_path` seams -- no new seams needed.
+  Confirmed load-bearing by mutation: corrupting the copied header (to
+  prove the pipeline reads from the copy, not a cached/real location) is
+  caught immediately.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
