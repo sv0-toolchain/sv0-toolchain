@@ -593,6 +593,14 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_human_output.py" --selftest; then
     ec=1
   fi
+  sv0_info "$label: NEX-028 native-exe build assembly selftest (TEST-004)"
+  if ! python3 "$ROOT/scripts/native_exe_build.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-028 native-exe behavior corpus smoke (fast 3-row subset)"
+  if ! python3 "$ROOT/scripts/native_exe_behavior_corpus.py" --selftest; then
+    ec=1
+  fi
   return "$ec"
 }
 
@@ -600,7 +608,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007 atomic publication selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009 argv-only subprocess selftest + NEX-011 core-compiler lock shim selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018 staging-C validation selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-021 cc-selection selftest + NEX-022 cc-probe selftest + NEX-023 argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007 atomic publication selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009 argv-only subprocess selftest + NEX-011 core-compiler lock shim selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018 staging-C validation selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-021 cc-selection selftest + NEX-022 cc-probe selftest + NEX-023 argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028 build assembly + behavior corpus smoke"
 }
 
 run_test() {
@@ -627,6 +635,10 @@ run_test() {
   fi
   sv0_info "sv0 test: behavioral PASS corpus (native compile+cc+run vs expected exit)"
   if ! python3 "$ROOT/scripts/verify_behavior_corpus_native.py" --root "$ROOT"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: behavioral PASS corpus via native_exe_build (NEX-028; TEST-004)"
+  if ! python3 "$ROOT/scripts/native_exe_behavior_corpus.py" --root "$ROOT"; then
     ec=1
   fi
   sv0_info "sv0 test: behavioral PASS corpus — VM leg (SML --target=vm + sv0vm vs expected exit)"
