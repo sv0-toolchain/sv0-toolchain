@@ -1220,8 +1220,35 @@ Resolved 2026-08-23, in order:
   (17 in `checker.sv0`, 19 in `lowering.sv0`/`megaTU-main.sv0`) and a
   verification plan anchored on the 114-program native behavior corpus
   and the self-host loop staying green. REL-004 itself remains open —
-  only the builtin's own implementation shape is now fully scoped, ready
-  for a future dedicated implementation session.
+  only the builtin's own implementation shape was fully scoped at that
+  point, ready for implementation.
+
+  **NEX-055c's `getenv` builtin is now implemented** (the builtin
+  itself — not the wider REL-004 migration, which stays deliberately
+  deferred). Landed exactly per the scoping doc's five touch points, plus
+  a real sixth found only by building and running a fixture: a third,
+  independent, hardcoded string-returning-builtin name list
+  (`lowering.sv0`'s `lower_init_is_string`) also needed `"getenv"` added,
+  or a `let`-bound call compiled to a real C type error even though a
+  direct call-as-argument worked fine — `read_file`/`read_dir` already
+  had this exact triplicated-knowledge fragility, just never noticed
+  before. Verified for real: rebuilt the native mega-TU compiler from
+  these exact changes; 4 real fixtures compiled and run, confirming
+  `getenv` reads a real environment variable and returns `""` (never
+  panics) when unset; `sv0c`'s own `make test` (307/308, the one failure
+  pre-existing and confirmed via a `git stash` clean-tree reproduction);
+  the 114-program native behavior corpus unmodified; 3 stage0 C goldens +
+  5 vm-parity bytecode goldens refreshed and diff-inspected. The
+  self-host-loop's own `exit 232 for lib/checker.sv0` — and the
+  `main.sv0b` vm-parity staleness it causes downstream — is the same
+  pre-existing `KC-001` conflict, now root-caused precisely
+  (`test_infer_lit`, an unrelated test, failing at offset 232, blocking
+  the aggregator from ever reaching the new getenv assertions at offset
+  580) and recorded in `native_exe_known_conflicts.py` with that exact
+  root cause. REL-004 itself remains open — wiring `getenv` into
+  `driver.sv0`/`megaTU-main.sv0`'s entry-reading logic, migrating
+  `CoreCompilerClient`, and retiring `/tmp/.sv0_drv_path` stay
+  deliberately deferred, a separate, later effort.
 
 ## related
 

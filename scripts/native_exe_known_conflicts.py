@@ -34,7 +34,17 @@ KNOWN_CONFLICTS = [
             "Native self-host run of lib/checker.sv0 exits 232. Pre-existing and "
             "confirmed unrelated to native-executable driver work: reproduced "
             "identically on a git-stash'd clean tree before NEX-016's megaTU-main.sv0 "
-            "change, and observed consistently across multiple unrelated sessions."
+            "change, and again before NEX-055c's getenv builtin change, observed "
+            "consistently across multiple unrelated sessions. Root-caused precisely "
+            "during NEX-055c: checker.sv0's own internal test aggregator (fn main()) "
+            "returns 230+r22, where r22 comes from test_infer_lit() -- an entirely "
+            "unrelated literal-type-inference test, failing with return code 2. This "
+            "also explains a downstream symptom: it blocks that aggregator's own "
+            "self-host-loop from ever reaching later tests (e.g. test_builtin_fn_lookup, "
+            "offset 580), and separately aborts scripts/sv0's bootstrap-build loop over "
+            "BOOTSTRAP_SV0_RELS before it reaches lib/main.sv0, leaving build/vm/main.sv0b "
+            "stale against a freshly regenerated vm-parity golden -- a cascading, "
+            "expected consequence of this one root cause, not a second issue."
         ),
         "severity": "non-blocking",
         "status": "open",
