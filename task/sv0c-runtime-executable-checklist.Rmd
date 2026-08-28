@@ -247,6 +247,43 @@ genuinely new, not a doc-only restatement.
 |----|-------|--------|-----------|
 | NEX-058 | Migrate `pc3b6-native-project-acceptance.sh`, `sv0-megatu-native-parity.sh`, `sv0-megatu-corpus-parity.sh` off hand-rolled `cc -std=c99 -O0 -w ...` onto the canonical driver; add a static duplication guard (`test-guards` check for `cc -std=`/`gcc -std=`/`clang -std=` outside `native_exe_argv_builder.py`). | **done** | New `scripts/native_exe_canonical_compile.py`: a thin CLI (`<c_file> <output_path>`) sharing the exact canonical pieces `build_native_executable` itself uses for its host-compile step (argv builder, sanitized env, `run_host_compile`, atomic `publish_atomically`) — not a new host-linking implementation, and not the full pipeline either (these scripts emit C themselves via the core compiler's own `--project`/include-expansion behavior, independent of entry validation). All 3 legacy scripts' `cc -std=c99 -O0 -w ...` lines replaced with calls to it. **Full before/after differential parity confirmed for all 3 scripts** (git-stash the migration, re-run each original, compare): `pc3b6-native-project-acceptance.sh` 19/19 fixtures pass identically; `sv0-megatu-native-parity.sh` 97/99 pass both before and after, byte-identical failure set (`lib/checker.sv0` exit 232, `lib/parser.sv0` exit 197 — pre-existing, unrelated to this migration); `sv0-megatu-corpus-parity.sh` likewise 97/99 identically both ways. New `scripts/native_exe_no_duplicate_cc_recipe.py` static guard scans `scripts/*.py`/`*.sh` for a bare `cc`/`gcc`/`clang -std=` token outside an explicit exemption list — its own first run surfaced 3 *additional*, pre-existing manual recipes outside NEX-058's approved scope (`verify_behavior_corpus_native.py`, `verify_contract_mode.py`, `assemble-sv0-megaTU.py`), exempted with rationale (spec §26.5 sanctions "the manual recipe is a differential oracle" during migration) and flagged as a separate follow-up task rather than silently fixed or silently left unenforced. Wired into `sv0 test-guards`. Verified load-bearing by mutation on both new modules. **R1's NEX-058 slice (and the entire R1 band, NEX-048…058) is now closed** — 33/34 sub-slices done, NEX-055c scoped/deferred honestly. |
 
+### NEX-059 — CLI-007/008/010…013/017: wire the public CLI command surface
+
+R1 closed the native-executable *engine* (`build_native_executable` and
+~50 supporting modules) but left the one gap `verify_native_exe_traceability.py
+--active-release R1` itself surfaces: every `CLI-0xx` requirement about the
+command's actual argv grammar (`CLI-007`: relative-path resolution against
+invocation cwd, `CLI-008`: `-o` semantics, `CLI-010…013`: profile/contract-
+mode/cc-selection/output-lock flags) was satisfied by `native_exe_cli.py`/
+`native_exe_request.py` in isolation, tested against a `ParsedArgs`/
+`NativeBuildRequest` no real command ever produced — there was no
+`./scripts/sv0 native-compile` (or any other spelling) a user could
+actually type. `CLI-009/014/015/016` are already cited by NEX-030/040/041/042
+respectively and are unaffected by this slice.
+
+| ID | slice | status | red test / acceptance |
+|----|-------|--------|-----------|
+| NEX-059a | Fix `native_exe_request.normalize_request`'s stale blanket rejection of `--profile=release` (written back when the release gate didn't exist; NEX-051 has since built and gated it) — forwarding it instead as `Profile.RELEASE`, since the CLI must not contradict its own already-gated engine. | **done** | `scripts/native_exe_request.py` — Case 6 rewritten (release now ACCEPTED and forwarded), new Case 6b confirms an unrecognized profile value is still rejected (not a blanket pass-through). 13-case `--selftest` (up from 7). Verified load-bearing by mutation: reinstating the old rejection is caught by a crash on Case 6. |
+| NEX-059b | Wire the R0.1 provenance flags (`--keep-c[=<path>]`, `--message-format=human\|json`, `--build-record[=<path>]`) through `native_exe_cli.ParsedArgs`/`native_exe_request.NativeBuildRequest`, which already carried the fields "so later slices don't need to widen it" (their own prior docstrings) but never populated them from real argv. | **done** | `scripts/native_exe_cli.py` — new `_OPTIONAL_VALUE_OPTIONS` parsing branch (bare-or-`=<path>` options, distinct from the existing always-requires-a-value `_SCALAR_EQUALS_OPTIONS`); `--message-format` validated against `{human, json}`. 30-case `--selftest` (up from 18). `scripts/native_exe_request.py` — `keep_c_requested`/`build_record_requested` booleans + deferred-`None` paths for the bare form, `message_format` forwarded directly; the bare-flag default path (`<final_output>.c` / `<final_output>.build-record.json`, this project's own documented convention, since the spec gives no worked example for the bare form) is deliberately left unresolved here, since only the eventual entry point knows the final output path in advance. Both committed together (`2fa1cb3`). Verified load-bearing by mutation twice: reinstating the release rejection crashes; hardcoding the 4 new fields to their old defaults is caught by 4 distinct case failures. |
+| NEX-059c | New `scripts/native_exe_main.py`: the actual production entry point (`parse_args` → `normalize_request` → resolve the deferred `--keep-c`/`--build-record` defaults via `native_exe_output_path.default_output_path` → `build_native_executable` → report per `--message-format` → optionally write a build record) — the one thing every prior `NEX-###` slice was missing: something a user could actually type. `./scripts/sv0 native-compile` dispatches to it. | **done** | 8-case `--selftest`, every case a real end-to-end build (not a mock): file build + run the produced binary, project-mode build, default-output-path build, a bogus flag → exit 2, a no-main fixture → a nonzero entry-error exit, `--keep-c`'s retained C hash-matches the staged C, `--message-format=json` emits exactly one parseable JSON line with the right shape, `--build-record`'s artifact hash matches the actually-published binary. Wired into `scripts/sv0` (`native-compile)` dispatch case) and `test-guards`. **Manually verified from an actual terminal invocation** (the real "close the CLI gap" proof, not just unit tests): `./scripts/sv0 native-compile hello.sv0 -o hello` produced a real binary that ran and printed its output. Committed (`0a9c9ed`). Verified load-bearing by mutation: removing the deferred-default-path resolution breaks exactly the `--keep-c`/`--build-record` cases, as expected; restored and reverified. |
+
+**Scope boundary, stated honestly**: this slice wires only the workspace-
+adapter spelling (`./scripts/sv0 native-compile`), per spec §11.1's own
+sequencing ("the workspace spelling SHALL construct the same normalized
+build request" as the eventual installed spelling, with the installed
+spelling explicitly a later, separate concern). `CLI-017` (the installed
+`sv0c --emit=exe` adapter-parity requirement) stays **open** — adding
+`--emit=exe` to the real `sv0c` compiler binary means modifying that
+compiler's own argument-parsing internals (SML/native), a comparably
+risky sv0c-internals change to NEX-055c's, deliberately deferred to its
+own future slice (**NEX-060**, not yet scoped in detail) rather than
+rushed in alongside this pass. `verify_native_exe_traceability.py
+--active-release R1` also separately flags 19 requirements unrelated to
+the CLI surface (`DOC-004`, `ENTRY-009`, `GOV-006/007`, `PIPE-010/012`,
+`PORT-002/003`, `REPRO-001`, `SEC-007/008/010/011/012`, `TEST-003/005/006`,
+`TOOL-011/013`) — pre-existing gaps outside this slice's scope, noted here
+for honesty rather than silently left for a future reader to rediscover.
+
 ## dependency notes (spec §30.2, condensed)
 
 Slices within a band are already dependency-ordered above; across bands, the

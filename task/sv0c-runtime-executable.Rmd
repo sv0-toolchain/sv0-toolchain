@@ -1030,6 +1030,27 @@ Resolved 2026-08-23, in order:
   sub-slices) is now closed: 33/34 done, NEX-055c scoped and honestly
   deferred to its own future dedicated session.**
 
+  **NEX-059 landed — the CLI gap is closed**: R1 built the native-executable
+  *engine* end to end but left it uninvokable — no command existed that a
+  user could actually type. `native_exe_request.py`'s stale
+  `--profile=release` rejection (written back before the release gate was
+  real) is fixed to forward it through; `native_exe_cli.py`/
+  `native_exe_request.py` now actually populate the R0.1 provenance flags
+  (`--keep-c`, `--message-format`, `--build-record`) they'd carried fields
+  for since NEX-039…041 but never wired from real argv; and a new
+  `scripts/native_exe_main.py` is the real production entry point,
+  dispatched via `./scripts/sv0 native-compile`. Verified the way this
+  project verifies everything real: not just unit tests but an actual
+  terminal invocation (`./scripts/sv0 native-compile hello.sv0 -o hello`)
+  producing a real, runnable binary. Scope is deliberately the workspace
+  spelling only — the installed `sv0c --emit=exe` spelling needs the real
+  compiler's own argument-parsing internals changed (comparable risk to
+  NEX-055c) and is deferred to a future NEX-060. `verify_native_exe_traceability.py
+  --active-release R1` also separately flags 19 requirements with no
+  relation to the CLI surface at all (documentation/security/portability/
+  test-plan gaps) — real, pre-existing, and out of this slice's scope;
+  noted rather than silently left for later rediscovery.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
