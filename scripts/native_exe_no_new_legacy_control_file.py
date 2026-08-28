@@ -9,10 +9,16 @@ sequencing (`sv0c/doc/native-executable-reentrant-core-compiler-design.md`)
 calls step 6 "remove the legacy control-file path entirely." That is NOT
 what this module does, and doing it for real is not safe today. A
 full-repo scan (run once, by hand, while writing this guard) originally
-found the legacy control file load-bearing in eleven places beyond the
-two already migrated in steps 3/5 (`native_exe_core_compiler.py`,
-`scripts/sv0`'s `run_compile`/`run_emit_verified`). A REL-004 closure
-follow-up has since migrated `build-sv0-megatu-vm-native.sh`'s own
+found the legacy control file load-bearing in eleven `scripts/` places
+beyond the two already migrated in steps 3/5
+(`native_exe_core_compiler.py`, `scripts/sv0`'s
+`run_compile`/`run_emit_verified`) -- plus, missed entirely by that
+first scan since it only ever looked at `scripts/`, a genuine
+unmigrated write in `.github/workflows/self-host-native.yml`, found and
+fixed alongside extending this guard's own scan to cover
+`.github/workflows/` too (see `_scan_one_dir` and the `--selftest`'s
+`workflows_dir`). A REL-004 closure follow-up has since migrated
+`build-sv0-megatu-vm-native.sh`'s own
 compose-main to prefer `SV0_DRV_REQUEST` too (chunk 2 -- the one
 compose-main step 2 originally missed; along the way, its `megatu_
 emit_program` call needle had also silently bit-rotted against an
@@ -43,13 +49,14 @@ migrate, and was left in place deliberately.
 
 **A real finding from finishing chunk 5**: every genuinely *temporary*
 caller (one this closure plan could actually finish migrating) has now
-been migrated. **Five entries remain in `_EXEMPT_BASENAMES`, and all
-five are now permanent-by-design, not "not yet migrated"**: `sv0`
+been migrated. **Six entries remain in `_EXEMPT_BASENAMES`, and all six
+are now permanent-by-design, not "not yet migrated"**: `sv0`
 (`scripts/sv0`'s `ensure_*` file-existence guarantees),
 `build-sv0-megatu-native.sh` and `build-sv0-megatu-vm-native.sh` (each
 keeps the file as an intentional, additive fallback in its own
 compose-main, plus a shared file-init reset), `build-sv0-self-host-compiler.sh`
-(the same shared file-init reset for `driver.sv0`'s own fallback), and
+and `self-host-native.yml` (.github/workflows/ -- both have the same
+shared file-init reset for `driver.sv0`'s own fallback), and
 `assemble-sv0-megaTU.py` (the generic safety net above). Every one of
 these exists only *because* `driver.sv0`/`megaTU-main.sv0` still have a
 legacy fallback read path at all -- they cannot shrink further without
@@ -97,6 +104,7 @@ _EXEMPT_BASENAMES = {
     "build-sv0-megatu-vm-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (chunk 2); the token survives only in its intentional, permanent legacy-fallback read (no wrapper of its own)
     "build-sv0-self-host-compiler.sh",  # generated wrapper migrated (chunk 4); token survives only in the shared file-init reset + a doc comment
     "assemble-sv0-megaTU.py",  # generic --check tool: defensively resets before invoking sml on WHATEVER compose-main a caller supplies; not migratable in the same sense (it never constructs a request itself, and its future callers/compose-mains aren't fully enumerable) -- a permanent, intentional safety net
+    "self-host-native.yml",  # (.github/workflows/) migrated NEX-055c/REL-004; still has its own defensive reset for driver.sv0's fallback, same pattern as build-sv0-self-host-compiler.sh
     # (b) doc-only mentions, no real file I/O on the legacy path (migrated to
     # SV0_DRV_REQUEST already, or never touched it for real; the token only
     # survives in a comment/docstring explaining the history or a sibling file)
@@ -112,17 +120,27 @@ _EXEMPT_BASENAMES = {
 }
 
 
-def find_new_legacy_control_file_refs(scripts_dir: str) -> list[str]:
-    """Scan every plain file directly inside `scripts_dir` (not
-    recursively -- this project keeps its scripts flat in one directory)
-    for the legacy control-file token, skipping the documented allowlist.
-    Returns the list of offending file paths (empty = clean).
+def find_new_legacy_control_file_refs(*dirs: str) -> list[str]:
+    """Scan every plain file directly inside each of `dirs` (not
+    recursively -- this project keeps its scripts flat in one directory,
+    and CI workflow files flat in .github/workflows/) for the legacy
+    control-file token, skipping the documented allowlist. Returns the
+    list of offending file paths (empty = clean).
     """
     offenders: list[str] = []
-    for name in sorted(os.listdir(scripts_dir)):
+    for one_dir in dirs:
+        offenders.extend(_scan_one_dir(one_dir))
+    return offenders
+
+
+def _scan_one_dir(scan_dir: str) -> list[str]:
+    offenders: list[str] = []
+    if not os.path.isdir(scan_dir):
+        return offenders
+    for name in sorted(os.listdir(scan_dir)):
         if name in _EXEMPT_BASENAMES:
             continue
-        path = os.path.join(scripts_dir, name)
+        path = os.path.join(scan_dir, name)
         if not os.path.isfile(path):
             continue
         if name.endswith(".pyc") or name.endswith(".bak"):
@@ -143,17 +161,22 @@ def _selftest() -> int:
     failures: list[str] = []
 
     scripts_dir = os.path.dirname(os.path.abspath(__file__))
+    workflows_dir = os.path.abspath(os.path.join(scripts_dir, "..", ".github", "workflows"))
 
-    # Case 1: the real, shipped scripts/ directory is clean against this
-    # exact allowlist -- the actual regression-prevention this guard
-    # exists for. A file falling off this list (migrated, or the token
-    # simply removed) makes this case fail too, in the "entry can be
-    # deleted now" direction -- both directions of drift are visible.
-    offenders = find_new_legacy_control_file_refs(scripts_dir)
+    # Case 1: the real, shipped scripts/ AND .github/workflows/ directories
+    # are both clean against this exact allowlist -- the actual
+    # regression-prevention this guard exists for (workflows/ was a real,
+    # once-missed gap: self-host-native.yml had a genuine unmigrated write
+    # this guard's original scripts-only scope never saw). A file falling
+    # off this list (migrated, or the token simply removed) makes this
+    # case fail too, in the "entry can be deleted now" direction -- both
+    # directions of drift are visible.
+    offenders = find_new_legacy_control_file_refs(scripts_dir, workflows_dir)
     if offenders:
         failures.append(
-            f"case1: real scripts/ directory has an unlisted legacy-control-file "
-            f"reference (either a genuinely new site, or the allowlist is stale): {offenders}"
+            f"case1: real scripts/ or .github/workflows/ directory has an "
+            f"unlisted legacy-control-file reference (either a genuinely new "
+            f"site, or the allowlist is stale): {offenders}"
         )
 
     # Case 2: a synthetic directory WITH a violating new script is caught.
@@ -165,14 +188,18 @@ def _selftest() -> int:
         if not offenders2:
             failures.append("case2: a synthetic new legacy-control-file reference was not caught")
 
-    # Case 3: a Python variant is caught too, not just shell.
-    with tempfile.TemporaryDirectory() as td:
+    # Case 3: a Python variant is caught too, not just shell -- and across
+    # MULTIPLE dirs passed in one call, not just one.
+    with tempfile.TemporaryDirectory() as td, tempfile.TemporaryDirectory() as td2:
         bad_py = os.path.join(td, "hypothetical_new_caller.py")
         with open(bad_py, "w", encoding="utf-8") as f:
             f.write('open("/tmp/.sv0_drv_path", "w").write(path)\n')
-        offenders3 = find_new_legacy_control_file_refs(td)
-        if len(offenders3) != 1:
-            failures.append(f"case3: expected exactly 1 offender, got {offenders3}")
+        bad_yml = os.path.join(td2, "hypothetical-workflow.yml")
+        with open(bad_yml, "w", encoding="utf-8") as f:
+            f.write('run: printf "%s" "$X" > /tmp/.sv0_drv_path\n')
+        offenders3 = find_new_legacy_control_file_refs(td, td2)
+        if len(offenders3) != 2:
+            failures.append(f"case3: expected exactly 2 offenders across both dirs, got {offenders3}")
 
     # Case 4: a file on the allowlist is never flagged, even though it
     # genuinely contains the token -- proves the exemption mechanism
