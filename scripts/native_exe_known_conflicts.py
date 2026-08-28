@@ -31,23 +31,33 @@ KNOWN_CONFLICTS = [
         "id": "KC-001",
         "area": "self-host-sv0-loop",
         "description": (
-            "Native self-host run of lib/checker.sv0 exits 232. Pre-existing and "
-            "confirmed unrelated to native-executable driver work: reproduced "
-            "identically on a git-stash'd clean tree before NEX-016's megaTU-main.sv0 "
-            "change, and again before NEX-055c's getenv builtin change, observed "
-            "consistently across multiple unrelated sessions. Root-caused precisely "
-            "during NEX-055c: checker.sv0's own internal test aggregator (fn main()) "
-            "returns 230+r22, where r22 comes from test_infer_lit() -- an entirely "
-            "unrelated literal-type-inference test, failing with return code 2. This "
-            "also explains a downstream symptom: it blocks that aggregator's own "
-            "self-host-loop from ever reaching later tests (e.g. test_builtin_fn_lookup, "
-            "offset 580), and separately aborts scripts/sv0's bootstrap-build loop over "
-            "BOOTSTRAP_SV0_RELS before it reaches lib/main.sv0, leaving build/vm/main.sv0b "
-            "stale against a freshly regenerated vm-parity golden -- a cascading, "
-            "expected consequence of this one root cause, not a second issue."
+            "RESOLVED. Native self-host run of lib/checker.sv0 used to exit 232, "
+            "root-caused during NEX-055c: checker.sv0's own internal test aggregator "
+            "(fn main()) returned 230+r22, where r22 came from test_infer_lit() -- an "
+            "entirely unrelated literal-type-inference test, failing with return code "
+            "2. The real bug: infer_lit's lit_tag->type mapping was reassigned at some "
+            "point (see infer_lit's own BUGS.md #5 comment -- bool literals moved from "
+            "lit_tag 1 to lit_tag 5 once float literals correctly claimed tag 1), but "
+            "test_infer_lit()'s assertions were never updated to match, so it asserted "
+            "the OLD, now-wrong mapping. A second, independent test exercising the exact "
+            "same stale mapping through a different path was found in the same pass: "
+            "test_synth_expr()'s r1 case pushed a literal expr with lit_tag=1 expecting "
+            "TY_BOOL() (synth_expr's ExprLit case passes ed1[idx] straight to "
+            "infer_lit()), asserting the same broken mapping. Fixed both: "
+            "test_infer_lit() now asserts infer_lit(1)==TY_FLOAT() and adds the missing "
+            "infer_lit(5)==TY_BOOL() case; test_synth_expr()'s r1 literal now pushes "
+            "lit_tag=5 (the real bool tag). Verified: lib/checker.sv0 compiles+runs to "
+            "exit 0 standalone; stage0 golden + vm-parity .sv0b goldens refreshed and "
+            "confirmed deterministic (captured twice, byte-identical); full "
+            "./scripts/sv0 test now proceeds past checker.sv0 in the self-host loop. "
+            "This also resolves the cascading symptom it caused: the self-host loop no "
+            "longer aborts at checker.sv0 before reaching later modules. (It now "
+            "reaches -- and stops at -- the next pre-existing issue in that same "
+            "sequence, KC-002; that is a separate, already-tracked conflict this fix "
+            "does not touch.)"
         ),
         "severity": "non-blocking",
-        "status": "open",
+        "status": "resolved",
     },
     {
         "id": "KC-002",

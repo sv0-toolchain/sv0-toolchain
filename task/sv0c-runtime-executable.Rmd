@@ -1393,6 +1393,36 @@ Resolved 2026-08-23, in order:
   bands is the deliberately-deferred macOS Apple Clang CI leg
   (documented, not applied in `.github/workflows/ci.yml`).
 
+- **2026-08-28 — KC-001 fixed for real, not just its cascading
+  symptoms.** After pushing (the first push of this whole body of work),
+  GitHub CI came back red on both jobs, tracing to `KC-001` -- confirmed,
+  not assumed, since CI had simply never run against any of this
+  session's ~120 local commits before. Root-caused precisely:
+  `checker.sv0`'s test aggregator's `test_infer_lit()` asserted
+  `infer_lit(1) == TY_BOOL()`, a mapping stale since `infer_lit`'s own
+  lit_tag reassignment (bool moved from lit_tag 1 to lit_tag 5 once
+  float literals correctly claimed tag 1 -- see `infer_lit`'s own
+  BUGS.md #5 comment) -- the test was simply never updated to match. A
+  second, independent test exercising the exact same stale mapping
+  through a different path (`test_synth_expr()`'s `r1` case, whose
+  literal push flows straight into `infer_lit()` via `synth_expr`'s
+  `ExprLit` handling) was found while verifying the first fix alone
+  wasn't sufficient, located precisely via a temporary debug build
+  printing each aggregator check's name.
+
+  Fixed both. Verified: `lib/checker.sv0` compiles and runs to exit 0
+  standalone (was 232); stage0 + vm-parity goldens refreshed and
+  confirmed deterministic; `sv0c make test` 307/308 (the one remaining
+  failure is a distinct, unrelated SML test); the native behavior corpus
+  unmodified; `test-guards` green. This also resolves `KC-001`'s own
+  cascading symptom -- the self-host loop no longer aborts at
+  `checker.sv0` early. It now reaches, and stops at, the next
+  pre-existing issue in that same sequence, `KC-002` (`lib/parser.sv0`
+  exits 197), a separate, already-tracked conflict this fix deliberately
+  does not touch. `native_exe_known_conflicts.py`'s `KC-001` entry
+  flipped from `"open"` to `"resolved"`. sv0c commit `bae2126`, parent
+  pending.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
