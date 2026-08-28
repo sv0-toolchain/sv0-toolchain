@@ -1201,6 +1201,28 @@ Resolved 2026-08-23, in order:
   NEX-055c (REL-004, the reentrant core-compiler entry point) — plus the
   deliberately-deferred macOS CI leg.
 
+  **NEX-055c deepened (still scoped, not implemented)**: user-requested
+  scoping of the `getenv` builtin specifically, one level deeper than the
+  original design doc. Real corrections found by reading the current
+  source directly rather than trusting the earlier sketch: `write_bytes`
+  (the most recently added host builtin, checker id 16/lowering id 18) —
+  not `read_file` — is the current, trustworthy template, and it
+  establishes a genuine existing precedent for a builtin shipping
+  C/native-only, entirely absent from `sv0vm`'s interpreter, exactly the
+  shape `getenv` needs; and `read_file` actually panics on a missing file
+  (re-read directly) rather than the "returns empty on absence" contract
+  the original doc assumed — `getenv`'s real contract must be the
+  opposite (return `""` on an unset variable, never panic), since the
+  core-compiler wrapper needs to detect "channel not present" and fall
+  back to the legacy control file. New doc:
+  `sv0c/doc/native-executable-getenv-builtin-scoping.md` (commit
+  `c0138ae`) names the exact five touch points with concrete builtin ids
+  (17 in `checker.sv0`, 19 in `lowering.sv0`/`megaTU-main.sv0`) and a
+  verification plan anchored on the 114-program native behavior corpus
+  and the self-host loop staying green. REL-004 itself remains open —
+  only the builtin's own implementation shape is now fully scoped, ready
+  for a future dedicated implementation session.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
