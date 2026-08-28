@@ -512,7 +512,7 @@ run_python_guards() {
     ec=1
   fi
   sv0_info "$label: NEX-001 native-exe requirement traceability (checklist ⊇ active-release catalog)"
-  if ! python3 "$ROOT/scripts/verify_native_exe_traceability.py" --root "$ROOT"; then
+  if ! python3 "$ROOT/scripts/verify_native_exe_traceability.py" --root "$ROOT" --active-release R1; then
     ec=1
   fi
   sv0_info "$label: NEX-002 native-exe CLI parser selftest (table-driven corpus)"

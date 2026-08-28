@@ -1114,6 +1114,36 @@ Resolved 2026-08-23, in order:
   --active-release R1` now reports exactly those 6, matching the audit's
   own conclusion precisely.
 
+  **NEX-061 (a-f): all six closed, and `test-guards`' traceability gate
+  bumped to R1.** Per the user's explicit choice to resolve every gap
+  before bumping the gate: `TOOL-013` — a real, grounded supported
+  compiler-family/version matrix, pinned into release evidence.
+  `GOV-007` — a real known-conflict registry formalizing 4
+  previously-only-informally-mentioned conflicts (2 pre-existing
+  self-host-loop failures, the enum-match missing-else-branch gap, the
+  2 strict-aliasing sites), with actual teeth: an open blocking entry
+  raises and stops release-evidence assembly. `SEC-012` — a real threat
+  model + mitigation table cross-referencing every actual defense this
+  driver already has, and an honest security-contact statement (no
+  dedicated one exists yet; a private GitHub Security Advisory is the
+  documented interim channel). `REPRO-001` — a real finding:
+  `sv0_read_dir`'s own `qsort` already made project-mode file ordering
+  deterministic by construction; a new test proves it against a real
+  reversed-creation-order perturbation. `TEST-005` — a systematic guard
+  requiring every reachable error phase to have a real negative-test
+  reference, with 3 phases honestly excluded by name and rationale
+  (`CONFIG`: unwired `sv0.toml`; `INTERNAL`: no deliberate raise site;
+  `INTERRUPTED`: exit-code-only, real cancellation is a distinct
+  exception class). `TEST-006` — the test harness itself now pins
+  locale/timezone/umask (`scripts/sv0`'s `run_python_guards`); temp
+  root, cwd, and compiler selection already held by construction. Every
+  module has its own `--selftest` and a genuine mutation test.
+  `verify_native_exe_traceability.py --active-release R1` now reports
+  **0 blocking gaps** — `scripts/sv0`'s own `test-guards` invocation is
+  bumped from its old no-flag default (F0) to `--active-release R1`,
+  making every one of these citations load-bearing in CI going forward,
+  not merely informational.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
