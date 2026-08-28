@@ -617,6 +617,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_no_duplicate_cc_recipe.py" --selftest; then
     ec=1
   fi
+  sv0_info "$label: NEX-059 native-exe production CLI entry point selftest (CLI-007..017, end-to-end)"
+  if ! python3 "$ROOT/scripts/native_exe_main.py" --selftest; then
+    ec=1
+  fi
   sv0_info "$label: NEX-049a native-exe accepted warning policy selftest (TEST-008)"
   if ! python3 "$ROOT/scripts/native_exe_warning_policy.py" --selftest; then
     ec=1
@@ -1686,6 +1690,10 @@ case "$cmd" in
     file="${1:-}"
     if [[ -z "$file" ]]; then usage; exit 1; fi
     run_compile "$compile_mode" "$file"
+    ;;
+  native-compile)
+    python3 "$ROOT/scripts/native_exe_main.py" "$@"
+    exit $?
     ;;
   self-host-capture-stage0)
     rel="${1:-}"
