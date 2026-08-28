@@ -183,7 +183,6 @@ run_verify() {
   ensure_sv0_megatu_verify
   local abs
   abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
-  printf '' > /tmp/.sv0_drv_path
   local records
   if ! records="$("$ROOT/build/sv0-megatu-verify" "$abs")"; then
     sv0_fail "verify: parse/emit failed for $file (does it compile?)"
@@ -282,7 +281,6 @@ run_emit_verified() {
   proof="$(mktemp)"
   # pass 1: collect the source lines of proven ensures (empty if z3 absent)
   if command -v z3 >/dev/null 2>&1; then
-    printf '' > /tmp/.sv0_drv_path
     "$ROOT/build/sv0-megatu-verify" "$abs" 2>/dev/null \
       | awk -F'\t' '$1=="VC" && $3=="ensures"' > "$proof.records" || true
     # run z3 on each ensures query; keep the line when unsat (proven)
@@ -301,11 +299,13 @@ run_emit_verified() {
     sv0_info "emit-verified: z3 not on PATH — nothing proven, all checks kept" >&2
     : > "$proof"
   fi
-  # pass 2: compile with the proven ensures stripped
-  printf '%s\n' "--verified $proof $abs" > /tmp/.sv0_drv_path
+  # pass 2: compile with the proven ensures stripped. NEX-055c/REL-004 step 5:
+  # SV0_DRV_REQUEST (a per-invocation env var, wired into the native compiler's
+  # own entry-reading logic in step 2) replaces the legacy shared
+  # /tmp/.sv0_drv_path write+reset here -- no file, nothing to leave clean on
+  # an early exit.
   local ec=0
-  "$ROOT/build/sv0-megatu-native" || ec=$?
-  printf '' > /tmp/.sv0_drv_path
+  SV0_DRV_REQUEST="--verified $proof $abs" "$ROOT/build/sv0-megatu-native" || ec=$?
   rm -f "$proof"
   return "$ec"
 }
@@ -337,14 +337,16 @@ run_compile() {
   ensure_sv0_megatu_native
   local abs
   abs="$(cd "$(dirname "$file")" && pwd)/$(basename "$file")"
+  # NEX-055c/REL-004 step 5: SV0_DRV_REQUEST replaces the legacy
+  # write+run+reset dance on /tmp/.sv0_drv_path (see run_emit_verified above).
+  local req
   if [[ "$mode" == "disabled" ]]; then
-    printf '%s\n' "--disabled $abs" > /tmp/.sv0_drv_path
+    req="--disabled $abs"
   else
-    printf '%s\n' "$abs" > /tmp/.sv0_drv_path
+    req="$abs"
   fi
   local ec=0
-  "$ROOT/build/sv0-megatu-native" || ec=$?
-  printf '' > /tmp/.sv0_drv_path
+  SV0_DRV_REQUEST="$req" "$ROOT/build/sv0-megatu-native" || ec=$?
   return "$ec"
 }
 
@@ -659,6 +661,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_no_duplicate_cc_recipe.py" --selftest; then
     ec=1
   fi
+  sv0_info "$label: NEX-055c native-exe no-new-legacy-control-file static guard selftest (REL-004 step 6)"
+  if ! python3 "$ROOT/scripts/native_exe_no_new_legacy_control_file.py" --selftest; then
+    ec=1
+  fi
   sv0_info "$label: NEX-059 native-exe production CLI entry point selftest (CLI-007..017, end-to-end)"
   if ! python3 "$ROOT/scripts/native_exe_main.py" --selftest; then
     ec=1
@@ -782,7 +788,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-055c no-new-legacy-control-file guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
 }
 
 run_test() {

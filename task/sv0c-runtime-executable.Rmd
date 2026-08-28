@@ -1310,6 +1310,39 @@ Resolved 2026-08-23, in order:
   remaining direct control-file writers), and 6 (remove the legacy path +
   a static guard) remain — REL-004 itself is not yet closed.
 
+- **2026-08-28 — REL-004 migration steps 4-5 done, step 6 honestly
+  partial.** Step 4 formalized as its own checked step (not just an
+  implicit side effect of step 3's verification): `./scripts/sv0 test`
+  re-run fresh both immediately before and after step 5's changes,
+  showing only the same two pre-existing failures both times — empirical
+  confirmation that steps 3 and 5's pure driver-layer changes never put
+  self-host-loop correctness at risk. Step 5: `scripts/sv0`'s
+  `run_compile`/`run_emit_verified` migrated to `SV0_DRV_REQUEST`; two
+  harmless reset-only lines touching an unrelated separate control file
+  (`/tmp/.sv0_verify_path`, used by `build/sv0-megatu-verify`) removed as
+  dead code. Verified via real invocations of `sv0 verify`/`sv0
+  compile`/`sv0 emit-verified` against real fixtures, each leaving the
+  legacy file untouched; the emitted C compiled and ran correctly.
+
+  Step 6, stated honestly rather than overclaimed: "remove the legacy
+  control-file path entirely" (the design doc's own original text) is
+  NOT safe today. A full-repo scan found the legacy file still
+  load-bearing in at least 11 more files beyond steps 3/5 — including
+  `build-sv0-megatu-vm-native.sh`, a **separate** injected compose-main
+  for the VM-bytecode emitter target that step 2's `SV0_DRV_REQUEST`
+  wiring never touched at all. Removing the legacy path today would
+  break every one of them. What step 6 DOES deliver: new
+  `scripts/native_exe_no_new_legacy_control_file.py` (mirroring
+  NEX-058's `native_exe_no_duplicate_cc_recipe.py` precedent) — a static
+  guard, wired into `test-guards`, failing closed if any file outside
+  its exhaustive 13-file allowlist references the legacy control file,
+  stopping the channel from growing further while the real migration of
+  its remaining callers stays a tracked, separate future effort.
+  Verified load-bearing by mutation. `test-guards --active-release R1`
+  and traceability both green throughout. sv0c commit `e0da799`, parent
+  pending. **REL-004 remains open** — full closure needs the 11+ files
+  above migrated and this guard deleted entirely.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
