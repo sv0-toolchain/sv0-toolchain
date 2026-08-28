@@ -553,6 +553,10 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_entry_scan.py" --selftest; then
     ec=1
   fi
+  sv0_info "$label: native-exe file-input-shape validation selftest (CLI-008)"
+  if ! python3 "$ROOT/scripts/native_exe_input_validation.py" --selftest; then
+    ec=1
+  fi
   sv0_info "$label: NEX-015 native-exe entry signature validation selftest (ENTRY-002/003)"
   if ! python3 "$ROOT/scripts/native_exe_entry_signature.py" --selftest; then
     ec=1

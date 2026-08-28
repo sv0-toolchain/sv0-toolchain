@@ -29,12 +29,14 @@ import platform
 import subprocess
 import sys
 
+from native_exe_argv_builder import build_dev_profile_argv, build_release_profile_argv
 from native_exe_build import build_native_executable
 from native_exe_build_record import build_record, write_build_record_atomically
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_cli import UsageError, parse_args
 from native_exe_errors import BuildError
+from native_exe_human_output import render_argv_for_display
 from native_exe_json_output import PhaseTimer, build_event, encode_event
 from native_exe_output_path import default_output_path
 from native_exe_request import RequestError, normalize_request
@@ -95,6 +97,33 @@ def _collect_provenance(request, final_output: str) -> dict:
     }
 
 
+def _format_verbose_detail(request, final_output: str, provenance: dict) -> str:
+    """Normalized, non-secret build detail for `--verbose` (CLI-013).
+
+    Reconstructs the exact host-compiler argv *shape* via the same real
+    `build_dev_profile_argv`/`build_release_profile_argv` the pipeline
+    itself calls -- with placeholder staged-C/temp-output paths, since the
+    real ones are ephemeral scratch-directory paths generated fresh per
+    build and never meaningful to show to a user (`native_exe_human_output`'s
+    own docstring: "normal-mode output never names an unpredictable scratch
+    path" -- verbose mode doesn't invent an exception to that for paths
+    that don't exist yet at display time). Rendered via
+    `render_argv_for_display` (`shlex.quote`-safe, diagnostic only).
+    """
+    runtime = resolve_runtime_dir()
+    build_argv = build_dev_profile_argv if request.profile.value == "dev" else build_release_profile_argv
+    argv = build_argv(provenance["compiler_path"], runtime, "<staged-C>", "<temp-output>")
+    lines = [
+        f"input:    {request.input_path}",
+        f"output:   {final_output}",
+        f"profile:  {request.profile.value}",
+        f"contract: {request.contract_mode_requested.value}",
+        f"compiler: {provenance['compiler_path']} ({provenance['compiler_family']}, {provenance['compiler_version']})",
+        f"argv shape: {render_argv_for_display(argv)}",
+    ]
+    return "\n".join(lines)
+
+
 def run(argv: list[str], invocation_cwd: str) -> int:
     try:
         parsed = parse_args(argv)
@@ -138,7 +167,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
         print(f"error: {exc.message}", file=sys.stderr)
         return exc.exit_code
 
-    if build_record_path is not None or request.message_format.value == "json":
+    if build_record_path is not None or request.message_format.value == "json" or request.verbose:
         provenance = _collect_provenance(request, final_output)
 
     if build_record_path is not None:
@@ -185,6 +214,8 @@ def run(argv: list[str], invocation_cwd: str) -> int:
         print(encode_event(event))
     elif result.message is not None:
         print(result.message)
+        if request.verbose:
+            print(_format_verbose_detail(request, final_output, provenance))
 
     return 0
 
@@ -299,12 +330,29 @@ def _selftest() -> int:
             if record["artifact"]["sha256"] != _sha256_file(out8):
                 failures.append("case8: build record artifact hash doesn't match the published binary")
 
+        # Case 9 (CLI-013): --verbose exposes real, normalized build detail
+        # (input/output/profile/compiler/argv shape) beyond the plain
+        # success line -- proving the flag isn't silently accepted and
+        # ignored.
+        src9 = os.path.join(td, "verbose.sv0")
+        with open(src9, "w", encoding="utf-8") as f:
+            f.write("fn main() -> i32 {\n    return 0;\n}\n")
+        out9 = os.path.join(td, "verbose_out")
+        buf9 = io.StringIO()
+        with redirect_stdout(buf9):
+            rc9 = run(["-o", out9, "--verbose", src9], td)
+        printed = buf9.getvalue()
+        if rc9 != 0:
+            failures.append(f"case9: expected exit 0, got {rc9}")
+        elif "argv shape:" not in printed or out9 not in printed or "profile:" not in printed:
+            failures.append(f"case9: --verbose output missing expected detail: {printed!r}")
+
     if failures:
         for f in failures:
             print(f"native_exe_main selftest FAIL: {f}")
         return 1
 
-    print("native_exe_main: selftest OK (8 cases)")
+    print("native_exe_main: selftest OK (9 cases)")
     return 0
 
 

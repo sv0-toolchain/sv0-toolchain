@@ -42,6 +42,7 @@ from native_exe_env import sanitized_child_env
 from native_exe_errors import BuildError, DiagnosticPhase
 from native_exe_host_compile import run_host_compile
 from native_exe_human_output import format_success_message
+from native_exe_input_validation import validate_file_input_shape
 from native_exe_output_path import default_output_path, ensure_output_parent_dir, validate_output_path
 from native_exe_publish import publish_atomically
 from native_exe_runtime import resolve_runtime_dir
@@ -113,7 +114,12 @@ def build_native_executable(
     else:
         raise BuildError(DiagnosticPhase.USAGE, f"unknown profile {profile!r} (want 'dev' or 'release')")
 
-    # 1. Entry validation (NEX-013/014/015/017) -- before anything else runs.
+    # 1. Input shape validation (CLI-008) -- before ANY file content is
+    # read, including by entry validation itself, which otherwise raises a
+    # raw OSError on a missing/directory/FIFO/unreadable path.
+    validate_file_input_shape(input_kind, input_path)
+
+    # 1b. Entry validation (NEX-013/014/015/017) -- before anything else runs.
     validate_entry_exists(input_kind, input_path)
     validate_entry_signature(input_kind, input_path)
     validate_no_reserved_collisions(input_kind, input_path)
@@ -282,12 +288,28 @@ def _selftest() -> int:
                     f"case7: expected USAGE phase (profile validated before entry checks), got {exc.phase}"
                 )
 
+        # Case 8 (CLI-008): a nonexistent input path is a clean
+        # BuildError(INPUT), never a raw FileNotFoundError -- the exact
+        # crash this project's own follow-up-task backlog flagged
+        # (validate_entry_exists's raw `open()` call), now fixed by
+        # native_exe_input_validation.validate_file_input_shape running
+        # first.
+        out8 = os.path.join(td, "input_validation_out")
+        try:
+            build_native_executable("file", os.path.join(td, "genuinely-missing.sv0"), out8, td, probe=False)
+            failures.append("case8: expected BuildError for a missing input file, none raised")
+        except BuildError as exc:
+            if exc.phase is not DiagnosticPhase.INPUT:
+                failures.append(f"case8: expected INPUT phase, got {exc.phase}")
+        except OSError as exc:  # pragma: no cover - the exact regression this guards against
+            failures.append(f"case8: leaked a raw OSError instead of BuildError: {exc}")
+
     if failures:
         for f in failures:
             print(f"native_exe_build selftest FAIL: {f}")
         return 1
 
-    print("native_exe_build: selftest OK (7 cases)")
+    print("native_exe_build: selftest OK (8 cases)")
     return 0
 
 
