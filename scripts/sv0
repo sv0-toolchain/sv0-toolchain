@@ -589,8 +589,12 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_runtime_bundle.py" --selftest; then
     ec=1
   fi
-  sv0_info "$label: NEX-046 native-exe installed-layout E2E outside a source checkout selftest (AC-023)"
+  sv0_info "$label: NEX-046/060b native-exe installed-layout E2E + default-resolution installed-layout builder selftest (AC-023, OD-009)"
   if ! python3 "$ROOT/scripts/native_exe_installed_layout.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: NEX-060c native-exe installed sv0c launcher selftest (OD-009, CLI-017)"
+  if ! python3 "$ROOT/scripts/native_exe_install_launcher.py" --selftest; then
     ec=1
   fi
   sv0_info "$label: NEX-047 native-exe phase-timing + reference benchmark harness selftest (PERF-001..004)"
