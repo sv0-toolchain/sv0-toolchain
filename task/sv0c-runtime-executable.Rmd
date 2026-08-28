@@ -1185,6 +1185,22 @@ Resolved 2026-08-23, in order:
   and invalid-value usage errors both worked as documented. All new logic
   confirmed load-bearing by mutation.
 
+  **NEX-064 landed — the `SV0_CC` compiler-selection tier is real**,
+  closing the last known small wiring gap. `native_exe_cc_select.select_cc`
+  now checks `SV0_CC` between the unified explicit (`--cc`/`sv0.toml`)
+  tier and `CC`, completing the spec's own stated 5-tier order. No
+  changes needed outside that one module — `native_exe_build.py` already
+  passed real `os.environ` through, so `SV0_CC` was picked up
+  automatically once `select_cc` itself checked for it. Manually verified
+  end to end on both CLI surfaces: `SV0_CC` pointed at a real wrapper
+  compiler while `CC` was deliberately broken — the build succeeded via
+  `SV0_CC`, `CC` was never reached. **With this slice, the sv0c
+  native-executable driver's compiler-selection precedence is fully
+  implemented.** The sv0c runtime-executable spec now has exactly one
+  genuinely unimplemented item left in this whole body of work:
+  NEX-055c (REL-004, the reentrant core-compiler entry point) — plus the
+  deliberately-deferred macOS CI leg.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
