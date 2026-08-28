@@ -1051,6 +1051,27 @@ Resolved 2026-08-23, in order:
   test-plan gaps) — real, pre-existing, and out of this slice's scope;
   noted rather than silently left for later rediscovery.
 
+  **NEX-060 scoped (not implemented)**: investigated the installed
+  `sv0c --emit=exe` command surface and resolved OD-009 ("stable installed
+  command transition from workspace adapter", overdue since "before R1").
+  **Corrects NEX-059's own prior risk assumption**: `sv0c/build/sv0c` is
+  the unrelated SML bootstrap heap image (used once, to translate the
+  mega-TU sv0 source to C during the compiler's own build) — there is no
+  existing argv-parsing compiler binary to modify. The installed command
+  is a packaging problem, not a compiler-internals one: confirmed the
+  Python driver's own path resolution (`resolve_runtime_dir`/
+  `DEFAULT_COMPILER_PATH`) already works unmodified from any relocated
+  install prefix that preserves the same relative directory shape.
+  Decision: `sv0c --emit=exe` will be a thin launcher forwarding into the
+  same already-tested driver, not a new implementation — a genuinely
+  lower-risk item than NEX-055c, unlike what was previously assumed.
+  Recorded as a durable design doc:
+  `sv0c/doc/native-executable-installed-command-design.md` (commit
+  `13014e4`), with four follow-up sub-slices (060b/c/d/e) scoped for a
+  future implementation pass. Also surfaced a separate, real gap:
+  `--emit=c` (`native_exe_emit_c.emit_c_only`, NEX-039) is fully built but
+  unreachable from any CLI today — flagged, not folded into this slice.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
