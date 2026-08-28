@@ -17,7 +17,7 @@
 # runs with no SML heap. Produces:
 #   build/sv0-megatu-native            — the native composed compiler (reads SV0_DRV_REQUEST
 #                                        when set, else /tmp/.sv0_drv_path; C to stdout)
-#   build/sv0-megatu-compiler-native   — wrapper adapting argv[1] -> /tmp/.sv0_drv_path -> the binary
+#   build/sv0-megatu-compiler-native   — wrapper adapting argv[1] -> SV0_DRV_REQUEST -> the binary
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SV0C="$ROOT/sv0c"
@@ -141,17 +141,19 @@ if ! "$_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$NATIVE" "$EMIT_C" "$SV0C/runtime
 fi
 echo "build-sv0-megatu-native: wrote $NATIVE (native composed compiler)" >&2
 
-# ── 5. Wrapper: args -> /tmp/.sv0_drv_path -> native binary (C to stdout) ──────
+# ── 5. Wrapper: args -> SV0_DRV_REQUEST -> native binary (C to stdout) ────────
 #    `wrapper <file.sv0>`        -> file mode
 #    `wrapper --project <dir>`   -> project mode (source-concat every .sv0 under dir)
+#    NEX-055c/REL-004 closure chunk 4: the wrapper's own EXTERNAL argv contract
+#    is unchanged; internally it now passes the request via SV0_DRV_REQUEST (a
+#    per-invocation env var, no shared file, no reset-on-exit) instead of the
+#    legacy write+trap-reset dance -- the same migration native_exe_core_compiler.py
+#    (Python) and scripts/sv0's run_compile/run_emit_verified (bash) already did.
 cat >"$WRAP" <<'EOS'
 #!/usr/bin/env bash
 set -euo pipefail
 _HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CTL="/tmp/.sv0_drv_path"
-printf '%s\n' "${*:?missing argument: <file.sv0> | --project <dir>}" > "$CTL"
-trap 'printf "" > "$CTL"' EXIT
-"$_HERE/sv0-megatu-native"
+SV0_DRV_REQUEST="${*:?missing argument: <file.sv0> | --project <dir>}" "$_HERE/sv0-megatu-native"
 EOS
 chmod +x "$WRAP"
 echo "build-sv0-megatu-native: wrote $WRAP (native full-compose wrapper)" >&2

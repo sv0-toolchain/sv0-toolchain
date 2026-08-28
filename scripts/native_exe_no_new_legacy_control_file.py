@@ -23,20 +23,25 @@ files that turned out to never touch the file for real in the first
 place (`sv0-native-behavioral-parity.sh`, `sv0-megatu-corpus-parity.sh`,
 and a dead-code cleanup in `sv0-megatu-native-parity.sh`'s own redundant
 resets), and migrated `sv0-vm-tier2-native-emitter.sh` to
-`SV0_DRV_REQUEST` (chunk 3, unblocked by chunk 2). **Five real callers
-remain**, tracked in `_EXEMPT_BASENAMES`'s own per-entry comments below:
-`build-sv0-megatu-native.sh` and `build-sv0-megatu-vm-native.sh` (each
-still keeps the file as an intentional, additive fallback in its own
-compose-main -- by design, the same shape `driver.sv0` itself keeps
-permanently; `build-sv0-megatu-native.sh` ALSO still has a real,
-unmigrated caller in its own generated wrapper),
-`build-sv0-self-host-compiler.sh` (its own generated wrapper still
-writes the file internally), `sv0-megatu-native-parity.sh` (invokes
-that wrapper by its own argv contract), `verify_behavior_corpus_native.py`
-(invokes the still-unmigrated wrapper), `assemble-sv0-megaTU.py` (a
-generic tool: defensively resets before invoking `sml` on whatever
-compose-main it's given, which may still be one of the unmigrated
-wrapper-dependent ones), plus `scripts/sv0`'s own
+`SV0_DRV_REQUEST` (chunk 3, unblocked by chunk 2). A further follow-up
+migrated the two wrapper-*generating* scripts' emitted wrapper bodies
+themselves (chunk 4) -- `build-sv0-megatu-native.sh`'s `$WRAP` heredoc
+and `build-sv0-self-host-compiler.sh`'s wrapper heredoc now pass the
+request via `SV0_DRV_REQUEST` too, changing the wrapper's internal
+implementation only, never its external argv/stdout contract (verified
+byte-identical output before/after for every invocation shape: file
+mode, `--project` mode, the missing-argument error path). **Three real
+callers remain**, tracked in `_EXEMPT_BASENAMES`'s own per-entry
+comments below: `build-sv0-megatu-native.sh` and
+`build-sv0-megatu-vm-native.sh` (each still keeps the file as an
+intentional, additive fallback in its own compose-main -- by design, the
+same shape `driver.sv0` itself keeps permanently -- plus a shared
+file-init reset every still-unmigrated caller below depends on),
+`verify_behavior_corpus_native.py` (invokes the now-migrated wrapper but
+still has its own redundant defensive reset, not yet cleaned up),
+`assemble-sv0-megaTU.py` (a generic tool: defensively resets before
+invoking `sml` on whatever compose-main it's given, which may still be
+one of the unmigrated ones), plus `scripts/sv0`'s own
 `ensure_sv0_self_host_compiler`/`ensure_sv0_megatu_native`
 file-existence guarantees (still needed -- `driver.sv0`'s legacy
 fallback read still panics on a missing file, and every one of the
@@ -81,11 +86,10 @@ _LEGACY_PATH_TOKEN = ".sv0_drv_path"
 _EXEMPT_BASENAMES = {
     # (a) real, unmigrated legacy callers
     "sv0",  # scripts/sv0: ensure_*'s file-existence guarantee for every other unmigrated caller below
-    "build-sv0-megatu-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (step 2); still real via its own generated wrapper, which writes the file internally
+    "build-sv0-megatu-native.sh",  # compose-main + generated wrapper both migrated (steps 2, chunk 4); token survives only in the intentional, permanent legacy-fallback read + the shared file-init reset every other still-unmigrated caller depends on
     "build-sv0-megatu-vm-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (chunk 2); the token survives only in its intentional, permanent legacy-fallback read (no wrapper of its own)
-    "build-sv0-self-host-compiler.sh",  # its own generated wrapper still writes the file internally
-    "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's still-unmigrated wrapper by its argv contract
-    "verify_behavior_corpus_native.py",  # invokes the still-unmigrated wrapper; resets the file it relies on
+    "build-sv0-self-host-compiler.sh",  # generated wrapper migrated (chunk 4); token survives only in the shared file-init reset + a doc comment
+    "verify_behavior_corpus_native.py",  # invokes the now-migrated wrapper but still has its own redundant defensive reset (separate follow-up)
     "assemble-sv0-megaTU.py",  # generic tool: defensively resets before invoking sml on WHATEVER compose-main it was given, which may still be one of the unmigrated ones above
     # (b) doc-only mentions, no real file I/O on the legacy path (migrated to
     # SV0_DRV_REQUEST already, or never touched it for real; the token only
@@ -94,6 +98,7 @@ _EXEMPT_BASENAMES = {
     "sv0-megatu-corpus-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment now explains its own compose-main never touched the file at all
     "sv0-native-behavioral-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment quotes the legacy path for history only
     "sv0-vm-tier2-native-emitter.sh",  # migrated NEX-055c/REL-004 chunk 3; comment quotes the legacy path for history only
+    "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's now-migrated wrapper (chunk 4); comment quotes the legacy path for history only
     "native_exe_core_compiler.py",  # migration history in its own docstring (NEX-011/055c)
     "native_exe_concurrent_perf.py",  # PERF-006 finding's before/after history in its docstring
     "native_exe_no_new_legacy_control_file.py",  # this file's own docstring/allowlist, quoting the token

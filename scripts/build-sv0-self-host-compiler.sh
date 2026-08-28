@@ -6,9 +6,10 @@
 #   build/sv0-driver-native              — native binary compiled from lib/driver.sv0 via SML→C→cc
 #   build/sv0-self-host-compiler-native  — wrapper around sv0-driver-native (for manual native testing)
 #
-# The native binary reads its input path from /tmp/.sv0_drv_path (written by the wrapper
-# before each invocation; empty = test mode). This script initialises that file as empty
-# so that test-mode invocations of the native binary work without the wrapper.
+# The native binary reads its input path from SV0_DRV_REQUEST (set by the wrapper on
+# each invocation; see NEX-055c/REL-004) or, as a legacy fallback, /tmp/.sv0_drv_path
+# (empty = test mode). This script initialises that file as empty so that test-mode
+# invocations of the native binary work without the wrapper.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SV0C="$ROOT/sv0c"
@@ -47,16 +48,16 @@ else
     if "$_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$NATIVE" "$EMIT_TMP" "$SV0C/runtime/sv0_runtime.c" 2>/dev/null; then
       echo "build-sv0-self-host-compiler: wrote $NATIVE (native driver)" >&2
 
-      # 2d. Wrapper that adapts argv[1] → /tmp/.sv0_drv_path → native binary
+      # 2d. Wrapper that adapts argv[1] -> SV0_DRV_REQUEST -> native binary.
+      # NEX-055c/REL-004 closure chunk 4: external argv[1] contract unchanged;
+      # internally passes the request via a per-invocation env var instead of
+      # the legacy write+trap-reset dance on a shared file.
       NATIVE_WRAP="$BUILD/sv0-self-host-compiler-native"
       cat >"$NATIVE_WRAP" <<'EOS'
 #!/usr/bin/env bash
 set -euo pipefail
 _HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CTL="/tmp/.sv0_drv_path"
-printf '%s\n' "${1:?missing argument: path to .sv0 file}" > "$CTL"
-trap 'printf "" > "$CTL"' EXIT
-"$_HERE/sv0-driver-native"
+SV0_DRV_REQUEST="${1:?missing argument: path to .sv0 file}" "$_HERE/sv0-driver-native"
 EOS
       chmod +x "$NATIVE_WRAP"
       echo "build-sv0-self-host-compiler: wrote $NATIVE_WRAP (native wrapper)" >&2

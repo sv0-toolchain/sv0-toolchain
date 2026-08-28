@@ -23,11 +23,10 @@ echo "sv0-megatu-native-parity: building the native full-compose compiler..." >&
 [ -x "$WRAP" ] || { echo "sv0-megatu-native-parity: FAIL — $WRAP not built" >&2; exit 1; }
 
 # $WRAP (build/sv0-megatu-compiler-native) is invoked below via its own argv[1]
-# contract; its internal use of /tmp/.sv0_drv_path (not yet migrated to
-# SV0_DRV_REQUEST -- see the REL-004 closure plan) is entirely the wrapper's own
-# concern, including resetting the file in its own EXIT trap. Nothing here needs
-# to touch that file itself (NEX-055c/REL-004: the two redundant resets that used
-# to duplicate the wrapper's own cleanup were removed as dead code).
+# contract; its internals (now SV0_DRV_REQUEST, migrated NEX-055c/REL-004 chunk 4)
+# are entirely the wrapper's own concern. Nothing here needs to touch the legacy
+# control file at all (the two redundant resets that used to duplicate the
+# wrapper's own cleanup were removed as dead code, chunk 1).
 NAT_C="$(mktemp /tmp/sv0_nat_XXXXXX.c)"
 NAT_C2="$(mktemp /tmp/sv0_nat2_XXXXXX.c)"
 NAT_BIN="$(mktemp /tmp/sv0_natbin_XXXXXX)"
