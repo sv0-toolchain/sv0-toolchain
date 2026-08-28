@@ -3,12 +3,13 @@
 Implements TEST-009
 (`~/Documents/project-specs/sv0c-runtime-executable/SPEC.md`): "release
 candidate SHALL be built from a signed, clean revision and retain
-checksums/evidence." Assembles one JSON evidence document from four
+checksums/evidence." Assembles one JSON evidence document from five
 already-existing sources -- the revision SHA, a clean-tree check, the
 build record (`native_exe_build_record.py`, NEX-042), the benchmark
-report (`native_exe_benchmark.py`, NEX-047/055a), and the reproducibility
-classification (`native_exe_repro_harness.py`, NEX-053a) -- rather than
-computing any of them itself.
+report (`native_exe_benchmark.py`, NEX-047/055a), the reproducibility
+classification (`native_exe_repro_harness.py`, NEX-053a), and the
+declared supported-compiler matrix (`native_exe_supported_compilers.py`,
+TOOL-013) -- rather than computing any of them itself.
 
 Real cryptographic *signing* is a human/CI-secrets step outside this
 module's scope (see `sv0c/doc/release-signing-workflow.md`, NEX-056b, for
@@ -23,6 +24,9 @@ from __future__ import annotations
 
 import json
 import subprocess
+
+from native_exe_known_conflicts import KNOWN_CONFLICTS, BlockingConflictError, check_no_blocking_conflicts
+from native_exe_supported_compilers import SUPPORTED_COMPILER_MATRIX, validate_supported_compiler_matrix
 
 
 class DirtyTreeError(Exception):
@@ -58,6 +62,9 @@ def assemble_release_evidence(
     if require_clean_tree and not is_tree_clean(repo_root):
         raise DirtyTreeError(f"{repo_root}: working tree has uncommitted changes; a release candidate requires a clean revision")
 
+    validate_supported_compiler_matrix(SUPPORTED_COMPILER_MATRIX)
+    check_no_blocking_conflicts()  # GOV-007: an open blocking conflict SHALL block this.
+
     return {
         "schema_version": 1,
         "revision": current_revision(repo_root),
@@ -65,6 +72,8 @@ def assemble_release_evidence(
         "build_record": build_record,
         "benchmark_report": benchmark_report,
         "reproducibility": reproducibility,
+        "supported_compiler_matrix": SUPPORTED_COMPILER_MATRIX,
+        "known_conflicts": KNOWN_CONFLICTS,
     }
 
 
@@ -133,17 +142,37 @@ def _selftest() -> int:
             failures.append("case3: revision was empty")
         if evidence["clean_tree"] is not True:
             failures.append("case3: clean_tree should be True for a genuinely clean tree")
+        if evidence["supported_compiler_matrix"] != SUPPORTED_COMPILER_MATRIX:
+            failures.append("case3: supported_compiler_matrix not recorded verbatim (TOOL-013)")
+        if evidence["known_conflicts"] != KNOWN_CONFLICTS:
+            failures.append("case3: known_conflicts not recorded verbatim (GOV-007)")
 
         # The evidence document must be real, valid JSON (a signing step
         # would sign these exact bytes).
         json.dumps(evidence)
+
+        # Case 4 (GOV-007's real teeth): an open, blocking conflict SHALL
+        # block release-evidence assembly, not just appear in a static
+        # list nobody consults.
+        import native_exe_known_conflicts as _kc_mod
+
+        _kc_mod.KNOWN_CONFLICTS.append(
+            {"id": "KC-SELFTEST", "area": "x", "description": "y", "severity": "blocking", "status": "open"}
+        )
+        try:
+            assemble_release_evidence(td, build_record, benchmark_report, reproducibility)
+            failures.append("case4: expected BlockingConflictError for an open blocking conflict, none raised")
+        except BlockingConflictError:
+            pass
+        finally:
+            _kc_mod.KNOWN_CONFLICTS.pop()
 
     if failures:
         for f in failures:
             print(f"native_exe_release_evidence selftest FAIL: {f}")
         return 1
 
-    print("native_exe_release_evidence: selftest OK (3 cases)")
+    print("native_exe_release_evidence: selftest OK (4 cases)")
     return 0
 
 

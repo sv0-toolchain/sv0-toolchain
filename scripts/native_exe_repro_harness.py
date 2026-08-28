@@ -67,6 +67,30 @@ def _macho_uuid(path: str) -> str | None:
     return None
 
 
+def _classify_comparison(hashes: list[str], paths: list[str]) -> dict:
+    """Shared classification: byte-identical / semantic-only (known Darwin
+    LC_UUID cause, confirmed not assumed) / divergent. Used by both the
+    single-file (`build_twice_and_compare`) and project-mode
+    (`build_project_twice_and_compare`) comparisons.
+    """
+    if hashes[0] == hashes[1]:
+        return {"status": "byte-identical", "hashes": hashes}
+
+    uuids = [_macho_uuid(p) for p in paths]
+    if all(u is not None for u in uuids) and uuids[0] != uuids[1]:
+        # The known source is present and actually differs -- confirm
+        # every actually-differing byte is explained by it (directly,
+        # not assumed): either inside the 16-byte LC_UUID load command
+        # itself, or inside the trailing ad-hoc code-signature blob,
+        # which macOS's linker computes OVER the whole file (including
+        # the UUID bytes) and is therefore a DERIVED effect of the same
+        # single root cause, not an independent second source.
+        if _divergence_fully_explained_by_uuid(paths[0], paths[1], uuids[0], uuids[1]):
+            return {"status": "semantic-only", "hashes": hashes, "uuids": uuids, "reason": "LC_UUID"}
+
+    return {"status": "divergent", "hashes": hashes}
+
+
 def build_twice_and_compare(source_content: str, extra_cc_args: list[str] | None = None) -> dict:
     """Build `source_content` twice, each in its own fresh scratch
     directory, and classify the comparison. Returns a dict with `status`
@@ -85,22 +109,38 @@ def build_twice_and_compare(source_content: str, extra_cc_args: list[str] | None
             hashes.append(_sha256_file(out))
             paths.append(out)
 
-        if hashes[0] == hashes[1]:
-            return {"status": "byte-identical", "hashes": hashes}
+        return _classify_comparison(hashes, paths)
 
-        uuids = [_macho_uuid(p) for p in paths]
-        if all(u is not None for u in uuids) and uuids[0] != uuids[1]:
-            # The known source is present and actually differs -- confirm
-            # every actually-differing byte is explained by it (directly,
-            # not assumed): either inside the 16-byte LC_UUID load command
-            # itself, or inside the trailing ad-hoc code-signature blob,
-            # which macOS's linker computes OVER the whole file (including
-            # the UUID bytes) and is therefore a DERIVED effect of the same
-            # single root cause, not an independent second source.
-            if _divergence_fully_explained_by_uuid(paths[0], paths[1], uuids[0], uuids[1]):
-                return {"status": "semantic-only", "hashes": hashes, "uuids": uuids, "reason": "LC_UUID"}
 
-        return {"status": "divergent", "hashes": hashes}
+def build_project_twice_and_compare(
+    files: dict[str, str], extra_cc_args: list[str] | None = None
+) -> dict:
+    """Build the same project-mode `files` (relative path -> content) twice
+    in two independent temp directories, creating the files in REVERSED
+    order the second time (REPRO-001: "project file ordering... SHALL be
+    deterministic" -- perturbing filesystem insertion/iteration order is
+    exactly what a real shuffled-filesystem test needs to actually
+    exercise, rather than trusting insertion order never matters).
+    Classified the same way as `build_twice_and_compare`.
+    """
+    hashes = []
+    paths = []
+    with tempfile.TemporaryDirectory() as td_a, tempfile.TemporaryDirectory() as td_b:
+        for td, ordered_items in (
+            (td_a, list(files.items())),
+            (td_b, list(reversed(list(files.items())))),
+        ):
+            for rel_path, content in ordered_items:
+                full_path = os.path.join(td, rel_path)
+                os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                with open(full_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+            out = os.path.join(td, "out")
+            build_native_executable("project", td, out, td, probe=False, extra_cc_args=extra_cc_args)
+            hashes.append(_sha256_file(out))
+            paths.append(out)
+
+        return _classify_comparison(hashes, paths)
 
 
 # Generous but bounded: real ad-hoc code-signature superblobs for a small
@@ -213,12 +253,38 @@ def _selftest() -> int:
                         "(two different programs) as UUID-only"
                     )
 
+    # REPRO-001: project-mode file ordering + emitted C determinism,
+    # perturbed by building with files created in REVERSED order the
+    # second time (a real shuffled-filesystem test, not an assumption
+    # that insertion order never matters).
+    project_files = {
+        "main.sv0": "use lib::bump;\n\nfn main() -> i32 {\n  return bump(41);\n}\n",
+        "lib/lib.sv0": "module lib;\n\nfn bump(x: i32) -> i32 {\n  return x + 1;\n}\n",
+    }
+    project_result = build_project_twice_and_compare(project_files, extra_cc_args=["-g0"])
+    if platform.system() == "Darwin":
+        if project_result["status"] == "divergent":
+            failures.append(f"REPRO-001: unattributed project-mode divergence on Darwin: {project_result}")
+        elif project_result["status"] == "byte-identical":
+            failures.append(
+                "REPRO-001: unexpectedly byte-identical project-mode build on Darwin -- "
+                "either LC_UUID behavior changed, or this needs re-checking"
+            )
+        elif project_result["status"] != "semantic-only":
+            failures.append(f"REPRO-001: unexpected project-mode status on Darwin: {project_result['status']}")
+    else:
+        if project_result["status"] != "byte-identical":
+            failures.append(f"REPRO-001: expected byte-identical project-mode build on non-Darwin, got: {project_result}")
+
     if failures:
         for f in failures:
             print(f"native_exe_repro_harness selftest FAIL: {f}")
         return 1
 
-    print(f"native_exe_repro_harness: selftest OK (status={result['status']!r})")
+    print(
+        f"native_exe_repro_harness: selftest OK (status={result['status']!r}, "
+        f"project_status={project_result['status']!r})"
+    )
     return 0
 
 

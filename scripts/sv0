@@ -417,6 +417,24 @@ run_python_guards() {
   local label="${1:-sv0}"
   local ec=0
   sv0_require_cmd python3
+  # TEST-006: pin locale/timezone/temp-root/umask for the whole test
+  # harness run, so every guard below is reproducible regardless of the
+  # invoking shell's own ambient environment. Compiler selection is
+  # already fully controllable (native_exe_cc_select.py, TOOL-001/002);
+  # cwd independence already holds by construction (every guard below is
+  # invoked with an explicit "$ROOT"-based path, never a bare relative
+  # one). native_exe_harness_env.py's own selftest (below) is what
+  # catches a future accidental removal of this pinning.
+  export LC_ALL=C
+  export LANG=C
+  export TZ=UTC
+  : "${TMPDIR:=/tmp}"
+  export TMPDIR
+  umask 022
+  sv0_info "$label: native-exe test harness environment control (TEST-006)"
+  if ! python3 "$ROOT/scripts/native_exe_harness_env.py" --verify; then
+    ec=1
+  fi
   sv0_info "$label: .sv0 block-comment nesting guard"
   if ! python3 "$ROOT/scripts/check_sv0_block_comment_nesting.py"; then
     ec=1
@@ -605,6 +623,22 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_benchmark.py" --selftest; then
     ec=1
   fi
+  sv0_info "$label: native-exe test harness environment control selftest (TEST-006)"
+  if ! python3 "$ROOT/scripts/native_exe_harness_env.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: native-exe per-phase negative-test coverage guard selftest (TEST-005)"
+  if ! python3 "$ROOT/scripts/native_exe_phase_coverage.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: native-exe supported-compiler matrix selftest (TOOL-013)"
+  if ! python3 "$ROOT/scripts/native_exe_supported_compilers.py" --selftest; then
+    ec=1
+  fi
+  sv0_info "$label: native-exe known-conflict registry selftest (GOV-007)"
+  if ! python3 "$ROOT/scripts/native_exe_known_conflicts.py" --selftest; then
+    ec=1
+  fi
   sv0_info "$label: NEX-055a native-exe perf regression budget selftest (PERF-005)"
   if ! python3 "$ROOT/scripts/native_exe_perf_regression.py" --selftest; then
     ec=1
@@ -657,7 +691,7 @@ run_python_guards() {
   if ! python3 "$ROOT/scripts/native_exe_release_parity.py" --selftest; then
     ec=1
   fi
-  sv0_info "$label: NEX-053a native-exe pinned double-build reproducibility selftest (REPRO-004, §21.3)"
+  sv0_info "$label: NEX-053a native-exe pinned double-build + project-mode reproducibility selftest (REPRO-001/004, §21.3)"
   if ! python3 "$ROOT/scripts/native_exe_repro_harness.py" --selftest; then
     ec=1
   fi
