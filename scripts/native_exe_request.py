@@ -9,10 +9,18 @@ can compare normalized requests independent of how they were spelled).
 Path resolution here is limited to CLI-007's rule (a relative path resolves
 against the invocation working directory) — it does not yet validate
 existence, permissions, symlinks, or apply the Section 12.1 default output
-naming; that is NEX-026. `--profile=release` is rejected here per CLI-010
-(blocked until its R1 gate opens) even though full profile-gate wiring is a
-later slice, because accepting it silently would violate AE-009/product
-principle 1 the moment this type starts getting used by real driver code.
+naming; that is NEX-026 (and, for the CLI's own default-output resolution,
+`native_exe_output_path.default_output_path`, called by
+`build_native_executable` itself when `output_path` is left `None`).
+
+`--profile=release` was rejected here through NEX-058 (CLI-010: "blocked
+until its release gate is enabled") — written back when the release
+profile didn't exist. NEX-051 has since actually built and gated it
+(048's UB audit -> 050's sanitizer clearance -> 051b's full-corpus parity
+gate all passed before 051c wired `profile` into
+`build_native_executable`), so this module now forwards `release` through
+instead of rejecting it (NEX-059) — rejecting it today would make the CLI
+contradict its own, already-gated engine.
 
 Run `python3 scripts/native_exe_request.py --selftest` for the normalization
 corpus.
@@ -73,8 +81,16 @@ class NativeBuildRequest:
     """Spec Appendix A, normalized. `output_path` is None until NEX-026 adds
     Section 12.1 default naming; an explicit `-o` is the only way to set it
     for now. `keep_c`/`build_record`/`message_format` are R0.1 fields
-    (CLI-014…016) carried in the type now so later slices don't need to widen
-    it, per spec §11.2's own release-additive option grammar.
+    (CLI-014…016), wired for real in NEX-059: `keep_c`/`build_record` hold
+    the resolved explicit path when `-o`-style `=<path>` was given; when
+    the flag was given BARE (no `=<path>`), the corresponding `_requested`
+    flag is `True` but the path stays `None` here -- the default path
+    (`<final_output>.c`, this module's own documented convention, since
+    the spec gives no worked example for the bare form) can only be
+    computed once the final output path is known, which for a default
+    (`-o`-less) build happens inside `build_native_executable` itself, not
+    at normalization time. `native_exe_main.py` resolves that deferred
+    default before calling `build_native_executable`.
     """
 
     input_kind: InputKind
@@ -86,9 +102,11 @@ class NativeBuildRequest:
     contract_mode_requested: ContractMode
     cc_selection: CcSelection
     cc_command: str | None
-    keep_c: str | None
+    keep_c_requested: bool
+    keep_c: str | None  # resolved explicit path if given; None if not requested OR bare (default deferred)
     message_format: MessageFormat
-    build_record: str | None
+    build_record_requested: bool
+    build_record: str | None  # resolved explicit path if given; None if not requested OR bare (default deferred)
     quiet: bool
     verbose: bool
     invocation_cwd: str
@@ -108,10 +126,6 @@ def normalize_request(parsed: ParsedArgs, invocation_cwd: str | None = None) -> 
 
     if parsed.profile not in _PROFILE_VALUES:
         raise RequestError(f"unknown profile: {parsed.profile!r}")
-    if parsed.profile == Profile.RELEASE.value:
-        raise RequestError(
-            "--profile=release is rejected until its R1 gate is enabled (CLI-010)"
-        )
     if parsed.contract_mode not in _CONTRACT_VALUES:
         raise RequestError(f"unknown contract mode: {parsed.contract_mode!r}")
 
@@ -126,6 +140,11 @@ def normalize_request(parsed: ParsedArgs, invocation_cwd: str | None = None) -> 
         cc_selection = CcSelection.PATH_DEFAULT
         cc_command = None
 
+    keep_c_resolved = _resolve(parsed.keep_c_path, cwd) if parsed.keep_c_path is not None else None
+    build_record_resolved = (
+        _resolve(parsed.build_record_path, cwd) if parsed.build_record_path is not None else None
+    )
+
     return NativeBuildRequest(
         input_kind=input_kind,
         input_path=input_path,
@@ -136,9 +155,11 @@ def normalize_request(parsed: ParsedArgs, invocation_cwd: str | None = None) -> 
         contract_mode_requested=ContractMode(parsed.contract_mode),
         cc_selection=cc_selection,
         cc_command=cc_command,
-        keep_c=None,
-        message_format=MessageFormat.HUMAN,
-        build_record=None,
+        keep_c_requested=parsed.keep_c_seen,
+        keep_c=keep_c_resolved,
+        message_format=MessageFormat(parsed.message_format),
+        build_record_requested=parsed.build_record_seen,
+        build_record=build_record_resolved,
         quiet=parsed.quiet,
         verbose=parsed.verbose,
         invocation_cwd=cwd,
@@ -187,10 +208,22 @@ def _selftest() -> int:
     if req.cc_selection is not CcSelection.EXPLICIT or req.cc_command != "/usr/bin/clang":
         failures.append(f"expected EXPLICIT/clang, got {req.cc_selection}, {req.cc_command}")
 
-    # Case 6: --profile=release is rejected at normalization time (CLI-010), not silently accepted.
+    # Case 6 (NEX-059): --profile=release is now ACCEPTED and forwarded as
+    # Profile.RELEASE -- the R1 gate (NEX-048/050/051) is real now, so
+    # this module must no longer contradict its own, already-gated engine.
+    req = normalize_request(
+        ParsedArgs(input_kind="file", input_path="hello.sv0", profile="release"), invocation_cwd=cwd
+    )
+    if req.profile is not Profile.RELEASE:
+        failures.append(f"expected Profile.RELEASE to be forwarded, got {req.profile}")
+
+    # Case 6b: an unrecognized profile value is still rejected (only "dev"
+    # and "release" are ever valid -- this isn't a blanket pass-through).
     try:
-        normalize_request(ParsedArgs(input_kind="file", input_path="hello.sv0", profile="release"), invocation_cwd=cwd)
-        failures.append("expected RequestError for --profile=release, got none")
+        normalize_request(
+            ParsedArgs(input_kind="file", input_path="hello.sv0", profile="turbo"), invocation_cwd=cwd
+        )
+        failures.append("expected RequestError for an unrecognized profile, got none")
     except RequestError:
         pass
 
@@ -204,12 +237,53 @@ def _selftest() -> int:
     except RequestError:
         pass
 
+    # Case 8 (NEX-059): --keep-c=<path> resolves relative to invocation cwd,
+    # same rule as -o; keep_c_requested is True.
+    req = normalize_request(
+        ParsedArgs(input_kind="file", input_path="hello.sv0", keep_c_seen=True, keep_c_path="out/hello.c"),
+        invocation_cwd=cwd,
+    )
+    if not req.keep_c_requested or req.keep_c != "/work/out/hello.c":
+        failures.append(f"case8: expected keep_c_requested + /work/out/hello.c, got {req.keep_c_requested}, {req.keep_c}")
+
+    # Case 9: bare --keep-c (no path) records keep_c_requested=True but
+    # keep_c=None -- the default is deferred to native_exe_main.py, which
+    # knows the final output path; this module must not guess it.
+    req = normalize_request(
+        ParsedArgs(input_kind="file", input_path="hello.sv0", keep_c_seen=True, keep_c_path=None),
+        invocation_cwd=cwd,
+    )
+    if not req.keep_c_requested or req.keep_c is not None:
+        failures.append(f"case9: bare --keep-c should defer its path, got requested={req.keep_c_requested} path={req.keep_c!r}")
+
+    # Case 10: keep_c_requested defaults to False when --keep-c was never given.
+    req = normalize_request(ParsedArgs(input_kind="file", input_path="hello.sv0"), invocation_cwd=cwd)
+    if req.keep_c_requested or req.keep_c is not None:
+        failures.append(f"case10: expected no keep-c request by default, got requested={req.keep_c_requested} path={req.keep_c!r}")
+
+    # Case 11: --message-format=json is forwarded as MessageFormat.JSON.
+    req = normalize_request(
+        ParsedArgs(input_kind="file", input_path="hello.sv0", message_format="json"), invocation_cwd=cwd
+    )
+    if req.message_format is not MessageFormat.JSON:
+        failures.append(f"case11: expected MessageFormat.JSON, got {req.message_format}")
+
+    # Case 12: --build-record mirrors --keep-c's bare/explicit-path handling.
+    req = normalize_request(
+        ParsedArgs(
+            input_kind="file", input_path="hello.sv0", build_record_seen=True, build_record_path="r.json"
+        ),
+        invocation_cwd=cwd,
+    )
+    if not req.build_record_requested or req.build_record != "/work/r.json":
+        failures.append(f"case12: expected build_record_requested + /work/r.json, got {req.build_record_requested}, {req.build_record}")
+
     if failures:
         for f in failures:
             print(f"native_exe_request selftest FAIL: {f}")
         return 1
 
-    print("native_exe_request: selftest OK (7 cases)")
+    print("native_exe_request: selftest OK (13 cases)")
     return 0
 
 

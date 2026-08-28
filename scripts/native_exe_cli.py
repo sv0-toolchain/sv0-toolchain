@@ -16,10 +16,12 @@ independently testable). It only parses and validates argv; path resolution,
 the full ``NativeBuildRequest`` shape, and phase sequencing are later slices
 (NEX-003 onward).
 
-This module has no ``if __name__ == "__main__"`` production entry point yet —
-it is wired into ``./scripts/sv0 native-compile`` in a later slice once there
-is something downstream to run. Run ``python3 scripts/native_exe_cli.py
---selftest`` to exercise the table-driven parser corpus.
+Also carries the R0.1 provenance flags (CLI-014…016: ``--keep-c[=<path>]``,
+``--message-format=human|json``, ``--build-record[=<path>]``) even though
+this module has no production entry point of its own — that is
+``scripts/native_exe_main.py`` (NEX-059), which imports this parser
+directly. Run ``python3 scripts/native_exe_cli.py --selftest`` to exercise
+the table-driven parser corpus.
 """
 
 from __future__ import annotations
@@ -44,6 +46,11 @@ class ParsedArgs:
     verbose: bool = False
     quiet: bool = False
     emit_seen: bool = False  # true if an explicit --emit=exe token was given
+    keep_c_seen: bool = False  # true if --keep-c (bare or =value) was given
+    keep_c_path: str | None = None  # explicit path from --keep-c=<path>, else None
+    message_format: str = "human"  # --message-format=human|json
+    build_record_seen: bool = False  # true if --build-record (bare or =value) was given
+    build_record_path: str | None = None  # explicit path from --build-record=<path>, else None
     trailing: list[str] = field(default_factory=list)  # tokens after `--`
 
 
@@ -51,7 +58,11 @@ class ParsedArgs:
 # "repeated scalar options are usage errors unless the option explicitly
 # documents repetition" — none of these document repetition).
 _SCALAR_VALUE_OPTIONS = {"-o", "--project", "--cc"}
-_SCALAR_EQUALS_OPTIONS = {"--profile", "--contract-mode", "--emit"}
+_SCALAR_EQUALS_OPTIONS = {"--profile", "--contract-mode", "--emit", "--message-format"}
+# CLI-014/016: options valid either bare (a documented default applies) or
+# with an explicit `=<path>` value -- distinct from _SCALAR_EQUALS_OPTIONS,
+# which always REQUIRES a value.
+_OPTIONAL_VALUE_OPTIONS = {"--keep-c", "--build-record"}
 
 
 def parse_args(argv: list[str]) -> ParsedArgs:
@@ -70,6 +81,11 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     verbose = False
     quiet = False
     emit_seen = False
+    keep_c_seen = False
+    keep_c_path: str | None = None
+    message_format = "human"
+    build_record_seen = False
+    build_record_path: str | None = None
     project_dir: str | None = None
     positional: list[str] = []
     trailing: list[str] = []
@@ -137,9 +153,37 @@ def parse_args(argv: list[str]) -> ParsedArgs:
                             "(only --emit=exe is accepted here)"
                         )
                     emit_seen = True
+                elif opt == "--message-format":
+                    if value not in ("human", "json"):
+                        raise UsageError(
+                            f"--message-format={value} is invalid (want 'human' or 'json')"
+                        )
+                    message_format = value
                 matched_equals = True
                 break
         if matched_equals:
+            i += 1
+            continue
+
+        matched_optional = False
+        for opt in _OPTIONAL_VALUE_OPTIONS:
+            prefix = opt + "="
+            if arg == opt or arg.startswith(prefix):
+                if opt in seen_scalars:
+                    raise UsageError(f"repeated option: {opt}")
+                seen_scalars.add(opt)
+                value = arg[len(prefix):] if arg.startswith(prefix) else None
+                if value == "":
+                    raise UsageError(f"option {opt} requires a non-empty path when given a value")
+                if opt == "--keep-c":
+                    keep_c_seen = True
+                    keep_c_path = value
+                elif opt == "--build-record":
+                    build_record_seen = True
+                    build_record_path = value
+                matched_optional = True
+                break
+        if matched_optional:
             i += 1
             continue
 
@@ -174,6 +218,11 @@ def parse_args(argv: list[str]) -> ParsedArgs:
             verbose=verbose,
             quiet=quiet,
             emit_seen=emit_seen,
+            keep_c_seen=keep_c_seen,
+            keep_c_path=keep_c_path,
+            message_format=message_format,
+            build_record_seen=build_record_seen,
+            build_record_path=build_record_path,
             trailing=trailing,
         )
 
@@ -200,6 +249,11 @@ def parse_args(argv: list[str]) -> ParsedArgs:
         verbose=verbose,
         quiet=quiet,
         emit_seen=emit_seen,
+        keep_c_seen=keep_c_seen,
+        keep_c_path=keep_c_path,
+        message_format=message_format,
+        build_record_seen=build_record_seen,
+        build_record_path=build_record_path,
         trailing=[],
     )
 
@@ -256,6 +310,66 @@ _CASES: list[tuple[str, list[str], dict | type]] = [
         ".sv0b input rejected (GOV-002 bytecode isolation)",
         ["program.sv0b"],
         (UsageError, "bytecode isolation"),
+    ),
+    (
+        "--keep-c bare (CLI-014/015)",
+        ["--keep-c", "hello.sv0"],
+        {"keep_c_seen": True, "keep_c_path": None},
+    ),
+    (
+        "--keep-c=<path> (CLI-014/015)",
+        ["--keep-c=build/native/hello.c", "hello.sv0"],
+        {"keep_c_seen": True, "keep_c_path": "build/native/hello.c"},
+    ),
+    (
+        "repeated --keep-c is a usage error",
+        ["--keep-c", "--keep-c=x.c", "hello.sv0"],
+        UsageError,
+    ),
+    (
+        "--keep-c= with an empty value is a usage error",
+        ["--keep-c=", "hello.sv0"],
+        UsageError,
+    ),
+    (
+        "--message-format=json (CLI-016)",
+        ["--message-format=json", "hello.sv0"],
+        {"message_format": "json"},
+    ),
+    (
+        "--message-format=human is the explicit default (CLI-016)",
+        ["--message-format=human", "hello.sv0"],
+        {"message_format": "human"},
+    ),
+    (
+        "--message-format with an invalid value is a usage error",
+        ["--message-format=xml", "hello.sv0"],
+        UsageError,
+    ),
+    (
+        "repeated --message-format is a usage error",
+        ["--message-format=json", "--message-format=human", "hello.sv0"],
+        UsageError,
+    ),
+    (
+        "--build-record bare (CLI-016)",
+        ["--build-record", "hello.sv0"],
+        {"build_record_seen": True, "build_record_path": None},
+    ),
+    (
+        "--build-record=<path> (CLI-016)",
+        ["--build-record=build/native/hello.record.json", "hello.sv0"],
+        {"build_record_seen": True, "build_record_path": "build/native/hello.record.json"},
+    ),
+    (
+        "repeated --build-record is a usage error",
+        ["--build-record", "--build-record=x.json", "hello.sv0"],
+        UsageError,
+    ),
+    (
+        "all three R0.1 flags together",
+        ["--keep-c=k.c", "--message-format=json", "--build-record=r.json", "hello.sv0"],
+        {"keep_c_path": "k.c", "message_format": "json", "build_record_path": "r.json"},
     ),
 ]
 
