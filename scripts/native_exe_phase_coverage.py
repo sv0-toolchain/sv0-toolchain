@@ -8,16 +8,19 @@ guard." This module *is* that guard.
 Confirmed by direct source inspection (not assumed): `DiagnosticPhase.CONFIG`,
 `.INTERNAL`, and `.INTERRUPTED` are never referenced anywhere in this
 driver outside `native_exe_errors.py`'s own enum/exit-code-mapping
-definition -- `CONFIG` is reserved for `sv0.toml` wiring that doesn't
-exist yet (`native_exe_request.normalize_request` still hardcodes
-`config_path=None`, a genuine, separately-tracked gap), `INTERNAL` is a
-generic catchall with no deliberate raise site to test against, and
-`INTERRUPTED` is a documented exception (`native_exe_errors.py`'s own
-docstring: not one of spec §18.1's named phases) whose real
-cancellation path (`native_exe_subprocess.Cancelled`) is a distinct
-exception class, never a `BuildError`. These three are explicitly
-excluded below, with a stated, non-empty rationale each -- never
-silently dropped from the count.
+definition -- `CONFIG` remains excluded even though `sv0.toml` IS now
+discovered and consulted by `native_exe_request.normalize_request`: a
+malformed config there raises `RequestError` (the same exception class
+an unrecognized `--profile`/`--contract-mode` value already uses, and
+the same exit code, 3, as `DiagnosticPhase.CONFIG` itself), never a
+`BuildError(DiagnosticPhase.CONFIG, ...)` -- so the phase name itself
+still has no real reference to find. `INTERNAL` is a generic catchall
+with no deliberate raise site to test against, and `INTERRUPTED` is a
+documented exception (`native_exe_errors.py`'s own docstring: not one of
+spec §18.1's named phases) whose real cancellation path
+(`native_exe_subprocess.Cancelled`) is a distinct exception class, never
+a `BuildError`. These three are explicitly excluded below, with a
+stated, non-empty rationale each -- never silently dropped from the count.
 
 Every other phase (`USAGE`, `INPUT`, `FRONTEND`, `ENTRY`, `EMIT_C`,
 `RUNTIME`, `TOOL_DISCOVERY`, `HOST_COMPILE`, `HOST_LINK`, `PUBLISH`) is
@@ -44,10 +47,12 @@ _PHASE_REF_RE = re.compile(r"DiagnosticPhase\.([A-Z_]+)")
 # phase -> non-empty rationale for why it's legitimately unreachable today.
 EXCLUDED_PHASES: dict[DiagnosticPhase, str] = {
     DiagnosticPhase.CONFIG: (
-        "Reserved for sv0.toml configuration -- native_exe_config.py exists and is "
-        "tested in isolation (NEX-043), but native_exe_request.normalize_request still "
-        "hardcodes config_path=None. Not wired into any real build yet (a separately "
-        "tracked, genuine gap), so no build can raise this phase today."
+        "sv0.toml IS discovered and consulted by native_exe_request.normalize_request "
+        "(native_exe_config.py), but a malformed config raises RequestError there, not "
+        "BuildError(DiagnosticPhase.CONFIG, ...) -- the same exception class an "
+        "unrecognized --profile/--contract-mode value already uses, and the same exit "
+        "code (3). No BuildError ever carries this phase, so the phase name itself has "
+        "no real reference to find."
     ),
     DiagnosticPhase.INTERNAL: (
         "A generic catchall for an unexpected internal invariant violation, by "

@@ -24,7 +24,12 @@ import os
 from native_exe_errors import BuildError, DiagnosticPhase
 
 
-def _stem_for(input_kind: str, input_path: str) -> str:
+def stem_for(input_kind: str, input_path: str) -> str:
+    """The bare output stem (no directory, no extension) for `input_path` --
+    public (not `_stem_for`) because `native_exe_request.py` also needs it
+    to compute a config-`output-dir`-relative default path (§17.4), not
+    just this module's own `<cwd>/build/native/<stem>` default.
+    """
     if input_kind == "project":
         # Strip trailing separators before deriving the basename (§12.1).
         return os.path.basename(input_path.rstrip(os.sep))
@@ -36,7 +41,7 @@ def _stem_for(input_kind: str, input_path: str) -> str:
 
 def default_output_path(input_kind: str, input_path: str, invocation_cwd: str) -> str:
     """`<cwd>/build/native/<stem>` per spec §12.1."""
-    stem = _stem_for(input_kind, input_path)
+    stem = stem_for(input_kind, input_path)
     return os.path.join(invocation_cwd, "build", "native", stem)
 
 

@@ -1144,6 +1144,28 @@ Resolved 2026-08-23, in order:
   making every one of these citations load-bearing in CI going forward,
   not merely informational.
 
+  **NEX-062 landed — `sv0.toml` is genuinely wired now**, closing one of
+  the two remaining known gaps surfaced when asked "is the sv0c runtime
+  spec fully implemented?" `native_exe_request.normalize_request` now
+  calls `discover_config`/`load_config`/`resolve_precedence`
+  (`native_exe_config.py`, NEX-043 — previously tested in isolation only)
+  for all six `[build]` keys, with `c-compiler`/`output-dir` resolved
+  against the config file's own directory per §17.4, and CLI values still
+  winning outright per §11.4. Required changing `native_exe_cli.ParsedArgs.profile`/`.contract_mode`
+  from string defaults to `None`, since the old design had no way to tell
+  "not given" apart from "given the default value" — a real precondition
+  for correct precedence, not a cosmetic change (confirmed zero
+  regressions against both modules' existing corpora). Manually verified
+  end to end: a real `sv0.toml` (`profile = "release"`,
+  `contract-mode = "disabled"`) drove a real build with zero CLI flags,
+  producing the release argv shape and the contract-stripped exit code
+  exactly as configured. `config_path` is now real and surfaced in
+  `--verbose` output and build records, per §17.3. 6 separate mutations
+  confirmed load-bearing. The one remaining, explicitly out-of-scope-for-
+  this-slice item: the `SV0_CC` environment-variable compiler tier
+  (`native_exe_cc_select.py`'s own docstring names it as a separate,
+  still-unimplemented R0.1 precedence tier).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

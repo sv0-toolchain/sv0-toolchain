@@ -118,6 +118,7 @@ def _format_verbose_detail(request, final_output: str, provenance: dict) -> str:
         f"output:   {final_output}",
         f"profile:  {request.profile.value}",
         f"contract: {request.contract_mode_requested.value}",
+        f"config:   {request.config_path if request.config_path is not None else '(none discovered)'}",
         f"compiler: {provenance['compiler_path']} ({provenance['compiler_family']}, {provenance['compiler_version']})",
         f"argv shape: {render_argv_for_display(argv)}",
     ]
@@ -192,6 +193,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
             profile=request.profile.value,
             contract_mode_requested=request.contract_mode_requested.value,
             contract_mode_effective=request.contract_mode_requested.value,
+            config={"path": request.config_path} if request.config_path is not None else None,
         )
         write_build_record_atomically(record, build_record_path)
 
@@ -347,12 +349,47 @@ def _selftest() -> int:
         elif "argv shape:" not in printed or out9 not in printed or "profile:" not in printed:
             failures.append(f"case9: --verbose output missing expected detail: {printed!r}")
 
+        # Case 10 (sv0.toml, Section 17): a real sv0.toml beside the source
+        # drives an actual build end to end with NO CLI flags at all --
+        # isolated in its own subdirectory so it can't leak into any case
+        # above (discover_config searches beside the input file, and every
+        # other case's fixture lives directly in `td`). Real finding this
+        # slice closes: native_exe_request.normalize_request previously
+        # hardcoded config_path=None and never called discover_config/
+        # load_config at all.
+        config_dir = os.path.join(td, "config_case")
+        os.makedirs(config_dir)
+        with open(os.path.join(config_dir, "sv0.toml"), "w", encoding="utf-8") as f:
+            f.write('[build]\ncontract-mode = "disabled"\n')
+        src10 = os.path.join(config_dir, "config.sv0")
+        with open(src10, "w", encoding="utf-8") as f:
+            # requires-violating input: contract-mode=runtime would abort
+            # (nonzero), contract-mode=disabled runs the stripped body to
+            # completion -- the exact 1-vs-8 discriminator native_exe_contract_mode.py's
+            # own corpus already established for this exact test shape.
+            f.write(
+                "fn half(x: i32) -> i32 requires(x > 0) {\n    return x / 2;\n}\n"
+                "fn main() -> i32 {\n    return half(0 - 4) + 10;\n}\n"
+            )
+        out10 = os.path.join(config_dir, "config_out")
+        rc10 = run(["-o", out10, src10], config_dir)
+        if rc10 != 0 or not os.path.isfile(out10):
+            failures.append(f"case10: expected a real config-driven build to succeed, rc={rc10}")
+        else:
+            proc10 = subprocess.run([out10], capture_output=True, text=True)
+            if proc10.returncode != 8:
+                failures.append(
+                    f"case10: expected exit 8 (sv0.toml's contract-mode=disabled strips the "
+                    f"check instead of aborting), got {proc10.returncode} -- config wasn't "
+                    f"actually applied"
+                )
+
     if failures:
         for f in failures:
             print(f"native_exe_main selftest FAIL: {f}")
         return 1
 
-    print("native_exe_main: selftest OK (9 cases)")
+    print("native_exe_main: selftest OK (10 cases)")
     return 0
 
 

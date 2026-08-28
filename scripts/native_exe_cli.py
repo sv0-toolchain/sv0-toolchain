@@ -40,8 +40,8 @@ class ParsedArgs:
     input_kind: str  # "file" | "project"
     input_path: str  # positional file path, or the --project directory operand
     output_path: str | None = None  # -o value, if given
-    profile: str = "dev"
-    contract_mode: str = "runtime"
+    profile: str | None = None  # None means "not given on the CLI" -- sv0.toml/default apply (§11.4/§17)
+    contract_mode: str | None = None  # None means "not given on the CLI" -- sv0.toml/default apply
     cc: str | None = None
     verbose: bool = False
     quiet: bool = False
@@ -75,8 +75,8 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     """
     seen_scalars: set[str] = set()
     output_path: str | None = None
-    profile = "dev"
-    contract_mode = "runtime"
+    profile: str | None = None
+    contract_mode: str | None = None
     cc: str | None = None
     verbose = False
     quiet = False

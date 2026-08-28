@@ -18,6 +18,13 @@ default) as one small generic helper, so every R0.1 setting that has a
 config/env/default form uses identical precedence logic rather than each
 call site re-deriving its own tie-breaking order.
 
+Wired into a real build by `native_exe_request.normalize_request`, which
+calls `discover_config`/`load_config`/`resolve_precedence` directly for
+all six `[build]` keys -- this module's own functions were built and
+tested here in isolation first (this file's own selftest never invokes a
+real build), but the actual consumption happens in
+`native_exe_request.py`, not here.
+
 Run `python3 scripts/native_exe_config.py --selftest` for the corpus.
 """
 
