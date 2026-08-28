@@ -35,11 +35,12 @@ from native_exe_build_record import build_record, write_build_record_atomically
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_cli import UsageError, parse_args
+from native_exe_emit_c import emit_c_only
 from native_exe_errors import BuildError
-from native_exe_human_output import render_argv_for_display
+from native_exe_human_output import format_emit_c_success_message, render_argv_for_display
 from native_exe_json_output import PhaseTimer, build_event, encode_event
 from native_exe_output_path import default_output_path
-from native_exe_request import RequestError, normalize_request
+from native_exe_request import Emit, RequestError, normalize_request
 from native_exe_runtime import resolve_runtime_dir
 from native_exe_runtime_manifest import load_manifest
 
@@ -137,6 +138,36 @@ def run(argv: list[str], invocation_cwd: str) -> int:
     except RequestError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 3
+
+    if request.emit is Emit.C_ONLY:
+        # CLI-014: --emit=c never invokes a host compiler and produces no
+        # executable -- a genuinely separate, smaller pipeline
+        # (native_exe_emit_c.emit_c_only) rather than build_native_executable.
+        # normalize_request/native_exe_cli already guarantee output_path is
+        # set and that --keep-c/--build-record/--message-format=json were
+        # never combined with --emit=c, so none of that machinery applies here.
+        try:
+            result_path = emit_c_only(
+                input_kind=request.input_kind.value,
+                input_path=request.input_path,
+                output_path=request.output_path,
+                invocation_cwd=request.invocation_cwd,
+                contract_mode=request.contract_mode_requested.value,
+            )
+        except BuildError as exc:
+            print(f"error: {exc.message}", file=sys.stderr)
+            return exc.exit_code
+        if not request.quiet:
+            print(format_emit_c_success_message(result_path))
+            if request.verbose:
+                config_display = request.config_path if request.config_path is not None else "(none discovered)"
+                print(
+                    f"input:    {request.input_path}\n"
+                    f"output:   {result_path}\n"
+                    f"contract: {request.contract_mode_requested.value}\n"
+                    f"config:   {config_display}"
+                )
+        return 0
 
     final_output = (
         request.output_path
@@ -384,12 +415,49 @@ def _selftest() -> int:
                     f"actually applied"
                 )
 
+        # Case 11 (CLI-014): --emit=c writes real C, never invokes a host
+        # compiler, and produces no executable at all.
+        src11 = os.path.join(td, "emitc.sv0")
+        with open(src11, "w", encoding="utf-8") as f:
+            f.write('fn main() -> i32 {\n    println("emit c works");\n    return 0;\n}\n')
+        out11 = os.path.join(td, "emitc_out.c")
+        rc11 = run(["--emit=c", "-o", out11, src11], td)
+        if rc11 != 0 or not os.path.isfile(out11):
+            failures.append(f"case11: expected a real --emit=c write to succeed, rc={rc11}")
+        else:
+            content11 = open(out11, encoding="utf-8").read()
+            if "sv0_runtime.h" not in content11 or "emit c works" not in content11:
+                failures.append(f"case11: emitted C looks wrong: {content11[:200]!r}")
+
+        # Case 12 (CLI-014): --emit=c requires -o -- a clean usage error
+        # (exit 2), not a guessed default path.
+        rc12 = run(["--emit=c", src11], td)
+        if rc12 != 2:
+            failures.append(f"case12: expected exit 2 for --emit=c without -o, got {rc12}")
+
+        # Case 13 (CLI-014): --emit=c rejects --keep-c/--build-record
+        # (neither has a coherent meaning with no executable produced).
+        out13 = os.path.join(td, "emitc13_out.c")
+        rc13 = run(["--emit=c", "-o", out13, "--keep-c", src11], td)
+        if rc13 != 2:
+            failures.append(f"case13: expected exit 2 for --emit=c + --keep-c, got {rc13}")
+
+        # Case 14 (CLI-014): --emit=c honors --quiet (suppresses the
+        # success line) and --verbose (prints extra detail) just like
+        # --emit=exe does.
+        out14 = os.path.join(td, "emitc14_out.c")
+        buf14 = io.StringIO()
+        with redirect_stdout(buf14):
+            rc14 = run(["--emit=c", "-o", out14, "--quiet", src11], td)
+        if rc14 != 0 or buf14.getvalue().strip() != "":
+            failures.append(f"case14: expected --quiet to suppress --emit=c output, got {buf14.getvalue()!r}")
+
     if failures:
         for f in failures:
             print(f"native_exe_main selftest FAIL: {f}")
         return 1
 
-    print("native_exe_main: selftest OK (10 cases)")
+    print("native_exe_main: selftest OK (14 cases)")
     return 0
 
 

@@ -26,6 +26,7 @@ from native_exe_emit import classify_emission
 from native_exe_entry_reserved import validate_no_reserved_collisions
 from native_exe_entry_scan import validate_entry_exists
 from native_exe_entry_signature import validate_entry_signature
+from native_exe_input_validation import validate_file_input_shape
 from native_exe_output_path import ensure_output_parent_dir, validate_output_path
 from native_exe_staging import validate_staging_c, write_text_atomically
 from native_exe_build import DEFAULT_COMPILER_PATH
@@ -45,6 +46,7 @@ def emit_c_only(
     (unlike `build_native_executable`) — `--emit=c` has no default-naming
     rule of its own in the spec; a caller always supplies `-o`.
     """
+    validate_file_input_shape(input_kind, input_path)  # CLI-008, same as build_native_executable's phase 1
     validate_entry_exists(input_kind, input_path)
     validate_entry_signature(input_kind, input_path)
     validate_no_reserved_collisions(input_kind, input_path)
@@ -131,12 +133,27 @@ def _selftest() -> int:
         if os.path.exists(out_c3):
             failures.append("case3: no output should have been written for a rejected entry")
 
+        # Case 4 (CLI-008): a missing input file is a clean BuildError(INPUT),
+        # never a raw OSError -- same hardening build_native_executable
+        # already has via the same validate_file_input_shape call.
+        out_c4 = os.path.join(td, "out4.c")
+        try:
+            emit_c_only("file", os.path.join(td, "genuinely-missing.sv0"), out_c4, td)
+            failures.append("case4: expected BuildError for a missing input file, none raised")
+        except BuildError as exc:
+            from native_exe_errors import DiagnosticPhase
+
+            if exc.phase is not DiagnosticPhase.INPUT:
+                failures.append(f"case4: expected INPUT phase, got {exc.phase}")
+        except OSError as exc:  # pragma: no cover - the exact regression this guards against
+            failures.append(f"case4: leaked a raw OSError instead of BuildError: {exc}")
+
     if failures:
         for f in failures:
             print(f"native_exe_emit_c selftest FAIL: {f}")
         return 1
 
-    print("native_exe_emit_c: selftest OK (3 cases)")
+    print("native_exe_emit_c: selftest OK (4 cases)")
     return 0
 
 

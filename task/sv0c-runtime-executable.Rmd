@@ -1166,6 +1166,25 @@ Resolved 2026-08-23, in order:
   (`native_exe_cc_select.py`'s own docstring names it as a separate,
   still-unimplemented R0.1 precedence tier).
 
+  **NEX-063 landed — `--emit=c` is wired on both CLI surfaces**, closing
+  the last of the small, known wiring gaps named when asked "is the sv0c
+  runtime spec fully implemented?" `native_exe_cli.py` now accepts
+  `--emit=c` (`ParsedArgs.emit_value`), enforcing `emit_c_only`'s own
+  documented contract at parse time: an explicit `-o` is required (no
+  default-naming rule exists for `--emit=c`), and `--keep-c`/
+  `--build-record`/`--message-format=json` are all rejected in
+  combination (none has a coherent meaning with no executable artifact
+  or compiler identity to report). `native_exe_main.py` dispatches to
+  `emit_c_only` instead of `build_native_executable` on `Emit.C_ONLY`,
+  honoring `--quiet`/`--verbose` the same way. Real finding along the
+  way: `native_exe_emit_c.py` was missing the same CLI-008 file-input-
+  shape hardening the executable path already has — fixed in the same
+  slice, closing a parity gap rather than leaving it. Manually verified
+  end to end on both CLI surfaces (the workspace adapter and a real
+  installed `sv0c` binary): both wrote real, correct C; the `-o`-required
+  and invalid-value usage errors both worked as documented. All new logic
+  confirmed load-bearing by mutation.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

@@ -45,7 +45,8 @@ class ParsedArgs:
     cc: str | None = None
     verbose: bool = False
     quiet: bool = False
-    emit_seen: bool = False  # true if an explicit --emit=exe token was given
+    emit_seen: bool = False  # true if an explicit --emit=<value> token was given
+    emit_value: str = "exe"  # "exe" | "c" -- defaults to "exe" when --emit is never given
     keep_c_seen: bool = False  # true if --keep-c (bare or =value) was given
     keep_c_path: str | None = None  # explicit path from --keep-c=<path>, else None
     message_format: str = "human"  # --message-format=human|json
@@ -81,6 +82,7 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     verbose = False
     quiet = False
     emit_seen = False
+    emit_value = "exe"
     keep_c_seen = False
     keep_c_path: str | None = None
     message_format = "human"
@@ -147,12 +149,12 @@ def parse_args(argv: list[str]) -> ParsedArgs:
                 elif opt == "--contract-mode":
                     contract_mode = value
                 elif opt == "--emit":
-                    if value != "exe":
+                    if value not in ("exe", "c"):
                         raise UsageError(
-                            f"--emit={value} conflicts with this native-executable driver "
-                            "(only --emit=exe is accepted here)"
+                            f"--emit={value} is invalid for this driver (want 'exe' or 'c')"
                         )
                     emit_seen = True
+                    emit_value = value
                 elif opt == "--message-format":
                     if value not in ("human", "json"):
                         raise UsageError(
@@ -205,6 +207,31 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     if verbose and quiet:
         raise UsageError("--verbose and --quiet are mutually exclusive")
 
+    if emit_value == "c":
+        # CLI-014/native_exe_emit_c.emit_c_only's own documented contract:
+        # "--emit=c has no default-naming rule of its own in the spec; a
+        # caller always supplies -o" -- enforced here, at parse time, the
+        # same place every other complete-argv-shape rule in this function
+        # lives, rather than discovered later as a confusing runtime error.
+        if output_path is None:
+            raise UsageError("--emit=c requires an explicit -o path (no default naming)")
+        # --keep-c/--build-record are executable-build artifacts (retained
+        # staging C alongside a published binary; a build record describing
+        # a published binary's checksums) -- neither has a coherent meaning
+        # when no executable is ever produced, so reject rather than
+        # silently ignore or produce a nonsensical/empty record.
+        if keep_c_seen:
+            raise UsageError("--keep-c has no effect with --emit=c (the emitted C IS the -o output already)")
+        if build_record_seen:
+            raise UsageError("--build-record requires --emit=exe (no executable artifact exists under --emit=c)")
+        if message_format == "json":
+            # native_exe_json_output.build_event's schema is executable-build
+            # shaped (a "compiler" sub-object that only exists once a host
+            # compiler actually runs) -- rather than fabricate placeholder
+            # compiler identity for an event that never probes one, reject
+            # the combination outright.
+            raise UsageError("--message-format=json requires --emit=exe (no compiler identity to report under --emit=c)")
+
     if project_dir is not None:
         if positional or trailing:
             raise UsageError("--project takes no additional file operand")
@@ -218,6 +245,7 @@ def parse_args(argv: list[str]) -> ParsedArgs:
             verbose=verbose,
             quiet=quiet,
             emit_seen=emit_seen,
+            emit_value=emit_value,
             keep_c_seen=keep_c_seen,
             keep_c_path=keep_c_path,
             message_format=message_format,
@@ -249,6 +277,7 @@ def parse_args(argv: list[str]) -> ParsedArgs:
         verbose=verbose,
         quiet=quiet,
         emit_seen=emit_seen,
+        emit_value=emit_value,
         keep_c_seen=keep_c_seen,
         keep_c_path=keep_c_path,
         message_format=message_format,
@@ -280,7 +309,32 @@ _CASES: list[tuple[str, list[str], dict | type]] = [
     (
         "explicit --emit=exe is accepted",
         ["--emit=exe", "hello.sv0"],
-        {"emit_seen": True},
+        {"emit_seen": True, "emit_value": "exe"},
+    ),
+    (
+        "--emit=c with -o is accepted (CLI-014)",
+        ["--emit=c", "-o", "out.c", "hello.sv0"],
+        {"emit_seen": True, "emit_value": "c", "output_path": "out.c"},
+    ),
+    (
+        "--emit=c without -o is a usage error (no default naming)",
+        ["--emit=c", "hello.sv0"],
+        (UsageError, "requires an explicit -o"),
+    ),
+    (
+        "--emit=c with --keep-c is a usage error",
+        ["--emit=c", "-o", "out.c", "--keep-c", "hello.sv0"],
+        (UsageError, "--keep-c has no effect"),
+    ),
+    (
+        "--emit=c with --build-record is a usage error",
+        ["--emit=c", "-o", "out.c", "--build-record", "hello.sv0"],
+        (UsageError, "--build-record requires --emit=exe"),
+    ),
+    (
+        "--emit=c with --message-format=json is a usage error",
+        ["--emit=c", "-o", "out.c", "--message-format=json", "hello.sv0"],
+        (UsageError, "--message-format=json requires --emit=exe"),
     ),
     (
         "-- terminates option parsing (hostile leading-hyphen path)",
@@ -289,7 +343,7 @@ _CASES: list[tuple[str, list[str], dict | type]] = [
     ),
     ("no operand at all", [], UsageError),
     ("unknown option", ["--bogus", "hello.sv0"], UsageError),
-    ("conflicting emit value", ["--emit=c", "hello.sv0"], UsageError),
+    ("invalid emit value", ["--emit=bogus", "hello.sv0"], (UsageError, "want 'exe' or 'c'")),
     ("repeated scalar option", ["-o", "a", "-o", "b", "hello.sv0"], UsageError),
     ("incomplete option (missing value)", ["-o"], UsageError),
     ("-o - is invalid for executable output", ["-o", "-", "hello.sv0"], UsageError),

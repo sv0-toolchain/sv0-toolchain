@@ -68,6 +68,7 @@ class Backend(Enum):
 
 class Emit(Enum):
     EXECUTABLE = "executable"
+    C_ONLY = "c"  # CLI-014: --emit=c, write C atomically, never invoke the host compiler
 
 
 class Profile(Enum):
@@ -244,7 +245,7 @@ def normalize_request(parsed: ParsedArgs, invocation_cwd: str | None = None) -> 
         input_path=input_path,
         output_path=output_path,
         backend=Backend.C,
-        emit=Emit.EXECUTABLE,
+        emit=Emit.C_ONLY if parsed.emit_value == "c" else Emit.EXECUTABLE,
         profile=Profile(profile_value),
         contract_mode_requested=ContractMode(contract_mode_value),
         cc_selection=cc_selection,
@@ -371,6 +372,18 @@ def _selftest() -> int:
     )
     if not req.build_record_requested or req.build_record != "/work/r.json":
         failures.append(f"case12: expected build_record_requested + /work/r.json, got {req.build_record_requested}, {req.build_record}")
+
+    # Case 12b (CLI-014): default emit_value ("exe") normalizes to
+    # Emit.EXECUTABLE; an explicit --emit=c normalizes to Emit.C_ONLY.
+    req = normalize_request(ParsedArgs(input_kind="file", input_path="hello.sv0"), invocation_cwd=cwd)
+    if req.emit is not Emit.EXECUTABLE:
+        failures.append(f"case12b: expected default Emit.EXECUTABLE, got {req.emit}")
+    req = normalize_request(
+        ParsedArgs(input_kind="file", input_path="hello.sv0", emit_value="c", output_path="out.c"),
+        invocation_cwd=cwd,
+    )
+    if req.emit is not Emit.C_ONLY:
+        failures.append(f"case12b: expected Emit.C_ONLY for --emit=c, got {req.emit}")
 
     # Case 13: no sv0.toml present at all -- config_path is None, and
     # nothing about the previous 12 cases' behavior changes (a real "no

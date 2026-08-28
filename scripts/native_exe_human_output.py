@@ -32,6 +32,15 @@ def maybe_print_success(output_path: str, backend: str, profile: str, contract_m
     return format_success_message(output_path, backend, profile, contract_mode)
 
 
+def format_emit_c_success_message(output_path: str) -> str:
+    """`--emit=c`'s own success line (CLI-014) -- deliberately distinct from
+    `format_success_message`'s "built ... backend=... profile=... contracts=..."
+    shape, since no executable is produced and no host compiler/profile ever
+    runs under `--emit=c`.
+    """
+    return f"sv0c: wrote C to {output_path}"
+
+
 def render_argv_for_display(argv: list[str]) -> str:
     """A safely quoted, human-readable rendering of an argv list for `--verbose`
     output. Diagnostic only -- never re-parsed by anything.
@@ -64,6 +73,13 @@ def _selftest() -> int:
     if hasattr(__import__(__name__), "format_error_message"):
         failures.append("this module must not grow an error-formatting/suppression function")
 
+    # Case 4b (CLI-014): --emit=c's own success line is distinct in shape
+    # from the executable-build one -- no backend/profile/contracts fields,
+    # since none of those apply when no host compiler ever runs.
+    emit_c_msg = format_emit_c_success_message("build/native/hello.c")
+    if emit_c_msg != "sv0c: wrote C to build/native/hello.c":
+        failures.append(f"emit=c success message mismatch: {emit_c_msg!r}")
+
     # Case 5: verbose argv rendering safely quotes hostile arguments.
     hostile = ["cc", "a name; $(touch SHOULD_NOT_EXIST)", "-o", "out"]
     rendered = render_argv_for_display(hostile)
@@ -85,7 +101,7 @@ def _selftest() -> int:
             print(f"native_exe_human_output selftest FAIL: {f}")
         return 1
 
-    print("native_exe_human_output: selftest OK (6 cases)")
+    print("native_exe_human_output: selftest OK (7 cases)")
     return 0
 
 
