@@ -1051,26 +1051,37 @@ Resolved 2026-08-23, in order:
   test-plan gaps) — real, pre-existing, and out of this slice's scope;
   noted rather than silently left for later rediscovery.
 
-  **NEX-060 scoped (not implemented)**: investigated the installed
-  `sv0c --emit=exe` command surface and resolved OD-009 ("stable installed
-  command transition from workspace adapter", overdue since "before R1").
-  **Corrects NEX-059's own prior risk assumption**: `sv0c/build/sv0c` is
-  the unrelated SML bootstrap heap image (used once, to translate the
-  mega-TU sv0 source to C during the compiler's own build) — there is no
-  existing argv-parsing compiler binary to modify. The installed command
-  is a packaging problem, not a compiler-internals one: confirmed the
-  Python driver's own path resolution (`resolve_runtime_dir`/
-  `DEFAULT_COMPILER_PATH`) already works unmodified from any relocated
-  install prefix that preserves the same relative directory shape.
-  Decision: `sv0c --emit=exe` will be a thin launcher forwarding into the
-  same already-tested driver, not a new implementation — a genuinely
-  lower-risk item than NEX-055c, unlike what was previously assumed.
-  Recorded as a durable design doc:
-  `sv0c/doc/native-executable-installed-command-design.md` (commit
-  `13014e4`), with four follow-up sub-slices (060b/c/d/e) scoped for a
-  future implementation pass. Also surfaced a separate, real gap:
-  `--emit=c` (`native_exe_emit_c.emit_c_only`, NEX-039) is fully built but
-  unreachable from any CLI today — flagged, not folded into this slice.
+  **NEX-060 landed — the installed `sv0c --emit=exe` command is real**:
+  scoping (060a) investigated the installed command surface and resolved
+  OD-009 ("stable installed command transition from workspace adapter",
+  overdue since "before R1"), **correcting NEX-059's own prior risk
+  assumption**: `sv0c/build/sv0c` is the unrelated SML bootstrap heap
+  image, not an argv-parsing compiler binary — there was nothing to
+  "modify the internals of." The scoping investigation showed this to be
+  a packaging problem, not a compiler-internals one, and genuinely
+  lower-risk than NEX-055c — so, unlike NEX-055c, it was implemented in
+  the same pass rather than deferred. `native_exe_installed_layout.build_install_layout`
+  (060b) assembles a real installed tree (`<root>/scripts/native_exe_*.py`,
+  `<root>/sv0c/runtime/*`, `<root>/build/sv0-megatu-native`) that the
+  driver's *default* path resolution already handles with zero code
+  changes — proven with a real subprocess, no override seams, at a
+  space-containing relocated prefix. `native_exe_install_launcher.write_sv0c_launcher`
+  (060c) writes the `<install>/bin/sv0c` launcher itself: a thin shell
+  script forwarding argv unmodified into the same driver
+  `./scripts/sv0 native-compile` already used, proven behaviorally
+  identical to it end to end. `native-executable.md`'s worked examples now
+  lead with the installed spelling (060d, per spec line 472), correcting
+  two stale claims found along the way (the R0.1 flags are now
+  implemented; `sv0.toml` discovery, NEX-043, is still genuinely unwired —
+  stated honestly rather than silently dropped). Traceability re-run (060e)
+  confirms `CLI-017` is genuinely resolved — and separately documents a
+  real tooling-honesty finding: the guard's uncited-count also dropped for
+  9 unrelated requirements purely because NEX-059's own honest disclosure
+  prose satisfied its naive "mentioned anywhere" citation check, not
+  because they were actually addressed; recorded rather than let the
+  guard's output imply otherwise. Also surfaced, flagged separately, not
+  folded in: `--emit=c` (NEX-039) is fully built but unreachable from
+  either CLI surface today.
 
 ## related
 
