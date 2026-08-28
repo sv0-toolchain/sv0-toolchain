@@ -5,10 +5,12 @@ Implements REL-001
 reuses `native_exe_build.build_native_executable` under real `threading` —
 ≥4 concurrent builds to distinct inputs/outputs, each with a unique
 fingerprint (a literal, distinguishing exit code) written into its own
-program. Exercises `native_exe_core_compiler`'s lock (NEX-011 — serializes
-only the core-compiler sub-step, not the whole pipeline) and
-`native_exe_scratch`'s per-invocation uniqueness (NEX-008) under genuine
-concurrency, not just at the unit level.
+program. Exercises `native_exe_core_compiler`'s `CoreCompilerClient`
+(NEX-011; migrated off its former `flock`-on-a-shared-file design to a
+per-call `SV0_DRV_REQUEST` env var in NEX-055c/REL-004, so there is no
+lock left to exercise, only the claim that concurrent calls stay
+isolated) and `native_exe_scratch`'s per-invocation uniqueness (NEX-008)
+under genuine concurrency, not just at the unit level.
 
 Run `python3 scripts/native_exe_parallel_builds.py --selftest` for the
 corpus.

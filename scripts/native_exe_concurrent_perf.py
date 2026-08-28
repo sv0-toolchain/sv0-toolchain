@@ -9,16 +9,23 @@ fingerprint-per-thread shape, NEX-035) and asserts the concurrent wall
 time is meaningfully less than N times the per-build time -- real
 parallelism, not merely "didn't crash."
 
-**Honest, measured finding, not assumed**: `native_exe_core_compiler.py`'s
-`CoreCompilerClient` (NEX-011) still serializes the core-compiler
-sub-step behind a global `flock` on `/tmp/.sv0_drv_path` -- the exact
-REL-004 gap this band's plan flags as needing a genuinely new sv0c-side
-reentrant entry point (tracked separately, NEX-055c). This module
-measures whether that serialization is actually a *bottleneck* for overall
-wall time on real fixtures, given the host compile/link step (never
-serialized) dominates total build time in practice, or whether it
-measurably limits the achievable speedup -- and reports the real number
-either way rather than assuming PERF-006 is met.
+**History, so the finding stays honest as it changes.** When this module
+was first written, `native_exe_core_compiler.py`'s `CoreCompilerClient`
+(NEX-011) still serialized the core-compiler sub-step behind a global
+`flock` on `/tmp/.sv0_drv_path`. The measured finding at the time was that
+this did NOT bottleneck overall wall time in practice, since the host
+compile/link step (never serialized) dominates total build time for real
+fixtures -- PERF-006's speedup bar was met even before the lock was gone.
+
+**NEX-055c (REL-004) has since removed that lock entirely**
+(`native_exe_core_compiler.py`'s `CoreCompilerClient.invoke()` now passes
+the request via a per-call `SV0_DRV_REQUEST` env var, structurally
+impossible to race on -- no shared file, no lock, no serialization of any
+kind). PERF-006's literal text ("no global control-file serialization")
+is now fully, structurally met, not merely "not a practical bottleneck."
+This module still measures and reports the real number rather than
+assuming it, since a future regression in the core-compiler path could
+reintroduce serialization without this test catching it any other way.
 
 Run `python3 scripts/native_exe_concurrent_perf.py --selftest` for the
 corpus.
@@ -33,10 +40,12 @@ import time
 
 from native_exe_build import build_native_executable
 
-# A generous minimum speedup bar -- NOT "N times faster" (the core-compiler
-# flock genuinely prevents that), but enough to prove concurrent builds are
-# not simply queueing one-at-a-time behind a single global lock for their
-# ENTIRE duration (which would show ~1.0x, not meaningfully more than 1x).
+# A generous minimum speedup bar -- kept modest even though the
+# core-compiler lock is gone (NEX-055c), since this is a real-fixture
+# wall-clock measurement (host-compiler/link time, disk, scheduler noise
+# all vary by machine) and the bar only needs to catch a REGRESSION back
+# to one-at-a-time queueing (which would show ~1.0x, not meaningfully
+# more than 1x), not certify a specific multiplier.
 _MIN_ACCEPTABLE_SPEEDUP = 1.3
 
 

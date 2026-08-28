@@ -1281,6 +1281,35 @@ Resolved 2026-08-23, in order:
   its `flock`+file onto `SV0_DRV_REQUEST`) is next; REL-004 stays open
   until step 6 (legacy-path removal + static guard).
 
+- **2026-08-28 — REL-004 migration step 3 of 6: `CoreCompilerClient`
+  migrated off the `flock`, retired entirely.**
+  `scripts/native_exe_core_compiler.py` rewritten: `invoke()` now passes
+  `control_value` via a fresh, call-local `SV0_DRV_REQUEST` env-var dict
+  straight into `subprocess.run` — no shared control file, no lock, no
+  serialization of any kind. Every child process gets its own
+  independent environment-block copy at exec time, so concurrent calls
+  are structurally isolated, not merely lock-protected — this is the
+  "unique private request channel" REL-004's own text asks for. The
+  constructor dropped its now-dead `control_file`/`lock_file` params;
+  both production callers (`native_exe_build.py`, `native_exe_emit_c.py`)
+  needed zero changes since they only ever passed `compiler_path`
+  positionally. New selftest proves isolation under real thread
+  concurrency (verified load-bearing: deliberately reintroducing a
+  shared-dict aliasing bug makes it fail) plus a deterministic
+  env-dict-capture mutation guard and a parent-`os.environ`-non-mutation
+  check. Real, not just unit-tested: a genuine `./scripts/sv0
+  native-compile` build confirmed the legacy control file is never
+  touched; 4 truly concurrent real OS-process builds (`&`/`wait`) each
+  produced correctly isolated output. `native_exe_concurrent_perf.py`'s
+  docstring updated — PERF-006's "no global control-file serialization"
+  is now fully, structurally met. `./scripts/sv0
+  test`/`test-guards --active-release R1` re-run clean (same two
+  pre-existing failures only). Design doc sequencing updated in place.
+  sv0c commit `fea0a71`, parent pending. Steps 4 (an explicit self-host-loop
+  re-verification, done informally here), 5 (migrate `scripts/sv0`'s
+  remaining direct control-file writers), and 6 (remove the legacy path +
+  a static guard) remain — REL-004 itself is not yet closed.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
