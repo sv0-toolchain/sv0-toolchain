@@ -1421,7 +1421,31 @@ Resolved 2026-08-23, in order:
   exits 197), a separate, already-tracked conflict this fix deliberately
   does not touch. `native_exe_known_conflicts.py`'s `KC-001` entry
   flipped from `"open"` to `"resolved"`. sv0c commit `bae2126`, parent
-  pending.
+  `e382d86`.
+
+- **2026-08-28 — KC-002 fixed too, in the same follow-up.** Same class
+  of bug: `test_parse_assign()`'s `tags2`/`tags3` fixtures (testing
+  `x.y = 1;` / `x.y += 1;`) pushed literal token tag 15 for the
+  field-access `.`, but tag 15 is `COLONCOLON` (`::`) -- tag 16 is the
+  real `TK_DOT`. The production fix correcting this exact confusion had
+  already landed in `parse_assign_target_op_pos` (its own comment cites
+  `BUGS.md #6`/sv0-mathlib), but these two test fixtures using the old
+  tag were never updated, so `parse_expr` correctly rejected the
+  resulting invalid `::` syntax and returned `-1` where the test
+  expected `8`. Root-caused via the same debug-print technique used for
+  `KC-001`. Fixed both fixtures to push tag 16.
+
+  **With both KC-001 and KC-002 fixed, the self-host loop is fully green
+  for the first time this whole project has observed it**:
+  `self-host-sv0-loop: 99 file(s); emit+cc+run OK; SV0_SELF_HOST_COMPILER
+  BEHAVIORAL parity with SML`. Verified: `lib/parser.sv0` compiles+runs
+  to exit 0 standalone (was 197); stage0 + vm-parity goldens refreshed
+  and confirmed deterministic; `sv0c make test` 307/308 (the one
+  remaining failure is a distinct, unrelated SML test);
+  `verify_behavior_corpus_native.py` 114/114; `test-guards` green.
+  `native_exe_known_conflicts.py`'s `KC-002` entry flipped to
+  `"resolved"`; `KC-001`'s own closing note updated since `KC-002` is no
+  longer open. sv0c commit `da122d9`, parent pending.
 
 ## related
 

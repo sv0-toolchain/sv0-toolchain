@@ -51,10 +51,9 @@ KNOWN_CONFLICTS = [
             "confirmed deterministic (captured twice, byte-identical); full "
             "./scripts/sv0 test now proceeds past checker.sv0 in the self-host loop. "
             "This also resolves the cascading symptom it caused: the self-host loop no "
-            "longer aborts at checker.sv0 before reaching later modules. (It now "
-            "reaches -- and stops at -- the next pre-existing issue in that same "
-            "sequence, KC-002; that is a separate, already-tracked conflict this fix "
-            "does not touch.)"
+            "longer aborts at checker.sv0 before reaching later modules. (It went on "
+            "to reach -- and stop at -- the next pre-existing issue in that same "
+            "sequence, KC-002; that was fixed in the same pass, see its own entry.)"
         ),
         "severity": "non-blocking",
         "status": "resolved",
@@ -63,12 +62,29 @@ KNOWN_CONFLICTS = [
         "id": "KC-002",
         "area": "self-host-sv0-loop",
         "description": (
-            "Native self-host run of lib/parser.sv0 exits 197. Same class as KC-001: "
-            "pre-existing, confirmed unrelated to native-executable driver work by the "
-            "same clean-tree reproduction method."
+            "RESOLVED. Native self-host run of lib/parser.sv0 used to exit 197 -- "
+            "same class as KC-001: a hand-rolled unit-test fixture holding a stale "
+            "literal token tag, never updated after a real production fix landed. "
+            "Root-caused via the same debug-print technique used for KC-001 (a "
+            "temporary build printing the aggregator's own return value, then "
+            "bisecting the failing sub-test's own literals): test_parse_assign()'s "
+            "tags2/tags3 fixtures (testing `x.y = 1;` / `x.y += 1;`) pushed literal "
+            "tag 15 for the '.' in the field-assignment target, but tag 15 is "
+            "COLONCOLON ('::', a path separator) -- tag 16 is the real TK_DOT. The "
+            "production fix that corrected this exact confusion had already landed "
+            "in parse_assign_target_op_pos (see its own in-repo comment, from "
+            "BUGS.md #6 / sv0-mathlib) checking `== 16`, but the test fixtures using "
+            "the old, wrong tag 15 were never updated to match, so parse_expr "
+            "correctly rejected the resulting (invalid) '::' syntax and returned -1 "
+            "where the test expected 8. Fixed both fixtures to push tag 16. "
+            "Verified: lib/parser.sv0 compiles+runs to exit 0 standalone (was 197); "
+            "stage0 golden (parser.c) + vm-parity golden (parser.sv0b) refreshed and "
+            "confirmed deterministic; with KC-001 already fixed, the self-host loop "
+            "is now fully green (99/99 files; emit+cc+run OK; behavioral parity with "
+            "SML) for the first time this whole project has observed it."
         ),
         "severity": "non-blocking",
-        "status": "open",
+        "status": "resolved",
     },
     {
         "id": "KC-003",
