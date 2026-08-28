@@ -115,11 +115,9 @@ ensure_sv0_self_host_compiler() {
   if [[ ! -x "$out" ]]; then
     sv0_fail "ensure_sv0_self_host_compiler: missing executable $out"
   fi
-  # lib/driver.sv0's test mode calls read_file("/tmp/.sv0_drv_path") unconditionally,
-  # and read_file panics when fopen fails. build-sv0-self-host-compiler.sh creates the
-  # file empty, but it is skipped once the wrapper exists (and /tmp gets reaped), so
-  # guarantee the control file here for every self-host path.
-  [[ -f /tmp/.sv0_drv_path ]] || printf '' > /tmp/.sv0_drv_path
+  # NEX-055c/REL-004 closure: lib/driver.sv0's legacy /tmp/.sv0_drv_path fallback
+  # is retired (getenv("SV0_DRV_REQUEST") never panics on unset), so there is no
+  # control file to guarantee here any more.
 }
 
 # PC-6c (native-default promotion): materialize the native mega-TU compiler
@@ -135,7 +133,6 @@ ensure_sv0_megatu_native() {
   if [[ ! -x "$out" ]]; then
     sv0_fail "ensure_sv0_megatu_native: missing executable $out (build-sv0-megatu-native.sh failed)"
   fi
-  [[ -f /tmp/.sv0_drv_path ]] || printf '' > /tmp/.sv0_drv_path
 }
 
 # M4-S-020: materialize the native contract-VERIFY binary (build/sv0-megatu-verify),

@@ -154,11 +154,11 @@ def compile_check(sv0c_root: Path, tu: Path) -> int:
         print(f"assemble-megatu: missing SML heap {heap} (run: make -C sv0c heap)", file=sys.stderr)
         return 1
     c_out = tu.with_suffix(".c")
-    ctl = Path("/tmp/.sv0_drv_path")
-    try:
-        ctl.write_text("")
-    except OSError:
-        pass
+    # NEX-055c/REL-004 closure: the legacy /tmp/.sv0_drv_path control file this
+    # used to defensively reset (in case a caller-supplied compose-main read it)
+    # is retired -- no compose-main in this codebase reads it any more, and a
+    # static guard (native_exe_no_new_legacy_control_file.py) fails closed on
+    # any new one that would.
     with c_out.open("w") as fh:
         r = subprocess.run(
             ["sml", f"@SMLload={heap}", str(tu.resolve())],

@@ -1340,8 +1340,58 @@ Resolved 2026-08-23, in order:
   its remaining callers stays a tracked, separate future effort.
   Verified load-bearing by mutation. `test-guards --active-release R1`
   and traceability both green throughout. sv0c commit `e0da799`, parent
-  pending. **REL-004 remains open** — full closure needs the 11+ files
+  `048870b`. **REL-004 remains open** — full closure needs the 11+ files
   above migrated and this guard deleted entirely.
+
+- **2026-08-28 — REL-004 CLOSED.** Continuing past the prior checkpoint,
+  chunks 1-5 finished migrating every genuinely temporary legacy-file
+  caller: 3 shell parity scripts; the VM-native compose-main (unblocking
+  `sv0-vm-tier2-native-emitter.sh`); both wrapper-*generating* scripts'
+  emitted wrapper bodies (internal implementation only, external
+  argv/stdout contract unchanged, verified byte-identical for every
+  invocation shape); `verify_behavior_corpus_native.py`'s dead reset;
+  and a genuine gap the guard's own scripts-only scan had missed —
+  `.github/workflows/self-host-native.yml` had a real unmigrated write,
+  found by an exhaustive repo-wide check and fixed alongside extending
+  the guard to scan `.github/workflows/` too. The real finding from
+  finishing that pass: every temporary caller was now migrated, leaving
+  only entries that existed *because* `driver.sv0`/`megaTU-main.sv0`
+  still had a legacy fallback at all — meaning removing it for real was
+  finally safe.
+
+  Did exactly that: `lib/driver.sv0`'s `fn main()` and both compose-main
+  templates (`build-sv0-megatu-native.sh`, `build-sv0-megatu-vm-native.sh`)
+  no longer read `/tmp/.sv0_drv_path` under any circumstance —
+  `getenv("SV0_DRV_REQUEST")` (never panics on unset) is the sole entry
+  channel. `scripts/sv0`'s `ensure_*` guarantees, the wrapper-generator
+  scripts' and CI workflow's file-init resets, and
+  `assemble-sv0-megaTU.py`'s defensive reset were all removed as
+  genuinely dead code in the same pass.
+
+  **Real verification, not hypothetical**: rebuilt every affected binary
+  with the legacy file deleted (not merely emptied) beforehand; confirmed
+  correct behavior throughout. Compared against a true pre-change
+  baseline via `git -C sv0c stash` (a parent-only `git stash` does NOT
+  revert a dirty submodule's own working tree -- caught and corrected
+  after an initial false-positive "identical" result that was actually
+  comparing the same post-change file against itself): every migrated
+  path's output is byte-identical before and after. **Incidental bonus,
+  not chased further**: simplifying `driver.sv0`'s `fn main()` fixed a
+  pre-existing native-C-compile failure for `lib/driver.sv0` itself in
+  the two native-parity scripts (both now 97/99 instead of 96/99,
+  `CCFAIL` 1→0) — a genuine improvement, root cause not investigated
+  since it's strictly positive. `sv0c make test` 307/308 (same
+  pre-existing failure); stage0/vm-parity goldens unaffected;
+  `./scripts/sv0 test` shows only the same two pre-existing failures
+  throughout, with the legacy control file never created at any point
+  in the entire run. `native_exe_no_new_legacy_control_file.py` fully
+  rewritten — its allowlist now holds only doc-only historical mentions,
+  no more "real, unmigrated" bucket. `test-guards --active-release R1`
+  and traceability both green. sv0c commit `b54077c`, parent pending.
+  **REL-004 is closed** — the entire NEX-055c body of work is done. The
+  only other known open item across this whole spec's F0/R0/R0.1/R1
+  bands is the deliberately-deferred macOS Apple Clang CI leg
+  (documented, not applied in `.github/workflows/ci.yml`).
 
 ## related
 

@@ -15,8 +15,8 @@
 #
 # Build is one-time bootstrap (SML compiles the mega-TU sv0 -> C, then cc); the RESULT
 # runs with no SML heap. Produces:
-#   build/sv0-megatu-native            — the native composed compiler (reads SV0_DRV_REQUEST
-#                                        when set, else /tmp/.sv0_drv_path; C to stdout)
+#   build/sv0-megatu-native            — the native composed compiler (reads SV0_DRV_REQUEST;
+#                                        C to stdout)
 #   build/sv0-megatu-compiler-native   — wrapper adapting argv[1] -> SV0_DRV_REQUEST -> the binary
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -32,41 +32,34 @@ NATIVE="$BUILD/sv0-megatu-native"
 WRAP="$BUILD/sv0-megatu-compiler-native"
 
 # ── 1. Derive a CLI compose main from the committed megaTU-main.sv0 ──────────
-#    - source: prefer SV0_DRV_REQUEST (NEX-055c/REL-004's reentrant channel) when
-#      set; otherwise read the path from /tmp/.sv0_drv_path (strip trailing newline)
+#    - source: read SV0_DRV_REQUEST (strip trailing newline) -- NEX-055c/REL-004's
+#      reentrant channel, the sole entry channel since this closure's final step
 #    - output: write the emitted C to /dev/stdout (the SV0_SELF_HOST_COMPILER contract)
 python3 - "$MAIN_SRC" "$CLI_MAIN" <<'PY'
 import re, sys, pathlib
 src = pathlib.Path(sys.argv[1]).read_text()
 
 # Replace the hardcoded smoke source (+ the committed contract-mode defaults) with
-# a CLI read of /tmp/.sv0_drv_path (or, preferentially, SV0_DRV_REQUEST -- see
-# below). The control text holds ONE of:
+# a CLI read of SV0_DRV_REQUEST. The control text holds ONE of:
 #   <path.sv0>                     file mode
 #   --project <dir>                project mode (source-concat every .sv0 under dir)
 #   --verified <proof> <src.sv0>   verified contract-mode (M4-S-024): strip the
 #                                  `ensures` whose source lines are listed in the
 #                                  proof-results file <proof>, then compile <src>.
-# One control file => no stale cross-contamination with the single-file corpus /
-# self-host harnesses. Verified mode only reads <proof> when the prefix is present,
-# so a missing proof file never panics normal compiles.
+# Verified mode only reads <proof> when the prefix is present, so a missing proof
+# file never panics normal compiles.
 #
-# NEX-055c/REL-004: SV0_DRV_REQUEST, when set to a non-empty value, is a
-# reentrant, per-invocation private request channel (a real host env var,
-# unshared between processes) holding the exact same control-text grammar
-# above -- preferred over the legacy shared /tmp/.sv0_drv_path control file
-# when set, eliminating the cross-process race entirely for a caller that
-# uses it. This is an ADDITIONAL read path, not a replacement: an existing
-# caller that only ever writes the control file (SV0_DRV_REQUEST unset)
-# is completely unaffected -- every _drv_c/_drv_cn/_is_proj/etc. line below
-# operates on _drv_p regardless of which source it came from.
+# NEX-055c/REL-004 closure: SV0_DRV_REQUEST is a reentrant, per-invocation
+# private request channel (a real host env var, unshared between processes) --
+# no cross-process race is possible. The legacy shared /tmp/.sv0_drv_path
+# control file this replaced is retired; every caller was migrated onto
+# SV0_DRV_REQUEST in this closure plan's own steps 2-5 before this fallback was
+# removed, and a static guard (scripts/native_exe_no_new_legacy_control_file.py)
+# enforces that no new caller reintroduces it. getenv() never panics on an
+# unset variable (returns "") -- every _drv_c/_drv_cn/_is_proj/etc. line below
+# operates on _drv_p regardless.
 cli_read = (
-    'let _drv_env: string = getenv("SV0_DRV_REQUEST");\n'
-    '    let _drv_p: string = if string_len(_drv_env) > 0 {\n'
-    '        _drv_env\n'
-    '    } else {\n'
-    '        read_file("/tmp/.sv0_drv_path")\n'
-    '    };\n'
+    'let _drv_p: string = getenv("SV0_DRV_REQUEST");\n'
     '    let _drv_n: i32 = string_len(_drv_p);\n'
     '    let _drv_c: string = if _drv_n > 0 {\n'
     '        if string_char_at(_drv_p, _drv_n - 1) == 10 {\n'
@@ -158,6 +151,4 @@ EOS
 chmod +x "$WRAP"
 echo "build-sv0-megatu-native: wrote $WRAP (native full-compose wrapper)" >&2
 
-# ── 6. Init the control file empty (test-mode default) ───────────────────────
-printf "" > /tmp/.sv0_drv_path
 echo "build-sv0-megatu-native: done — point SV0_SELF_HOST_COMPILER at $WRAP for the native full-compose loop" >&2

@@ -6,10 +6,8 @@
 #   build/sv0-driver-native              — native binary compiled from lib/driver.sv0 via SML→C→cc
 #   build/sv0-self-host-compiler-native  — wrapper around sv0-driver-native (for manual native testing)
 #
-# The native binary reads its input path from SV0_DRV_REQUEST (set by the wrapper on
-# each invocation; see NEX-055c/REL-004) or, as a legacy fallback, /tmp/.sv0_drv_path
-# (empty = test mode). This script initialises that file as empty so that test-mode
-# invocations of the native binary work without the wrapper.
+# The native binary reads its input path from SV0_DRV_REQUEST, set by the
+# wrapper on each invocation (NEX-055c/REL-004); unset = test mode.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SV0C="$ROOT/sv0c"
@@ -66,8 +64,5 @@ EOS
     fi
   fi
 fi
-
-# ── 3. Initialise control file empty so native binary runs in test mode ──────
-printf "" > /tmp/.sv0_drv_path
 
 echo "build-sv0-self-host-compiler: done (see sv0c/doc/native-self-host-compiler-recipe.md)" >&2

@@ -1,78 +1,65 @@
-"""Static guard: no NEW `/tmp/.sv0_drv_path` reference outside the known legacy set (NEX-055c, REL-004 step 6).
+"""Static guard: no new `/tmp/.sv0_drv_path` reference, anywhere (NEX-055c, REL-004 -- CLOSED).
 
 Implements the "static guard" half of REL-004
 (`~/Documents/project-specs/sv0c-runtime-executable/SPEC.md`): "Global
 `/tmp/.sv0_drv_path` SHALL not appear in the stable executable path."
 
-**What step 6 actually is, stated honestly.** The design doc's own
-sequencing (`sv0c/doc/native-executable-reentrant-core-compiler-design.md`)
-calls step 6 "remove the legacy control-file path entirely." That is NOT
-what this module does, and doing it for real is not safe today. A
-full-repo scan (run once, by hand, while writing this guard) originally
-found the legacy control file load-bearing in eleven `scripts/` places
-beyond the two already migrated in steps 3/5
-(`native_exe_core_compiler.py`, `scripts/sv0`'s
-`run_compile`/`run_emit_verified`) -- plus, missed entirely by that
-first scan since it only ever looked at `scripts/`, a genuine
-unmigrated write in `.github/workflows/self-host-native.yml`, found and
-fixed alongside extending this guard's own scan to cover
-`.github/workflows/` too (see `_scan_one_dir` and the `--selftest`'s
-`workflows_dir`). A REL-004 closure follow-up has since migrated
-`build-sv0-megatu-vm-native.sh`'s own
-compose-main to prefer `SV0_DRV_REQUEST` too (chunk 2 -- the one
-compose-main step 2 originally missed; along the way, its `megatu_
-emit_program` call needle had also silently bit-rotted against an
-unrelated upstream signature change and needed a one-line fix just to
-make the recipe buildable again, unrelated to REL-004 itself but
-necessary to verify this chunk at all), and migrated/cleared three more
-files that turned out to never touch the file for real in the first
-place (`sv0-native-behavioral-parity.sh`, `sv0-megatu-corpus-parity.sh`,
-and a dead-code cleanup in `sv0-megatu-native-parity.sh`'s own redundant
-resets), and migrated `sv0-vm-tier2-native-emitter.sh` to
-`SV0_DRV_REQUEST` (chunk 3, unblocked by chunk 2). A further follow-up
-migrated the two wrapper-*generating* scripts' emitted wrapper bodies
-themselves (chunk 4) -- `build-sv0-megatu-native.sh`'s `$WRAP` heredoc
-and `build-sv0-self-host-compiler.sh`'s wrapper heredoc now pass the
-request via `SV0_DRV_REQUEST` too, changing the wrapper's internal
-implementation only, never its external argv/stdout contract (verified
-byte-identical output before/after for every invocation shape: file
-mode, `--project` mode, the missing-argument error path). A final
-cleanup pass (chunk 5) removed `verify_behavior_corpus_native.py`'s own
-now-redundant defensive reset (the wrapper it invokes stopped writing
-the file in chunk 4, so nothing was left to protect) and investigated
-`assemble-sv0-megaTU.py`'s equivalent reset in its `--check` mode --
-concluded that one is NOT the same kind of migratable dead code: it is
-a generic developer tool whose `--check` mode can be pointed at an
-arbitrary caller-supplied compose-main, so its defensive reset is a
-legitimate, permanent safety net rather than a specific request write to
-migrate, and was left in place deliberately.
+**REL-004 is now closed.** `sv0c/lib/driver.sv0`'s `fn main()` and both
+mega-TU compose-main templates (`build-sv0-megatu-native.sh`,
+`build-sv0-megatu-vm-native.sh`) no longer have a legacy-file fallback at
+all -- `getenv("SV0_DRV_REQUEST")` (never panics on an unset variable) is
+the sole entry channel. Getting here took a 6-step migration plan, each
+step verified real end to end (byte-identical output before/after,
+`./scripts/sv0 test`/`test-guards` clean, no new failures beyond this
+project's own long-standing pre-existing ones):
 
-**A real finding from finishing chunk 5**: every genuinely *temporary*
-caller (one this closure plan could actually finish migrating) has now
-been migrated. **Six entries remain in `_EXEMPT_BASENAMES`, and all six
-are now permanent-by-design, not "not yet migrated"**: `sv0`
-(`scripts/sv0`'s `ensure_*` file-existence guarantees),
-`build-sv0-megatu-native.sh` and `build-sv0-megatu-vm-native.sh` (each
-keeps the file as an intentional, additive fallback in its own
-compose-main, plus a shared file-init reset), `build-sv0-self-host-compiler.sh`
-and `self-host-native.yml` (.github/workflows/ -- both have the same
-shared file-init reset for `driver.sv0`'s own fallback), and
-`assemble-sv0-megaTU.py` (the generic safety net above). Every one of
-these exists only *because* `driver.sv0`/`megaTU-main.sv0` still have a
-legacy fallback read path at all -- they cannot shrink further without
-removing that fallback itself, which is the true REL-004 closure (this
-guard's own step 6), not a chunk this migration plan can execute
-incrementally -- real, separate, tracked work, recorded honestly here
-rather than silently attempted or silently dropped.
+1. Add the `getenv` host builtin (NEX-055c's own original scoping +
+   implementation).
+2. Add `SV0_DRV_REQUEST` as an *additional* read path to `driver.sv0`
+   and `build-sv0-megatu-native.sh`'s compose-main, alongside the legacy
+   file.
+3. Migrate `native_exe_core_compiler.py`'s `CoreCompilerClient` off its
+   `flock`-on-a-shared-file design onto a per-call env var (structural,
+   not just lock-protected, isolation).
+4. Formal self-host-loop re-verification.
+5. Migrate every remaining real caller: `scripts/sv0`'s
+   `run_compile`/`run_emit_verified`; the VM-bytecode-emitter
+   compose-main (`build-sv0-megatu-vm-native.sh`, which step 2 had
+   missed -- its `megatu_emit_program` needle had also separately
+   bit-rotted, fixed as an unrelated prerequisite); the two
+   wrapper-*generating* scripts' emitted wrapper bodies
+   (`build-sv0-megatu-native.sh`'s `$WRAP`,
+   `build-sv0-self-host-compiler.sh`'s wrapper -- internal
+   implementation only, external argv/stdout contract unchanged);
+   `sv0-vm-tier2-native-emitter.sh`; dead-code cleanup in
+   `verify_behavior_corpus_native.py`/`assemble-sv0-megaTU.py`'s
+   defensive resets; and a genuine gap this guard's own first version
+   had missed entirely (it only ever scanned `scripts/`) --
+   `.github/workflows/self-host-native.yml` had a real, unmigrated
+   write, found by an exhaustive repo-wide check and fixed alongside
+   extending this guard's scan to cover `.github/workflows/` too.
+6. **Remove the legacy fallback for real** from `driver.sv0`'s
+   `fn main()` and both compose-main templates, once step 5's exhaustive
+   scan confirmed nothing anywhere still wrote real content into the
+   file. Verified byte-identical output for every remaining caller with
+   the legacy file deleted entirely (not just emptied) throughout; full
+   `./scripts/sv0 test` shows only the same long-standing pre-existing
+   failures. **Incidental bonus found, not chased further**: simplifying
+   `driver.sv0`'s `fn main()` (removing the now-dead fallback branch)
+   fixed a pre-existing native-C-compile failure for `lib/driver.sv0`
+   itself in `sv0-megatu-native-parity.sh`/`sv0-megatu-corpus-parity.sh`
+   (both now pass 97/99 instead of 96/99) -- a genuine improvement, not
+   investigated for root cause since it's strictly positive.
 
-**What this module does instead**: the other half of step 6 that IS safe
-and valuable today -- a static guard that fails closed if a *new* file
-(anything not in the exhaustive, documented allowlist below) references
-`/tmp/.sv0_drv_path`. This stops the legacy channel from *growing* any
-further while the real migration of its existing callers remains a
-tracked, separate follow-up, mirroring NEX-058's own
-`native_exe_no_duplicate_cc_recipe.py` precedent exactly (a duplication
-guard with a documented exemption list, not a completed migration).
+**What this module does now**: a permanent regression guard, not a
+temporary migration-tracking allowlist. It fails closed if any file (in
+`scripts/` or `.github/workflows/`) references the retired
+`/tmp/.sv0_drv_path` token outside the documented allowlist below --
+which now holds only historical/doc-only mentions (comments explaining
+the migration, or a sibling module's own separate control file), never a
+real reader or writer. Mirrors NEX-058's own
+`native_exe_no_duplicate_cc_recipe.py` precedent (a duplication guard
+with a documented exemption list).
 
 Run `python3 scripts/native_exe_no_new_legacy_control_file.py --selftest`
 for the corpus.
@@ -87,36 +74,24 @@ _LEGACY_PATH_TOKEN = ".sv0_drv_path"
 # The exhaustive, documented set of files legitimately allowed to
 # reference the legacy control file today. Every entry has a one-line
 # reason; a file not on this list that mentions the token is a NEW
-# reference this guard exists to catch. Entries fall into two groups:
-#
-#   (a) STILL A REAL, UNMIGRATED CALLER -- reads/writes the file for real,
-#       not yet moved to SV0_DRV_REQUEST. Tracked as the follow-up this
-#       module's own docstring names; removing the entry from this list is
-#       exactly how a future migration of that file gets held to this
-#       guard (migrate the file, then delete its allowlist line).
-#   (b) DOC-ONLY / GUARD-OWN-SOURCE -- mentions the token in prose (this
-#       module's own docstring, or another module's historical-context
-#       comment) with no actual file I/O on it.
+# reference this guard exists to catch. Every entry below is DOC-ONLY --
+# REL-004 is closed, so nothing anywhere does real file I/O on the
+# legacy path any more. Each entry mentions the token only in a comment
+# or docstring explaining the migration history, or (one case) a
+# sibling module's own separate, unrelated control file.
 _EXEMPT_BASENAMES = {
-    # (a) real, unmigrated legacy callers
-    "sv0",  # scripts/sv0: ensure_*'s file-existence guarantee for every other unmigrated caller below
-    "build-sv0-megatu-native.sh",  # compose-main + generated wrapper both migrated (steps 2, chunk 4); token survives only in the intentional, permanent legacy-fallback read + the shared file-init reset every other still-unmigrated caller depends on
-    "build-sv0-megatu-vm-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (chunk 2); the token survives only in its intentional, permanent legacy-fallback read (no wrapper of its own)
-    "build-sv0-self-host-compiler.sh",  # generated wrapper migrated (chunk 4); token survives only in the shared file-init reset + a doc comment
-    "assemble-sv0-megaTU.py",  # generic --check tool: defensively resets before invoking sml on WHATEVER compose-main a caller supplies; not migratable in the same sense (it never constructs a request itself, and its future callers/compose-mains aren't fully enumerable) -- a permanent, intentional safety net
-    "self-host-native.yml",  # (.github/workflows/) migrated NEX-055c/REL-004; still has its own defensive reset for driver.sv0's fallback, same pattern as build-sv0-self-host-compiler.sh
-    # (b) doc-only mentions, no real file I/O on the legacy path (migrated to
-    # SV0_DRV_REQUEST already, or never touched it for real; the token only
-    # survives in a comment/docstring explaining the history or a sibling file)
-    "build-sv0-megatu-verify-native.sh",  # one comment explaining why it uses ITS OWN separate /tmp/.sv0_verify_path instead
-    "sv0-megatu-corpus-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment now explains its own compose-main never touched the file at all
-    "sv0-native-behavioral-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment quotes the legacy path for history only
-    "sv0-vm-tier2-native-emitter.sh",  # migrated NEX-055c/REL-004 chunk 3; comment quotes the legacy path for history only
-    "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's now-migrated wrapper (chunk 4); comment quotes the legacy path for history only
-    "verify_behavior_corpus_native.py",  # migrated NEX-055c/REL-004 chunk 5; comment quotes the legacy path for history only
+    "sv0",  # scripts/sv0: ensure_* comment records that driver.sv0's fallback no longer needs a file guarantee
+    "build-sv0-megatu-native.sh",  # comment records the retired legacy fallback this compose-main used to also accept
+    "build-sv0-megatu-vm-native.sh",  # comment records the retired legacy fallback this compose-main used to also accept
+    "assemble-sv0-megaTU.py",  # comment records the retired defensive reset this --check tool used to perform
+    "build-sv0-megatu-verify-native.sh",  # one comment explaining why it uses ITS OWN separate, unrelated /tmp/.sv0_verify_path
+    "sv0-megatu-corpus-parity.sh",  # comment explains its own compose-main never touched the file at all
+    "sv0-native-behavioral-parity.sh",  # comment quotes the legacy path for history only
+    "sv0-vm-tier2-native-emitter.sh",  # comment quotes the legacy path for history only
+    "verify_behavior_corpus_native.py",  # comment quotes the legacy path for history only
     "native_exe_core_compiler.py",  # migration history in its own docstring (NEX-011/055c)
     "native_exe_concurrent_perf.py",  # PERF-006 finding's before/after history in its docstring
-    "native_exe_no_new_legacy_control_file.py",  # this file's own docstring/allowlist, quoting the token
+    "native_exe_no_new_legacy_control_file.py",  # this file's own docstring, quoting the token
 }
 
 

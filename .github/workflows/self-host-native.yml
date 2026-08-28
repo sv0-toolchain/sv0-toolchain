@@ -43,18 +43,13 @@ jobs:
 
       - name: Native binary self-test (P2 — 49 tests exit 0)
         run: |
-          # driver.sv0's legacy fallback (read_file) still needs this file to
-          # exist+be empty when SV0_DRV_REQUEST is unset -- see NEX-055c/REL-004.
-          printf "" > /tmp/.sv0_drv_path
           ./build/sv0-driver-native
           echo "native driver self-test: exit $?"
 
       - name: Native binary smoke — emit+cc+run vm_add_chain (P2)
         run: |
-          # NEX-055c/REL-004 closure: SV0_DRV_REQUEST (a per-invocation env var,
-          # driver.sv0's own fn main() has preferred over the legacy
-          # /tmp/.sv0_drv_path control file since step 2) replaces the old
-          # write+run+reset dance.
+          # NEX-055c/REL-004 closure: SV0_DRV_REQUEST (a per-invocation env var)
+          # is the sole entry channel into driver.sv0's fn main().
           ABS="$PWD/sv0c/test/vm-parity/programs/vm_add_chain.sv0"
           SV0_DRV_REQUEST="$ABS" ./build/sv0-driver-native > /tmp/vm_add_chain_native.c
           cc -std=c99 -O0 -I sv0c/runtime /tmp/vm_add_chain_native.c sv0c/runtime/sv0_runtime.c -o /tmp/vm_add_chain_native
