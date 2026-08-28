@@ -19,7 +19,7 @@
 #
 # Assembles the 18 modules + this VM main into one mega-TU, SML->C->cc once (native,
 # no SML at runtime). Produces build/sv0-megatu-vm-native (reads the source path from
-# /tmp/.sv0_drv_path, writes the .sv0b to stdout).
+# SV0_DRV_REQUEST when set, else /tmp/.sv0_drv_path; writes the .sv0b to stdout).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SV0C="$ROOT/sv0c"
@@ -36,9 +36,17 @@ python3 - "$MAIN_SRC" "$VM_MAIN" <<'PY'
 import re, sys, pathlib
 src = pathlib.Path(sys.argv[1]).read_text()
 
-# 1. CLI source read (path in /tmp/.sv0_drv_path).
+# 1. CLI source read (path in SV0_DRV_REQUEST when set, else /tmp/.sv0_drv_path).
+# NEX-055c/REL-004 closure chunk 2: mirrors build-sv0-megatu-native.sh's own
+# step-2 wiring exactly -- an ADDITIONAL read path, not a replacement; a caller
+# that never sets SV0_DRV_REQUEST is completely unaffected.
 cli_read = (
-    'let _drv_p: string = read_file("/tmp/.sv0_drv_path");\n'
+    'let _drv_env: string = getenv("SV0_DRV_REQUEST");\n'
+    '    let _drv_p: string = if string_len(_drv_env) > 0 {\n'
+    '        _drv_env\n'
+    '    } else {\n'
+    '        read_file("/tmp/.sv0_drv_path")\n'
+    '    };\n'
     '    let _drv_n: i32 = string_len(_drv_p);\n'
     '    let _drv_path: string = if _drv_n > 0 {\n'
     '        if string_char_at(_drv_p, _drv_n - 1) == 10 {\n'
@@ -52,14 +60,20 @@ assert n == 1, "compose main shape changed: `let source`"
 
 # 2. Replace phase 6 (C emit call + gate) with the VM tail. Falls through to the
 #    existing `return 0;` at end of main (no return here). `td` from lower is unused
-#    in the VM path but kept (lower fills out_blocks).
+#    in the VM path but kept (lower fills out_blocks). eit_nt/eit_base/eit_cnt/
+#    eit_cats (enum-item VMember-resolution metadata, added to megatu_emit_program's
+#    own signature after this recipe was originally written -- unrelated drift,
+#    found + fixed here as a pure needle-match update, NOT a REL-004 change) are
+#    computed earlier in fn main() but are C-emit-only; the VM tail below calls
+#    vm_codegen_emit_program instead, which never needed them.
 needle = (
     '    let sidx: Vec<i32> = assign_shadow_indices(it, id3, id4, id5, fpn,\n'
     '                                               bet, bed1, bed2, bed3, bed4, pp,\n'
     '                                               source, starts, ends);\n'
     '    let c: string = megatu_emit_program(td, out_blocks, source, starts, ends,\n'
     '                                        it, id1, id2, id3, id5, fpn,\n'
-    '                                        fpt, frt, ptt, ptd1, ptd2, pp, sidx);\n'
+    '                                        fpt, frt, ptt, ptd1, ptd2, pp, sidx,\n'
+    '                                        eit_nt, eit_base, eit_cnt, eit_cats);\n'
     '    if string_len(c) == 0 { return 5; }'
 )
 assert needle in src, "compose main phase-6 shape changed"
@@ -139,4 +153,4 @@ if ! "$_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$NATIVE" "$EMIT_C" "$SV0C/runtime
 fi
 echo "build-sv0-megatu-vm-native: wrote $NATIVE (native VM bytecode emitter)" >&2
 printf "" > /tmp/.sv0_drv_path
-echo "build-sv0-megatu-vm-native: done — set /tmp/.sv0_drv_path then run $NATIVE (>.sv0b on stdout)" >&2
+echo "build-sv0-megatu-vm-native: done — run SV0_DRV_REQUEST=<path> $NATIVE (>.sv0b on stdout), or set /tmp/.sv0_drv_path then run $NATIVE" >&2

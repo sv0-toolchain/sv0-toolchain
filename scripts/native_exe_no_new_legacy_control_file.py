@@ -11,32 +11,41 @@ what this module does, and doing it for real is not safe today. A
 full-repo scan (run once, by hand, while writing this guard) originally
 found the legacy control file load-bearing in eleven places beyond the
 two already migrated in steps 3/5 (`native_exe_core_compiler.py`,
-`scripts/sv0`'s `run_compile`/`run_emit_verified`); a REL-004 closure
-follow-up has since migrated three of those to `SV0_DRV_REQUEST` or
-proven they never touched the file for real in the first place
-(`sv0-native-behavioral-parity.sh`, `sv0-megatu-corpus-parity.sh`, and a
-dead-code cleanup in `sv0-megatu-native-parity.sh`'s own redundant
-resets). **Eight real callers remain**, tracked in `_EXEMPT_BASENAMES`'s
-own per-entry comments below: `build-sv0-megatu-native.sh` (its
-generated wrapper still writes the file internally),
-`build-sv0-megatu-vm-native.sh` (a SEPARATE injected compose-main for
-the VM-bytecode emitter target that was never given the
-`SV0_DRV_REQUEST` wiring step 2 added elsewhere -- it still reads the
-file unconditionally), `build-sv0-self-host-compiler.sh` (same wrapper
-shape as the first), `sv0-megatu-native-parity.sh` (invokes that first
-wrapper by its own argv contract), `sv0-vm-tier2-native-emitter.sh`
-(targets the still-unmigrated VM-native compose-main),
-`verify_behavior_corpus_native.py` (invokes the still-unmigrated
-wrapper), `assemble-sv0-megaTU.py` (a generic tool: defensively resets
-before invoking `sml` on whatever compose-main it's given, which may
-still be one of the unmigrated ones), plus `scripts/sv0`'s own
+`scripts/sv0`'s `run_compile`/`run_emit_verified`). A REL-004 closure
+follow-up has since migrated `build-sv0-megatu-vm-native.sh`'s own
+compose-main to prefer `SV0_DRV_REQUEST` too (chunk 2 -- the one
+compose-main step 2 originally missed; along the way, its `megatu_
+emit_program` call needle had also silently bit-rotted against an
+unrelated upstream signature change and needed a one-line fix just to
+make the recipe buildable again, unrelated to REL-004 itself but
+necessary to verify this chunk at all), and migrated/cleared three more
+files that turned out to never touch the file for real in the first
+place (`sv0-native-behavioral-parity.sh`, `sv0-megatu-corpus-parity.sh`,
+and a dead-code cleanup in `sv0-megatu-native-parity.sh`'s own redundant
+resets). **Six real callers remain**, tracked in `_EXEMPT_BASENAMES`'s
+own per-entry comments below: `build-sv0-megatu-native.sh` and
+`build-sv0-megatu-vm-native.sh` (each still keeps the file as an
+intentional, additive fallback in its own compose-main -- by design, the
+same shape `driver.sv0` itself keeps permanently; `build-sv0-megatu-
+native.sh` ALSO still has a real, unmigrated caller in its own generated
+wrapper), `build-sv0-self-host-compiler.sh` (its own generated wrapper
+still writes the file internally), `sv0-megatu-native-parity.sh`
+(invokes that wrapper by its own argv contract), `sv0-vm-tier2-native-
+emitter.sh` (still writes the file directly before invoking the
+VM-native binary -- migrating the CALLER, not just the compose-main it
+targets, is separate follow-up work), `verify_behavior_corpus_native.py`
+(invokes the still-unmigrated wrapper), `assemble-sv0-megaTU.py` (a
+generic tool: defensively resets before invoking `sml` on whatever
+compose-main it's given, which may still be one of the unmigrated
+wrapper-dependent ones), plus `scripts/sv0`'s own
 `ensure_sv0_self_host_compiler`/`ensure_sv0_megatu_native`
 file-existence guarantees (still needed -- `driver.sv0`'s legacy
 fallback read still panics on a missing file, and every one of the
 above still depends on that fallback existing). Removing the legacy
-read path from `driver.sv0`/`megaTU-main.sv0` today would break all of
-them. That remains a real, separate, larger migration -- recorded
-honestly here rather than silently attempted or silently dropped.
+read path from `driver.sv0`/`megaTU-main.sv0` entirely (the true REL-004
+closure) today would break all of them. That remains real, separate,
+tracked work -- recorded honestly here rather than silently attempted or
+silently dropped.
 
 **What this module does instead**: the other half of step 6 that IS safe
 and valuable today -- a static guard that fails closed if a *new* file
@@ -73,8 +82,8 @@ _LEGACY_PATH_TOKEN = ".sv0_drv_path"
 _EXEMPT_BASENAMES = {
     # (a) real, unmigrated legacy callers
     "sv0",  # scripts/sv0: ensure_*'s file-existence guarantee for every other unmigrated caller below
-    "build-sv0-megatu-native.sh",  # its own generated wrapper still writes the file internally
-    "build-sv0-megatu-vm-native.sh",  # a SEPARATE injected compose-main, never given SV0_DRV_REQUEST wiring
+    "build-sv0-megatu-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (step 2); still real via its own generated wrapper, which writes the file internally
+    "build-sv0-megatu-vm-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (chunk 2); the token survives only in its intentional, permanent legacy-fallback read (no wrapper of its own)
     "build-sv0-self-host-compiler.sh",  # its own generated wrapper still writes the file internally
     "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's still-unmigrated wrapper by its argv contract
     "sv0-vm-tier2-native-emitter.sh",  # targets the still-unmigrated VM-native compose-main above
