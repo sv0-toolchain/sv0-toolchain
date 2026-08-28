@@ -1250,6 +1250,37 @@ Resolved 2026-08-23, in order:
   `CoreCompilerClient`, and retiring `/tmp/.sv0_drv_path` stay
   deliberately deferred, a separate, later effort.
 
+- **2026-08-28 — REL-004 migration step 2 of 6: `driver.sv0`/`megaTU-main.sv0`
+  wired to the new channel.** `lib/driver.sv0`'s `fn main()` and
+  `scripts/build-sv0-megatu-native.sh`'s injected compose-main both now
+  prefer `getenv("SV0_DRV_REQUEST")` over the legacy
+  `/tmp/.sv0_drv_path` control file when the env var is non-empty —
+  strictly additive, so any caller that never sets it is unaffected.
+  Two more real findings, again only via build-and-run, not static
+  reading: the SML bootstrap compiler
+  (`sv0c/sml-legacy/{name_resolution/resolver,type_checker/checker,ir/lowering}.sml`)
+  is a wholly separate implementation from the self-hosted `.sv0`
+  compiler already updated for `getenv` — it had never registered the
+  builtin at all, since no committed `.sv0` source had ever actually
+  called it until this wiring forced the first real call site through
+  the SML path; and `lowering.sml`'s `exprInitCty` had no case for a
+  bare local-variable identifier as an if-expression branch, mistyping
+  `let y = if c { some_string_var } else { read_file(...) }`'s result
+  temp as `int` — a real, pre-existing, getenv-unrelated bug, fixed by
+  consulting the already-populated `scrutLocals` local-type table.
+  Verified end to end: both `build/sv0-megatu-native` and
+  `build/sv0-driver-native` rebuilt; byte-identical emitted C between
+  the legacy-file and env-var paths for the same source, correct env-var
+  precedence when both are set, and the env-path C actually compiles and
+  runs. `sv0c make test` 307/308 (same pre-existing failure, git-stash
+  confirmed); 114-program native behavior corpus unmodified; all stage0
+  + vm-parity goldens diff-clean (no refresh needed this time);
+  `./scripts/sv0 test` shows only the same pre-existing `KC-001`-class
+  failures; `test-guards --active-release R1` green. sv0c commit
+  `647d2a0`, parent pending. Step 3 (migrate `CoreCompilerClient` off
+  its `flock`+file onto `SV0_DRV_REQUEST`) is next; REL-004 stays open
+  until step 6 (legacy-path removal + static guard).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
