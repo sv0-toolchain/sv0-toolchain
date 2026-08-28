@@ -22,18 +22,17 @@ necessary to verify this chunk at all), and migrated/cleared three more
 files that turned out to never touch the file for real in the first
 place (`sv0-native-behavioral-parity.sh`, `sv0-megatu-corpus-parity.sh`,
 and a dead-code cleanup in `sv0-megatu-native-parity.sh`'s own redundant
-resets). **Six real callers remain**, tracked in `_EXEMPT_BASENAMES`'s
-own per-entry comments below: `build-sv0-megatu-native.sh` and
-`build-sv0-megatu-vm-native.sh` (each still keeps the file as an
-intentional, additive fallback in its own compose-main -- by design, the
-same shape `driver.sv0` itself keeps permanently; `build-sv0-megatu-
-native.sh` ALSO still has a real, unmigrated caller in its own generated
-wrapper), `build-sv0-self-host-compiler.sh` (its own generated wrapper
-still writes the file internally), `sv0-megatu-native-parity.sh`
-(invokes that wrapper by its own argv contract), `sv0-vm-tier2-native-
-emitter.sh` (still writes the file directly before invoking the
-VM-native binary -- migrating the CALLER, not just the compose-main it
-targets, is separate follow-up work), `verify_behavior_corpus_native.py`
+resets), and migrated `sv0-vm-tier2-native-emitter.sh` to
+`SV0_DRV_REQUEST` (chunk 3, unblocked by chunk 2). **Five real callers
+remain**, tracked in `_EXEMPT_BASENAMES`'s own per-entry comments below:
+`build-sv0-megatu-native.sh` and `build-sv0-megatu-vm-native.sh` (each
+still keeps the file as an intentional, additive fallback in its own
+compose-main -- by design, the same shape `driver.sv0` itself keeps
+permanently; `build-sv0-megatu-native.sh` ALSO still has a real,
+unmigrated caller in its own generated wrapper),
+`build-sv0-self-host-compiler.sh` (its own generated wrapper still
+writes the file internally), `sv0-megatu-native-parity.sh` (invokes
+that wrapper by its own argv contract), `verify_behavior_corpus_native.py`
 (invokes the still-unmigrated wrapper), `assemble-sv0-megaTU.py` (a
 generic tool: defensively resets before invoking `sml` on whatever
 compose-main it's given, which may still be one of the unmigrated
@@ -86,15 +85,15 @@ _EXEMPT_BASENAMES = {
     "build-sv0-megatu-vm-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (chunk 2); the token survives only in its intentional, permanent legacy-fallback read (no wrapper of its own)
     "build-sv0-self-host-compiler.sh",  # its own generated wrapper still writes the file internally
     "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's still-unmigrated wrapper by its argv contract
-    "sv0-vm-tier2-native-emitter.sh",  # targets the still-unmigrated VM-native compose-main above
     "verify_behavior_corpus_native.py",  # invokes the still-unmigrated wrapper; resets the file it relies on
     "assemble-sv0-megaTU.py",  # generic tool: defensively resets before invoking sml on WHATEVER compose-main it was given, which may still be one of the unmigrated ones above
     # (b) doc-only mentions, no real file I/O on the legacy path (migrated to
     # SV0_DRV_REQUEST already, or never touched it for real; the token only
     # survives in a comment/docstring explaining the history or a sibling file)
     "build-sv0-megatu-verify-native.sh",  # one comment explaining why it uses ITS OWN separate /tmp/.sv0_verify_path instead
-    "sv0-megatu-corpus-parity.sh",  # migrated NEX-055c/REL-004 step-1-of-6; comment now explains its own compose-main never touched the file at all
-    "sv0-native-behavioral-parity.sh",  # migrated NEX-055c/REL-004 step-1-of-6; comment quotes the legacy path for history only
+    "sv0-megatu-corpus-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment now explains its own compose-main never touched the file at all
+    "sv0-native-behavioral-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment quotes the legacy path for history only
+    "sv0-vm-tier2-native-emitter.sh",  # migrated NEX-055c/REL-004 chunk 3; comment quotes the legacy path for history only
     "native_exe_core_compiler.py",  # migration history in its own docstring (NEX-011/055c)
     "native_exe_concurrent_perf.py",  # PERF-006 finding's before/after history in its docstring
     "native_exe_no_new_legacy_control_file.py",  # this file's own docstring/allowlist, quoting the token

@@ -4,9 +4,10 @@
 # The tier-2 byte-parity leg (scripts/sv0 run_vm_parity_tier2_emit_compare) invokes
 # the emitter as `<emitter> <rel>` and expects it to write sv0c/build/vm/<stem>.sv0b,
 # then cmp's that against test/vm-parity/golden/sml/<stem>.sv0b. The native emitter
-# (build/sv0-megatu-vm-native) instead reads the source path from /tmp/.sv0_drv_path
-# and writes the .sv0b to stdout, so this wrapper bridges the two: build the native
-# emitter on demand, then run it for one manifest path into build/vm/<stem>.sv0b.
+# (build/sv0-megatu-vm-native) instead reads the source path from SV0_DRV_REQUEST
+# (or, as a legacy fallback, /tmp/.sv0_drv_path -- see NEX-055c/REL-004) and writes
+# the .sv0b to stdout, so this wrapper bridges the two: build the native emitter on
+# demand, then run it for one manifest path into build/vm/<stem>.sv0b.
 #
 # The native emitter is byte-identical to the SML --target=vm golden for every
 # tier-2 program (all 18 mega-TU compiler modules as of P4/D2), so a mismatch
@@ -33,6 +34,6 @@ fi
 
 stem="$(basename "$rel" .sv0)"
 mkdir -p "$SV0C/build/vm"
-# The native emitter reads the source path from /tmp/.sv0_drv_path (CLI-mode).
-printf '%s' "$SV0C/$rel" > /tmp/.sv0_drv_path
-"$NATIVE" > "$SV0C/build/vm/${stem}.sv0b"
+# NEX-055c/REL-004: SV0_DRV_REQUEST replaces the legacy /tmp/.sv0_drv_path write
+# -- no shared file, no reset needed.
+SV0_DRV_REQUEST="$SV0C/$rel" "$NATIVE" > "$SV0C/build/vm/${stem}.sv0b"
