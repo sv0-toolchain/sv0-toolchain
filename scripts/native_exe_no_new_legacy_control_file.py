@@ -30,26 +30,33 @@ and `build-sv0-self-host-compiler.sh`'s wrapper heredoc now pass the
 request via `SV0_DRV_REQUEST` too, changing the wrapper's internal
 implementation only, never its external argv/stdout contract (verified
 byte-identical output before/after for every invocation shape: file
-mode, `--project` mode, the missing-argument error path). **Three real
-callers remain**, tracked in `_EXEMPT_BASENAMES`'s own per-entry
-comments below: `build-sv0-megatu-native.sh` and
-`build-sv0-megatu-vm-native.sh` (each still keeps the file as an
-intentional, additive fallback in its own compose-main -- by design, the
-same shape `driver.sv0` itself keeps permanently -- plus a shared
-file-init reset every still-unmigrated caller below depends on),
-`verify_behavior_corpus_native.py` (invokes the now-migrated wrapper but
-still has its own redundant defensive reset, not yet cleaned up),
-`assemble-sv0-megaTU.py` (a generic tool: defensively resets before
-invoking `sml` on whatever compose-main it's given, which may still be
-one of the unmigrated ones), plus `scripts/sv0`'s own
-`ensure_sv0_self_host_compiler`/`ensure_sv0_megatu_native`
-file-existence guarantees (still needed -- `driver.sv0`'s legacy
-fallback read still panics on a missing file, and every one of the
-above still depends on that fallback existing). Removing the legacy
-read path from `driver.sv0`/`megaTU-main.sv0` entirely (the true REL-004
-closure) today would break all of them. That remains real, separate,
-tracked work -- recorded honestly here rather than silently attempted or
-silently dropped.
+mode, `--project` mode, the missing-argument error path). A final
+cleanup pass (chunk 5) removed `verify_behavior_corpus_native.py`'s own
+now-redundant defensive reset (the wrapper it invokes stopped writing
+the file in chunk 4, so nothing was left to protect) and investigated
+`assemble-sv0-megaTU.py`'s equivalent reset in its `--check` mode --
+concluded that one is NOT the same kind of migratable dead code: it is
+a generic developer tool whose `--check` mode can be pointed at an
+arbitrary caller-supplied compose-main, so its defensive reset is a
+legitimate, permanent safety net rather than a specific request write to
+migrate, and was left in place deliberately.
+
+**A real finding from finishing chunk 5**: every genuinely *temporary*
+caller (one this closure plan could actually finish migrating) has now
+been migrated. **Five entries remain in `_EXEMPT_BASENAMES`, and all
+five are now permanent-by-design, not "not yet migrated"**: `sv0`
+(`scripts/sv0`'s `ensure_*` file-existence guarantees),
+`build-sv0-megatu-native.sh` and `build-sv0-megatu-vm-native.sh` (each
+keeps the file as an intentional, additive fallback in its own
+compose-main, plus a shared file-init reset), `build-sv0-self-host-compiler.sh`
+(the same shared file-init reset for `driver.sv0`'s own fallback), and
+`assemble-sv0-megaTU.py` (the generic safety net above). Every one of
+these exists only *because* `driver.sv0`/`megaTU-main.sv0` still have a
+legacy fallback read path at all -- they cannot shrink further without
+removing that fallback itself, which is the true REL-004 closure (this
+guard's own step 6), not a chunk this migration plan can execute
+incrementally -- real, separate, tracked work, recorded honestly here
+rather than silently attempted or silently dropped.
 
 **What this module does instead**: the other half of step 6 that IS safe
 and valuable today -- a static guard that fails closed if a *new* file
@@ -89,8 +96,7 @@ _EXEMPT_BASENAMES = {
     "build-sv0-megatu-native.sh",  # compose-main + generated wrapper both migrated (steps 2, chunk 4); token survives only in the intentional, permanent legacy-fallback read + the shared file-init reset every other still-unmigrated caller depends on
     "build-sv0-megatu-vm-native.sh",  # compose-main migrated to SV0_DRV_REQUEST (chunk 2); the token survives only in its intentional, permanent legacy-fallback read (no wrapper of its own)
     "build-sv0-self-host-compiler.sh",  # generated wrapper migrated (chunk 4); token survives only in the shared file-init reset + a doc comment
-    "verify_behavior_corpus_native.py",  # invokes the now-migrated wrapper but still has its own redundant defensive reset (separate follow-up)
-    "assemble-sv0-megaTU.py",  # generic tool: defensively resets before invoking sml on WHATEVER compose-main it was given, which may still be one of the unmigrated ones above
+    "assemble-sv0-megaTU.py",  # generic --check tool: defensively resets before invoking sml on WHATEVER compose-main a caller supplies; not migratable in the same sense (it never constructs a request itself, and its future callers/compose-mains aren't fully enumerable) -- a permanent, intentional safety net
     # (b) doc-only mentions, no real file I/O on the legacy path (migrated to
     # SV0_DRV_REQUEST already, or never touched it for real; the token only
     # survives in a comment/docstring explaining the history or a sibling file)
@@ -99,6 +105,7 @@ _EXEMPT_BASENAMES = {
     "sv0-native-behavioral-parity.sh",  # migrated NEX-055c/REL-004 chunk 1; comment quotes the legacy path for history only
     "sv0-vm-tier2-native-emitter.sh",  # migrated NEX-055c/REL-004 chunk 3; comment quotes the legacy path for history only
     "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's now-migrated wrapper (chunk 4); comment quotes the legacy path for history only
+    "verify_behavior_corpus_native.py",  # migrated NEX-055c/REL-004 chunk 5; comment quotes the legacy path for history only
     "native_exe_core_compiler.py",  # migration history in its own docstring (NEX-011/055c)
     "native_exe_concurrent_perf.py",  # PERF-006 finding's before/after history in its docstring
     "native_exe_no_new_legacy_control_file.py",  # this file's own docstring/allowlist, quoting the token

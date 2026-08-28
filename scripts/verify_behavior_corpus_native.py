@@ -28,9 +28,9 @@ def main(argv: list[str] | None = None) -> int:
     if not wrapper.is_file():
         print("verify_behavior_corpus_native: native compiler build failed", file=sys.stderr)
         return 1
-    # Keep the driver control file present + empty (the wrapper writes argv[1] into it).
-    Path("/tmp/.sv0_drv_path").write_text("")
-
+    # NEX-055c/REL-004 closure chunk 5: `wrapper` (migrated in chunk 4) now
+    # passes argv[1] through via SV0_DRV_REQUEST internally, not the legacy
+    # /tmp/.sv0_drv_path control file -- there is nothing to keep present here.
     n = 0
     for raw in manifest.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
