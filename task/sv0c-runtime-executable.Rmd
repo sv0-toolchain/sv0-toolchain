@@ -1083,6 +1083,37 @@ Resolved 2026-08-23, in order:
   folded in: `--emit=c` (NEX-039) is fully built but unreachable from
   either CLI surface today.
 
+  **Post-R1 traceability audit, step 1+2 complete**: step 1 fixed
+  `verify_native_exe_traceability.py`'s citation-context blindness
+  (`extract_cited_ids` now only counts a real header/`requirement(s)`-column
+  citation, never a row's free-text prose). Step 2 audited every one of
+  the 25 requirements the fixed guard then honestly flagged under
+  `--active-release R1`. Root cause found for most of the CLI-0xx gaps:
+  NEX-059's own section header used a compact `CLI-007/008/010…013/017`
+  shorthand the guard's regex cannot actually parse (a bare `/008` has no
+  prefix letters to attach to) — fixed by rewriting it in the
+  comma-separated convention every other header already uses. 15 more
+  citation-hygiene fixes added real IDs to rows/headers whose underlying
+  work already covered them (`TOOL-011`, `SEC-007`, `PIPE-010`, `PORT-003`,
+  `SEC-010`, `CLI-011`, `SEC-008`, `CLI-012`, `ENTRY-009`, `PORT-002`,
+  `GOV-006`, `TEST-003`, `PIPE-012`, `SEC-011`, `GOV-009` — several with
+  an honestly-stated completeness caveat rather than an unqualified
+  claim). Two genuine gaps got real new code: `CLI-008` (new
+  `scripts/native_exe_input_validation.py`, closing the file-mode
+  regular/readable/`.sv0`-extension requirement AND the previously-flagged
+  `validate_entry_exists` raw-crash follow-up in the same fix) and
+  `CLI-013` (`--verbose` was parsed all the way into `NativeBuildRequest`
+  but silently never read by `native_exe_main.py` — a real dead flag,
+  now wired to print real build detail). `DOC-004` needed real new doc
+  content (`native-executable.md`'s new "Diagnosing a host compile
+  failure" section, sv0c commit `a3a40fe`). Six requirements remain
+  genuinely, honestly open after this pass — `GOV-007`, `REPRO-001`,
+  `SEC-012`, `TEST-005`, `TEST-006`, `TOOL-013` — each recorded in the
+  checklist's own "Traceability audit" section with why it's still open,
+  not silently dropped. `verify_native_exe_traceability.py
+  --active-release R1` now reports exactly those 6, matching the audit's
+  own conclusion precisely.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
