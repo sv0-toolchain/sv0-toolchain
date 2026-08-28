@@ -7,27 +7,36 @@ Implements the "static guard" half of REL-004
 **What step 6 actually is, stated honestly.** The design doc's own
 sequencing (`sv0c/doc/native-executable-reentrant-core-compiler-design.md`)
 calls step 6 "remove the legacy control-file path entirely." That is NOT
-what this module does, and doing it for real is not safe today: a
-full-repo scan (run once, by hand, while writing this guard) found the
-legacy control file still load-bearing in at least eleven other places
-beyond the two already migrated in steps 3/5 (`native_exe_core_compiler.py`,
-`scripts/sv0`'s `run_compile`/`run_emit_verified`) --
-`scripts/build-sv0-megatu-native.sh`, `build-sv0-megatu-verify-native.sh`,
-`build-sv0-megatu-vm-native.sh` (a SEPARATE injected compose-main for the
-VM-bytecode emitter target that was never touched by NEX-055c's step 2
-wiring at all -- it still reads the file unconditionally, no
-`SV0_DRV_REQUEST` fallback), `build-sv0-self-host-compiler.sh`,
-`sv0-megatu-corpus-parity.sh`, `sv0-megatu-native-parity.sh`,
-`sv0-native-behavioral-parity.sh`, `sv0-vm-tier2-native-emitter.sh`,
-`verify_behavior_corpus_native.py`, `assemble-sv0-megaTU.py`, plus
-`scripts/sv0`'s own `ensure_sv0_self_host_compiler`/`ensure_sv0_megatu_native`
-file-existence guarantees (still needed -- `driver.sv0`'s legacy fallback
-read still panics on a missing file, and every one of the above still
-depends on that fallback existing). Removing the legacy read path from
-`driver.sv0`/`megaTU-main.sv0` today would break all of them. That is a
-real, separate, much larger migration than this session's scope --
-recorded honestly here rather than silently attempted or silently
-dropped.
+what this module does, and doing it for real is not safe today. A
+full-repo scan (run once, by hand, while writing this guard) originally
+found the legacy control file load-bearing in eleven places beyond the
+two already migrated in steps 3/5 (`native_exe_core_compiler.py`,
+`scripts/sv0`'s `run_compile`/`run_emit_verified`); a REL-004 closure
+follow-up has since migrated three of those to `SV0_DRV_REQUEST` or
+proven they never touched the file for real in the first place
+(`sv0-native-behavioral-parity.sh`, `sv0-megatu-corpus-parity.sh`, and a
+dead-code cleanup in `sv0-megatu-native-parity.sh`'s own redundant
+resets). **Eight real callers remain**, tracked in `_EXEMPT_BASENAMES`'s
+own per-entry comments below: `build-sv0-megatu-native.sh` (its
+generated wrapper still writes the file internally),
+`build-sv0-megatu-vm-native.sh` (a SEPARATE injected compose-main for
+the VM-bytecode emitter target that was never given the
+`SV0_DRV_REQUEST` wiring step 2 added elsewhere -- it still reads the
+file unconditionally), `build-sv0-self-host-compiler.sh` (same wrapper
+shape as the first), `sv0-megatu-native-parity.sh` (invokes that first
+wrapper by its own argv contract), `sv0-vm-tier2-native-emitter.sh`
+(targets the still-unmigrated VM-native compose-main),
+`verify_behavior_corpus_native.py` (invokes the still-unmigrated
+wrapper), `assemble-sv0-megaTU.py` (a generic tool: defensively resets
+before invoking `sml` on whatever compose-main it's given, which may
+still be one of the unmigrated ones), plus `scripts/sv0`'s own
+`ensure_sv0_self_host_compiler`/`ensure_sv0_megatu_native`
+file-existence guarantees (still needed -- `driver.sv0`'s legacy
+fallback read still panics on a missing file, and every one of the
+above still depends on that fallback existing). Removing the legacy
+read path from `driver.sv0`/`megaTU-main.sv0` today would break all of
+them. That remains a real, separate, larger migration -- recorded
+honestly here rather than silently attempted or silently dropped.
 
 **What this module does instead**: the other half of step 6 that IS safe
 and valuable today -- a static guard that fails closed if a *new* file
@@ -64,17 +73,19 @@ _LEGACY_PATH_TOKEN = ".sv0_drv_path"
 _EXEMPT_BASENAMES = {
     # (a) real, unmigrated legacy callers
     "sv0",  # scripts/sv0: ensure_*'s file-existence guarantee for every other unmigrated caller below
-    "build-sv0-megatu-native.sh",
-    "build-sv0-megatu-verify-native.sh",
-    "build-sv0-megatu-vm-native.sh",
-    "build-sv0-self-host-compiler.sh",
-    "sv0-megatu-corpus-parity.sh",
-    "sv0-megatu-native-parity.sh",
-    "sv0-native-behavioral-parity.sh",
-    "sv0-vm-tier2-native-emitter.sh",
-    "verify_behavior_corpus_native.py",
-    "assemble-sv0-megaTU.py",
-    # (b) doc-only mentions, no real file I/O on the legacy path
+    "build-sv0-megatu-native.sh",  # its own generated wrapper still writes the file internally
+    "build-sv0-megatu-vm-native.sh",  # a SEPARATE injected compose-main, never given SV0_DRV_REQUEST wiring
+    "build-sv0-self-host-compiler.sh",  # its own generated wrapper still writes the file internally
+    "sv0-megatu-native-parity.sh",  # invokes build-sv0-megatu-native.sh's still-unmigrated wrapper by its argv contract
+    "sv0-vm-tier2-native-emitter.sh",  # targets the still-unmigrated VM-native compose-main above
+    "verify_behavior_corpus_native.py",  # invokes the still-unmigrated wrapper; resets the file it relies on
+    "assemble-sv0-megaTU.py",  # generic tool: defensively resets before invoking sml on WHATEVER compose-main it was given, which may still be one of the unmigrated ones above
+    # (b) doc-only mentions, no real file I/O on the legacy path (migrated to
+    # SV0_DRV_REQUEST already, or never touched it for real; the token only
+    # survives in a comment/docstring explaining the history or a sibling file)
+    "build-sv0-megatu-verify-native.sh",  # one comment explaining why it uses ITS OWN separate /tmp/.sv0_verify_path instead
+    "sv0-megatu-corpus-parity.sh",  # migrated NEX-055c/REL-004 step-1-of-6; comment now explains its own compose-main never touched the file at all
+    "sv0-native-behavioral-parity.sh",  # migrated NEX-055c/REL-004 step-1-of-6; comment quotes the legacy path for history only
     "native_exe_core_compiler.py",  # migration history in its own docstring (NEX-011/055c)
     "native_exe_concurrent_perf.py",  # PERF-006 finding's before/after history in its docstring
     "native_exe_no_new_legacy_control_file.py",  # this file's own docstring/allowlist, quoting the token

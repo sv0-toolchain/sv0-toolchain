@@ -70,12 +70,11 @@ python3 scripts/assemble-sv0-megaTU.py --root "$ROOT" --main "$CORPUS_MAIN" --ou
 sml "@SMLload=$SV0C" "$CORPUS_TU" > "$CORPUS_C" 2>/dev/null
 python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$CORPUS_C" "$CORPUS_BIN"
 
-# 3. Run every corpus seed through it.
-# driver.sv0's test main reads /tmp/.sv0_drv_path (CLI mode: compile that path when
-# non-empty, else run its self-test). Ensure it exists and is EMPTY so the corpus run
-# exercises the self-test (exit 0) rather than panicking in read_file — self-contained
-# so this gate is stable regardless of the surrounding environment (cf. self-host-native.yml).
-printf '' > /tmp/.sv0_drv_path
+# 3. Run every corpus seed through it. CORPUS_BIN's own main (derived above from
+# megaTU-main.sv0's committed default, not from driver.sv0) reads its source from
+# $IN and writes to $OUT directly -- it never touches /tmp/.sv0_drv_path at all, so
+# there is nothing to reset here (NEX-055c/REL-004: a stale comment + no-op printf
+# that pre-dated this script's own $IN/$OUT design were removed as dead code).
 pass=0 phasefail=0 panic=0 ccfail=0 runfail=0 total=0
 fails=""
 while IFS= read -r f; do

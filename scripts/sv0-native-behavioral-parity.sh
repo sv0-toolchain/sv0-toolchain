@@ -19,7 +19,6 @@ RT="$SV0C/runtime"
 LIST="$SV0C/lib/self-host-sv0-loop.list"
 CC="${CC:-cc}"
 NATIVE="${SV0_DRIVER_NATIVE:-$ROOT/build/sv0-driver-native}"
-CTL="/tmp/.sv0_drv_path"
 
 command -v sml >/dev/null 2>&1 || { echo "native-parity: sml not found" >&2; exit 1; }
 command -v "$CC" >/dev/null 2>&1 || { echo "native-parity: C compiler '$CC' not found" >&2; exit 1; }
@@ -32,15 +31,14 @@ fi
 [[ -f "$SV0C/build/sv0c" || -L "$SV0C/build/sv0c" ]] || { echo "native-parity: missing SML heap $SV0C/build/sv0c (run: make -C sv0c heap)" >&2; exit 1; }
 
 tmp="$(mktemp -d)"
-cleanup() { rm -rf "$tmp"; printf '' > "$CTL"; }
+cleanup() { rm -rf "$tmp"; }
 trap cleanup EXIT
 
+# NEX-055c/REL-004: SV0_DRV_REQUEST (a per-invocation env var driver.sv0's own
+# fn main() has preferred over the legacy /tmp/.sv0_drv_path control file since
+# step 2) replaces the old write+run+reset dance -- no shared file, no reset.
 emit_native() { # <abs> <out>
-  printf '%s\n' "$1" > "$CTL"
-  "$NATIVE" > "$2" 2>/dev/null
-  local ec=$?
-  printf '' > "$CTL"
-  return $ec
+  SV0_DRV_REQUEST="$1" "$NATIVE" > "$2" 2>/dev/null
 }
 
 total=0 pass=0

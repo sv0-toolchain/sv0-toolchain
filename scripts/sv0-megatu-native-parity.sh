@@ -22,11 +22,16 @@ echo "sv0-megatu-native-parity: building the native full-compose compiler..." >&
 "$ROOT/scripts/build-sv0-megatu-native.sh"
 [ -x "$WRAP" ] || { echo "sv0-megatu-native-parity: FAIL — $WRAP not built" >&2; exit 1; }
 
-# driver.sv0's test main reads /tmp/.sv0_drv_path; keep it empty for the run leg.
+# $WRAP (build/sv0-megatu-compiler-native) is invoked below via its own argv[1]
+# contract; its internal use of /tmp/.sv0_drv_path (not yet migrated to
+# SV0_DRV_REQUEST -- see the REL-004 closure plan) is entirely the wrapper's own
+# concern, including resetting the file in its own EXIT trap. Nothing here needs
+# to touch that file itself (NEX-055c/REL-004: the two redundant resets that used
+# to duplicate the wrapper's own cleanup were removed as dead code).
 NAT_C="$(mktemp /tmp/sv0_nat_XXXXXX.c)"
 NAT_C2="$(mktemp /tmp/sv0_nat2_XXXXXX.c)"
 NAT_BIN="$(mktemp /tmp/sv0_natbin_XXXXXX)"
-trap 'rm -f "$NAT_C" "$NAT_C2" "$NAT_BIN"; printf "" > /tmp/.sv0_drv_path' EXIT
+trap 'rm -f "$NAT_C" "$NAT_C2" "$NAT_BIN"' EXIT
 
 pass=0 fail=0 total=0
 fails=""
@@ -44,7 +49,6 @@ while IFS= read -r f; do
   if ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$NAT_C" "$NAT_BIN" 2>/dev/null; then
     fails+="CC $f"$'\n'; fail=$((fail+1)); continue
   fi
-  printf "" > /tmp/.sv0_drv_path
   set +e; "$NAT_BIN" >/dev/null 2>&1; rex=$?; set -e
   if [ "$rex" -eq 0 ]; then pass=$((pass + 1)); else fails+="RUN(exit$rex) $f"$'\n'; fail=$((fail+1)); fi
 done < "$LIST"
