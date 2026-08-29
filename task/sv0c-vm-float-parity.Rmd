@@ -177,21 +177,33 @@ committable at each `·`):**
   arms → `vm_codegen.sv0` compiles standalone, in-file corpus exit 0.
   **5b·** rebuild native emitter, `vm-parity-tier2-emit` still 17/17, refresh
   `vm_codegen` stage0 + vm-parity golden, `./scripts/sv0 test` green.
-- **VMF-006** splits: **6a·** (wip) add `env_cats`/`ec[N]` parallel vec, thread
-  through the 8-fn chain (`ensure_var_int`, `scan_instr_env`, `scan_instrs_env`,
-  `local_count_and_env`, `emit_expr`, `emit_instr`, `emit_instrs`,
-  `prepool_loop_seq`) + `emit_fn` + tests via
-  `scratchpad/thread_env_cats.py` (counted: 131 insertions, `env_cats` 0→44,
-  `env_widths` unchanged 95). Populated all-0, never read. `alloc_local`/
-  `bind_param`/`value_width` left alone (test-only). `compile-run
-  lib/vm_codegen.sv0` exit 0; fmt clean; native emitter rebuilt →
-  `vm-parity-tier2-emit` **17/17**; only `vm_codegen`'s own stage0 + vm-parity
-  goldens moved. `./scripts/sv0 test` running.
-  **6b·** populate `env_cats` from cty at DeclNamed/param/Call-result sites
-  (inlined `cty_category`), still unread → tier-2 17/17. **6c·** add
-  `binop_tag_to_insn_typed` + `slot_cat`, switch `emit_expr` Binop/Unop to
-  `combine(cat_of v1, cat_of v2)` → tier-2 17/17 byte-identical (cat≡0 for gated
-  modules), add in-file typed-selection unit tests, `./scripts/sv0 test` green.
+- **VMF-006** — type-category env in `vm_codegen.sv0`. Three micro-slices:
+  - **6a · done** (sv0c `12c1399`, parent `3f8eb67`): `env_cats`/`ec[N]` vec
+    threaded through the 8-fn chain (`ensure_var_int`, `scan_instr_env`,
+    `scan_instrs_env`, `local_count_and_env`, `emit_expr`, `emit_instr`,
+    `emit_instrs`, `prepool_loop_seq`) + `emit_fn` + all test call sites, via a
+    counted script (`scratchpad/thread_env_cats.py`, 131 insertions, `env_cats`
+    0→44, `env_widths` unchanged 95). Populated all-0, never read.
+    `alloc_local`/`bind_param`/`value_width` left alone (test-only).
+  - **6b · done** (sv0c `bcc7c14`, parent `13b1238`): new
+    `cty_cat_of_handle(cty_h, source, starts, ends)` — resolves a cty token to
+    its sv0 name, maps `f32/f64`→1, `i64/u64`→2, else 0 (out-of-range→0). Wired
+    into the 3 typed push sites (`scan_instr_env` DeclNamed `cty` + Call `rty`,
+    `local_count_and_env` param `pc`). `ensure_var_int` (bare vars) stays 0.
+    Still unread.
+  - **6c · wip**: added `binop_tag_to_insn_typed(tag,cat)` /
+    `unop_tag_to_insn_typed` / `slot_cat` / `combine_cat` / `operand_cat`;
+    `emit_expr` Binop/Unop now select `ADD_F64`(48)…`DIV_F64`(51)/`NEG_F64`(52)
+    for cat 1, `ADD_I64`(32)…`MOD_I64`(36)/`NEG_I64`(37) for cat 2, `-1` for
+    `f64 %` and `f64` bitwise. Comparisons/logic stay polymorphic (64-69/80-81).
+    `VMember` operand category = 0 (struct-field cat is a follow-on; mathlib's
+    field-to-local workaround covers it). i64/u64 bitwise (tags 13-17) falls
+    back to i32 opcodes — documented, needs sv0vm wide bitwise (VMF-011/12).
+    New `test_typed_opcode_select` + f64/NEG_F64 cases in `test_emit_expr`
+    (proves `env_cats`→`operand_cat`→`binop_tag_to_insn_typed`→`out` end to
+    end). `compile-run` exit 0; native emitter rebuilt →
+    `vm-parity-tier2-emit` **17/17 byte-identical** (every gated operand is
+    cat 0). `./scripts/sv0 test` running.
 - **VMF-007…009**, **Phase 2**, **Phase 3/4** micro-split when reached (shape
   depends on VMF-D and what 6a–6c surface).
 
