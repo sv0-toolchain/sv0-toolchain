@@ -229,10 +229,19 @@ committable at each `·`):**
     `0x3FB999999999999A`, `1e10` exact, π→`0x400921FB54442D18`, `123.456`,
     `-0.0`. (First pass caught my own wrong hex constants, not converter bugs.)
     `compile-run` exit 0; tier-2 17/17; full test running.
-  - **7d·** edges: overflow→±inf, underflow→correct subnormal→±0, extreme
-    `dexp10`; table (`1e308`,`1e309`,`5e-324`,`2.2250738585072014e-308`,`1e-400`).
+  - **7d · wip**: restructured the converter tail — decide normal vs subnormal
+    vs overflow from the pre-round `exp_pre = e2 + 1075`, then round in the
+    right place. Normal: round q at its ULP (2·rem vs denk), roll a 2^53 into
+    the exponent, `ef >= 2047` → ±inf. Subnormal (`exp_pre <= 0`): `m = q >>
+    drop` (`drop = 1 - exp_pre`) via new `qbit`/`q_shr52`/`q_low_nonzero`,
+    round-half-even at bit `drop-1` with sticky = lower q bits OR `rem != 0`;
+    `m` rolling to 2^52 → smallest normal. `test_f64_bits` +11 rows: `1e308`,
+    `DBL_MAX`, `1e309`/`-1e309`→±inf, `5e-324`/`1e-323` smallest subnormals,
+    smallest normal, largest subnormal, `1e-310`/`1e-320` mid subnormals,
+    `1e-400`→+0. `compile-run` exit 0; tier-2 17/17; full test running.
   - **7e·** wire `emit_value` `VFloat(h)` → parse+convert → `[6,lo,hi]`;
-    integration cases in `test_emit_value`/`test_emit_expr`.
+    integration cases in `test_emit_value`/`test_emit_expr` (f64-literal binop
+    → `ADD_F64`).
 - **VMF-008…009**, **Phase 2**, **Phase 3/4** micro-split when reached.
 
 ### Phase 0 — baseline & guardrails
