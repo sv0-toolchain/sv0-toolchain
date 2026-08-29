@@ -29,7 +29,7 @@ import tempfile
 from pathlib import Path
 
 from native_exe_build import build_native_executable
-from native_exe_sanitizer_build import SANITIZE_FLAGS
+from native_exe_sanitizer_build import SANITIZE_FLAGS, sanitizer_env
 
 # Fixtures already in the behavior corpus that deliberately rely on real C
 # UB (native-executable-ub-audit.md's Site 4: no documented sv0 overflow
@@ -80,7 +80,7 @@ def run_sanitized_corpus(root: Path, rows: list[tuple[str, int]] | None = None) 
             except Exception as exc:  # noqa: BLE001 - report any failure, don't hide it
                 print(f"native_exe_sanitizer_corpus: build failed for {rel}: {exc}", file=sys.stderr)
                 return 1
-            proc = subprocess.run([out], capture_output=True, text=True)
+            proc = subprocess.run([out], capture_output=True, text=True, env=sanitizer_env())
             if proc.returncode != want:
                 print(
                     f"native_exe_sanitizer_corpus: {rel} exited {proc.returncode}, expected {want}",

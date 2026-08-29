@@ -28,7 +28,7 @@ import subprocess
 import tempfile
 
 from native_exe_build import build_native_executable
-from native_exe_sanitizer_build import SANITIZE_FLAGS
+from native_exe_sanitizer_build import SANITIZE_FLAGS, sanitizer_env
 
 _SAFE_FIXTURES = [("box_deref_chain_stress.sv0", 210), ("vec_growth_stress.sv0", 188)]
 _UB_FIXTURES = [
@@ -58,7 +58,7 @@ def _selftest() -> int:
                 result = build_native_executable(
                     "file", path, out, td, probe=False, extra_cc_args=[*SANITIZE_FLAGS, opt]
                 )
-                proc = subprocess.run([result.output_path], capture_output=True, text=True)
+                proc = subprocess.run([result.output_path], capture_output=True, text=True, env=sanitizer_env())
                 if proc.returncode != expected_exit:
                     failures.append(
                         f"{name} at {opt}: rc={proc.returncode}, expected {expected_exit}, "
@@ -78,7 +78,7 @@ def _selftest() -> int:
                 result = build_native_executable(
                     "file", path, out, td, probe=False, extra_cc_args=[*SANITIZE_FLAGS, opt]
                 )
-                proc = subprocess.run([result.output_path], capture_output=True, text=True)
+                proc = subprocess.run([result.output_path], capture_output=True, text=True, env=sanitizer_env())
                 stderr_lower = proc.stderr.lower()
                 if "runtime error" not in stderr_lower:
                     failures.append(f"{name} at {opt}: UBSan did not report a runtime error: {proc.stderr!r}")

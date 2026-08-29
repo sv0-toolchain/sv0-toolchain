@@ -21,6 +21,40 @@ from native_exe_build import BuildResult, build_native_executable
 
 SANITIZE_FLAGS: list[str] = ["-fsanitize=address,undefined"]
 
+# sv0c/runtime/lsan-suppressions.txt (NEX-050b), resolved relative to this
+# file's own location the same way native_exe_runtime.py resolves the
+# runtime bundle -- never a bare relative path, so this works regardless of
+# invocation cwd.
+LSAN_SUPPRESSIONS_PATH = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "sv0c", "runtime", "lsan-suppressions.txt")
+)
+
+
+def sanitizer_env(base_env: dict[str, str] | None = None) -> dict[str, str]:
+    """Environment for RUNNING (not building) a sanitized binary: a copy of
+    `base_env` (defaulting to `os.environ`) with `LSAN_OPTIONS` pointed at
+    `lsan-suppressions.txt`.
+
+    This file existed since NEX-050b but was never actually wired anywhere
+    -- LeakSanitizer only consults `LSAN_OPTIONS=suppressions=<path>` when
+    it's genuinely set in the child's environment; nothing set it, so the
+    file was silently inert on every real Linux CI run until this was
+    found (NEX-050c's own corpus job, native_exe_sanitizer_corpus.py) and
+    fixed. Also sets `print_suppressions=0`: LSan's default behavior
+    prints a "Suppressions used:" summary to stderr even when every leak
+    was legitimately suppressed and the run is otherwise completely clean
+    -- confirmed directly (a real Linux/Docker run), this alone would
+    still fail every caller's "expect empty stderr" check despite nothing
+    actually being wrong. Appends to any existing `LSAN_OPTIONS` a caller
+    already set (colon-separated, LSan's own accepted format) rather than
+    clobbering it.
+    """
+    env = dict(os.environ if base_env is None else base_env)
+    existing = env.get("LSAN_OPTIONS", "")
+    suppress_opts = f"suppressions={LSAN_SUPPRESSIONS_PATH}:print_suppressions=0"
+    env["LSAN_OPTIONS"] = f"{existing}:{suppress_opts}" if existing else suppress_opts
+    return env
+
 
 def build_sanitized_executable(
     input_kind: str,
@@ -80,7 +114,7 @@ def _selftest() -> int:
         # last in the "print and continue" case.
         out_ub = os.path.join(td, "ub_out")
         result_ub = build_sanitized_executable("file", ub_fixture, out_ub, td, probe=False)
-        proc_ub = subprocess.run([result_ub.output_path], capture_output=True, text=True)
+        proc_ub = subprocess.run([result_ub.output_path], capture_output=True, text=True, env=sanitizer_env())
         ub_stderr_lower = (proc_ub.stderr or "").lower()
         has_sanitizer_name = (
             "undefinedbehaviorsanitizer" in ub_stderr_lower or "addresssanitizer" in ub_stderr_lower
@@ -95,7 +129,7 @@ def _selftest() -> int:
         # instrumentation, with its ordinary expected exit code (210).
         out_clean = os.path.join(td, "clean_out")
         result_clean = build_sanitized_executable("file", clean_fixture, out_clean, td, probe=False)
-        proc_clean = subprocess.run([result_clean.output_path], capture_output=True, text=True)
+        proc_clean = subprocess.run([result_clean.output_path], capture_output=True, text=True, env=sanitizer_env())
         if proc_clean.returncode != 210:
             failures.append(
                 f"clean fixture misbehaved under sanitizers: rc={proc_clean.returncode} stderr={proc_clean.stderr!r}"
