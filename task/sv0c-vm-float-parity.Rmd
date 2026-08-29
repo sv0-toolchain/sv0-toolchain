@@ -204,8 +204,21 @@ committable at each `·`):**
     end). `compile-run` exit 0; native emitter rebuilt →
     `vm-parity-tier2-emit` **17/17 byte-identical** (every gated operand is
     cat 0). `./scripts/sv0 test` running.
-- **VMF-007…009**, **Phase 2**, **Phase 3/4** micro-split when reached (shape
-  depends on VMF-D and what 6a–6c surface).
+- **VMF-007** splits (VMF-D = D-int, decided): **7a · done** (sv0c `TBD`) —
+  `VIntWide` → `PUSH_I64` via `push_wide_int_literal` (4×base-2^16-limb decimal
+  parse, no rounding); `emit_value` `VIntWide` arm wired; `test_wide_int_literal`
+  (2^32, i64::MAX, u64::MAX, malformed→-1). tier-2 17/17. **7b·** bigint module
+  in sv0 (`Vec<i32>` base-2^15 limbs: from_small / mul_small / mul_pow10 /
+  shl_bits / cmp / sub / bitlen / is_zero) + decimal-literal front-end parser
+  (sign, digit run, base-10 exponent). Hard unit tests on the bigint ops.
+  **7c·** normal-range core: assemble num/den, scale to [2^52,2^53),
+  bit-at-a-time long-divide, round-half-to-even, pack (lo,hi); hex table
+  (`0.0`,`1.0`,`-2.0`,`0.5`,`0.1`,`1.5`,`10.0`,`123.456`,`1e10`,`1e-1`,
+  `3.14159265358979323846`). **7d·** edges: overflow→±inf, underflow→subnormal→±0,
+  extreme `dexp10`; table (`1e308`,`1e309`,`5e-324`,`2.2250738585072014e-308`,
+  `1e-400`). **7e·** wire `emit_value` `VFloat(h)` → parse+convert → `[6,lo,hi]`;
+  integration cases in `test_emit_value`/`test_emit_expr`.
+- **VMF-008…009**, **Phase 2**, **Phase 3/4** micro-split when reached.
 
 ### Phase 0 — baseline & guardrails
 
@@ -385,8 +398,15 @@ no float runtime builtin. Two options:
 | effort | high, self-contained, table-testable | low, but touches 4 compiler subsystems + the builtin-id remap the roadmap already flags as "latently mis-indexed" |
 
 **Recommendation: D-builtin**, isolated as `sv0_f64_bits` with an "emitter-only"
-doc note; fall back to D-int only if float-free is non-negotiable. **Decide before
-starting VMF-007.**
+doc note; fall back to D-int only if float-free is non-negotiable.
+
+**DECIDED (2026-08-29): D-int — pure-integer strtod-to-bits in sv0.** Keep the
+toolchain 100% float-free. Implemented as its own bigint-backed
+decimal→IEEE-754 routine in `vm_codegen.sv0` (or a sibling), **correctly
+rounded** (round-half-to-even), validated against a checked-in hex table. Split
+into 7b–7e (see the micro-slice list). Accepts the correctness risk; mitigated
+by a broad literal→hex-pattern unit table covering exact values, `0.1`-class
+rounding, subnormals, and overflow/underflow.
 
 ## risk
 
