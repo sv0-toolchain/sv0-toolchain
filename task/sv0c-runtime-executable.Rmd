@@ -1692,8 +1692,42 @@ Resolved 2026-08-23, in order:
      recompiled at `-O2 -Wstrict-aliasing=2` with no aliasing mitigation
      produces zero aliasing diagnostics. This closes the cleanup pass
      the user asked to start -- no known open item remains from the
-     post-R1 backlog. Not yet pushed to origin (a peer session has been
-     active in this same repo throughout).
+     post-R1 backlog. Pushed (sv0c `489976b`, parent `02f750d`) after
+     confirming sync with the peer session.
+
+  **Follow-up correction, same day**: pushing surfaced a genuine CI
+  failure GitHub itself caught -- `token.sv0b` bytecode mismatch on the
+  VM-parity tier-2 byte-parity job. Root cause: KC-003's own defensive
+  `out = 0;` store (added earlier this pass) had been emitted
+  unconditionally in `lower_tag_match`'s shared `Instr` stream, which
+  both the C backend and the VM bytecode emitter consume -- so it also
+  silently added one extra instruction to VM bytecode for every match
+  expression, with no VM-side bug to justify it, diverging from the SML
+  `--target=vm` golden reference. This was never caught locally because
+  the KC-003 commit itself was never pushed through CI until this
+  session's first push today (`main` had been peer-shared and ahead of
+  origin the whole time this pass ran). Fixed by gating the store to
+  `lower_vm_target() == 0`, matching the existing C-vs-VM gating pattern
+  `box_deref` already uses a few hundred lines below in the same file.
+  Also found and fixed while re-verifying: the `test/vm-parity/golden/sml/lowering.sv0b`
+  golden committed during the original KC-003 commit had itself been
+  captured incorrectly (not a real SML `--target=vm` regen), silently
+  masking `lowering.sv0`'s own mismatch until this fix's full-manifest
+  rerun surfaced it -- regenerated for real via
+  `capture_vm_parity_goldens.sh`. `lib/golden/stage0/lowering.c`
+  refreshed too (the new if-gate changes `lowering.sv0`'s own compiled
+  C shape). Verified: tier-2 VM byte-parity green (17/17); sv0c
+  308/308; full 114-program native corpus unmodified; full
+  `./scripts/sv0 test` green end to end (stage0 golden 22/22,
+  self-host-sv0-loop 99/99). Also separately hit and fixed two
+  mechanical push snags while landing this: sv0c's own `main` had
+  never actually been pushed to its remote (the parent's gitlink
+  pointed at a commit that existed only locally, which is what broke
+  GitHub's submodule checkout in the first place), and a `git checkout`
+  during local bisection of the regression left the sv0c working copy
+  in detached HEAD, caught before committing and fixed by moving
+  `main` to the new commit rather than committing detached. sv0c
+  `fc2a233`, parent commit follows this entry.
 
 ## related
 
