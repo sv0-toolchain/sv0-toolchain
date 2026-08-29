@@ -32,8 +32,10 @@ TU="$BUILD/megaTU-vm.sv0"
 EMIT_C="$BUILD/megaTU-vm.c"
 NATIVE="$BUILD/sv0-megatu-vm-native"
 
-python3 - "$MAIN_SRC" "$VM_MAIN" <<'PY'
+python3 - "$MAIN_SRC" "$VM_MAIN" "$ROOT/scripts" <<'PY'
 import re, sys, pathlib
+sys.path.insert(0, sys.argv[3])
+from native_exe_vm_compose_patch import patch_phase6
 src = pathlib.Path(sys.argv[1]).read_text()
 
 # 1. CLI source read (path in SV0_DRV_REQUEST). NEX-055c/REL-004 closure: the
@@ -53,23 +55,13 @@ assert n == 1, "compose main shape changed: `let source`"
 
 # 2. Replace phase 6 (C emit call + gate) with the VM tail. Falls through to the
 #    existing `return 0;` at end of main (no return here). `td` from lower is unused
-#    in the VM path but kept (lower fills out_blocks). eit_nt/eit_base/eit_cnt/
-#    eit_cats (enum-item VMember-resolution metadata, added to megatu_emit_program's
-#    own signature after this recipe was originally written -- unrelated drift,
-#    found + fixed here as a pure needle-match update, NOT a REL-004 change) are
-#    computed earlier in fn main() but are C-emit-only; the VM tail below calls
-#    vm_codegen_emit_program instead, which never needed them.
-needle = (
-    '    let sidx: Vec<i32> = assign_shadow_indices(it, id3, id4, id5, fpn,\n'
-    '                                               bet, bed1, bed2, bed3, bed4, pp,\n'
-    '                                               source, starts, ends);\n'
-    '    let c: string = megatu_emit_program(td, out_blocks, source, starts, ends,\n'
-    '                                        it, id1, id2, id3, id5, fpn,\n'
-    '                                        fpt, frt, ptt, ptd1, ptd2, pp, sidx,\n'
-    '                                        eit_nt, eit_base, eit_cnt, eit_cats);\n'
-    '    if string_len(c) == 0 { return 5; }'
-)
-assert needle in src, "compose main phase-6 shape changed"
+#    in the VM path but kept (lower fills out_blocks). The substitution itself
+#    lives in native_exe_vm_compose_patch.py -- a real, independently testable
+#    module (with its own --selftest proving it tolerates a growing arg list,
+#    not just today's exact shape) after this needle broke TWICE from unrelated
+#    upstream drift in megatu_emit_program's own signature, silently, with no
+#    test-time signal until someone happened to run this script by hand. See
+#    that module's own docstring for the full history.
 vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program's 4 parallel
        block vecs, then vm_codegen.emit_program -> bytecode.encode_strings /
        encode_file -> write_bytes. Reuses megatu_find_item_by_label /
@@ -113,7 +105,7 @@ vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program
     let vout: Vec<i32> = vec_new();
     let vtotal: i32 = encode_file(vstrbuf, vstrlen, vft, vout);
     write_bytes("/dev/stdout", vout);'''
-src = src.replace(needle, vm_tail, 1)
+src = patch_phase6(src, vm_tail)
 pathlib.Path(sys.argv[2]).write_text(src)
 print("build-sv0-megatu-vm-native: derived VM compose main", file=sys.stderr)
 PY
