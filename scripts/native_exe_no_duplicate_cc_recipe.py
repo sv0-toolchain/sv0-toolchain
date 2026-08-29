@@ -12,12 +12,16 @@ This guard fails closed if any future script reintroduces a manual
 the source-scan level rather than trusting every future contributor to
 remember not to.
 
-See `_EXEMPT_BASENAMES` below for exactly which files this guard exempts
-and why -- the canonical driver's own argv construction site, files whose
-docstrings quote the pattern for documentation only, and (recorded
-honestly) a handful of pre-existing manual recipes this guard's own first
-run surfaced that were out of NEX-058's approved scope, flagged as a
-separate follow-up rather than silently left unenforced.
+The exemption list's own "3 pre-existing manual recipes, out of NEX-058's
+approved scope" entries (`verify_behavior_corpus_native.py`,
+`verify_contract_mode.py`, `assemble-sv0-megaTU.py`) -- flagged honestly
+rather than silently left unenforced when this guard's own first run
+surfaced them -- have since been migrated too (a post-native-exe cleanup
+pass), calling `native_exe_canonical_compile.compile_and_publish`
+directly as a Python function instead of hand-rolling `cc`. No manual
+recipe remains anywhere in this repo; `_EXEMPT_BASENAMES` now holds only
+files that legitimately reference the pattern in prose/argv construction,
+not real, unmigrated call sites.
 
 Run `python3 scripts/native_exe_no_duplicate_cc_recipe.py --selftest` for
 the corpus.
@@ -40,16 +44,6 @@ _EXEMPT_BASENAMES = {
     "native_exe_no_duplicate_cc_recipe.py",
     "native_exe_canonical_compile.py",
     "native_exe_no_blanket_suppression.py",
-    # Pre-existing, real manual `cc -std=` recipes this guard's own first
-    # run surfaced -- NOT the three shell scripts NEX-058 was scoped to
-    # migrate. Deliberately exempted rather than silently migrated here:
-    # spec S26.5 explicitly sanctions "the manual recipe is a differential
-    # oracle" during migration, and retiring THESE specific scripts was
-    # never part of NEX-058's approved scope. Flagged as a real follow-up
-    # (not fixed inline) -- see the spawned task from this same slice.
-    "verify_behavior_corpus_native.py",
-    "verify_contract_mode.py",
-    "assemble-sv0-megaTU.py",
 }
 
 

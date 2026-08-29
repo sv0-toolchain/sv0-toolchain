@@ -9,6 +9,9 @@ from __future__ import annotations
 import argparse, os, subprocess, sys, tempfile
 from pathlib import Path
 
+from native_exe_canonical_compile import compile_and_publish
+from native_exe_errors import BuildError
+
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
@@ -16,7 +19,6 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
     root: Path = args.root.resolve()
     sv0c = root / "sv0c"
-    rt = sv0c / "runtime"
     manifest = sv0c / "test" / "behavior" / "manifest.txt"
     if not manifest.is_file():
         print(f"verify_behavior_corpus_native: missing {manifest}", file=sys.stderr)
@@ -61,13 +63,11 @@ def main(argv: list[str] | None = None) -> int:
                 print((emit.stderr or "")[-1500:], file=sys.stderr)
                 return 1
             Path(cpath).write_text(emit.stdout)
-            cc = subprocess.run(
-                ["cc", "-std=c99", "-O0", "-w", "-I", str(rt), cpath, str(rt / "sv0_runtime.c"), "-o", binp],
-                capture_output=True, text=True,
-            )
-            if cc.returncode != 0:
+            try:
+                compile_and_publish(cpath, binp)
+            except BuildError as exc:
                 print(f"verify_behavior_corpus_native: cc failed for {rel}", file=sys.stderr)
-                print((cc.stderr or "")[-1500:], file=sys.stderr)
+                print(str(exc)[-1500:], file=sys.stderr)
                 return 1
             got = subprocess.run([binp], capture_output=True).returncode
             if got != want:

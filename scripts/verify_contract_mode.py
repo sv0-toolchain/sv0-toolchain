@@ -19,6 +19,9 @@ from __future__ import annotations
 import argparse, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
+from native_exe_canonical_compile import compile_and_publish
+from native_exe_errors import BuildError
+
 FIXTURE = "sv0c/test/verify/contract_mode_demo.sv0"
 
 
@@ -82,13 +85,10 @@ def main(argv: list[str] | None = None) -> int:
         cpath = Path(td) / "verified.c"
         cpath.write_text(verified_c)
         binpath = Path(td) / "verified_run"
-        cc = subprocess.run(
-            ["cc", "-std=c99", "-O0", "-I", str(root / "sv0c" / "runtime"),
-             "-o", str(binpath), str(cpath), str(root / "sv0c" / "runtime" / "sv0_runtime.c")],
-            capture_output=True, text=True, timeout=120,
-        )
-        if cc.returncode != 0:
-            print(f"verify_contract_mode: stripped C failed to compile\n{cc.stderr[-1000:]}",
+        try:
+            compile_and_publish(str(cpath), str(binpath))
+        except BuildError as exc:
+            print(f"verify_contract_mode: stripped C failed to compile\n{str(exc)[-1000:]}",
                   file=sys.stderr)
             failures += 1
 

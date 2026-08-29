@@ -33,6 +33,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from native_exe_canonical_compile import compile_and_publish
+from native_exe_errors import BuildError
+
 # Forced per-module renames (escape hatch for anything auto-namespacing gets wrong):
 # {module_stem: {old: new}}, applied as word-boundary substitutions before auto pass.
 FORCED_RENAMES: dict[str, dict[str, str]] = {}
@@ -172,16 +175,12 @@ def compile_check(sv0c_root: Path, tu: Path) -> int:
         print("assemble-megatu: SML emit FAILED", file=sys.stderr)
         sys.stderr.write(r.stderr[-2000:])
         return 1
-    rt = sv0c_root / "runtime"
     bin_out = tu.with_suffix(".bin")
-    cc = subprocess.run(
-        ["cc", "-std=c99", "-O0", "-I", str(rt), str(c_out),
-         str(rt / "sv0_runtime.c"), "-o", str(bin_out)],
-        capture_output=True, text=True, check=False,
-    )
-    if cc.returncode != 0:
+    try:
+        compile_and_publish(str(c_out), str(bin_out))
+    except BuildError as exc:
         print("assemble-megatu: cc FAILED on assembled TU", file=sys.stderr)
-        errs = [ln for ln in cc.stderr.splitlines() if "error:" in ln][:10]
+        errs = [ln for ln in str(exc).splitlines() if "error:" in ln][:10]
         sys.stderr.write("\n".join(errs) + "\n")
         return 1
     # Run it: the compose main returns 0 on success (its A2 smoke); the placeholder
