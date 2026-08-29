@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
-# P4 / Phase D1b (l0-closure-roadmap.md): native VM bytecode emitter.
+# P4 / Phase D (l0-closure-roadmap.md archive): native VM bytecode emitter.
 #
-# STATUS: builds + runs, but the emitted binary panics (vec index out of bounds)
-# on any input pending the IR-ADT bridge. lowering's and vm_codegen's Expr/Value
-# ADTs have DRIFTED (Instr tags match; Expr/Value tags are skewed and Value is
-# structurally different — VBoolTrue/VBoolFalse vs VBool(bool), plus vm-only
-# VFloat/IndexAccess), so vm_codegen.emit_instrs misreads lower's boxed sub-exprs.
-# See l0-closure-roadmap.md § D1b for the two fix paths (converge the ADTs, or an
-# additive re-tagging translator). This recipe is the infra; the bridge is next.
+# STATUS (D2–D5 done, 2026-08-05): byte-identical to the SML --target=vm golden
+# for all 17 mega-TU compiler modules (test/vm-parity/tier2-manifest.txt); this is
+# the DEFAULT tier-2 emitter (scripts/sv0-vm-tier2-native-emitter.sh) and is
+# CI-gated (.github/workflows/vm-parity-tier2.yml). lowering's and vm_codegen's
+# Instr/Expr/Value ADTs were converged in D1b; the earlier "panics on any input"
+# note is historical.
+#
+# KNOWN FRONTIER (task/sv0c-vm-float-parity.Rmd, slices VMF-###): the 17 gated
+# modules are all i32/pointer code, so this emitter has never exercised f64 or
+# wide-int (i64/u64). A float literal currently reaches vm_codegen's `enum Value`,
+# which still has only the 8 shared variants (no VFloat/VIntWide — those were
+# dropped in D1b's convergence and re-added to lowering.sv0 later for the C
+# backend by BUGS.md #5/#1), falls through emit_value, and returns -1 -> this
+# script's compose main exits 5. Extending f64/wide-int support is VMF-005…009
+# here plus interpreter work in sv0vm (VMF-010…013). This recipe is also
+# single-file only; --project mode is VMF-014.
 #
 # Derives a VM compose main from lib/megaTU-main.sv0 (reusing its exact phases 1-5:
 # tokenize->parse->resolve->check->lower, and its megatu_find_item_by_label /

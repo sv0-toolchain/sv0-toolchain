@@ -1,0 +1,434 @@
+---
+created: "2026-08-29T00:00:00-06:00"
+updated: "2026-08-29T00:00:00-06:00"
+id: task-sv0c-vm-float-parity
+key: sv0c-vm-float-parity
+state: draft
+tags:
+  - sv0
+  - sv0c
+  - sv0vm
+  - vm-backend
+  - native-vm-emitter
+  - floating-point
+  - cross-backend-parity
+  - sv0-mathlib
+  - planning
+title: "sv0c/sv0vm: f64 + wide-int support on the VM backend (native emitter path)"
+type: task
+---
+
+# sv0c/sv0vm: floating-point + wide-int on the VM backend
+
+## purpose
+
+Close the C-backend / VM-backend disconnect that blocks **`sv0-mathlib`**
+completion. `sv0-mathlib` is 100% "Tier 1" (pure sv0 arithmetic — `+ - * /`,
+comparisons, bitwise; no libm, no special opcodes) and its spec
+(`~/Documents/project-specs/sv0-mathlib/SPEC.md` §5.1, COMPAT-001, COMPAT-002,
+TEST-005) makes **cross-backend parity a release gate**. Today the VM toolchain
+path cannot compile or run floating-point code at all, and silently narrows
+`i64`/`u64` to 32 bits, so none of those gates can be met.
+
+This task takes **Option B** (chosen 2026-08-29): extend the **native VM
+bytecode emitter** (`scripts/build-sv0-megatu-vm-native.sh` + `sv0c/lib/vm_codegen.sv0`)
+rather than the frozen SML bootstrap path (`sv0c/sml-legacy/`). Rationale below.
+
+Slices: **`VMF-001…021`** (this file is the hub *and* the slice backlog — small
+enough not to need a separate checklist).
+
+## why Option B, and why it is smaller than it looks
+
+`./scripts/sv0 vm-compile` / `vm-project-compile` today shell into the **frozen
+SML bootstrap compiler** (`Main.main [..., "--target=vm", ...]`). A float dies at
+three of the four pipeline stages there:
+
+| # | stage | file | float status |
+|---|-------|------|--------------|
+| 1 | AST→IR lowering | `sml-legacy/ir/lowering.sml:265` `lowerLit` | `FloatLit` → `raise Fail "literal not supported in lowering slice"` |
+| 2 | IR→bytecode | `sml-legacy/backend/vm/vm_codegen.sml:137` | `I.VFloat _ => raise Fail "vm: float in bytecode slice"`; `binopToInsn` emits `ADD_I32` **unconditionally** (no i64 either) |
+| 3 | `.sv0b` encode | `sv0vm/src/bytecode/bytecode.sml` (+ a copy in `sml-legacy/backend/vm/`) | **already float-ready** — `PUSH_F64` (op 6), `*_F64` (48–52), `f64Le` encoder, `PUSH_I64` (5), `*_I64` (32–37) all present |
+| 4 | interpreter | `sv0vm/src/interpreter/interpreter.sml` | `cell = CInt \| CBool \| CUnit \| CStrIdx` — no float/i64 cell; dispatch is an "i32 slice", unknown opcodes hit `_ => raise Fail "opcode not implemented in this slice"` (line ~502) |
+
+**Corrections that the deep read (2026-08-29) forced — these de-risk Option B:**
+
+1. **The native VM emitter is not broken.** The alarming header in
+   `build-sv0-megatu-vm-native.sh` ("panics … pending the IR-ADT bridge") is
+   **stale**. Per `sv0c/doc/archive/l0-closure-roadmap.md` §D1b–D5, the native
+   emitter was driven to **byte-identical parity with the SML `--target=vm`
+   reference for all 17 mega-TU compiler modules** (sv0c `6040a7a`, 2026-08-05),
+   made the **default** tier-2 emitter, and CI-gated
+   (`.github/workflows/vm-parity-tier2.yml`). IR-ADT convergence, slot
+   allocation, structs, enums, `match`, loops, `box_new` unpacking — all done and
+   byte-clean. Option B = "extend a working, tested emitter across two type
+   classes it has never seen" + the runtime side. **Fix that stale header as
+   step 0.**
+
+2. **The IR ADTs did quietly re-drift, but harmlessly.** `lib/lowering.sv0`'s
+   shared `enum Value` has 10 variants: tags 0–7 shared, then `VFloat(i32)` = tag
+   8 and `VIntWide(i32)` = tag 9, **appended** (comment: "keep this enum's layout
+   a prefix-compatible match"). `lib/vm_codegen.sv0`'s `enum Value` still has only
+   the 8 shared variants — bug #5 / bug #1 added float/wide to lowering for the C
+   backend and never mirrored them. A `VFloat` box reaching `emit_value` falls
+   through all 8 arms → `return -1` → `emit_program < 0` → compose-main **exit 5**
+   (a clean, diagnosable failure — *not* a panic or miscompile). Re-adding tags
+   8/9 restores the invariant.
+
+3. **Project mode is a real but small gap.** `build-sv0-megatu-vm-native.sh`
+   reads one path from `SV0_DRV_REQUEST`. The C native compiler gets `--project`
+   from a Python-injected snippet in `build-sv0-megatu-native.sh` that calls
+   `link_project_concat_sources_from_dir(dir)` — pure source-concat into one TU
+   (that fn already lives in the mega-TU). The VM recipe needs the same branch.
+   **Bonus:** this means `sv0-mathlib`'s `E0304: duplicate type Option` VM
+   blocker (`BUGS.md` "Not yet working") **does not exist on the native VM path**
+   — that bug is in SML's per-file linker; native `--project` is source-concat,
+   one TU, one `Option`. Option B sidesteps it for free.
+
+4. **There is no SML float/i64 reference to byte-diff against.**
+   `sml-legacy/backend/vm/vm_codegen.sml` raises on `VFloat` and only ever emits
+   `ADD_I32`. So the Phase-D "byte-identical vs `golden/sml/*.sv0b`" harness
+   **cannot validate any float or wide-int program**, and enabling `ADD_I64` in
+   the native emitter would make its output *diverge* from the frozen SML goldens
+   for any i64 program. For the new surface, parity must be **behavioral**:
+   native-`emit-c`→run vs native-VM-emit→`sv0vm`-run, compared bit-exact
+   (int/modular) or ULP (float) — which is exactly what COMPAT-001/002 and SPEC
+   §16.2 specify anyway. This is a **new harness**, not a reuse of tier-2
+   byte-diff.
+
+**Net:** Option B's genuine extra cost over Option A (extend `sml-legacy/`) is the
+emitter work landing in `vm_codegen.sv0` instead of `vm_codegen.sml`, plus one
+sub-decision (VMF-D). In exchange: work in the living codebase not the frozen
+one, get project mode via source-concat, sidestep the `E0304` linker bug, and end
+with the native emitter as the single source of truth. The interpreter work
+(VMF-010…013) and the behavioral parity harness (VMF-018) are required by **any**
+path that runs float on the VM — not Option-B-specific.
+
+## spot-verification (2026-08-29) — "purely additive" assumption CONFIRMED
+
+Grepped all 17 tier-2 modules (`span token ast bytecode env include_expand lexer
+resolver parser main diagnostic ir types unify codegen checker lowering`) plus the
+broader `manifest.txt` VM-parity-v1 set (integration + `vm_*.sv0` programs):
+
+- **Zero** `i64`/`u64`/`f64`/`f32`/`u32` typed locals/params/returns outside
+  comments. (3 hits — `bytecode.sv0:347`, `lowering.sv0:5115`, `checker.sv0:3761`
+  — all in doc comments.)
+- **Zero** float literals. (`lexer.sv0:881` `"3.14 rest"` is *inside a string
+  literal*; the rest are comments citing sv0-mathlib.)
+- **Zero** integer literals exceeding `i32` range in any gated program.
+  `codegen.sv0` `2147483647` fits exactly; `vm_codegen_jump_patch_core.sv0`
+  `2147483645/6` are `i32::MAX−2/−1`; `"-2147483648"` is a *string* literal.
+
+**⇒ The 17 tier-2 byte-goldens will be completely unaffected by VMF-001…009.**
+Every operand in those modules stays `category 0 = int`; every binop resolves to
+the existing I32 opcodes. S1–S3 cannot regress tier-2 byte parity.
+
+**New finding from the sweep — a constraint for the i64 track (VMF-008):**
+`test/integration/int_min/int_min.sv0` (NOT in any VM-parity manifest, so not a
+gate today) does `let a: i32 = 0 - 2147483648;` and its README asserts the
+`2147483648` literal **wraps to INT_MIN on every backend** (BH-7). The C backend
+gets this via C's implicit narrowing on `int a = 2147483648;`. The VM has no
+implicit narrowing, so **`VIntWide` emission must respect the declared type
+context** — truncate to i32 when the target is `i32`, only emit a real `PUSH_I64`
+when the context is `i64`/`u64`. Add this as an explicit constraint + a
+regression fixture (VMF-008 / VMF-017).
+
+## dependencies
+
+/require: bash
+/require: sml            # SML/NJ — mega-TU is SML→C→cc once; sv0vm is SML
+/require: cc
+
+## configuration
+
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+/env: SV0TOOLCHAIN_ROOT=.
+/env: MATHLIB_ROOT=~/Documents/sv0-mathlib
+/env: MATHLIB_SPEC=~/Documents/project-specs/sv0-mathlib/SPEC.md
+
+## key files
+
+| file | role in this task |
+|---|---|
+| `sv0c/lib/vm_codegen.sv0` | IR→bytecode. `enum Value`/`Expr`/`Instr`; `emit_value`/`emit_expr`/`emit_instr(s)`; `binop_tag_to_insn`; slot env (`env_names/env_bases/env_widths`); `emit_program`. **Most of VMF-001…009 lands here.** |
+| `sv0c/lib/bytecode.sv0` | `.sv0b` codec. `OP_*` constants (F64/I64 already defined); `encode_insn_at` (**already** handles op 6 / op 5 as two i32 payload words → 8 LE bytes); `insn_size`; string pool. |
+| `sv0c/lib/lowering.sv0` | shared IR. Already emits `Value::VFloat(tok_pos)` (line ~184) and `Value::VIntWide`. `lower_vm_target()` (recipe flips 0→1). |
+| `sv0c/lib/megaTU-main.sv0` | compose main. Has the **proven** `megatu_tyenv_*` (handle→category 0/1/2) for the C backend — the template for VMF-006. Also holds the VM tail (injected by the recipe). |
+| `scripts/build-sv0-megatu-vm-native.sh` | the native VM emitter recipe. Single-file today; stale header; needs `--project` (VMF-014). |
+| `scripts/build-sv0-megatu-native.sh` | C native recipe — source of the `--project` / `link_project_concat_sources_from_dir` snippet to copy. |
+| `scripts/sv0-vm-tier2-native-emitter.sh` | wrapper; `SV0_VM_BYTECODE_EMITTER` default. |
+| `sv0vm/src/interpreter/interpreter.sml` | the runtime. `cell` datatype; opcode dispatch ("i32 slice"); `arithII`/`cmp`. **VMF-010…013 land here.** |
+| `sv0vm/src/bytecode/bytecode.sml` | `.sv0b` decoder — **already** decodes `PUSH_F64`/`PUSH_I64`; no change needed. |
+| `sv0c/test/vm-parity/{tier2-manifest.txt,manifest.txt,golden/,programs/}` | byte-parity gate (int only). |
+| `scripts/sv0` (`run_vm_parity_*`), `scripts/verify_vm_parity_tier2_policy.py` | gate wiring. |
+
+## approach — slice backlog (VMF-###)
+
+Status: **todo** / **wip** / **done** / **deferred** / **blocked**. Add a
+one-line result + commit when a slice lands (M4/NEX checklist convention). Refresh
+only the goldens a slice actually moves (spot-verify says: none, for VMF-001…009,
+except `vm_codegen` stage0 + its own vm-parity golden from the ADT change).
+
+**Micro-slice execution order (clean stopping points — tree builds, gates green,
+committable at each `·`):**
+
+- **Phase 0** — `VMF-001·` `VMF-002·` `VMF-003·` `VMF-004·` (all **done** 2026-08-29).
+- **VMF-005** splits: **5a·** add `VFloat`/`VIntWide` tags 8/9 + deferred `return -1`
+  arms → `vm_codegen.sv0` compiles standalone, in-file corpus exit 0.
+  **5b·** rebuild native emitter, `vm-parity-tier2-emit` still 17/17, refresh
+  `vm_codegen` stage0 + vm-parity golden, `./scripts/sv0 test` green.
+- **VMF-006** splits: **6a·** add `env_cats` parallel vec, thread it through the
+  ~15-fn chain via a **counted** script, populated all-0, never read →
+  tier-2 17/17, golden unchanged. **6b·** populate `env_cats` from cty at
+  DeclNamed/param/Call-result sites (inlined `cty_category`), still unread →
+  tier-2 17/17. **6c·** add `binop_tag_to_insn_typed`, switch `emit_expr`
+  Binop/Unop to `combine(cat_of v1, cat_of v2)` → tier-2 17/17 byte-identical
+  (cat≡0 for gated modules), add in-file typed-selection unit tests,
+  `./scripts/sv0 test` green.
+- **VMF-007…009**, **Phase 2**, **Phase 3/4** micro-split when reached (shape
+  depends on VMF-D and what 6a–6c surface).
+
+### Phase 0 — baseline & guardrails
+
+- **VMF-001 · done (2026-08-29) · baseline green.** Fresh rebuild of
+  `build/sv0-megatu-vm-native` (`bash scripts/build-sv0-megatu-vm-native.sh`),
+  then `./scripts/sv0 vm-parity-tier2-emit` → **17/17 matched golden/sml**. Stale
+  "panics on any input" header definitively disproven. sv0c HEAD `52d28ea`,
+  parent `7d5d8e6`.
+- **VMF-002 · done (2026-08-29) · additive-safety sweep re-confirmed.** Re-grepped
+  all 17 `tier2-manifest.txt` modules on HEAD `52d28ea`: 3 `i64/f64` hits
+  (`bytecode.sv0:347`, `checker.sv0:3761`, `lowering.sv0:5115`) all in doc
+  comments; float-literal hits (`lexer.sv0:881` `"3.14 rest"`) all inside string
+  literals or comments; `>i32` decimal hits all string literals (`"-2147483648"`)
+  or fit i32 (`1297235969 < i32::MAX`, `2147483647`). **Zero real wide/float
+  values in any gated module — purely-additive holds.**
+- **VMF-003 · done (2026-08-29) · stale recipe header fixed.**
+  `scripts/build-sv0-megatu-vm-native.sh` top comment rewritten: D2–D5 done
+  (17-module byte-parity, default tier-2 emitter, CI-gated); documents the
+  f64/wide-int frontier + the `enum Value` 8-vs-10-variant drift + single-file
+  limitation. `bash -n` clean; `test-guards` green.
+- **VMF-004 · done (2026-08-29) · acceptance oracle pinned.**
+  `sv0c/test/vm-parity/README.md` gained a "Tier 3 (VMF-###) — behavioral parity
+  for f64 / wide-int" section: no SML byte-oracle exists, so parity =
+  native-`emit-c`→run vs native-VM-emit→`sv0vm`-run, bit-identical for
+  int/i64/modular, within pinned ULP for f64 (bit-ordering metric from
+  `sv0-mathlib/docs/ulp_audit_harness.c`); each fixture also gets a checked-in
+  behavioral golden replayed by a new `run_vm_parity_behavioral()`.
+### Phase 1 — emitter: f64 + wide-int
+
+- **VMF-005 · todo · re-mirror the IR ADT (`vm_codegen.sv0`).** Add `VFloat(i32)`
+  (tag 8) + `VIntWide(i32)` (tag 9) to `enum Value` in that exact order (restores
+  the prefix-match with `lowering.sv0`). Add `match` arms everywhere `Value` is
+  destructured: `emit_value` (main + the 2 nested `VMember`/`FieldAccess` base
+  matches), `emit_ret_width`, `emit_box_new`'s `inner_v` match. `VIntWide` behaves
+  like `VInt` for now (value handled in VMF-007); `VFloat` handled in VMF-007.
+  **Acceptance:** `vm_codegen.sv0`'s in-file corpus exit 0; tier-2 17/17; refresh
+  `vm_codegen` stage0 + its vm-parity golden.
+- **VMF-006 · todo · type-category environment (`vm_codegen.sv0`).** THE CRUX.
+  `Expr::Binop(tag, v1, v2)` carries only the AST op tag — no type. Port
+  `megaTU-main.sv0`'s `megatu_tyenv` machinery (`megatu_cty_category`,
+  `_tyenv_push/lookup_cty`, `megatu_expr_category`, `megatu_combine_categories` —
+  "double beats int") into `vm_codegen.sv0` as a parallel **`env_cats`** vec
+  alongside `env_names/env_bases/env_widths`.
+  - Populate `env_cats` at every site that derives `env_widths` from a cty:
+    `bind_param`, `scan_instr_env` `Instr::DeclNamed(cty,x)` (line ~1648),
+    `record_field_layout`, the `local_count_and_env` param loop, `Call`-result
+    dst typing. `cty`→category via an inlined `megatu_cty_category` copy
+    (`"double"`→1, `"int64_t"`→2, else 0) — inlining is the house norm
+    (`insn_size` is already "Inline from bytecode.sv0").
+  - Thread `env_cats` through the ~15-function chain: `emit_value`, `emit_expr`,
+    `emit_member_load_from_var`, `emit_box_new`, `emit_instr(s)`, `emit_ret_width`,
+    `prepool_loop_seq`, `scan_instr(s)_env`, `ensure_var_int`, `emit_program`.
+    **This is the roadmap's "most dangerous replace_all"** — do it with a counted
+    Python script (assert exact hit count before/after), never a blind replace
+    (see the D2 `box_new` threading note).
+  - `emit_expr` `Binop`: `cat = combine(cat_of(v1), cat_of(v2))`; select via a new
+    `binop_tag_to_insn_typed(tag, cat)` → `+`→16/32/48, `-`→17/33/49,
+    `*`→18/34/50, `/`→19/35/51, `%`→20/36 (**reject `tag==4 && cat==1`** — no F64
+    mod), unary `-`→21/37/52. Comparisons (64–69) stay single polymorphic opcodes.
+  - **Acceptance:** tier-2 17/17 unchanged (all `cat==0`); new in-file unit cases
+    for typed binop selection.
+- **VMF-007 · todo · float & wide-int literals (`vm_codegen.sv0` + `bytecode.sv0`).**
+  `encode_insn_at` already emits op 6 / op 5 as two i32 payload words →
+  `encode_i32_le`×2 → 8 LE bytes, so the insn-word format is `[6, lo32, hi32]`
+  (IEEE-754 bit pattern) and `[5, lo32, hi32]` (two's-complement i64).
+  - `VIntWide(h)`: parse decimal `source[h]` to a 64-bit value, split lo/hi, push
+    `[5, lo, hi]`. Pure-integer parse (no rounding). Make VMF-006's i64
+    arithmetic emit `*_I64`. **Honour type context** (see VMF-008).
+  - `VFloat(h)`: need the IEEE-754 double bit pattern of `source[h]` as lo/hi
+    i32 → `[6, lo, hi]`. sv0-the-compiler has **no** float type / float parse /
+    float builtin → **sub-decision VMF-D below**.
+  - **Acceptance:** isolated `bytecode.sv0` unit tests — known literals → known
+    byte patterns (`0.0`→8×`00`; `1.0`→`00 00 00 00 00 00 F0 3F`; `-2.5`; `0.1`
+    the classic rounding case; `1e308`; a denormal).
+- **VMF-008 · todo · VIntWide type-context truncation.** A bare `2147483648`
+  literal bound into an `i32` context must still wrap to INT_MIN (BH-7 /
+  `int_min.sv0`), matching the C backend. Only widen to `PUSH_I64` when the
+  `DeclNamed`/param/return context category is 2 (`int64_t`). Wire the check into
+  VMF-007's `VIntWide` path using VMF-006's `env_cats`. **Acceptance:** a fixture
+  mirroring `int_min.sv0` runs identically on VM and C (→ INT_MIN); a separate
+  `let x: i64 = 4000000000;` fixture round-trips the full value.
+- **VMF-009 · todo · `NEG_F64` + f64 comparisons through the emitter.** Confirm
+  unary `-` on a `cat==1` operand emits `NEG_F64` (52); confirm `== != < > <= >=`
+  on two f64 operands still emit the polymorphic 64–69 (the interpreter
+  disambiguates by cell type — VMF-012). Add emitter unit cases.
+
+### Phase 2 — runtime: wide cells in the interpreter (`sv0vm`)
+
+The `.sv0b` decoder already handles op 6 / op 5. Only interpreter dispatch is the
+"i32 slice".
+
+- **VMF-010 · todo · widen the `cell` datatype.**
+  `datatype cell = … | CF64 of real | CI64 of Int64.int`. Update `truthy`
+  defensively (`CF64 r => not (Real.==(r,0.0))`, `CI64 i => i <> 0`).
+- **VMF-011 · todo · f64 + i64 arithmetic dispatch.** `arithFF` (mirror
+  `arithII`); `arithI64` using `Word64` for correct wrap + u64 semantics,
+  `Int64.quot`/`rem` for div/mod (mirroring the i32 path's `Int.quot`/`rem`).
+  Dispatch: `PUSH_F64 r => push (CF64 r)`, `PUSH_I64 i => push (CI64 i)`,
+  `ADD_F64`(48)…`NEG_F64`(52), `ADD_I64`(32)…`NEG_I64`(37). Keep the
+  `_ => raise Fail "opcode not implemented in this slice"` catch-all for genuinely
+  unimplemented opcodes.
+- **VMF-012 · todo · float/i64-aware comparisons.** Extend `cmp` (line ~90) with
+  `(CF64,CF64)` (`Real.<` etc.; `EQ` via `Real.==` → correct `NaN != NaN`) and
+  `(CI64,CI64)` cases. The opcode set has one polymorphic `LT` (66) etc., so the
+  handler inspects the top two cells.
+- **VMF-013 · todo · aggregate + return paths carry wide cells.**
+  `ALLOC_STRUCT`/`SET_FIELD`/`GET_FIELD`/`CONSTRUCT_VARIANT`/`GET_VARIANT_FIELD`/
+  `RETURN_SLOTS` store `cell array` / cell lists — `CF64`/`CI64` flow unchanged;
+  **assert** the compiler-internal `box_store` builtin (line ~443, rejects
+  non-int) is *not* on the Tier-1 struct path (mathlib structs use `ALLOC_STRUCT`).
+  Exit-code extraction (`CInt code :: _`): add a clear error if top is `CF64`
+  (`main` returns `i32`). `integration-vm` (23 fixtures) + `sv0vm/test/bytecode_test.sml`
+  stay green; add hand-built `PUSH_F64;PUSH_F64;ADD_F64;…` sequences.
+
+### Phase 3 — project mode + wiring
+
+- **VMF-014 · todo · `--project` for the VM recipe
+  (`build-sv0-megatu-vm-native.sh`).** Copy the `--project ` prefix branch from
+  `build-sv0-megatu-native.sh`'s Python patch into the VM recipe's CLI-read
+  snippet: if `SV0_DRV_REQUEST` starts with `--project `, call
+  `link_project_concat_sources_from_dir(rest)` instead of `read_file`. **Acceptance:**
+  VM-emit a 2-file toy project, `sv0vm`-run, compare to `emit-c`.
+- **VMF-015 · todo · `scripts/sv0` sub-dispatch.** Add a native VM route
+  (`vm-compile --native` / `vm-project-compile --native`, or a new verb) so
+  `sv0-mathlib` can invoke the native emitter without touching the SML path.
+  Update the `usage` block.
+- **VMF-016 · todo · confirm no `E0304` on the native `--project` path.** Compile
+  a 2-file project where both files `use prelude::Option;` through the native VM
+  recipe; assert it succeeds (source-concat, one TU) — documents the sidestepped
+  SML linker blocker.
+
+### Phase 4 — parity harness & regression
+
+- **VMF-017 · todo · upstream vm-parity fixtures for the new opcodes.** New
+  `test/vm-parity/programs/` entries: f64 arith, i64/u64 arith, f64 in
+  struct/enum/`match`/contract, the `int_min` VIntWide-context case. Since there
+  is **no SML byte-oracle**, give each a **behavioral golden** (captured once,
+  reviewed in the PR) as a regression tripwire. Wire into a new
+  `run_vm_parity_behavioral()` in `scripts/sv0` (parallel to
+  `run_vm_parity_tier2_emit_compare`), NOT the byte-diff path.
+- **VMF-018 · todo · cross-backend behavioral parity harness.** A script that per
+  fixture runs native `emit-c`→`cc`→run **and** native VM-emit→`sv0vm`-run and
+  diffs (exact int/i64/modular; ULP f64). Wire into `scripts/sv0` +
+  `.github/workflows/`. This is the reusable engine for `sv0-mathlib`'s TEST-005.
+- **VMF-019 · todo · `sv0-mathlib` integration.** Populate
+  `sv0-mathlib/test/parity/`; `sv0-mathlib/scripts/ci` calls VMF-018's harness
+  across `rounding.csv` / `trig.csv` (BL-048 / BL-090). Update
+  `sv0-mathlib/BUGS.md #2`, `README.md` VM sections, `CHANGELOG.md`. **Closes
+  COMPAT-001, COMPAT-002, TEST-005.**
+- **VMF-020 · todo · full regression sweep.** `./scripts/sv0 test` green; tier-2
+  17/17 byte-clean (unchanged); `integration-vm` green; C corpus 98/98;
+  `test-guards --active-release R1` green. Refresh only `vm_codegen` goldens
+  (VMF-005).
+- **VMF-021 · todo · docs.** `sv0doc/bytecode/instructions.md` (mark F64/I64
+  opcodes implemented in the interpreter, not just the format);
+  `sv0c/doc/` VM-backend notes; `l0-closure-roadmap` archive addendum;
+  `task/README.md` active table; memory note `project_vm_float_parity`.
+
+## VMF-D — sub-decision: f64 literal → IEEE-754 bits
+
+`VFloat(h)` gives the emitter the literal's *token* (e.g. `"3.14"`); it must emit
+the 8-byte double bit pattern. sv0-the-compiler has no float type, no float parse,
+no float runtime builtin. Two options:
+
+| | **D-int: pure-integer strtod-to-bits in sv0** | **D-builtin: one narrow runtime builtin** |
+|---|---|---|
+| mechanism | ~150–250 lines in `bytecode.sv0`: parse mantissa+exp, normalize, **round-half-to-even to 53 bits**, assemble sign/exp/frac | `sv0_f64_bits(s) -> (lo,hi)` in `sv0_runtime.c` = `strtod` + `memcpy`; wire through checker/resolver/lowering/`megatu_builtin_*`; emitter calls it |
+| correctness risk | real — rounding-edge bugs → non-bit-identical `.sv0b` → surfaces as ULP/accuracy failures, hard to attribute | near-zero — delegates to libc `strtod` |
+| language purity | keeps the toolchain 100% float-free (a stated project value) | adds a float-touching builtin — but **only reachable from the VM emitter**, never in emitted user code |
+| effort | high, self-contained, table-testable | low, but touches 4 compiler subsystems + the builtin-id remap the roadmap already flags as "latently mis-indexed" |
+
+**Recommendation: D-builtin**, isolated as `sv0_f64_bits` with an "emitter-only"
+doc note; fall back to D-int only if float-free is non-negotiable. **Decide before
+starting VMF-007.**
+
+## risk
+
+| slice(s) | risk | mitigation |
+|---|---|---|
+| VMF-001…004 | none | measurement / comment fix |
+| VMF-005 | low | additive enum tags; prefix invariant documented & re-verified |
+| **VMF-006** | **medium-high** | the wide `env_cats` param-threading `replace_all` | counted script; `megatu_tyenv` is a proven template |
+| VMF-007 (int) | low-med | 64-bit decimal literal parse |
+| **VMF-007 (float)** | **medium** | rounding correctness (D-int) *or* 4-subsystem builtin wiring (D-builtin) | pick D-builtin; isolated byte-pattern unit tests |
+| VMF-008 | medium | silent semantic change vs `int_min.sv0` if context not honoured | explicit fixture both ways |
+| VMF-010…013 | low-med | small file, clean structure; `Word64` wrap semantics need care | mirror the existing i32 `asWord32` pattern |
+| VMF-014 | low | direct copy of a working C-recipe patch |
+| VMF-017…019 | medium | new harness | spec already defines the oracle (§16.2) |
+
+## dependency order
+
+```
+VMF-001..004 ─┬─ VMF-005 ─ VMF-006 ─┬─ VMF-007 ─ VMF-008 ─ VMF-009 ┐
+              │                     └─ (i64 in VMF-006/007)         │
+              └─ VMF-010 ─ VMF-011 ─ VMF-012 ─ VMF-013 ─────────────┼─ VMF-014 ─ VMF-015 ─ VMF-016 ─ VMF-017 ─ VMF-018 ─ VMF-019 ─ VMF-020 ─ VMF-021
+                                                                    │
+   emitter (005–009) and runtime (010–013) are independent — land in parallel
+```
+
+**Estimate:** VMF-005…009 ≈ 3–5 focused days; VMF-010…013 ≈ 1 day; VMF-014…016 ≈
+½ day; VMF-017…019 ≈ 1–2 days. ~1.5–2 weeks to a green cross-backend gate for
+`sv0-mathlib`'s arithmetic + i64/u64 + f64 surface.
+
+## notes
+
+- **Do NOT touch `sml-legacy/`.** The SML `--target=vm` path stays as-is; its
+  goldens stay valid because the 17 tier-2 modules are float/wide-free (verified).
+- Golden churn is limited to `vm_codegen` stage0 + its own vm-parity golden
+  (VMF-005's ADT change). Everything else in VMF-005…009 is unreachable for the
+  gated programs.
+- `feedback_drv_path_reset` no longer applies (NEX-055c retired
+  `/tmp/.sv0_drv_path`); the recipe reads `SV0_DRV_REQUEST`.
+- Coordinate with M5 Epic D (`sv0c-std-foundation`): fixed-width int **C+VM**
+  lowering is claimed "already shipped" there — VMF-006/007's i64 work is the VM
+  half actually being made real. Cross-link when landing.
+- `sv0vm` is milestone-2 territory and **not frozen** (unlike `sml-legacy/`);
+  interpreter changes are in-scope and expected.
+
+## acceptance
+
+1. `SV0_VM_BYTECODE_EMITTER=<native> ./scripts/sv0 test` green; tier-2 17/17
+   **byte-identical** (unchanged); `integration-vm` green; C corpus 98/98;
+   `test-guards --active-release R1` green.
+2. The native VM emitter compiles `sv0-mathlib` as a `--project` build and
+   `sv0vm` runs it to a correct exit code.
+3. VMF-018's cross-backend harness passes for a fixture set covering f64
+   `+ - * /`, unary `-`, comparisons; i64/u64 arithmetic; f64 inside
+   struct/enum/`match`/`requires`/`ensures`; bit-exact for int/i64/modular,
+   within pinned ULP for f64.
+4. `sv0-mathlib` COMPAT-001, COMPAT-002, TEST-005 marked satisfied in its SPEC
+   traceability; `BUGS.md #2` updated to "VM float supported via native emitter".
+
+## related
+
+- `~/Documents/project-specs/sv0-mathlib/SPEC.md` — §5.1, §16.2, §19
+  (COMPAT-001/002), TEST-005, BL-048/BL-090
+- `~/Documents/sv0-mathlib/BUGS.md` #2 (VM float lowering gap), "Not yet working"
+  (E0304 duplicate Option)
+- `sv0c/doc/archive/l0-closure-roadmap.md` §D1b–D5 — native VM emitter history
+  (byte-parity for 17 modules)
+- `scripts/build-sv0-megatu-vm-native.sh`, `scripts/build-sv0-megatu-native.sh`
+- `task/sv0c-std-foundation.Rmd` — M5 Epic D, fixed-width int C+VM lowering
+- `task/sv0vm-milestone-2.Rmd` — VM / interpreter home milestone
+- `task/sv0c-runtime-executable.Rmd` — NEX-055c (`SV0_DRV_REQUEST`, legacy
+  control-file retirement)

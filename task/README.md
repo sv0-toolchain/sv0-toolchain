@@ -19,6 +19,7 @@ a sibling directory of verification shell scripts. Agents run a task with
 | [`sv0-toolchain-milestone-cross-cutting.Rmd`](sv0-toolchain-milestone-cross-cutting.Rmd) | draft | macros, literate `.sv0.md`, `std`/concurrency, packaging |
 | [`sv0-vsc-extension-plan.Rmd`](sv0-vsc-extension-plan.Rmd) · [`…-checklist.Rmd`](sv0-vsc-extension-checklist.Rmd) | draft | VS Code extension |
 | [`sv0c-runtime-executable.Rmd`](sv0c-runtime-executable.Rmd) · [checklist](sv0c-runtime-executable-checklist.Rmd) | draft | native host executable from the C backend (`sv0c --emit=exe`); F0–R1 backlog `NEX-001…058`; not part of M5 |
+| [`sv0c-vm-float-parity.Rmd`](sv0c-vm-float-parity.Rmd) | draft | f64 + wide-int on the VM backend via the native emitter; unblocks `sv0-mathlib` cross-backend parity (COMPAT-001/002, TEST-005); slices `VMF-001…021` |
 
 ## index & rollups
 
