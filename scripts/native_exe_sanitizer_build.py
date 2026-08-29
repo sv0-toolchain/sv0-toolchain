@@ -59,17 +59,33 @@ def _selftest() -> int:
 
     with tempfile.TemporaryDirectory() as td:
         # Case 1: a real, deliberately-UB fixture is caught by UBSan at
-        # runtime. UBSan's DEFAULT mode is "print and continue" (not
-        # fatal), so the process still exits 0 here -- the signal that
-        # matters is the runtime-error diagnostic actually printed to
-        # stderr, not the exit code (confirmed by real observation, not
-        # assumed: UBSan prints "runtime error: ... cannot be represented
-        # in type 'int'" plus a "UndefinedBehaviorSanitizer" summary line).
+        # runtime. On macOS/Clang, UBSan's DEFAULT mode is "print and
+        # continue" (not fatal), so the process exits 0 and prints its own
+        # "runtime error: ... cannot be represented in type 'int'" plus a
+        # "UndefinedBehaviorSanitizer" summary line. On Linux/GCC (confirmed
+        # via a real CI run -- this project's own suite had never once
+        # reached this far in CI before KC-001/002/005 were fixed, so this
+        # platform difference was never seen until now), integer division
+        # overflow by -1 is a genuine hardware trap (SIGFPE) regardless of
+        # UBSan: UBSan still prints its own "runtime error: ..." diagnostic
+        # line FIRST, but the process is then killed by the trap before it
+        # can print its own summary line -- ASan's signal handler intercepts
+        # the SIGFPE instead and reports "AddressSanitizer: FPE ...". The
+        # load-bearing signal either way is the "runtime error: ..."
+        # diagnostic itself (proof UBSan's instrumentation genuinely fired
+        # with the right reason), not which sanitizer's own name shows up
+        # in whatever happens after that -- so accept either sanitizer's
+        # brand name confirming the combined ASan+UBSan build's
+        # instrumentation is real, not just the exact one that would print
+        # last in the "print and continue" case.
         out_ub = os.path.join(td, "ub_out")
         result_ub = build_sanitized_executable("file", ub_fixture, out_ub, td, probe=False)
         proc_ub = subprocess.run([result_ub.output_path], capture_output=True, text=True)
         ub_stderr_lower = (proc_ub.stderr or "").lower()
-        if "runtime error" not in ub_stderr_lower or "undefinedbehaviorsanitizer" not in ub_stderr_lower:
+        has_sanitizer_name = (
+            "undefinedbehaviorsanitizer" in ub_stderr_lower or "addresssanitizer" in ub_stderr_lower
+        )
+        if "runtime error" not in ub_stderr_lower or not has_sanitizer_name:
             failures.append(
                 f"UB fixture's sanitizer stderr didn't contain the expected UBSan diagnostic: {proc_ub.stderr!r}"
             )
