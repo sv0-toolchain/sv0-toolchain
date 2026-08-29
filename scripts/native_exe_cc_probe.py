@@ -57,7 +57,15 @@ def probe_compiler(cc_path: str) -> CompilerInfo:
         )
     combined = (version_result.stdout or version_result.stderr or "").strip()
     version_text = combined.splitlines()[0] if combined else ""
-    family = _classify_family(version_text)
+    # Classify from the FULL --version output, not just the first line kept
+    # for display: Debian/Ubuntu's gcc packaging renames the binary and its
+    # own first line to "cc (Ubuntu 11.4.0-...) 11.4.0" -- no "gcc" and no
+    # "Free Software Foundation" substring at all until line 2's copyright
+    # notice, which the single-line version_text above deliberately doesn't
+    # keep. Confirmed on a real Ubuntu 22.04 CI run (this project's own
+    # suite had never once reached this far in CI before KC-001/002/005
+    # were fixed, so this packaging quirk was never seen until now).
+    family = _classify_family(combined)
 
     with tempfile.TemporaryDirectory() as td:
         c_path = os.path.join(td, "probe.c")
