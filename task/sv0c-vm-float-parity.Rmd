@@ -204,20 +204,29 @@ committable at each `·`):**
     end). `compile-run` exit 0; native emitter rebuilt →
     `vm-parity-tier2-emit` **17/17 byte-identical** (every gated operand is
     cat 0). `./scripts/sv0 test` running.
-- **VMF-007** splits (VMF-D = D-int, decided): **7a · done** (sv0c `TBD`) —
-  `VIntWide` → `PUSH_I64` via `push_wide_int_literal` (4×base-2^16-limb decimal
-  parse, no rounding); `emit_value` `VIntWide` arm wired; `test_wide_int_literal`
-  (2^32, i64::MAX, u64::MAX, malformed→-1). tier-2 17/17. **7b·** bigint module
-  in sv0 (`Vec<i32>` base-2^15 limbs: from_small / mul_small / mul_pow10 /
-  shl_bits / cmp / sub / bitlen / is_zero) + decimal-literal front-end parser
-  (sign, digit run, base-10 exponent). Hard unit tests on the bigint ops.
-  **7c·** normal-range core: assemble num/den, scale to [2^52,2^53),
-  bit-at-a-time long-divide, round-half-to-even, pack (lo,hi); hex table
-  (`0.0`,`1.0`,`-2.0`,`0.5`,`0.1`,`1.5`,`10.0`,`123.456`,`1e10`,`1e-1`,
-  `3.14159265358979323846`). **7d·** edges: overflow→±inf, underflow→subnormal→±0,
-  extreme `dexp10`; table (`1e308`,`1e309`,`5e-324`,`2.2250738585072014e-308`,
-  `1e-400`). **7e·** wire `emit_value` `VFloat(h)` → parse+convert → `[6,lo,hi]`;
-  integration cases in `test_emit_value`/`test_emit_expr`.
+- **VMF-007** splits (VMF-D = D-int, decided):
+  - **7a · done** (sv0c `c8e3707`, parent `2bb501f`): `VIntWide` → `PUSH_I64`
+    via `push_wide_int_literal` (4×base-2^16-limb decimal parse, no rounding);
+    `emit_value` `VIntWide` arm wired; `test_wide_int_literal` (2^32, i64::MAX,
+    u64::MAX, malformed→-1). tier-2 17/17; full test green.
+  - **7b · wip**: fixed-160-limb base-2^15 bigint in `vm_codegen.sv0`
+    (`bi_zero`/`bi_set_u32`/`bi_copy`/`bi_is_zero`/`bi_cmp`/`bi_mul_small`/
+    `bi_mul_pow10`/`bi_shl_small`/`bi_shl_limbs`/`bi_shl_bits`/`bi_sub`/
+    `bi_bitlen`/`bi_bit`; no pop → no trimming, every op runs all limbs;
+    mutators return `i32` since sv0c rejects a `unit` return type). Decimal
+    front-end `parse_f64_literal(s, out_digits, out_meta)` → `[neg, dexp10]` +
+    MSD-first digit list; `[eE][-+]?D+` must terminate the token (rejects
+    `"1e"`). `test_bigint` + `test_parse_f64_literal` (incl. malformed).
+    `compile-run` exit 0; tier-2 17/17; full test running.
+  - **7c·** normal-range core: build `D` bigint, `num`/`den` from `dexp10`,
+    bit-at-a-time long-divide to a 53-bit `q` in [2^52,2^53), round-half-to-even
+    on `2r vs den`, assemble sign|exp|frac → (lo,hi); hex table
+    (`0.0`,`1.0`,`-2.0`,`0.5`,`0.1`,`1.5`,`10.0`,`123.456`,`1e10`,`1e-1`,
+    `3.14159265358979323846`). Crude overflow→inf / underflow→±0 (7d refines).
+  - **7d·** edges: overflow→±inf, underflow→correct subnormal→±0, extreme
+    `dexp10`; table (`1e308`,`1e309`,`5e-324`,`2.2250738585072014e-308`,`1e-400`).
+  - **7e·** wire `emit_value` `VFloat(h)` → parse+convert → `[6,lo,hi]`;
+    integration cases in `test_emit_value`/`test_emit_expr`.
 - **VMF-008…009**, **Phase 2**, **Phase 3/4** micro-split when reached.
 
 ### Phase 0 — baseline & guardrails
