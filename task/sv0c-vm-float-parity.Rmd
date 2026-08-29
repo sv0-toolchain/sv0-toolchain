@@ -275,9 +275,27 @@ opcodes 5/6/32-37/48-52. Only interpreter dispatch is the "i32 slice"
   `build/sv0-megatu-vm-native` and **run correctly on sv0vm**, and the exit
   codes **match the native C backend** — first cross-backend f64/i64 parity.
   Full `./scripts/sv0 test` running.
-- **VMF-013** — struct/variant/RETURN_SLOTS carrying wide cells (cells flow
-  through unchanged; confirm), exit-code guard for a stray `CF64`. Likely a
-  small verification slice on top of 010-012.
+- **VMF-013 · wip** — f64 through structs, `match`, contracts end to end.
+  - Structs with `f64` fields + field access: emit + run OK (cells flow through
+    `ALLOC_STRUCT`/`GET_FIELD` unchanged).
+  - **VMF-013a — pre-existing native-VM-emitter contract bug FIXED.** The native
+    emitter panicked (`vec: index out of bounds`) on **any** `requires`/`ensures`
+    program (pure i32 too), because `vm_codegen.contract_pool_key` stores a
+    negative sentinel `-(kind·1e6 + fn_h + 1)` in the string pool and
+    `bytecode.sv0`'s `encode_strings` deref'd it as a token handle
+    (`vec_get(starts, -43)`). Never caught: the 17 tier-2 modules have no
+    contracts; `contracts.sv0` only ran the SML `--target=vm` path. Confirmed
+    pre-existing at baseline `52d28ea`. Fix: `encode_strings` now detects
+    `idx < 0` and calls new `decode_contract_key` → `"requires failed: <fn>"` /
+    `"ensures failed: <fn>"` bytes (mirrors SML's
+    `poolAdd ("requires failed: " ^ fnName)`). Result: `contracts.sv0` native
+    emit is now **byte-identical to the SML golden** → added to
+    `tier2-manifest.txt` (**18/18**). `f64struct.sv0` (`Pair2{hi:f64,lo:f64}` +
+    `requires(p.hi>=0.0) ensures(result>=p.lo)`) emits + runs → `vm_exit:11`,
+    matching the C backend. Contract *violation* fires: VM `sv0 contract
+    violation: requires failed: need_pos` / exit 1, matching C's exit 1 (message
+    text: VM uses the SML `": "` form, C uses `" in "` — cosmetic stderr diff,
+    exit codes match).
 
 ### Phase 3/4 — micro-split when reached (`--project` recipe, `scripts/sv0`
 dispatch, no-E0304 check, behavioral parity fixtures + harness, `sv0-mathlib`
