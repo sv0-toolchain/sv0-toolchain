@@ -792,8 +792,11 @@ run_test_guards() {
   # a real, previously-invisible gap that only ever went unnoticed locally
   # because this session's own build/ directory has had the binary built
   # and persisted across dozens of manual runs all along. Ensure it exists
-  # before any Python guard that needs it runs.
+  # before any Python guard that needs it runs. NEX-031's own selftest
+  # (native_exe_contract_mode.py) separately needs build/sv0-megatu-verify
+  # (built by build-sv0-megatu-verify-native.sh) for the same reason.
   ensure_sv0_megatu_native
+  ensure_sv0_megatu_verify
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
@@ -804,9 +807,11 @@ run_test() {
   local ec=0
   ensure_sv0_self_host_compiler
   # See run_test_guards's own comment: several native_exe_*.py selftests
-  # inside run_python_guards need build/sv0-megatu-native to already exist
-  # on a fresh checkout.
+  # inside run_python_guards need build/sv0-megatu-native (and NEX-031's own
+  # selftest needs build/sv0-megatu-verify) to already exist on a fresh
+  # checkout.
   ensure_sv0_megatu_native
+  ensure_sv0_megatu_verify
   # PC-6c (native-default promotion): do NOT force the SML delegate as the default
   # here. Leaving SV0_SELF_HOST_COMPILER unset lets run_self_host_sv0_loop flip to
   # the native mega-TU binary (behavioral acceptance) as the promoted default, while
