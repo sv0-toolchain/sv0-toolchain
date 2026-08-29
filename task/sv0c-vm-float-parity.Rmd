@@ -259,16 +259,25 @@ The `.sv0b` **decoder** (`sv0vm/src/bytecode/bytecode.sml`) already decodes
 opcodes 5/6/32-37/48-52. Only interpreter dispatch is the "i32 slice"
 (`_ => raise Fail "opcode not implemented in this slice"`).
 
-- **VMF-010** — widen `datatype cell` with `CF64 of real` + `CI64 of Int64.int`;
-  `truthy`/`cellAsIntForCmp` cases. (sv0vm submodule → parent pointer bump.)
-- **VMF-011** — `arithFF` (Real.+/-/*/~) + `arithI64` (Word64 wrap, Int64.quot/rem
-  for div/mod); dispatch `PUSH_F64`→CF64, `PUSH_I64`→CI64, `ADD_F64`(48)…
-  `NEG_F64`(52), `ADD_I64`(32)…`NEG_I64`(37).
-- **VMF-012** — `cmp` gains `(CF64,CF64)` (`Real.<` etc.; `EQ` via `Real.==` for
-  NaN) and `(CI64,CI64)`.
-- **VMF-013** — struct/variant/RETURN_SLOTS carry wide cells; exit-code guard;
-  hand-built `sv0vm/test/bytecode_test.sml` sequences; `integration-vm` green;
-  run `/tmp/f64test.sv0b`-style program end to end (VM vs C).
+- **VMF-010/011/012 · wip** (one commit — the datatype change forces all three):
+  - `datatype cell` gains `CF64 of real` + `CI64 of Int64.int`; `truthy` cases.
+  - `arithFF` (`Real.+/-/*/~`) + `arithLL` (`Word64` wrap for add/sub/mul,
+    `Int64.quot/rem` for div/mod) + `w64`/`unw64`; dispatch `PUSH_F64`→CF64,
+    `PUSH_I64`→CI64, `ADD_F64`(48)…`NEG_F64`(52), `ADD_I64`(32)…`NEG_I64`(37).
+  - `cmp` refactored to a `{ii, rr, ll}` record so one polymorphic opcode
+    dispatches int/i64/f64 by cell kind; `cmpEQ`…`cmpGTE` vals; real comparators
+    are `Real.</==/…` (IEEE NaN⇒false, never `Real.compare` which raises).
+  `make check` clean. `sv0vm/test/bytecode_test.sml` +14 rows (f64/i64
+  arith+cmp via `sel`, incl. `i64-mul-wrap` 2^32·2^32→0 and wide values wrong
+  under `CInt`). `integration-vm` all-pass.
+  **End-to-end verified**: `f64run.sv0` (`1.5+2.5>3.9` → exit 7) and
+  `i64run.sv0` (`5e9+3e9>7999999999` → exit 9) both emit via
+  `build/sv0-megatu-vm-native` and **run correctly on sv0vm**, and the exit
+  codes **match the native C backend** — first cross-backend f64/i64 parity.
+  Full `./scripts/sv0 test` running.
+- **VMF-013** — struct/variant/RETURN_SLOTS carrying wide cells (cells flow
+  through unchanged; confirm), exit-code guard for a stray `CF64`. Likely a
+  small verification slice on top of 010-012.
 
 ### Phase 3/4 — micro-split when reached (`--project` recipe, `scripts/sv0`
 dispatch, no-E0304 check, behavioral parity fixtures + harness, `sv0-mathlib`
