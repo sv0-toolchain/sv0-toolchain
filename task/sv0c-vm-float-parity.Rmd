@@ -239,10 +239,40 @@ committable at each `·`):**
     `DBL_MAX`, `1e309`/`-1e309`→±inf, `5e-324`/`1e-323` smallest subnormals,
     smallest normal, largest subnormal, `1e-310`/`1e-320` mid subnormals,
     `1e-400`→+0. `compile-run` exit 0; tier-2 17/17; full test running.
-  - **7e·** wire `emit_value` `VFloat(h)` → parse+convert → `[6,lo,hi]`;
-    integration cases in `test_emit_value`/`test_emit_expr` (f64-literal binop
-    → `ADD_F64`).
-- **VMF-008…009**, **Phase 2**, **Phase 3/4** micro-split when reached.
+  - **7e · wip**: `emit_value` `VFloat(h)` arm → `slot_handle_in_range` guard →
+    `handle_to_str` → `parse_f64_literal` → `vec_push(out, 6)` +
+    `f64_bits_from_parts` → returns 3 (`[6,lo,hi]`). `f64_push_bits` now
+    returns 2 (words pushed). Integration: `test_emit_value` VFloat `"1.5"` →
+    `[6,0,1073217536]`; `test_emit_expr` `Binop(VFloat,VFloat)` `"2.5"` →
+    `[6,0,hi, 6,0,hi, 48]`. **End-to-end verified**: `build/sv0-megatu-vm-native`
+    on a real `fn add_two(a:f64,b:f64)->f64` + `let x:f64=1.5` program emits a
+    177-byte `.sv0b` with `06 …00 00 F8 3F` (1.5) and `06 …00 00 04 40` (2.5)
+    inline. tier-2 17/17; full test running.
+- **VMF-008** — VIntWide type-context truncation (`int_min.sv0` parity). Small;
+  next after 7e.
+- **VMF-009** — folded into 6c (NEG_F64 + polymorphic comparisons already
+  selected + unit-tested). Verification-only; close with Phase 2.
+
+### Phase 2 — sv0vm interpreter wide cells (`sv0vm/src/interpreter/interpreter.sml`)
+
+The `.sv0b` **decoder** (`sv0vm/src/bytecode/bytecode.sml`) already decodes
+opcodes 5/6/32-37/48-52. Only interpreter dispatch is the "i32 slice"
+(`_ => raise Fail "opcode not implemented in this slice"`).
+
+- **VMF-010** — widen `datatype cell` with `CF64 of real` + `CI64 of Int64.int`;
+  `truthy`/`cellAsIntForCmp` cases. (sv0vm submodule → parent pointer bump.)
+- **VMF-011** — `arithFF` (Real.+/-/*/~) + `arithI64` (Word64 wrap, Int64.quot/rem
+  for div/mod); dispatch `PUSH_F64`→CF64, `PUSH_I64`→CI64, `ADD_F64`(48)…
+  `NEG_F64`(52), `ADD_I64`(32)…`NEG_I64`(37).
+- **VMF-012** — `cmp` gains `(CF64,CF64)` (`Real.<` etc.; `EQ` via `Real.==` for
+  NaN) and `(CI64,CI64)`.
+- **VMF-013** — struct/variant/RETURN_SLOTS carry wide cells; exit-code guard;
+  hand-built `sv0vm/test/bytecode_test.sml` sequences; `integration-vm` green;
+  run `/tmp/f64test.sv0b`-style program end to end (VM vs C).
+
+### Phase 3/4 — micro-split when reached (`--project` recipe, `scripts/sv0`
+dispatch, no-E0304 check, behavioral parity fixtures + harness, `sv0-mathlib`
+wire-up, docs).
 
 ### Phase 0 — baseline & guardrails
 
