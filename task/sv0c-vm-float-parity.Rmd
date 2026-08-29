@@ -177,14 +177,21 @@ committable at each `·`):**
   arms → `vm_codegen.sv0` compiles standalone, in-file corpus exit 0.
   **5b·** rebuild native emitter, `vm-parity-tier2-emit` still 17/17, refresh
   `vm_codegen` stage0 + vm-parity golden, `./scripts/sv0 test` green.
-- **VMF-006** splits: **6a·** add `env_cats` parallel vec, thread it through the
-  ~15-fn chain via a **counted** script, populated all-0, never read →
-  tier-2 17/17, golden unchanged. **6b·** populate `env_cats` from cty at
-  DeclNamed/param/Call-result sites (inlined `cty_category`), still unread →
-  tier-2 17/17. **6c·** add `binop_tag_to_insn_typed`, switch `emit_expr`
-  Binop/Unop to `combine(cat_of v1, cat_of v2)` → tier-2 17/17 byte-identical
-  (cat≡0 for gated modules), add in-file typed-selection unit tests,
-  `./scripts/sv0 test` green.
+- **VMF-006** splits: **6a·** (wip) add `env_cats`/`ec[N]` parallel vec, thread
+  through the 8-fn chain (`ensure_var_int`, `scan_instr_env`, `scan_instrs_env`,
+  `local_count_and_env`, `emit_expr`, `emit_instr`, `emit_instrs`,
+  `prepool_loop_seq`) + `emit_fn` + tests via
+  `scratchpad/thread_env_cats.py` (counted: 131 insertions, `env_cats` 0→44,
+  `env_widths` unchanged 95). Populated all-0, never read. `alloc_local`/
+  `bind_param`/`value_width` left alone (test-only). `compile-run
+  lib/vm_codegen.sv0` exit 0; fmt clean; native emitter rebuilt →
+  `vm-parity-tier2-emit` **17/17**; only `vm_codegen`'s own stage0 + vm-parity
+  goldens moved. `./scripts/sv0 test` running.
+  **6b·** populate `env_cats` from cty at DeclNamed/param/Call-result sites
+  (inlined `cty_category`), still unread → tier-2 17/17. **6c·** add
+  `binop_tag_to_insn_typed` + `slot_cat`, switch `emit_expr` Binop/Unop to
+  `combine(cat_of v1, cat_of v2)` → tier-2 17/17 byte-identical (cat≡0 for gated
+  modules), add in-file typed-selection unit tests, `./scripts/sv0 test` green.
 - **VMF-007…009**, **Phase 2**, **Phase 3/4** micro-split when reached (shape
   depends on VMF-D and what 6a–6c surface).
 
@@ -216,14 +223,21 @@ committable at each `·`):**
   behavioral golden replayed by a new `run_vm_parity_behavioral()`.
 ### Phase 1 — emitter: f64 + wide-int
 
-- **VMF-005 · todo · re-mirror the IR ADT (`vm_codegen.sv0`).** Add `VFloat(i32)`
-  (tag 8) + `VIntWide(i32)` (tag 9) to `enum Value` in that exact order (restores
-  the prefix-match with `lowering.sv0`). Add `match` arms everywhere `Value` is
-  destructured: `emit_value` (main + the 2 nested `VMember`/`FieldAccess` base
-  matches), `emit_ret_width`, `emit_box_new`'s `inner_v` match. `VIntWide` behaves
-  like `VInt` for now (value handled in VMF-007); `VFloat` handled in VMF-007.
-  **Acceptance:** `vm_codegen.sv0`'s in-file corpus exit 0; tier-2 17/17; refresh
-  `vm_codegen` stage0 + its vm-parity golden.
+- **VMF-005 · done (2026-08-29) · re-mirror the IR ADT (`vm_codegen.sv0`).**
+  - **5a** (sv0c `6da0e96`): added `VFloat(i32)` tag 8 + `VIntWide(i32)` tag 9 to
+    `enum Value`; deferred `return -1` / width-1 arm at all 5 `Value` match sites
+    (`emit_value` main + its nested `VMember` match, `emit_expr` `FieldAccess`
+    match, `emit_ret_width`, `emit_box_new`). Both new arms return -1 in the emit
+    paths (NOT "behaves like VInt" — VIntWide's payload is a token handle, so a
+    naive VInt reuse would emit garbage; VMF-007 wires it). `compile-run
+    lib/vm_codegen.sv0` in-file corpus exit 0.
+  - **5b** (sv0c `af8c57d`): refreshed `lib/golden/stage0/vm_codegen.c` (SML
+    delegate — temp renumber + 10 `tag==8/9` branches) and
+    `test/vm-parity/golden/sml/vm_codegen.sv0b` (SML `--target=vm` — the **only**
+    file that moved in a full 97-program `capture_vm_parity_goldens.sh`).
+    Rebuilt native VM emitter → `sv0 vm-parity-tier2-emit` **17/17 byte-identical**;
+    full `./scripts/sv0 test` **green** (self-host loop 99/99, stage0, vm-parity
+    SML goldens, tier-2). Parent bumps `cd6eba0`, `0bc833d`.
 - **VMF-006 · todo · type-category environment (`vm_codegen.sv0`).** THE CRUX.
   `Expr::Binop(tag, v1, v2)` carries only the AST op tag — no type. Port
   `megaTU-main.sv0`'s `megatu_tyenv` machinery (`megatu_cty_category`,
