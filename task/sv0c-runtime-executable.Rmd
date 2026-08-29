@@ -1484,6 +1484,32 @@ Resolved 2026-08-23, in order:
   **All three self-host-loop conflicts this project has ever tracked
   (KC-001, KC-002, KC-005) are now resolved.**
 
+- **2026-08-28 — the last remaining failure anywhere in this project's
+  local test suite and GitHub CI, fixed.** `test_runner.sml`'s "checker
+  rejects int/bool binop" (never a `KC-00X` entry -- a genuine
+  `checker.sml` type-checker bug, not a self-host-loop conflict) is
+  fixed. Root cause: `Arith` binop type synthesis's `pick (a, b)` helper
+  picked a result type from whichever operand was "numeric and not the
+  bare literal default," returning immediately without ever examining
+  the OTHER operand -- so `1 + true` picked `TyInt 32` from the literal
+  `1` and never checked `true` at all, silently accepting an outright
+  type violation. Fixed by requiring BOTH operands be numeric before the
+  literal-default-vs-concrete-type preference (`BUGS.md #2`'s own
+  original fix, preserved unchanged) gets to pick a winner; a
+  non-numeric operand on either side now always reaches `expect`,
+  raising `E0400`.
+
+  Verified: `make test` 308/308 (was 307/308); manually confirmed the
+  fix catches the bug class (`1 + true`, `true + 1`, `true - false` all
+  now rejected; `1 + 2`, `1.0 + 2` unaffected); full `./scripts/sv0
+  test` exits 0 with zero failures anywhere -- no goldens needed
+  refreshing, since this fix never changes what any existing, valid
+  `.sv0` program type-checks to. `test-guards` green. sv0c commit
+  `81789b7`, parent pending.
+
+  **This was the last known failure anywhere in this project's local
+  test suite and GitHub CI.**
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
