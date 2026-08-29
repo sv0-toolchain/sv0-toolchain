@@ -36,6 +36,16 @@ jobs:
         with:
           submodules: recursive
 
+      # ubuntu-22.04's default python3 is 3.10, which predates the stdlib
+      # `tomllib` module (added in 3.11) that native_exe_config.py imports
+      # for sv0.toml discovery (NEX-043/062). Never caught before because
+      # ./scripts/sv0 test had never once reached this far in CI (KC-001/
+      # KC-002/KC-005 always aborted the run earlier).
+      - name: Set up Python 3.11+ (native_exe_config.py needs stdlib tomllib)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Milestone orientation + workspace index consistency (no SML)
         run: |
           python3 scripts/verify_milestone_orientation.py --root .
