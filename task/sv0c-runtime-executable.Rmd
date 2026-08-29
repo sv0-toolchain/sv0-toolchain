@@ -1591,6 +1591,44 @@ Resolved 2026-08-23, in order:
   parent-only (`scripts/sv0`, `.github/workflows/ci.yml`, 3
   `native_exe_*.py` modules) -- no sv0c submodule involved.
 
+- **2026-08-29 — a genuine 6th issue, found only after fixing 1-5, and
+  GitHub CI is now fully green for the first time in this project's
+  history.** Reported to the user as a new finding before touching
+  anything, matching this session's own scope discipline. CI still
+  failed on `test/behavior/cases/string_substr_len.sv0` (a totally
+  ordinary, correct fixture) exiting 1 instead of 3 under
+  ASan+UBSan+GCC. Set up a local `ubuntu:22.04` Docker container (no
+  real Linux/GCC available any other way on this dev machine) and
+  reproduced it directly: a genuine LeakSanitizer report --
+  `sv0_string_substr` mallocs its return buffer and sv0 has no `free`
+  builtin at all, so the buffer becomes definitively unreachable once
+  the caller's local variable goes out of scope. LSan runs by default
+  under ASan on Linux but has zero support on macOS, exactly why this
+  was never seen before.
+
+  Found two compounding, pre-existing gaps in
+  `sv0c/runtime/lsan-suppressions.txt` (NEX-050b) while fixing this: its
+  one existing entry (`leak:sv0_vec_new`) had accidentally been left as
+  a commented-out doc line, never an active rule; and nothing anywhere
+  had ever actually set `LSAN_OPTIONS` to point at this file, so it was
+  100% inert regardless of its contents. Fixed both, added the missing
+  `leak:sv0_string_substr`/`leak:sv0_string_concat` entries, and added a
+  new `sanitizer_env()` helper (also `print_suppressions=0`, since
+  LSan's own "Suppressions used:" summary would otherwise still fail an
+  "expect empty stderr" check on an otherwise-clean run -- found via the
+  same Docker container, not assumed) wired into every place that runs
+  a sanitized binary. **Verified by running the full 114-program
+  behavior corpus through real `gcc -fsanitize=address,undefined` in
+  the Docker container with the fix applied: zero exit mismatches, zero
+  unexpected stderr, across the entire corpus.** Commits: sv0c
+  `53de895`; parent `3398b15`.
+
+  **Confirmed on GitHub CI: both jobs ("verify" and "native-exe-clang")
+  report `success`.** Checked the full raw log for any swallowed
+  `##[error]`/`FAIL` markers -- none found. This is the first time this
+  entire project's CI has been fully green, on every job, across its
+  whole history.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
