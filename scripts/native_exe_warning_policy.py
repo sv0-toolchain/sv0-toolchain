@@ -70,6 +70,31 @@ SUPPRESSED_WARNINGS: list[Suppression] = [
         "today's accepted behavior, not a resolved policy decision; "
         "revisit when NEX-050/051 resolve Site 4.",
     ),
+    Suppression(
+        "-Wno-overflow",
+        "GCC's name for the exact same overflow_wrap_mask.sv0 site as "
+        "-Wno-integer-overflow above (Clang's name) -- confirmed on a "
+        "real Linux/GCC CI run (this project's own suite had never once "
+        "reached this far in CI before KC-001/002/005 were fixed, so a "
+        "GCC-only warning name was never seen until now). Same rationale "
+        "as -Wno-integer-overflow exactly; not a second finding.",
+    ),
+    Suppression(
+        "-Wno-builtin-declaration-mismatch",
+        "fn_power.sv0's own recursive integer `pow(b, e)` -- a genuine, "
+        "correct sv0 user function -- collides by name with GCC's "
+        "implicitly-recognized libc builtin `double pow(double, double)` "
+        "(recognized even with no `#include <math.h>`; Clang does not "
+        "warn on this same collision, which is why it was never seen "
+        "before this project's suite first ran to completion on "
+        "Linux/GCC). Not a codegen defect: the emitted C is correct and "
+        "the fixture's own behavior-corpus entry (exit 81) already "
+        "passes on both compilers -- sv0 simply has no separate "
+        "namespace from C identifiers at the emission level, so a user "
+        "function sharing a name with a libc builtin will always trigger "
+        "this on GCC. A real, narrow limitation worth knowing about, not "
+        "a bug to fix here.",
+    ),
 ]
 
 # Warnings that are real, tracked correctness gaps -- deliberately NOT
@@ -97,6 +122,17 @@ TRACKED_GAPS: list[TrackedGap] = [
         "(enum_match_payload.sv0 and 14+ other fixtures), not assumed. "
         "Real fix (a panic-branch codegen change) tracked as a follow-up "
         "task, not done inline in this warning-policy slice.",
+    ),
+    TrackedGap(
+        "-Wmaybe-uninitialized",
+        "GCC's name for the exact same enum-match missing-else-branch gap "
+        "as -Wsometimes-uninitialized above (Clang's name, KC-003 in "
+        "native_exe_known_conflicts.py) -- confirmed on a real Linux/GCC "
+        "CI run (this project's own suite had never once reached this far "
+        "in CI before KC-001/002/005 were fixed, so a GCC-only warning "
+        "name for an already-known gap was never seen until now). Same "
+        "root cause and same follow-up as -Wsometimes-uninitialized "
+        "exactly; not a second finding.",
     ),
 ]
 
