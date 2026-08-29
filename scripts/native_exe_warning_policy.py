@@ -108,33 +108,21 @@ class TrackedGap:
     rationale: str
 
 
-TRACKED_GAPS: list[TrackedGap] = [
-    TrackedGap(
-        "-Wsometimes-uninitialized",
-        "Every enum `match` lowers to an if/else-if chain over the tag "
-        "with an EMPTY final else branch -- if the tag were ever "
-        "something the checker's exhaustiveness analysis didn't "
-        "anticipate, the match's result temp would be read "
-        "uninitialized. Currently unreachable only because sv0's own "
-        "checker enforces exhaustiveness; the emitted C has no defensive "
-        "fallback (e.g. `sv0_panic(\"non-exhaustive match\")`) expressing "
-        "that guarantee itself. Confirmed via generated-C inspection "
-        "(enum_match_payload.sv0 and 14+ other fixtures), not assumed. "
-        "Real fix (a panic-branch codegen change) tracked as a follow-up "
-        "task, not done inline in this warning-policy slice.",
-    ),
-    TrackedGap(
-        "-Wmaybe-uninitialized",
-        "GCC's name for the exact same enum-match missing-else-branch gap "
-        "as -Wsometimes-uninitialized above (Clang's name, KC-003 in "
-        "native_exe_known_conflicts.py) -- confirmed on a real Linux/GCC "
-        "CI run (this project's own suite had never once reached this far "
-        "in CI before KC-001/002/005 were fixed, so a GCC-only warning "
-        "name for an already-known gap was never seen until now). Same "
-        "root cause and same follow-up as -Wsometimes-uninitialized "
-        "exactly; not a second finding.",
-    ),
-]
+# KC-003 (the enum-match missing-else-branch gap that used to live here as
+# two entries, -Wsometimes-uninitialized/-Wmaybe-uninitialized) is FIXED,
+# not just reclassified: lower_match_arms' own if/else-if chain still ends
+# in an empty else (the checker's exhaustiveness guarantee is real and
+# still the reason it's never taken), but the match result temp is now
+# defensively zero-initialized right after its declaration
+# (sv0c/lib/lowering.sv0, the match-expression lowering site) instead of
+# being left genuinely uninitialized, so every path through the chain now
+# assigns it a defined value. Confirmed: recompiling enum_match_payload.sv0
+# and the rest of the corpus produces zero -Wsometimes-uninitialized/
+# -Wmaybe-uninitialized warnings under -Wall -Wextra. Empty on purpose --
+# see native_exe_warning_report.py's own selftest comment for why an empty
+# TRACKED_GAPS is the successful end state here, not a dead classification
+# branch.
+TRACKED_GAPS: list[TrackedGap] = []
 
 
 class WarningPolicyError(Exception):

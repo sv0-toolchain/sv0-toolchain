@@ -155,8 +155,13 @@ def _selftest() -> int:
     # The tracked-gap and suppressed buckets should each have caught at
     # least one real observed warning -- otherwise those classification
     # branches are dead code that happens to never fire, not a genuinely
-    # exercised part of this report.
-    if total_tracked == 0:
+    # exercised part of this report. TRACKED_GAPS itself can legitimately
+    # be empty (KC-003's own -Wsometimes-uninitialized/-Wmaybe-uninitialized
+    # entries were removed once the underlying match-codegen gap was
+    # actually fixed, not just reclassified) -- in that case there is
+    # nothing to exercise, and that is the successful end state, not a
+    # dead branch.
+    if TRACKED_GAPS and total_tracked == 0:
         failures.append("no warning matched a TRACKED_GAPS entry -- classification branch never exercised")
     if total_suppressed == 0:
         failures.append("no warning matched a SUPPRESSED_WARNINGS entry -- classification branch never exercised")

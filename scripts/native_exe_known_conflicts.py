@@ -90,16 +90,28 @@ KNOWN_CONFLICTS = [
         "id": "KC-003",
         "area": "match-codegen",
         "description": (
-            "Every enum `match` lowers to an if/else-if chain with an EMPTY final else "
-            "branch, so the result temp is provably uninitialized on any tag Clang can't "
-            "prove exhaustive (-Wsometimes-uninitialized, 16 occurrences across the "
-            "behavior corpus, confirmed via generated-C inspection during NEX-049a). "
-            "Currently unreachable at runtime only because sv0's own checker enforces "
-            "match exhaustiveness ahead of codegen -- a real, latent correctness gap, "
-            "not yet fixed (filed as a follow-up task, not this registry's job to fix)."
+            "RESOLVED. Every enum `match` used to lower to an if/else-if chain with an "
+            "EMPTY final else branch, so the result temp was provably uninitialized on "
+            "any tag Clang couldn't prove exhaustive (-Wsometimes-uninitialized, 16 "
+            "occurrences across the behavior corpus, confirmed via generated-C "
+            "inspection during NEX-049a; GCC's own name for the same gap, "
+            "-Wmaybe-uninitialized, surfaced separately once this project's suite "
+            "first ran to completion on Linux). Fixed in the post-native-exe cleanup "
+            "pass: sv0c/lib/lowering.sv0's match-expression lowering site now emits a "
+            "defensive `out = 0;` store immediately after the result temp's "
+            "declaration, before the if/else-if chain runs -- the chain's own empty "
+            "final else branch is unchanged (the checker's exhaustiveness guarantee is "
+            "real and still the reason it's never taken at runtime), but every path "
+            "through the chain now assigns the temp a defined value, eliminating the "
+            "UB Clang/GCC were correctly flagging. Verified: recompiling "
+            "enum_match_payload.sv0 and the rest of the behavior corpus produces zero "
+            "-Wsometimes-uninitialized/-Wmaybe-uninitialized warnings; the full "
+            "behavior corpus (114 programs) still passes with identical exit codes. "
+            "native_exe_warning_policy.py's TRACKED_GAPS entries for this removed "
+            "(not reclassified -- the underlying gap is gone)."
         ),
         "severity": "mitigated",
-        "status": "open",
+        "status": "resolved",
     },
     {
         "id": "KC-004",
