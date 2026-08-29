@@ -115,6 +115,35 @@ KNOWN_CONFLICTS = [
         "severity": "mitigated",
         "status": "open",
     },
+    {
+        "id": "KC-005",
+        "area": "self-host-sv0-loop",
+        "description": (
+            "RESOLVED. Fixing KC-001 and KC-002 unmasked this: the self-host loop's "
+            "bootstrap-build step compiles every file in bootstrap-sources.list to VM "
+            "bytecode, including lib/driver.sv0 -- a step that had NEVER once succeeded "
+            "in this project's history, since KC-001 (then KC-002) always aborted the "
+            "loop before it got that far. With both fixed, the loop finally reached "
+            "driver.sv0's own VM-bytecode compilation for the first time and failed "
+            "there: `sv0c error: vm: unknown function 'sv0_getenv'`. Root cause: "
+            "NEX-055c/REL-004 added a getenv(\"SV0_DRV_REQUEST\") call to driver.sv0's "
+            "own fn main(); the C backend (megaTU-main.sv0) knows how to emit that call, "
+            "but the SML-side VM bytecode compiler (vm_codegen.sml) has no case for it "
+            "at all -- a touch point never in scope for getenv, since nothing had ever "
+            "needed to VM-compile a getenv-calling file before. Resolved by excluding "
+            "lib/driver.sv0 from VM targeting (bootstrap-sources.list, "
+            "test/vm-parity/manifest.txt, test/vm-parity/tier2-manifest.txt) rather than "
+            "adding getenv support to vm_codegen.sml: driver.sv0 is a native-only CLI "
+            "entry point/test harness, not compiler-pipeline logic -- there is no real "
+            "host-environment concept on the VM, and no VM program has any actual use "
+            "for getenv. Verified: ./scripts/sv0 test passes completely clean (exit 0); "
+            "bootstrap-build, vm-parity SML goldens (97/97), stage0 golden (22/22), and "
+            "self-host-sv0-loop (99/99) all green; the optional tier-2 leg also green "
+            "(17/17, previously always failed on driver.sv0)."
+        ),
+        "severity": "non-blocking",
+        "status": "resolved",
+    },
 ]
 
 
