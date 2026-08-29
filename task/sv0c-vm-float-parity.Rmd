@@ -307,20 +307,36 @@ opcodes 5/6/32-37/48-52. Only interpreter dispatch is the "i32 slice"
   path's per-file `E0304 duplicate type` cannot arise on the native VM path.
   The full `sv0-mathlib` project resolves + type-checks fine through the native
   VM pipeline (fails only later, at emit — see 014a).
-- **VMF-014a · OPEN — native-VM-emitter contract gap.** Full `sv0-mathlib`
-  VM-emit reaches `add_complex` then `vm_codegen_emit_program` returns < 0
-  (compose-main exit 5). Isolated: `ensures(result.re == 0.0 && result.im ==
-  0.0)` — a `result.<field>` member access as a **non-leftmost binop operand**
-  in a contract clause. `ensures(result.re == 0.0 && true)` is fine;
-  `ensures(true && result.im == 0.0)` fails; fails for `i32` structs too, so
-  **not float-related** — another pre-existing native-VM-emitter gap (the 17
-  original tier-2 modules never put `result.field` in a compound contract).
-  Likely `emit_value`'s `VMember(VVar(result), f)` → `lookup_slot("result")`
-  misses when `result` isn't the emitter's synthesized return slot in that
-  position. Needs investigation of the native contract-lowering + emit path.
-- **Beyond 014a**: each `emit_program` gap unblocks the next; getting *all* of
-  `sv0-mathlib` through the native VM emitter is open-ended completeness work
-  (structs/enums/`match`/`loop_invariant`/generics-heavy). Scope call pending.
+- **VMF-014a · done — ALL of `sv0-mathlib` now VM-compiles AND runs, matching
+  the C backend.** Three linked fixes (root-caused one at a time by re-emitting
+  `--project sv0-mathlib` and following each failure):
+  1. **`lowering.sv0` — struct-typed `result` slot.** `ensures(result.re == a &&
+     result.im == b)` failed to VM-emit: `lower_fn` emitted `Instr::DeclVar(ret_slot)`
+     (scalar, width 1, no field layout), which the C backend papers over via its
+     tyenv but the VM emitter does not. Fix: emit `Instr::DeclNamed(ret_ty_tok,
+     ret_slot)` when the fn's return type (via `lower_scan_fn_ret_ty_tok`) is not
+     plain `i32`/`bool`/`unit` — more correct for the C side too (`double
+     result;` not `int result;`). Not float-specific (i32 structs hit it too);
+     the 17 tier-2 modules never put `result.field` in a compound contract.
+  2. **`vm_codegen.sv0` — spilled-temp category (`two_prod`).** A spilled
+     sub-expression temp (`Assign(t, <expr>)`) got category 0, so
+     `(f64 + f64) + (f64 * f64)` over two such temps emitted `ADD_I32` →
+     interpreter `arithmetic on non-int`. New `expr_cat` (mirrors
+     `megatu_expr_category`) + `ensure_var_cat`; `scan_instr_env`'s `Assign`/
+     `Store` now categorize the dest from the RHS expr.
+  3. **`vm_codegen.sv0` + recipe — call-result category (`tan_f64`).**
+     `sin_f64(x) / cos_f64(x)`: lowering always passes `Instr::Call.rty = 0`, so
+     call-result temps were category 0. New `bretcats` (per-block return
+     category, block-indexed) built in the VM compose main from `frt` +
+     `megatu_cty_of_root`, threaded through `emit_fn`/`local_count_and_env`/
+     `scan_instr(s)_env` (counted script, `bretcats` 0→12); `scan_instr_env`'s
+     `Call` case resolves the callee's category via `index_of_fn(fn_h, blabels)`
+     (guarded by `slot_handle_in_range` for the synthetic tests).
+  **Result: `SV0_DRV_REQUEST="--project sv0-mathlib" build/sv0-megatu-vm-native`
+  emits a 42 KB `.sv0b` that runs on `sv0vm` to `vm_exit:0` — exactly matching
+  the C backend (exit 0). The library's full self-test suite passes on both.**
+  C behavior corpus 114/114; tier-2 18/18; goldens: only `lowering` +
+  `vm_codegen` (their own source changed).
 
 ### Phase 4 — behavioral parity harness + sv0-mathlib wire-up + docs
 

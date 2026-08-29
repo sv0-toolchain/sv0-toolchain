@@ -91,6 +91,7 @@ vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program
     let vbpn: Vec<i32> = vec_new();
     let vbpc: Vec<i32> = vec_new();
     let vbi: Vec<i32> = vec_new();
+    let vbrc: Vec<i32> = vec_new();
     let vnb: i32 = vec_len(out_blocks) / 4;
     let mut vbx: i32 = 0;
     while vbx < vnb {
@@ -101,6 +102,7 @@ vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program
         let vitem: i32 = megatu_find_item_by_label(it, id1, vlabel);
         let vpn: Vec<i32> = vec_new();
         let vpc: Vec<i32> = vec_new();
+        let mut vrc: i32 = 0;
         if vitem >= 0 {
             let vpcount: i32 = vec_get(id3, vitem);
             let vbase: i32 = vec_get(id5, vitem);
@@ -111,15 +113,26 @@ vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program
                     vec_get(fpt, vbase + vk), ptt, ptd1, ptd2, pp));
                 vk = vk + 1;
             }
+            let vhr: i32 = vec_get(id2, vitem) - (vec_get(id2, vitem) / 2) * 2;
+            if vhr == 1 {
+                let vrn: string = megatu_cty_of_root(vec_get(frt, vitem),
+                    ptt, ptd1, ptd2, pp, source, starts, ends, it, id1);
+                if string_eq(vrn, "double") {
+                    vrc = 1;
+                } else {
+                    if string_eq(vrn, "int64_t") { vrc = 2; }
+                }
+            }
         }
         vec_push(vbpn, vpn);
         vec_push(vbpc, vpc);
+        vec_push(vbrc, vrc);
         vbx = vbx + 1;
     }
     let vpool: Vec<i32> = vec_new();
     let vft: Vec<i32> = vec_new();
     let vfc: i32 = vm_codegen_emit_program(it, id1, ifc, ivm, id3, sfn, vbl, vbpn, vbpc, vbi,
-                                source, starts, ends, vpool, vft);
+                                vbrc, source, starts, ends, vpool, vft);
     if vfc < 0 { return 5; }
     let vstrbuf: Vec<i32> = vec_new();
     let vstrlen: i32 = encode_strings(vpool, source, starts, ends, vstrbuf);
