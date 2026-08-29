@@ -169,6 +169,43 @@ KNOWN_CONFLICTS = [
         "severity": "non-blocking",
         "status": "resolved",
     },
+    {
+        "id": "KC-006",
+        "area": "uninitialized-read",
+        "description": (
+            "RESOLVED. Found live via GitHub CI's first real run of the native-exe "
+            "corpus under Linux/GCC (never surfaced by this dev machine's Clang): "
+            "native_exe_warning_report flagged an unclassified warning on "
+            "enum_match_unit.sv0: \"'e.p0' may be used uninitialized "
+            "[-Wmaybe-uninitialized]\". Root cause: an enum unit-variant ctor "
+            "(`let e: E = E::B;`, E also has a payload-carrying variant) only ever "
+            "stores `.tag` in the emitted C struct, leaving the `.p<i>` payload "
+            "slot(s) SOME OTHER variant needs genuinely uninitialized -- a later "
+            "match arm reading `e.p0` inside its own runtime tag-check guard is "
+            "provably dead when this value's tag doesn't match (checker-guaranteed "
+            "exhaustiveness), but GCC's -Wmaybe-uninitialized can't see through the "
+            "runtime check and flags the read anyway. Same shape as KC-003 (a "
+            "checker-guaranteed-unreachable path still leaving real C UB behind), "
+            "different site. Fixed the same way: sv0c/lib/lowering.sv0's "
+            "enum-nullary-ctor let-lowering now defensively zero-initializes every "
+            "`.p<i>` slot the enum's struct declares, gated to the C target only "
+            "(mirrors KC-003's own lower_vm_target()==0 gate). Found during the fix: "
+            "this exact file has THREE structurally-identical enum-nullary-ctor "
+            "lowering sites (not one) -- applying the identical fix to one of the "
+            "other two (lower_expr_to_value's general-expression path) triggered an "
+            "unrelated, pre-existing self-hosting panic (\"vec: index out of "
+            "bounds\") when lowering.sv0 compiled itself; isolated via bisection and "
+            "left unfixed there, flagged as its own follow-up rather than chased "
+            "down inline. Verified: real GCC 11.4 (Docker, ubuntu:22.04) compiling "
+            "the full 114-program corpus at both -O0 and -O2 with "
+            "-Wmaybe-uninitialized produces zero matches anywhere; sv0c 308/308; "
+            "full ./scripts/sv0 test green end to end (self-host-sv0-loop 99/99, "
+            "VM-parity tier-2 17/17, stage0 golden); the actual reported fixture "
+            "(enum_match_unit.sv0) still exits 7 as before."
+        ),
+        "severity": "non-blocking",
+        "status": "resolved",
+    },
 ]
 
 

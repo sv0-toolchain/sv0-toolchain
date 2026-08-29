@@ -1729,6 +1729,37 @@ Resolved 2026-08-23, in order:
   `main` to the new commit rather than committing detached. sv0c
   `fc2a233`, parent commit follows this entry.
 
+- **2026-08-29 (a second GitHub-CI-only regression from the same push,
+  KC-006)**: with `ba32758` green on VM-parity, the main `CI` job still
+  failed -- `native_exe_warning_report` flagged an unclassified GCC
+  warning on `enum_match_unit.sv0`: `"'e.p0' may be used uninitialized
+  [-Wmaybe-uninitialized]"`. Real, same-shape bug as KC-003 but a
+  different site: an enum unit-variant ctor (`let e: E = E::B;`, `E`
+  also has a payload-carrying variant) only stores `.tag`, leaving the
+  `.p<i>` payload slot(s) some OTHER variant needs genuinely
+  uninitialized in the emitted C struct -- a later match arm's read of
+  `e.p0` is provably dead when the tag doesn't match (checker-
+  guaranteed), but GCC's `-Wmaybe-uninitialized` can't see through the
+  runtime tag check. Never surfaced by this dev machine's Clang.
+  `lib/lowering.sv0` turned out to have THREE structurally-identical
+  enum-nullary-ctor lowering sites (not one) -- traced which one
+  `enum_match_unit.sv0` actually lowers through via a temporary debug
+  `write_file` probe, then fixed just that one with a KC-003-shaped
+  defensive zero-init, gated to the C target only. Along the way,
+  applying the identical fix to a SECOND site (the general-expression
+  path in `lower_expr_to_value`) triggered an unrelated, pre-existing
+  self-hosting panic (`"vec: index out of bounds"`) when `lowering.sv0`
+  compiles itself -- isolated via bisection, deliberately left unfixed
+  there and NOT chased down further (a real, separate latent bug, own
+  follow-up task filed: `task_c06a8aac`), so the third site (the other
+  near-duplicate) was also left unfixed for the same reason. Verified:
+  real GCC 11.4 in Docker (`ubuntu:22.04`) compiling the full
+  114-program corpus at `-O0`/`-O2` with `-Wmaybe-uninitialized`
+  produces zero matches (was one); sv0c 308/308; full `./scripts/sv0
+  test` green end to end. `KC-006` added to
+  `native_exe_known_conflicts.py`, `status: "resolved"`. sv0c `52d28ea`
+  (on top of `fc2a233`), parent commit follows this entry.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
