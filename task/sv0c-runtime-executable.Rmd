@@ -1539,6 +1539,58 @@ Resolved 2026-08-23, in order:
   308/308; native behavior corpus 114/114. Parent-only change, no
   submodule involved.
 
+- **2026-08-28/29 — five more Linux-CI-only issues, fixed methodically
+  in 5 chunks.** Since `./scripts/sv0 test` had never once run to
+  completion in CI before today (`KC-001`/`002`/`005` always aborted it
+  earlier), fixing the `sv0-megatu-native` build-ordering bug let CI run
+  far enough to surface five more, entirely separate, previously
+  invisible gaps in one go. Fixed each with its own commit and its own
+  real verification:
+
+  1. **`build/sv0-megatu-verify` not built** (same class of bug as the
+     prior fix, one binary later): NEX-031's own selftest needs it too.
+     Added `ensure_sv0_megatu_verify` alongside `ensure_sv0_megatu_native`
+     in both `run_test()` and `run_test_guards()`. Commit `386fcbf`.
+  2. **`ModuleNotFoundError: tomllib`**: `ubuntu-22.04`'s default
+     `python3` is 3.10, predating the stdlib `tomllib` module (3.11+)
+     `native_exe_config.py` imports for `sv0.toml` discovery. Added an
+     `actions/setup-python@v5` step (3.12) to the "verify" job. Commit
+     `e6accf3` — the one chunk verifiable only by a real CI run, no
+     Python 3.10/3.11 available locally.
+  3. **3 unclassified GCC-only warnings**: `-Wmaybe-uninitialized` and
+     `-Woverflow` are GCC's own names for two ALREADY-known, already
+     Clang-named gaps (`KC-003`'s enum-match issue; the deliberate
+     `overflow_wrap_mask.sv0` UB fixture) -- added as cross-referenced
+     entries, not new findings. `-Wbuiltin-declaration-mismatch` is
+     genuinely new but narrow: `fn_power.sv0`'s own correct recursive
+     `pow(b, e)` collides by name with GCC's implicitly-recognized libc
+     builtin (Clang doesn't warn on this); not a codegen defect --
+     suppressed with an honest rationale about sv0 sharing C's
+     identifier namespace at emission time. Commit `2438ce6`.
+  4. **UBSan diagnostic-format mismatch**: on Linux, integer division
+     overflow by `-1` is a genuine hardware trap (SIGFPE) that ASan's
+     signal handler intercepts before UBSan can print its own summary
+     line -- unlike macOS/Clang's "print and continue" default. The
+     load-bearing signal (UBSan's own "runtime error: ..." diagnostic)
+     is present on both platforms; relaxed the check to accept either
+     sanitizer's own brand name confirming real instrumentation, verified
+     against both platforms' real output plus two synthetic regression
+     cases (still correctly caught). Commit `f1241b9`.
+  5. **`cc_probe` misclassifies Ubuntu's `cc`**: Debian/Ubuntu's gcc
+     packaging renames the version string's first line to `cc (Ubuntu
+     11.4.0-...) 11.4.0` -- no "gcc" or "Free Software Foundation"
+     substring until line 2, which the single-line display text never
+     kept. Fixed by classifying from the full `--version` output while
+     leaving the terse display text unchanged. Directly reproduced the
+     exact CI string to confirm. Commit `c2fed6a`.
+
+  All five root-caused precisely (not guessed), each with its own real
+  verification (mutation-style regression checks where a real Linux/GCC
+  environment isn't locally available). Full `./scripts/sv0 test` and
+  `test-guards` still exit 0 clean throughout. All changes are
+  parent-only (`scripts/sv0`, `.github/workflows/ci.yml`, 3
+  `native_exe_*.py` modules) -- no sv0c submodule involved.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
