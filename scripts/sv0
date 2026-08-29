@@ -782,6 +782,18 @@ run_python_guards() {
 }
 
 run_test_guards() {
+  # Several native_exe_*.py selftests (native_exe_same_output_stress,
+  # native_exe_benchmark, native_exe_warning_report, ...) drive real builds
+  # through native_exe_build.py, which resolves the compiler binary at
+  # build/sv0-megatu-native and never builds it itself -- it's the DRIVER,
+  # not the compiler-builder, by this project's own established design.
+  # On a fresh checkout (no build/ directory at all -- CI, or a first-ever
+  # local run) those selftests failed outright with "executable not found",
+  # a real, previously-invisible gap that only ever went unnoticed locally
+  # because this session's own build/ directory has had the binary built
+  # and persisted across dozens of manual runs all along. Ensure it exists
+  # before any Python guard that needs it runs.
+  ensure_sv0_megatu_native
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
@@ -791,6 +803,10 @@ run_test_guards() {
 run_test() {
   local ec=0
   ensure_sv0_self_host_compiler
+  # See run_test_guards's own comment: several native_exe_*.py selftests
+  # inside run_python_guards need build/sv0-megatu-native to already exist
+  # on a fresh checkout.
+  ensure_sv0_megatu_native
   # PC-6c (native-default promotion): do NOT force the SML delegate as the default
   # here. Leaving SV0_SELF_HOST_COMPILER unset lets run_self_host_sv0_loop flip to
   # the native mega-TU binary (behavioral acceptance) as the promoted default, while

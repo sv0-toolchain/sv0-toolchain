@@ -1510,6 +1510,35 @@ Resolved 2026-08-23, in order:
   **This was the last known failure anywhere in this project's local
   test suite and GitHub CI.**
 
+- **2026-08-28 — a fourth, genuinely separate, fresh-checkout-only
+  issue found and fixed.** GitHub CI confirmed the SML fix (`308 tests,
+  308 passed, 0 failed` directly in the CI log), but the main `CI` job
+  still failed -- on a completely unrelated, pre-existing gap: several
+  `native_exe_*.py` selftests inside `run_python_guards` drive real
+  builds through `native_exe_build.py`, which resolves
+  `build/sv0-megatu-native` but never builds it itself (it's the
+  driver, not the compiler-builder, by this project's own established
+  design). On a genuinely fresh checkout (no `build/` directory at
+  all), they failed outright with `executable not found`.
+
+  Confirmed NOT a regression from the SML fix: the identical failure
+  signature already appeared in the immediately prior CI run, just
+  masked because that run failed even earlier (at `KC-002`). Never
+  reproduced locally all session because this session's own `build/`
+  directory has had the binary built and persisted across dozens of
+  manual runs -- reproduced for the first time only by deliberately
+  deleting it. Root cause: neither `run_test()` nor `run_test_guards()`
+  called `ensure_sv0_megatu_native` before `run_python_guards`, unlike
+  later steps in the same sequence that do. Fixed by adding that call
+  to both, alongside the existing `ensure_sv0_self_host_compiler` call.
+
+  Verified: reproduced the bug on a clean `git stash` + deleted binary
+  (157 "executable not found" errors); confirmed the fix resolves it (0
+  errors, exit 0) with the binary deleted again; full `./scripts/sv0
+  test` also exits 0 clean from the same fresh state; `sv0c make test`
+  308/308; native behavior corpus 114/114. Parent-only change, no
+  submodule involved.
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog
