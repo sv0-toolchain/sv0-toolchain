@@ -59,17 +59,27 @@ def build_release_profile_argv(
     output_path: str,
     extra_cc_args: list[str] | None = None,
 ) -> list[str]:
-    """The R1 release-profile argv (NEX-051a, §16.5): `-O2` plus
-    `-fno-strict-aliasing` -- explicitly NOT `-O3`, link-time optimization,
-    `-ffast-math`, or `NDEBUG`-based contract removal, per §16.5's exact
-    prohibition list.
+    """The R1 release-profile argv (NEX-051a, §16.5): `-O2` -- explicitly
+    NOT `-O3`, link-time optimization, `-ffast-math`, or `NDEBUG`-based
+    contract removal, per §16.5's exact prohibition list.
 
-    `-fno-strict-aliasing` is here because `native-executable-ub-audit.md`
-    (NEX-048a) found two real strict-aliasing violations (Sites 1/2: the
+    History: this argv used to also include `-fno-strict-aliasing`, the
+    audit's (`native-executable-ub-audit.md`, NEX-048a) concluded
+    mitigation for two real strict-aliasing violations (Sites 1/2: the
     box-pool pointer-cast deref, and the `lowering.sv0`/`codegen.sv0`
     `Value` cross-reinterpretation) that `-O2`'s type-based alias analysis
-    is entitled to exploit -- this flag is the audit's own concluded
-    mitigation, not a speculative addition.
+    was entitled to exploit. KC-004 cleanup pass (post-R1): both sites have
+    since been fixed for real at the representation level
+    (`sv0__box_deref_raw` now reads via `memcpy` into a same-typed local
+    instead of a pointer-cast deref -- see `sv0_runtime.h`; Site 2 shared
+    the identical macro, so the one fix covers both, confirmed by
+    recompiling the full enum/struct/combo fixture set through the mega-TU
+    compiler binary itself at `-O2` with no aliasing mitigation, output
+    unchanged). No known live strict-aliasing violation remains, so the
+    flag was removed rather than kept as unnecessary belt-and-suspenders --
+    a future site should be fixed for real (as these were) or the flag
+    re-added with a fresh, honest audit entry, not silently re-added on
+    reflex.
 
     Otherwise identical in shape to `build_dev_profile_argv`: same dialect,
     same trusted-include-before-program-C ordering, same `extra_cc_args`
@@ -79,7 +89,6 @@ def build_release_profile_argv(
         cc_path,
         "-std=gnu99",
         "-O2",
-        "-fno-strict-aliasing",
         "-g",
         *(extra_cc_args or []),
         f"-I{runtime.dir}",
@@ -150,16 +159,22 @@ def _selftest() -> int:
     elif argv_sanitized.index("-fsanitize=address,undefined") >= argv_sanitized.index("-I/abs/runtime"):
         failures.append("extra_cc_args must come before the trusted -I")
 
-    # Case 5 (NEX-051a): the release-profile argv has -O2 + -fno-strict-aliasing,
-    # and explicitly none of §16.5's prohibited flags (-O3, LTO, -ffast-math,
-    # NDEBUG-based contract removal).
+    # Case 5 (NEX-051a): the release-profile argv has -O2, and explicitly
+    # none of §16.5's prohibited flags (-O3, LTO, -ffast-math, NDEBUG-based
+    # contract removal). KC-004 cleanup pass: -fno-strict-aliasing is gone
+    # too -- both audit sites it mitigated are now fixed for real (see the
+    # function's own docstring) -- so its ABSENCE is the thing asserted now,
+    # not its presence.
     release_argv = build_release_profile_argv(
         "/usr/bin/cc", runtime, "/scratch/program.c", "/scratch/program.tmp-exe"
     )
     if "-O2" not in release_argv:
         failures.append("release argv missing -O2")
-    if "-fno-strict-aliasing" not in release_argv:
-        failures.append("release argv missing -fno-strict-aliasing (audit Sites 1/2's mitigation)")
+    if "-fno-strict-aliasing" in release_argv:
+        failures.append(
+            "release argv still has -fno-strict-aliasing -- KC-004 fixed both audit "
+            "sites for real; re-adding this flag needs a fresh audit entry, not a revert"
+        )
     prohibited = ["-O3", "-flto", "-ffast-math", "-DNDEBUG"]
     found_prohibited = [f for f in prohibited if f in release_argv]
     if found_prohibited:

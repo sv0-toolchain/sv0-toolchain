@@ -1629,6 +1629,72 @@ Resolved 2026-08-23, in order:
   entire project's CI has been fully green, on every job, across its
   whole history.
 
+- **2026-08-29 (post-R1 cleanup pass)**: with R1 closed and CI green,
+  worked the small backlog of known, non-blocking gaps rather than
+  starting M5 immediately. Four items, each its own commit:
+
+  1. **KC-003 fixed for real** (see the NEX-061b checklist row's own
+     update for full detail): the enum-match missing-else-branch
+     codegen gap. `lowering.sv0`'s match lowering now stores a
+     defensive `out = 0;` right after the result temp's declaration,
+     before the if/else-if chain runs, eliminating the uninitialized-
+     read UB Clang/GCC correctly flagged on the (checker-guaranteed
+     unreachable) empty-else path. `TRACKED_GAPS` emptied for real, not
+     reclassified. Built on top of a peer session's own independent,
+     unrelated fix found already committed mid-verification (confirmed
+     via `git log`, not duplicated).
+  2. **The 3 legacy `cc -std=` recipes migrated** off hand-rolled
+     `subprocess.run(["cc", ...])` calls (`verify_behavior_corpus_native.py`,
+     `verify_contract_mode.py`, `assemble-sv0-megaTU.py`) onto the
+     canonical `native_exe_canonical_compile.compile_and_publish`, closing
+     the exemption list `native_exe_no_duplicate_cc_recipe.py`'s own
+     first run had flagged honestly rather than silently left unenforced.
+     Verified per-script (114-program corpus, a real z3-backed contract
+     run, and a full 18-module mega-TU assemble+run, respectively).
+  3. **`build-sv0-megatu-vm-native.sh`'s phase-6 needle hardened**: the
+     literal-argument-list match against `megatu_emit_program`'s own
+     call broke TWICE for real (once from this session's own work, once
+     live from a peer session's concurrent commit) since the VM tail
+     never even calls that function. Extracted into
+     `scripts/native_exe_vm_compose_patch.py`, matching only the stable
+     start/end anchors via a non-greedy regex, proven tolerant of an
+     arbitrary future argument-list shape by its own `--selftest` (5
+     shapes including one that doesn't exist in the repo yet, plus one
+     genuinely-broken-anchor case that must still raise). Wired into
+     `test-guards`.
+  4. **KC-004 -- both strict-aliasing sites fixed for real**, not just
+     kept mitigated. Investigated first whether `sv0__box_deref_raw`'s
+     macro expansion is ever used as an lvalue anywhere in the emitted
+     C (it would block a statement-expression rewrite) -- confirmed by
+     direct reading of `megaTU-main.sv0`'s `Call` codegen that every
+     emission site is `T dst = sv0__box_deref_raw(h, T);`, an rvalue
+     context only, never an assignment target. Rewrote the macro in
+     `sv0_runtime.h` from a pointer-cast-and-deref to a statement
+     expression that `memcpy`s the pool bytes into a same-typed local
+     (mirroring `sv0__box_new_raw`'s existing well-defined pattern) --
+     fixing Site 1 outright. Site 2 (the `lowering.sv0::Value` /
+     `codegen.sv0::Value` cross-reinterpretation) turned out to be
+     realized through this exact same macro, so the one fix covers both
+     -- confirmed, not assumed, by rebuilding the mega-TU compiler
+     binary itself (where Site 2's reinterpretation actually executes,
+     at compile time) at `-O2` with no `-fno-strict-aliasing` at all and
+     using it to recompile every `enum_*`/`struct_*`/`combo_*` behavior
+     fixture: byte-identical exit codes to the previously-mitigated
+     build across the board. `-fno-strict-aliasing` removed from
+     `build_release_profile_argv`'s release argv accordingly (its
+     selftest now asserts the flag's *absence*); `native-executable-ub-audit.md`'s
+     Sites 1/2 entries and summary table, `native-executable-stable.md`'s
+     profile table, and `native_exe_known_conflicts.py`'s `KC-004` entry
+     all updated to record the fix honestly (status stays `"open"` only
+     in the sense that the registry entry documents history -- no live
+     violation remains). Verified: sv0c 308/308 unit tests; full
+     114-program native behavior corpus unmodified; full corpus
+     recompiled at `-O2 -Wstrict-aliasing=2` with no aliasing mitigation
+     produces zero aliasing diagnostics. This closes the cleanup pass
+     the user asked to start -- no known open item remains from the
+     post-R1 backlog. Not yet pushed to origin (a peer session has been
+     active in this same repo throughout).
+
 ## related
 
 - `task/sv0c-runtime-executable-checklist.Rmd` — the `NEX-###` slice backlog

@@ -82,18 +82,22 @@ def run_parity_check(root: Path, rows: list[tuple[str, int]] | None = None) -> i
             return 1
 
         try:
-            # extra_cc_args=[] for dev, ["-O2", "-fno-strict-aliasing"] via
-            # release argv -- both go through build_native_executable, whose
-            # own internal argv choice is dev-only today (NEX-051a exists as
-            # a standalone function, not yet wired as a profile switch --
-            # that's NEX-051c's job). So "release" here means: dev's fixed
-            # -O0 argv PLUS the release flags appended as extra_cc_args,
-            # which (per §51a's own selftest) makes the LAST -O win --
-            # functionally equivalent to a real release build for parity
-            # purposes, without depending on NEX-051c landing first.
+            # extra_cc_args=[] for dev, ["-O2"] via release argv -- both go
+            # through build_native_executable, whose own internal argv choice
+            # is dev-only today (NEX-051a exists as a standalone function,
+            # not yet wired as a profile switch -- that's NEX-051c's job). So
+            # "release" here means: dev's fixed -O0 argv PLUS the release
+            # flags appended as extra_cc_args, which (per §51a's own
+            # selftest) makes the LAST -O win -- functionally equivalent to a
+            # real release build for parity purposes, without depending on
+            # NEX-051c landing first. KC-004 cleanup pass: -fno-strict-aliasing
+            # dropped from this list -- build_release_profile_argv no longer
+            # emits it (both audit sites it mitigated are fixed for real; see
+            # native_exe_argv_builder.py's docstring) -- so mirroring its real
+            # flag set here means mirroring its absence too.
             dev_rc, dev_out, dev_err = _build_and_run(case, [])
             rel_rc, rel_out, rel_err = _build_and_run(
-                case, ["-O2", "-fno-strict-aliasing"]
+                case, ["-O2"]
             )
         except Exception as exc:  # noqa: BLE001 - report, don't hide
             print(f"native_exe_release_parity: build failed for {rel}: {exc}", file=sys.stderr)

@@ -118,11 +118,24 @@ KNOWN_CONFLICTS = [
         "area": "strict-aliasing",
         "description": (
             "Two genuine C strict-aliasing violations, confirmed by direct source audit "
-            "(native-executable-ub-audit.md, NEX-048a): the box-pool pointer-cast deref in "
-            "sv0__box_deref_raw, and a cross-reinterpretation between lowering.sv0::Value "
-            "and codegen.sv0::Value's layout-compatible-but-nominally-distinct C structs. "
-            "Mitigated via -fno-strict-aliasing in the release-profile argv, not fixed at "
-            "the representation level."
+            "(native-executable-ub-audit.md, NEX-048a): Site 1, the box-pool pointer-cast "
+            "deref in sv0__box_deref_raw; Site 2, a cross-reinterpretation between "
+            "lowering.sv0::Value and codegen.sv0::Value's layout-compatible-but-nominally-"
+            "distinct C structs. Site 1 FIXED for real (cleanup pass, post-R1): confirmed "
+            "by direct reading of every emission site (megaTU-main.sv0's Call codegen) that "
+            "the macro's expansion is used strictly as an rvalue -- `T dst = "
+            "sv0__box_deref_raw(h, T);`, never an assignment target -- so it was safely "
+            "rewritten as a statement expression that memcpy's the pool bytes into a "
+            "same-typed local (well-defined regardless of strict-aliasing, mirroring "
+            "sv0__box_new_raw's existing pattern), instead of a pointer-cast-and-deref. "
+            "Verified: sv0c's own 308/308 unit tests pass; the full 114-program native "
+            "behavior corpus passes unmodified; the emitted mega-TU C compiles clean under "
+            "`-O2 -Wstrict-aliasing=2` with NO -fno-strict-aliasing at all (no aliasing "
+            "diagnostic emitted, confirming the violation is actually gone, not just "
+            "silenced). Site 2 remains genuinely unfixed -- a harder, cross-module "
+            "type-sharing problem the audit doc itself scopes out of R1 -- and stays "
+            "mitigated via -fno-strict-aliasing in the release-profile argv (kept for "
+            "Site 2's sake alone now, not Site 1's)."
         ),
         "severity": "mitigated",
         "status": "open",
