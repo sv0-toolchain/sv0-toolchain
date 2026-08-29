@@ -47,17 +47,29 @@ sys.path.insert(0, sys.argv[3])
 from native_exe_vm_compose_patch import patch_phase6
 src = pathlib.Path(sys.argv[1]).read_text()
 
-# 1. CLI source read (path in SV0_DRV_REQUEST). NEX-055c/REL-004 closure: the
-# legacy /tmp/.sv0_drv_path fallback this used to also accept is retired.
+# 1. CLI source read (SV0_DRV_REQUEST holds `<path.sv0>` or `--project <dir>`).
+# NEX-055c/REL-004 closure: the legacy /tmp/.sv0_drv_path fallback is retired.
+# VMF-014: --project mode mirrors build-sv0-megatu-native.sh -- source-concat
+# every .sv0 under <dir> via link_project_concat_sources_from_dir (one TU, so no
+# per-file duplicate-type issue the SML --project path has). No verified/disabled
+# contract modes on the VM path.
 cli_read = (
     'let _drv_p: string = getenv("SV0_DRV_REQUEST");\n'
     '    let _drv_n: i32 = string_len(_drv_p);\n'
-    '    let _drv_path: string = if _drv_n > 0 {\n'
+    '    let _drv_c: string = if _drv_n > 0 {\n'
     '        if string_char_at(_drv_p, _drv_n - 1) == 10 {\n'
     '            string_substr(_drv_p, 0, _drv_n - 1)\n'
     '        } else { _drv_p }\n'
     '    } else { _drv_p };\n'
-    '    let source: string = read_file(_drv_path);'
+    '    let _drv_cn: i32 = string_len(_drv_c);\n'
+    '    let _is_proj: bool = if _drv_cn >= 10 {\n'
+    '        string_eq(string_substr(_drv_c, 0, 10), "--project ")\n'
+    '    } else { false };\n'
+    '    let source: string = if _is_proj {\n'
+    '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
+    '    } else {\n'
+    '        read_file(_drv_c)\n'
+    '    };'
 )
 src, n = re.subn(r'let source: string = "[^"]*";', cli_read, src, count=1)
 assert n == 1, "compose main shape changed: `let source`"
