@@ -80,6 +80,7 @@ usage: sv0 <command> [args]
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
+  vm-native-compile <file.sv0>|--project <dir> [out.sv0b]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK)
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
   ci                 check + full ./scripts/sv0 test (no sv0-mcp; same as \`make ci\`)
@@ -1818,6 +1819,34 @@ case "$cmd" in
       exit 1
     fi
     (cd "$SV0C" && echo "CM.make \"sources.cm\"; OS.Process.exit(Main.main ((), [\"--target=vm\", \"--project\", \"$rel\"]));" | sml)
+    ;;
+  vm-native-compile)
+    # VMF-015: emit .sv0b via the NATIVE mega-TU VM emitter (no SML at runtime;
+    # the path that supports f64 / i64 / wide-int -- see sv0c-vm-float-parity).
+    #   vm-native-compile <file.sv0> [out.sv0b]
+    #   vm-native-compile --project <dir> [out.sv0b]
+    # Absolute paths accepted (unlike vm-compile). Builds build/sv0-megatu-vm-native
+    # on demand; `rm` it (or run scripts/build-sv0-megatu-vm-native.sh) after a
+    # compiler-source change to force a rebuild.
+    _vmn="$ROOT/build/sv0-megatu-vm-native"
+    [[ -x "$_vmn" ]] || bash "$ROOT/scripts/build-sv0-megatu-vm-native.sh" >&2
+    [[ -x "$_vmn" ]] || { echo "sv0: vm-native-compile: emitter build failed" >&2; exit 1; }
+    if [[ "${1:-}" == "--project" ]]; then
+      _d="${2:-}"
+      [[ -n "$_d" && -d "$_d" ]] || { echo "sv0: vm-native-compile --project <dir>: not a directory: ${2:-}" >&2; exit 1; }
+      _d="$(cd "$_d" && pwd)"
+      _out="${3:-$ROOT/build/vm/$(basename "$_d").sv0b}"
+      mkdir -p "$(dirname "$_out")"
+      SV0_DRV_REQUEST="--project $_d" "$_vmn" > "$_out"
+    else
+      _f="${1:-}"
+      [[ -n "$_f" && -f "$_f" ]] || { echo "sv0: vm-native-compile <file.sv0>: not a file: ${1:-}" >&2; exit 1; }
+      _f="$(cd "$(dirname "$_f")" && pwd)/$(basename "$_f")"
+      _out="${2:-$ROOT/build/vm/$(basename "$_f" .sv0).sv0b}"
+      mkdir -p "$(dirname "$_out")"
+      SV0_DRV_REQUEST="$_f" "$_vmn" > "$_out"
+    fi
+    echo "sv0: vm-native-compile: wrote $_out" >&2
     ;;
   vm-run)
     sv0b="${1:-}"
