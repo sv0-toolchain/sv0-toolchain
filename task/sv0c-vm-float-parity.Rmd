@@ -384,18 +384,53 @@ and (spanning both) the type-category tracking for spilled temps + call
 results. ~24 commits across sv0c / sv0vm / parent / sv0-mathlib, every one
 green on `./scripts/sv0 test`.
 
-**Per-fixture cross-backend check — done (2026-08-30, follow-up).**
-`sv0-mathlib/scripts/run_fixture_parity.py` generates one `fn main()` check per
-row of `test/fixtures/{rounding,trig}.csv`, runs it through BOTH backends, and
-asserts each result matches the fixture's expected value and that the C and VM
-exit codes agree; wired into `sv0-mathlib/scripts/ci`. The broad full-domain ULP
-sweep in `docs/ulp_audit_harness.c` stays C-backend-only by design — it needs
-`<math.h>` as its reference oracle.
+## per-fixture polish — COMPLETE (2026-08-30)
 
-**Still out of scope:** a bare integer literal exactly at 2³¹ assigned into an
-`i32` slot stays a `CI64` at runtime on the VM rather than truncating (harmless
-for `int_min.sv0`; noted). The SML `--target=vm` path is unchanged and still
-lacks f64 (frozen).
+`sv0-mathlib/scripts/run_fixture_parity.py` (sv0-mathlib `28e9142` →
+`a25a4c0`; parent pin at `6d368a3`; both repos' CI green) generates one
+`fn main() -> i32` with a check per row × function of
+`test/fixtures/{rounding,trig}.csv`, compiles + runs it on both backends,
+and checks each result against the row's own EXPECTED column. It is the
+reproducible replacement for the one-time manual fixture check the
+manifest used to describe, wired into `sv0-mathlib/scripts/ci`.
+
+- **C-backend leg gates and passes** every row.
+- **VM-backend leg is advisory** (`WARN`, non-gating; `--strict-vm` to
+  gate). Under the SML/NJ **110.99.9** the GitHub Actions runner installs,
+  the generated program aborts on `sv0vm` with `ensures failed:
+  frac_floor_of_nonneg` — root cause is the `Unsafe.cast` `real`↔`Word64`
+  round-trip in `sv0vm/src/bytecode/bytecode.sml` (`f64Le`/`f64AtVec`)
+  mis-decoding the `2^52` `PUSH_F64` payload; fine on SML/NJ 2026.1. The
+  exit-code cross-backend gate (`vm_behavioral_parity.py`, COMPAT-001)
+  is unaffected — 8/8.
+- **A portable field-math codec was attempted (twice) and reverted
+  both times.** Reconstruct the IEEE-754 fields with pure Basis `Real`
+  ops, no `Unsafe`. It is logically correct — verified 0 mismatches vs
+  `Unsafe.cast` over all **443** `PUSH_F64` literals in the real
+  sv0-mathlib `.sv0b` on 2026.1 — and the native VM emitter is
+  deterministic (5/5 byte-identical `.sv0b`). But on 110.99.9 it
+  **intermittently** (~2 of 3 CI runs) broke `vm_behavioral_parity
+  --project ../sv0-mathlib`; prime suspect is its per-call heap
+  allocation (`IntInf` via `Real.fromLargeInt`, `fromManExp` records)
+  ×443 during whole-file decode tripping a load-dependent GC issue in
+  that old runtime. SML/NJ 110.99.9 SIGSEGVs on boot under QEMU on Apple
+  Silicon, so it can't be developed locally. Reverted commit trail +
+  an alloc-free `bitsToReal` candidate (also 0-mismatch on 2026.1) are
+  in `sv0-mathlib/BUGS.md` "Per-fixture value check" and follow-up task
+  `task_d477abce` (needs amd64 Linux / Codespaces).
+- Gotcha found building this: sv0 **nests block comments**, so a literal
+  `/*` inside a generated comment (`foo/*.csv`) silently swallows the
+  rest of the file and the C `--project` emitter falls back to
+  `int main(void){return 0;}` with zero diagnostic.
+
+The broad full-domain ULP sweep in `sv0-mathlib/docs/ulp_audit_harness.c`
+stays C-backend-only by design — it needs `<math.h>` as its reference
+oracle.
+
+**Still out of scope:** a bare integer literal exactly at 2³¹ assigned
+into an `i32` slot stays a `CI64` at runtime on the VM rather than
+truncating (harmless for `int_min.sv0`; noted). The SML `--target=vm`
+path is unchanged and still lacks f64 (frozen).
 
 ### Phase 0 — baseline & guardrails
 
