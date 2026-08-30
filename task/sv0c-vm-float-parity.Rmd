@@ -384,13 +384,18 @@ and (spanning both) the type-category tracking for spilled temps + call
 results. ~24 commits across sv0c / sv0vm / parent / sv0-mathlib, every one
 green on `./scripts/sv0 test`.
 
-**Not done (tracked, out of scope):** the per-fixture bit/ULP-for-ULP diff over
-`sv0-mathlib/test/fixtures/{rounding,trig}.csv` (SPEC §16.2) still runs
-C-backend-only in `docs/ulp_audit_harness.c` — extending that harness to also
-run each fixture through `sv0vm` and ULP-compare is future polish. A bare
-integer literal exactly at 2³¹ assigned into an `i32` slot stays a `CI64` at
-runtime on the VM rather than truncating (harmless for `int_min.sv0`; noted).
-The SML `--target=vm` path is unchanged and still lacks f64 (frozen).
+**Per-fixture cross-backend check — done (2026-08-30, follow-up).**
+`sv0-mathlib/scripts/run_fixture_parity.py` generates one `fn main()` check per
+row of `test/fixtures/{rounding,trig}.csv`, runs it through BOTH backends, and
+asserts each result matches the fixture's expected value and that the C and VM
+exit codes agree; wired into `sv0-mathlib/scripts/ci`. The broad full-domain ULP
+sweep in `docs/ulp_audit_harness.c` stays C-backend-only by design — it needs
+`<math.h>` as its reference oracle.
+
+**Still out of scope:** a bare integer literal exactly at 2³¹ assigned into an
+`i32` slot stays a `CI64` at runtime on the VM rather than truncating (harmless
+for `int_min.sv0`; noted). The SML `--target=vm` path is unchanged and still
+lacks f64 (frozen).
 
 ### Phase 0 — baseline & guardrails
 
