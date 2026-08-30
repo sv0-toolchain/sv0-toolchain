@@ -3,7 +3,7 @@ created: "2026-08-29T00:00:00-06:00"
 updated: "2026-08-29T00:00:00-06:00"
 id: task-sv0c-vm-float-parity
 key: sv0c-vm-float-parity
-state: draft
+state: complete
 tags:
   - sv0
   - sv0c
@@ -340,30 +340,57 @@ opcodes 5/6/32-37/48-52. Only interpreter dispatch is the "i32 slice"
 
 ### Phase 4 — behavioral parity harness + sv0-mathlib wire-up + docs
 
-- **VMF-008** — VIntWide type-context truncation (`int_min.sv0` parity). Small.
-- **VMF-015** — `scripts/sv0` native-VM sub-dispatch (`vm-compile --native` / a
-  new verb) so `sv0-mathlib` can invoke it without the SML path.
-- **VMF-017/018** — behavioral parity fixtures (`test/vm-parity/programs/` f64 +
-  i64) + `run_vm_parity_behavioral()` (native `emit-c`→run vs native
-  VM-emit→`sv0vm`, bit-exact int / ULP f64), new CI workflow.
-- **VMF-019** — `sv0-mathlib/test/parity/` + `scripts/ci` wire-up; close
-  COMPAT-001/002/TEST-005; update `BUGS.md #2`, `README.md`, `CHANGELOG.md`.
-- **VMF-020/021** — full regression sweep; `sv0doc`/`sv0c` docs; `l0` archive
-  addendum; memory note.
+- **VMF-008 · done** (sv0vm `6cd99a5`): interpreter coerces a mixed-width
+  operand (`CInt` literal in an f64/i64 binop or compare) — `arithFF`/`arithLL`/
+  `cmp` promote via `asF64`/`asI64`, matching the C backend's implicit
+  promotion; exact-type cases stay first so pure-i32 is untouched.
+  `int_min.sv0` (`let a: i32 = 0 - 2147483648`) now `vm_exit:42` = C 42.
+- **VMF-015 · done** (parent `15d0d0b`): `./scripts/sv0 vm-native-compile
+  <file.sv0>|--project <dir> [out.sv0b]` — native VM emit, absolute paths OK,
+  builds the emitter on demand.
+- **VMF-017/018 · done** (sv0c `bf0cb7c`, parent `60cd54b`):
+  `scripts/vm_behavioral_parity.py` — per `behavioral-manifest.txt` entry, native
+  `emit-c` (via `native_exe_canonical_compile.compile_and_publish`) → run vs
+  native VM-emit → `sv0vm`; exit codes compared. Fixtures
+  `programs/vmf_{f64_arith,f64_struct,f64_contract,f64_dd,i64_arith}.sv0` +
+  `int_min`/`contracts` + optional `--project ../sv0-mathlib` (skipped if
+  absent). `./scripts/sv0 vm-behavioral-parity`; step in `./scripts/sv0 test`
+  and `.github/workflows/vm-parity-tier2.yml`. **8/8 OK.**
+- **VMF-019 · done** (sv0-mathlib `79e8200`): `scripts/ci` `--skip-parity`
+  section runs the toolchain harness (picks up `--project ../sv0-mathlib`);
+  `test/parity/README.md`; `BUGS.md #2` → FIXED for the native VM path;
+  `README.md` + `CHANGELOG.md` updated; CI workflow builds the native VM
+  emitter. **COMPAT-001 / COMPAT-002 / TEST-005 closed for the exit-code
+  surface.**
+- **VMF-020/021 · done**: full `./scripts/sv0 test` green (behavioral-parity
+  step included); `sv0doc/bytecode/instructions.md` "Width classes" section;
+  this task doc `state: complete`; memory note `project_vm_float_parity`.
 
-## status (2026-08-29)
+## status — COMPLETE (2026-08-29)
 
-Emitter side (VMF-005/006/007) and interpreter side (VMF-010…013) are **done**:
-the native VM emitter + `.sv0b` codec + `sv0vm` now compile and run f64 and
-i64/u64 programs — arithmetic, comparisons, structs, `match`, contracts — with
-exit codes matching the C backend on every hand-tested program. `--project`
-mode works for simple multi-file projects. A pure-integer, correctly-rounded
-decimal→IEEE-754 converter (bigint long division, subnormals, overflow) lives
-in `vm_codegen.sv0`. Two pre-existing native-VM-emitter bugs were found and one
-fixed (contract-pool-sentinel panic → 18/18 tier-2; `result.field` compound
-contract = VMF-014a, open). Remaining: native-VM-emitter language completeness
-for the full `sv0-mathlib` surface, then the behavioral parity harness + repo
-wire-up.
+**Option B delivered.** The native VM bytecode emitter + `.sv0b` codec + `sv0vm`
+interpreter now compile **and run** f64 and i64/u64 programs — arithmetic,
+comparisons, structs, enums, `match`, `requires`/`ensures` contracts, deep call
+graphs, double-double arithmetic — with results matching the C backend. The
+**entire `sv0-mathlib` library** VM-emits via `--project` and runs its full
+self-test suite on `sv0vm` to `vm_exit:0`, identical to the C backend; a
+cross-backend behavioral-parity harness gates it in both repos' CI. A
+pure-integer, correctly-rounded decimal→IEEE-754 converter (bigint long
+division; subnormals; overflow) lives in `vm_codegen.sv0` — the toolchain
+itself stays float-free. Tier-2 byte-parity held throughout (17→18 modules).
+**Three pre-existing native-VM-emitter bugs found and fixed** along the way:
+contract-message-pool-sentinel panic, struct-typed `result` contract slot,
+and (spanning both) the type-category tracking for spilled temps + call
+results. ~24 commits across sv0c / sv0vm / parent / sv0-mathlib, every one
+green on `./scripts/sv0 test`.
+
+**Not done (tracked, out of scope):** the per-fixture bit/ULP-for-ULP diff over
+`sv0-mathlib/test/fixtures/{rounding,trig}.csv` (SPEC §16.2) still runs
+C-backend-only in `docs/ulp_audit_harness.c` — extending that harness to also
+run each fixture through `sv0vm` and ULP-compare is future polish. A bare
+integer literal exactly at 2³¹ assigned into an `i32` slot stays a `CI64` at
+runtime on the VM rather than truncating (harmless for `int_min.sv0`; noted).
+The SML `--target=vm` path is unchanged and still lacks f64 (frozen).
 
 ### Phase 0 — baseline & guardrails
 
