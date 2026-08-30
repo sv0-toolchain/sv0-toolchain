@@ -61,3 +61,9 @@ jobs:
 
       - name: Tier-2 byte-parity — native .sv0b vs SML golden (all 18 mega-TU modules)
         run: ./scripts/sv0 vm-parity-tier2-emit
+
+      - name: Build native mega-TU C emitter (for the behavioral compare)
+        run: bash scripts/build-sv0-megatu-native.sh
+
+      - name: Behavioral parity — f64/i64 fixtures, native emit-c vs VM-emit->sv0vm
+        run: python3 scripts/vm_behavioral_parity.py

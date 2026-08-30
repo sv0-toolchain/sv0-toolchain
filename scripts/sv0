@@ -81,6 +81,7 @@ usage: sv0 <command> [args]
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
   vm-native-compile <file.sv0>|--project <dir> [out.sv0b]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK)
+  vm-behavioral-parity  f64/i64 fixtures: native emit-c->run vs VM-emit->sv0vm, exit codes compared (COMPAT-001/002)
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
   ci                 check + full ./scripts/sv0 test (no sv0-mcp; same as \`make ci\`)
@@ -893,6 +894,10 @@ run_test() {
   fi
   sv0_info "sv0 test: VM parity tier-2 (optional emitter vs golden/sml)"
   if ! run_vm_parity_tier2_emit_compare; then
+    ec=1
+  fi
+  sv0_info "sv0 test: VM behavioral parity (f64/i64: native emit-c vs VM-emit->sv0vm)"
+  if ! python3 "$ROOT/scripts/vm_behavioral_parity.py"; then
     ec=1
   fi
   sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
@@ -1796,6 +1801,14 @@ case "$cmd" in
     : "${SV0_VM_BYTECODE_EMITTER:=$ROOT/scripts/sv0-vm-tier2-native-emitter.sh}"
     export SV0_VM_BYTECODE_EMITTER
     run_vm_parity_tier2_emit_compare
+    ;;
+  vm-behavioral-parity)
+    # VMF-018: run each behavioral-manifest.txt fixture through BOTH native
+    # backends (emit-c->cc->run and VM-emit->sv0vm) and compare exit codes.
+    # The f64 / i64 surface has no SML --target=vm reference, so this is the
+    # cross-backend evidence there (COMPAT-001/002 for sv0-mathlib).
+    require_sml
+    python3 "$ROOT/scripts/vm_behavioral_parity.py"
     ;;
   assemble-megatu)
     python3 "$ROOT/scripts/assemble-sv0-megaTU.py" --root "$ROOT" "$@"
