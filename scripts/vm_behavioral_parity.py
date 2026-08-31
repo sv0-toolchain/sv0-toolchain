@@ -109,9 +109,10 @@ def main():
     skipped = 0
     for entry in entries:
         request, label = resolve(entry)
-        # An optional `--project <dir>` entry (e.g. the sibling sv0-mathlib
-        # checkout) is skipped when the dir is absent -- present in
-        # sv0-mathlib's own CI, absent in sv0-toolchain's.
+        # A `--project <dir>` entry is skipped when the dir is absent.
+        # `sv0-mathlib` is a submodule, so `--project sv0-mathlib` runs in
+        # every recursive checkout; the skip is a safety net for a
+        # non-recursive one.
         if request.startswith("--project "):
             d = request[len("--project "):]
             if not os.path.isdir(d):

@@ -1,9 +1,9 @@
 # sv0-toolchain
 
 Development workspace for **sv0**, a Rust-like systems language with built-in
-contracts (`requires` / `ensures` / `loop_invariant`). This meta-repo pins four
+contracts (`requires` / `ensures` / `loop_invariant`). This meta-repo pins five
 submodules that together form the language, its self-hosting compiler, a bytecode
-VM, and developer tooling.
+VM, a numeric library, and developer tooling.
 
 ## the subprojects
 
@@ -12,10 +12,12 @@ VM, and developer tooling.
 | [**sv0doc**](sv0doc/) | the language + bytecode **specification** (grammar, types, contracts, memory model, keywords) — the source of truth | Markdown | spec complete (M0) |
 | [**sv0c**](sv0c/) | the **compiler** — `.sv0` → C and → bytecode. **Self-hosting**: written in sv0, compiles itself; **`sv0 verify`** static contract verification (M4) | sv0 (+ retired SML reference) | self-hosting (M3); advanced verification (M4) complete |
 | [**sv0vm**](sv0vm/) | the **bytecode VM** that runs sv0c's `--target=vm` output | SML/NJ | M2 complete |
+| [**sv0-mathlib**](sv0-mathlib/) | a contract-first **numeric library** (arith, modular, trig, polar, complex) written in pure sv0 — also a cross-backend conformance load for the compiler | sv0 | `v0.1.0` — SPEC R1 gate closed |
 | [**sv0-mcp**](sv0-mcp/) | Neo4j knowledge graph + MCP servers for AI-assisted development | Python | M0 complete |
 
 **Dependency flow:** sv0doc (spec) → sv0c (compiler) → C backend + VM backend →
-sv0vm. sv0-mcp cross-cuts all of them.
+sv0vm. sv0-mathlib consumes the compiler (and its cross-backend parity feeds
+back into `./scripts/sv0 test`). sv0-mcp cross-cuts all of them.
 
 ## start here
 
@@ -81,6 +83,7 @@ sv0-toolchain/
 ├── sv0doc/          specification + documentation hub   (submodule)
 ├── sv0c/            compiler                              (submodule)
 ├── sv0vm/           bytecode VM                           (submodule)
+├── sv0-mathlib/     numeric library in pure sv0           (submodule)
 └── sv0-mcp/         MCP server + graph sync               (submodule)
 ```
 
@@ -94,7 +97,7 @@ SHA in the same commit as any `sv0c` submodule bump (CI enforces the match via
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on `main`** | `516be6a61706ca259cf7ac1144dad66614bd2dac` |
+| **sv0c commit pinned on `main`** | `5205c8e65eca14d03f337d1e8263015711e78ab3` |
 
 ## design document
 
@@ -105,4 +108,5 @@ The language vision and design narrative:
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [MIT license](LICENSE-MIT) at your option. This applies to this meta-repo and
-to each of the sv0c, sv0vm, sv0doc, and sv0-mcp submodules.
+to each of the sv0c, sv0vm, sv0doc, and sv0-mcp submodules. (sv0-mathlib does
+not yet carry its own LICENSE files.)

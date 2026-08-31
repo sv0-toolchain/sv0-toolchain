@@ -10,3 +10,6 @@
 [submodule "sv0-mcp"]
 	path = sv0-mcp
 	url = git@github.com:sv0-toolchain/sv0-mcp.git
+[submodule "sv0-mathlib"]
+	path = sv0-mathlib
+	url = git@github.com:sv0-toolchain/sv0-mathlib.git

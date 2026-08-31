@@ -17,13 +17,14 @@ type: task
 
 ## purpose
 
-**sv0-toolchain** is the parent git repository that tracks coordinated development across four submodules:
+**sv0-toolchain** is the parent git repository that tracks coordinated development across five submodules:
 
 | submodule | role |
 |-------------|------|
 | **sv0doc** | Formal spec hub: language, bytecode, and pointers to toolchain / MCP documentation |
 | **sv0c** | Bootstrap compiler (SML/NJ): lexer through C and VM backends |
 | **sv0vm** | Bytecode loader and stack interpreter for `.sv0b` |
+| **sv0-mathlib** | Contract-first numeric library in pure sv0 (`v0.1.0`, SPEC R1 gate closed); also a cross-backend conformance load for the compiler via `--project sv0-mathlib` |
 | **sv0-mcp** | Neo4j-backed MCP server and sync tooling for AI-assisted development and debugging |
 
 this task file is the **index** for agent and human workflows: environment layout, milestone task files under `task/`, and verification that submodules are present.
@@ -38,6 +39,7 @@ this task file is the **index** for agent and human workflows: environment layou
 /env: SV0DOC_ROOT=sv0doc
 /env: SV0C_ROOT=sv0c
 /env: SV0VM_ROOT=sv0vm
+/env: SV0_MATHLIB_ROOT=sv0-mathlib
 /env: SV0_MCP_ROOT=sv0-mcp
 
 ## submodule and layout check
