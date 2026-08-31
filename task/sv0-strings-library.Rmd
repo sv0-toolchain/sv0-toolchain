@@ -33,11 +33,13 @@ It is **specification-first**. The governing document is:
 - Spec version `0.4.0-draft`; source audit 2026-08-30.
 
 Like **sv0-mathlib**, sv0-strings is a *consumer* of the toolchain, not a
-toolchain milestone. This file is the meta-repo planning hub: it tracks the
-library backlog **and** the upstream toolchain work that gates it. Closure
-authority is `SPEC.md` (§24 release gates, §23 acceptance scenarios) plus this
-file; the sv0-strings repo carries its own `README.md` / `CHANGELOG.md` and,
-later, a `BUGS.md` in the sv0-mathlib style.
+toolchain milestone. This file is the meta-repo planning **hub** (strategy,
+release ladder, upstream gaps, backlog mapping); the trackable slice index is
+**`task/sv0-strings-checklist.Rmd`** (`SS-###` — bite-sized chunks with an
+explicit stopping point each, split into an upstream-enablement track and a
+library track). Closure authority is `SPEC.md` (§24 release gates, §23
+acceptance scenarios) plus these two files; the sv0-strings repo carries its own
+`README.md` / `CHANGELOG.md` and, later, a `BUGS.md` in the sv0-mathlib style.
 
 ## current state (2026-08-30)
 
@@ -206,6 +208,9 @@ fixture provenance), LIC-005 (release-artifact notices) remain open.
 | OQ-012 | F0/R1 | When native-VM project builds expose explicit contract-mode selection + a version-stable baseline. |
 
 ## immediate next steps
+
+The bite-sized version of this, with a "start here" dependency order, is the
+`SS-###` backlog in **`task/sv0-strings-checklist.Rmd`**. In brief:
 
 1. **BL-001** — refresh the public sv0 organization audit (five core repos +
    sv0-mathlib + sv0-vsc-extension); record exact SHAs / source paths / evidence

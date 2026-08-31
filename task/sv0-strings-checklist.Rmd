@@ -1,0 +1,239 @@
+---
+created: "2026-08-30T00:00:00-06:00"
+updated: "2026-08-30T00:00:00-06:00"
+id: task-sv0-strings-checklist
+key: sv0-strings-checklist
+state: active
+tags:
+  - sv0
+  - sv0-strings
+  - strings-library
+  - checklist
+  - planning
+title: "sv0-strings: development slice backlog (SS-###)"
+type: task
+---
+
+# sv0-strings: development slice backlog
+
+## purpose
+
+The trackable **`SS-###`** slice index for **sv0-strings**. Each slice is a
+bite-sized chunk with a single clear stopping point (the **done when** column).
+Strategy, the release ladder, the `UP-001..UP-028` upstream gaps, and the
+`BL-001..BL-121` mapping live in the hub **`task/sv0-strings-library.Rmd`**;
+the normative contract is `project-specs/sv0-strings/SPEC.md` v`0.4.0-draft`
+(Appendix D is the authoritative library backlog). This file is a **living
+index** — flip status and record a one-line result + commit as slices land.
+
+## two tracks
+
+sv0-strings' F0 gate depends on ~20 capabilities that do not exist in the
+toolchain yet. Work proceeds on two tracks in parallel:
+
+- **Track U — upstream enablement.** Slices that land in **sv0c / sv0vm /
+  sv0doc** (each is a real compiler change; larger ones get their own task file
+  in the owning submodule). These are the blockers.
+- **Track L — library.** Slices that land in the **sv0-strings** repo. Phase 0
+  and Phase 1 need **zero** toolchain changes and start immediately. Each
+  R0.x implementation slice is gated by its Track U dependency.
+
+Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
+`red` = evidence-only slice (fixtures/probes that must fail for the right reason
+before the paired implementation slice); expected values never come from the
+implementation under test (SPEC Appendix C.4).
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"sv0strings.checklist.session","title":"sv0-strings slice checklist — session hooks","kind":"checklist-region","ingest":"gfm"} -->
+- [ ] Slice status flipped + one-line result (commit) recorded when an `SS-###` lands
+- [ ] `red` slice actually fails for the intended reason before its impl slice starts
+- [ ] Every landed slice adds forward + reverse traceability rows (requirement <-> test)
+- [ ] C and native-VM legs both hard-fail on mismatch (no advisory leg closes a requirement)
+- [ ] `scripts/test` (once it exists) records backend identity + effective contract mode
+- [ ] `./scripts/sv0 test-guards` after editing this file
+<!-- sv0-track:end {"id":"sv0strings.checklist.session"} -->
+
+## configuration
+
+/env: SV0_STRINGS_ROOT=sv0-strings
+/env: SV0_TOOLCHAIN_ROOT=.
+
+## Phase 0 — foundations (Track L; no toolchain changes; start now)
+
+Everything here compiles against today's toolchain (enums, free functions, and
+`--project` already work). Paths are relative to the `sv0-strings` repo.
+
+| ID | slice | refs | status | done when |
+|----|-------|------|--------|-----------|
+| SS-001 | **Source/org audit refresh.** `docs/audit/2026-08-30.md`: full 40-hex SHAs + source paths + evidence boundaries for the 5 core repos + sv0-mathlib + sv0-vsc-extension. | BL-001, GOV-002 | todo | file committed; `README.md` links it; every SHA is 40 hex. |
+| SS-002 | **Catalog skeleton + validator.** `tools/catalogs/{requirements,tests,standards,fixtures,provenance}.tsv` + `tools/check_catalogs.py` (schema, unique IDs, forward/reverse link check). | BL-003, TEST-001..005, GOV-007 | todo | `python3 tools/check_catalogs.py` green on seed data; unique-ID + dangling-ref checks active. |
+| SS-003 | **Seed requirement catalog.** Every SPEC ID (`MODEL-*`, `BYTE-*`, `TEXT-*`, `ASCII-*`, `CSTR-*`, `TOK-*`, `C23-*`, `POSIX-*`, `LEGACY-*`, `HOST-*`, `UP-*`, `BACKEND-*`, `SEC-*`, `PERF-*`, `ARCH-*`, `GOV-*`, `DOC-*`, `LIC-*`) with release + section + verification method + `status=todo`. | BL-003, TEST-001 | todo | each SPEC requirement ID present exactly once; validator green. |
+| SS-004 | **Standards-matrix extractor.** `tools/standards_matrix.py` parses SPEC Appendix A into `standards.tsv`; asserts one disposition per symbol; lists C23 §7.26 + POSIX Issue 8 `<string.h>`/`<strings.h>` inventories. | BL-002, C23-001, POSIX-001 | todo | every Appendix A symbol has exactly one disposition row; no missing/dup vs the standards inventory. |
+| SS-005 | **`Ordering` + non-borrowing error/report types.** `lib/strings_types.sv0`: `Ordering`, `BufferError`, `TextError`, `CStrError`, `LocaleError`, `CopyReport`, `MemccpyReport`, `TokenCursor`. `test/cases/types_smoke.sv0` (`fn main() -> i32`) constructs each; returns 42. (`CStr`/`CString`/`CBuffer` deferred — they hold slices/`Vec`.) | BL-005, MODEL-008/009 | todo | `types_smoke` compiles + runs `exit 42` on the C backend. |
+| SS-006 | **Checked `usize` arithmetic helpers.** internal `strings_checked` (or in `strings_types`): `checked_add/sub/mul(usize,usize) -> Option<usize>`. `test/property/checked_overflow.sv0` red cases at `usize::MAX`. | BL-006, MODEL-002, SEC-002 | todo `red`+impl | red overflow cases fail for the right reason, then pass on C. |
+| SS-007 | **Doc-fence lint.** `tools/check_doc_fences.py`: SPEC-style ```text``` interface blocks are never treated as compilable; ```sv0``` fences that claim an unimplemented surface are labelled; parser probe that header-only free-fn decls are rejected. | BL-108, MODEL-016, GOV-011 | todo | lint green on the repo; probe confirms `fn f() -> i32;` (no body) is a parse error. |
+| SS-008 | **Nested-module expected-failure probe.** `test/compile_fail/nested_module.sv0` = `module strings::bytes;`; recorded as expected-fail (`E0309`) with its diagnostic needle. | BL-112 (neg), ARCH-001, UP-019 | todo `red` | probe present; diagnostic needle pinned; runner treats it as expected-fail. |
+| SS-009 | **Embedded-NUL red corpus (today's intrinsics).** `test/fixtures/regressions/embedded_nul_*.sv0` exercising `string_len`/`string_eq`/`string_concat`/`string_substr`/`string_char_at` on `"a\0b"`; documents the current C-vs-VM divergence. | BL-007, UP-001/002, AC-001 | todo `red` | corpus runs on both backends and **fails/diverges** as documented (the F0 signal that UP-001 is unmet). |
+
+## Phase 1 — staging runner + gate policy (Track L; wires to the toolchain)
+
+| ID | slice | refs | status | done when |
+|----|-------|------|--------|-----------|
+| SS-010 | **`scripts/test` staging runner v1 (C).** Builds a fresh temp project = `lib/*.sv0` + one selected `test/cases/<name>.sv0` staged as `main.sv0`; invokes `sv0c --emit=exe --project` / `./scripts/sv0 native-compile --project`; runs it; checks exit 0; records backend + contract mode. Duplicate-`main` negative probe. | BL-113, ARCH-011, UP-010/022, AC-021/032 | todo | `scripts/test --backend=c --case types_smoke` passes; two-`main` project fails cleanly; runner self-test green. |
+| SS-011 | **Runner native-VM leg.** Add `./scripts/sv0 vm-native-compile --project` + `vm-run`; record native-emitter identity; frozen SML `vm-project-compile` reported separately, never substituted. | BL-113/120, ARCH-015, UP-027, AC-034 | todo | `scripts/test --backend=vm --case types_smoke` runs and records `emitter=native`. |
+| SS-012 | **Path-order corpus.** Stage byte-identical sources under multiple lexicographic orders (entry before/after `lib/`); assert identical result or a stable non-empty diagnostic. | BL-119, UP-026, AC-036 | todo `red`+harness | permutation set runs; any rejected form emits a non-empty diagnostic (no silent failure). |
+| SS-013 | **Package-owned serialized comparison + injected mismatch.** Runner emits a serialized `{ok\|err, bytes}` record per case (not just exit code); a deliberately corrupted VM fixture fails the gate even when the C leg passes. | BL-121, BACKEND-009, TEST-021, AC-035 | todo `red`+impl | injected mismatch turns the gate **red**; removing it turns it green. |
+| SS-014 | **CI workflow.** `.github/workflows/ci.yml` (model on `sv0-mathlib/.github/workflows/ci.yml`): check out sv0-toolchain alongside, build native compiler + VM emitter, run `scripts/test` + catalog/lint checks. | BL-113, TEST-006, TEST-014 | todo | first CI run green on live upstream `sv0-toolchain@main`. |
+
+## Track U — upstream enablement (sv0c / sv0vm / sv0doc)
+
+Each is the **smallest shippable compiler change** toward the named `UP-###`.
+Land in the owning submodule with its own gated tests (and its own task file for
+the multi-slice ones). "Unblocks" = the Track L slices that become doable.
+
+| ID | slice | owner | refs | status | done when | unblocks |
+|----|-------|-------|------|--------|-----------|----------|
+| SS-U01 | **`byte` alias.** Resolver/checker accept `byte` as the normative alias of `u8` in signatures, generics, modules, generated C, VM bytecode. | sv0c | UP-018, MODEL-001 | todo | `let x: byte = 0;` compiles + round-trips C + VM; SS-008-style `E0301` workaround retired. | all Track L (lets modules use the normative spelling) |
+| SS-U02a | **`string` repr — normative.** sv0doc: length-bearing owned `string` contract (embedded NUL, UTF-8, ownership, drop, alloc-failure). Decision record. | sv0doc | UP-001, OQ-001 | todo | sv0doc merged; OQ-001 → resolved-pending-impl. | SS-U02b/c/d |
+| SS-U02b | **`string` repr — C backend.** `sv0_string {ptr,len,cap}`; `string_len/eq/concat/substr/char_at` reimplemented length-based (embedded-NUL safe); bounds-checked access. | sv0c | UP-001/002/003 | blocked (SS-U02a) | SS-009 embedded-NUL corpus passes on C. | R0.2 text slices |
+| SS-U02c | **`string` repr — VM.** Align VM string-table repr + builtins to the same length semantics; out-of-range → fail-closed. | sv0vm | UP-001/002/003 | blocked (SS-U02a) | SS-009 corpus passes on VM; C/VM parity green. | R0.2 text slices |
+| SS-U02d | **Owned alloc-failure + drop.** Checked allocation failure + deterministic release for `string` / `Vec<byte>` / `CString`; fail-at-N + leak hooks on both backends. | sv0c, sv0vm | UP-007/013, OQ-003 | blocked (SS-U02b/c) | fail-at-N + leak tests pass on C and VM. | SS-127/128, R0.2 gate |
+| SS-U03a | **Slice repr — normative.** sv0doc: `&[T]`/`&mut [T]` runtime repr `{data,len}` + borrow rules preserved through lowering/codegen. Decision record. | sv0doc | UP-004/005, OQ-002 | todo | sv0doc merged; OQ-002 → resolved-pending-impl. | SS-U03b/c/d |
+| SS-U03b | **Slice — C backend.** Construct / index / mutate `&[u8]` + `&mut [u8]` end-to-end; bounds-checked before access. | sv0c | UP-004/005 | blocked (SS-U03a) | slice construct/index/mutate corpus runs `exit 42` on C. | all R0.1 byte slices |
+| SS-U03c | **Slice — VM `IndexAccess`.** VM accepts slice `IndexAccess` (currently rejected); bounds-check → fail-closed. | sv0vm | UP-004/005 | blocked (SS-U03a) | same corpus runs on VM; C/VM parity. | all R0.1 byte slices |
+| SS-U03d | **Borrow compile-fail suite.** Reject returning `&[u8]` backed by a local; reject simultaneous invalid `&mut`. Stable diagnostic class. | sv0c | UP-005, TEST-010, AC-024 | blocked (SS-U03b) | compile-fail cases fail with a pinned diagnostic class. | SS-126, SS-129 |
+| SS-U04 | **Interval overlap predicate.** Express/check full-range non-overlap (not pointer inequality) in contracts + verifier. | sv0doc, sv0c | UP-006, SEC-004 | todo | a partial-overlap `requires` proves; pointer-inequality-only is rejected as insufficient. | SS-106, C23-004 |
+| SS-U05 | **Advanced-contract fail-closed lowering.** Native + VM preserve `old`/`forall`/`exists` **or** emit a stable machine-readable `model-only` status; never silent-drop. | sv0c (M4 follow-up) | UP-017, BACKEND-008, OQ-009, AC-026 | todo | a deliberately false `old`/`forall` postcondition is enforced, proven, or `model-only`+failing-model — never a silent pass. | every contract-bearing slice |
+| SS-U06 | **Result-carrier shapes across modules.** `Option<usize>`, `Result<T,BufferError>`, borrowed returns, cross-file — real monomorphization or reviewed concrete carriers; no whole-struct-in-enum-payload, no multi-tuple workaround. | sv0c | UP-009/020/021, OQ-010, AC-031 | todo | multi-layout consumer corpus round-trips on C + VM, generated layout inspected, no duplicate-type diagnostic. | every `Result`-returning slice |
+| SS-U07 | **Diamond import.** One shared type imported from multiple files resolves as one declaration on both project backends. | sv0c, sv0vm | UP-024, AC-031 | todo | diamond-import project builds + runs on C and native VM. | multi-module R0.1+ |
+| SS-U08 | **`pub` visibility enforcement.** Non-`pub` cross-module import fails with a stable diagnostic on both project backends. | sv0c | UP-025, ARCH-014, AC-033 | todo | public import compiles; helper import fails (stable class) on C + VM; public-surface manifest generated. | SS-007 companion, F0 gate |
+| SS-U09 | **Project discovery path-order independence.** Same semantic program for any lexicographic traversal order; discovery/link failure emits a stable non-empty diagnostic. | sv0c | UP-026, AC-036 | todo | SS-012 permutation corpus is all-green or all-diagnosed; no order-dependent silent failure. | SS-012 closure, F0 gate |
+| SS-U10 | **Native-VM contract-mode selection.** `vm-native-compile --project` accepts `--contract-mode`, or rejects/reports `unsupported`; never silently ignores. | sv0-toolchain, sv0vm | UP-028, OQ-012 | todo | contract-mode capability matrix records effective/unsupported per backend; no silent pass. | SS-011 closure, R1 mode matrix |
+| SS-U11 | **`fill_explicit` non-elision primitive.** sv0doc side-effect rule or sv0c intrinsic that survives optimization. | sv0doc, sv0c | UP-014, OQ-006 | deferred (R0.3) | optimized generated C + VM trace both show the required stores. | SS-108 unblock |
+| SS-U12 | **Host capability ABI (locale/error/signal).** Versioned host capabilities + deterministic VM mappings. | sv0doc, sv0c, sv0vm | UP-015, OQ-005 | deferred (R0.4) | a locale capability opens/compares/transforms with equivalent VM behaviour, or fails closed. | SS-167..169 |
+
+## Track L — R0.1 safe byte + ASCII core (each gated by SS-U01 + SS-U03b/c)
+
+| ID | slice | SPEC BL | done when |
+|----|-------|---------|-----------|
+| SS-101 | `compare` / `equal` + red corpus (`memcmp`-derived + unequal-length) | BL-021/022 | C + VM + all-256-byte green; `equal == (compare==Equal)` property holds. |
+| SS-102 | `find` / `rfind` / `starts_with` / `ends_with` (+ empty rules) | BL-023/024 | table fixtures + algebraic properties green on both backends. |
+| SS-103 | `find_slice` first-match reference + complexity note | BL-025/026 | empty-needle → `Some(0)`; adversarial repeated-prefix benchmark recorded; `PERF-002` note in docs. |
+| SS-104 | `span_in` / `span_not_in` (membership model) | BL-027/028 | `strspn`/`strcspn`-derived fixtures green; empty-set edge cases correct. |
+| SS-105 | `copy` (atomic) / `copy_prefix` (truncating) + checked lengths | BL-029/030 | failure leaves `dst` untouched (sentinel test); size matrix incl. zero lengths green. |
+| SS-106 | `move_within` direction-aware overlap-safe + full overlap matrix | BL-031/032 (needs SS-U04) | 7-way overlap matrix (disjoint/identical/adjacent/L-overlap/R-overlap/contained/containing) == temp-buffer model; no sanitizer finding. |
+| SS-107 | `fill` guard-byte | BL-033 | writes exactly the slice; guard bytes intact; sanitizer clean. |
+| SS-108 | `fill_explicit` stays **Blocked** + evidence | BL-034 (needs SS-U11) | symbol/docs never claim the guarantee; optimizer + VM-trace red evidence recorded. |
+| SS-109 | `strings_ascii` — all 5 ops, exhaustive 256-byte table, multi-locale | BL-035/036 | identical results for all 256 values on C + VM under every test locale. |
+| SS-110 | pure/accelerated selection harness (pure-only) | BL-037 | same fixture/property suite runs under the harness; accel path absent = pure. |
+| SS-111 | **R0.1 gate review** + archive evidence | BL-038 | SPEC §24.2 checklist satisfied; every ≤R0.1 `BYTE-*`/`ASCII-*` requirement traced + green. |
+
+## Track L — R0.2 UTF-8, C strings, tokenization (gated by SS-U02*)
+
+| ID | slice | SPEC BL | done when |
+|----|-------|---------|-----------|
+| SS-121 | UTF-8 validator + precise `valid_up_to` offsets (RFC 3629 corpus) | BL-039/040 | 1/2/3/4-byte, overlong, surrogate, truncation, invalid-continuation, >U+10FFFF all classified; offsets exact. |
+| SS-122 | text length / equality / byte order without NUL-terminated calls | BL-041/042 | embedded-NUL parity fixtures green; generated-C/runtime scan shows no `strlen`/`strcmp` for whole-string semantics. |
+| SS-123 | `concat` one-allocation + `a.len+b.len` overflow check | BL-043/044 | content property + fail-at-N + max-length model green; inputs unchanged on failure. |
+| SS-124 | multibyte search + boundary-safe `slice_bytes` | BL-045/046 | non-boundary offset → `NotScalarBoundary`, never a malformed `string`; round-trips vs byte view. |
+| SS-125 | `from_utf8` (owned copy) / `as_bytes` (borrow) | BL-047/048 | aliasing + mutation-after-conversion tests green; borrow lifetime enforced. |
+| SS-126 | `CStr` validation + views; `CString` constructors | BL-049/050 (needs SS-U03d) | terminator/interior-NUL/missing-NUL cross-product correct; `borrow` doesn't rescan. |
+| SS-127 | owned `clone_owned` / `concat` + deterministic cleanup | BL-051/052 (needs SS-U02d) | overflow-before-alloc; fail-at-N leak-free. |
+| SS-128 | `CBuffer` optional-first-NUL state machine + op-specific truncation reports | BL-053/054 | `strlcpy`/`strlcat` state matrix incl. zero-capacity + unterminated-prefix; `CopyReport` fields per CSTR-018. |
+| SS-129 | explicit-cursor tokenizer (`next`, `TokenCursor`) | BL-055/056 (needs SS-U03d) | two interleaved cursors independent; post-completion `next` deterministically `None`; no global state. |
+| SS-130 | ownership / drop / failure parity sweep | BL-057 | `CString`/`string` release once on both backends; alloc-failure typed-error parity. |
+| SS-131 | **R0.2 gate review** | BL-058 | SPEC §24.3 satisfied. |
+
+## Track L — R0.3 C23 façade
+
+| ID | slice | SPEC BL | done when |
+|----|-------|---------|-----------|
+| SS-141 | independent C23 oracle harness (precondition validator + result serializer + guard bytes) | BL-059, TEST-012 | oracle compiles vs a recorded C23 impl/flags; never invokes C UB; serializes bytes/lengths/error codes. |
+| SS-142 | `memcpy` / `memccpy` / `memmove` safe adapters | BL-060 (needs SS-U04) | overlap differential + sanitizer matrix green; `memccpy` returns `MemccpyReport`, no interior pointer. |
+| SS-143 | memory/string search + comparison adapters (`memchr`/`strchr`/`strrchr`/`strpbrk`/`strstr`/`memcmp`/`strcmp`/`strncmp`) | BL-061 | `Option<usize>`/view results, never dangling; `Ordering` (+ optional `ordering_to_c_int` ∈ {-1,0,1}). |
+| SS-144 | `strcpy` / `strncpy` / `strcat` / `strncat` (CBuffer capacity, padding, no false CStr) | BL-062 | differential padding/nontermination fixtures green; capacity never inferred from a raw pointer. |
+| SS-145 | `strdup` / `strndup` → owned `CString` + failure injection | BL-063 | bounded source need not terminate within `n`; terminator appended; alloc-failure typed. |
+| SS-146 | `strspn` / `strcspn` delegating to safe span algorithms | BL-064 | differential fixtures green over C-string payload bytes. |
+| SS-147 | explicit-state safe `strtok` adapter (wraps the tokenizer) | BL-065 | interleaving + changing-separator + embedded-NUL differential green; no hidden state. |
+| SS-148 | `memset` ships; `memset_explicit` stays blocked with evidence | BL-066 | call mapping to `strings_bytes::fill`; blocked symbol documented, optimizer test recorded. |
+| SS-149 | validated O(1) `strlen` on `CStr` | BL-067 | instrumented scan count = 0 after construction; won't scan arbitrary `string`. |
+| SS-150 | host-dependent `strcoll` / `strxfrm` / `strerror` capability stubs + fail-closed tests | BL-068 | no bytewise fallback; structured error identity tested, not universal message bytes. |
+| SS-151 | terminator search / function-specific `int c` conversion / bounded nonterminated sources / type-generic mutability / `strxfrm` size-query / total-`int` `strerror` | BL-110, AC-028 | each C23-021..030 case has a fixture; no invalid mutable reference constructed for size queries. |
+| SS-152 | header types/macros + C23 type-generic search catalog rows | BL-109, AC-029 | `size_t`/`NULL`/`__STDC_VERSION_STRING_H__` + generic-vs-concrete search forms each classified once. |
+| SS-153 | close every C23 row + generate `docs/compatibility.md` | BL-070, DOC-004, AC-016 | Appendix A C23 section fully dispositioned; `compatibility.md` is a rebuild of catalog data (digest test). |
+| SS-154 | warnings-as-errors + ASan/UBSan + fuzz + safe-UB audit | BL-071, BACKEND-005, SEC-009 | CI job green; no unexpected sanitizer/fuzz finding. |
+| SS-155 | **R0.3 gate review** | BL-072 | SPEC §24.4 satisfied. |
+
+## Track L — R0.4 POSIX.1-2024 façade
+
+| ID | slice | SPEC BL | done when |
+|----|-------|---------|-----------|
+| SS-161 | `memmem` (binary-safe, embedded zero) | BL-073 | POSIX differential vectors green incl. embedded NUL in haystack + needle. |
+| SS-162 | `stpcpy` / `stpncpy` safe end-offset adapters | BL-074 | end-position + padding rules preserved; no raw interior pointer. |
+| SS-163 | Issue 8 `strlcpy` / `strlcat` differential matrix + adapters | BL-075/076, AC-009/027 | total-attempted-length reported; unterminated-prefix → no write + `dstsize+src.len()`; overflow → `LengthOverflow` before modification. |
+| SS-164 | guard-page bounded `strnlen` | BL-077 | reads ≤ `n` bytes; `min(first_nul, n)` without requiring a terminator. |
+| SS-165 | `strtok_r` explicit-state adapter | BL-078 | interleaved-state differential token boundaries match; caller-owned state. |
+| SS-166 | POSIX-locale `strcasecmp` / `strncasecmp` (+ bounded nonterminated) | BL-079/111, AC-012 | ordering sign matches the POSIX oracle; independent of ambient locale; stops at NUL or `n`. |
+| SS-167 | explicit locale capability lifecycle | BL-080 (needs SS-U12) | open/ownership/thread-safety/backend-support documented + tested. |
+| SS-168 | `_l` compare/transform adapters + consistency property | BL-081 | transform-then-bytewise-compare has the same sign as locale compare per supported locale. |
+| SS-169 | owned host error/signal message capability (`strerror_r`/`strerror_l`/`strsignal`) | BL-082/083 | writes only within caller capacity; no static shared buffer; ownership/lifetime defined in sv0 terms. |
+| SS-170 | `ffs` / `ffsl` / `ffsll` XSI explicit-width adapters | BL-084 | zero→0; nonzero→1-based LSB position; width matrix green. |
+| SS-171 | isolated deprecated legacy aliases (`bcmp`/`bcopy`/`bzero`/`index`/`rindex`) | BL-085, LEGACY-001..004, AC-018 | only reachable via explicit `strings_legacy` import; each emits/documents its replacement; contributes nothing to POSIX conformance. |
+| SS-172 | close POSIX function/header matrices + Base/CX/XSI docs | BL-086, POSIX-001/013/016, AC-017 | every declared symbol + CX/XSI marker classified once; docs generated from catalog. |
+| SS-173 | ambient-locale + supported-target + fail-closed profile suite | BL-087, POSIX-014/015 | no safe module perturbed by process locale; unsupported host service blocks the profile claim (not silently skipped). |
+| SS-174 | **R0.4 gate review** | BL-088 | SPEC §24.5 satisfied; release claim names Base/CX/XSI + host-locale capability precisely. |
+
+## Track L — R1 stable evidence closure
+
+| ID | slice | SPEC BL | done when |
+|----|-------|---------|-----------|
+| SS-181 | bidirectional traceability + unique-ID audit | BL-089 | zero uncovered in-scope requirements; zero orphan tests. |
+| SS-182 | fixture provenance/digest + baseline-category completeness | BL-090, TEST-004/006 | every fixture records source/standard/generator/expected-unit; empty/NUL/high-bit/boundary baseline present. |
+| SS-183 | pure + accelerated C+VM fuzz budget; minimize failures | BL-091, TEST-017 | recorded corpus/iteration budget met on both paths; every crash → minimized regression fixture. |
+| SS-184 | release sanitizer/leak/warnings/zero-skip/hard-backend-gate/serialized-result audit | BL-092, TEST-020, BACKEND-009 | zero unexplained skips/flakes/sanitizer/leak findings; every normative VM leg hard-fails. |
+| SS-185 | contract-mode capability matrix | BL-093, TEST-019, UP-028, AC-019 | runtime/verified/disabled recorded per backend; unsupported explained, never counted as a pass. |
+| SS-186 | pure/accelerated full equivalence matrix | BL-094, BACKEND-003, AC-020 | semantic results + errors identical with acceleration on/off. |
+| SS-187 | complexity + reproducible benchmark evidence | BL-095, PERF-001..009 | each search/tokenizer/alloc-heavy op has complexity evidence + a benchmark with full metadata. |
+| SS-188 | offline clean-checkout consumer rehearsal (path-order permutations) | BL-096, AC-021/030/032/034/036 | fresh checkout, no network, installed + workspace native C + native VM all pass. |
+| SS-189 | execute every acceptance scenario + bind evidence | BL-097, AC-001..036 | each AC has a passing automated evidence link. |
+| SS-190 | immutable release manifest (SHAs, targets, tool versions, corpus digest) | BL-098, BACKEND-007, GOV-002 | manifest content-addressed + archived. |
+| SS-191 | evidence digest / exception / approval verification | BL-099, AC-025, GOV-009/010 | recomputed digests match; no non-waivable safety waiver; approvals recorded. |
+| SS-192 | **approve + tag R1**; publish compatibility / security / license / provenance / evidence | BL-100, §24.6, DOC-007, LIC-005 | `v?.?.0` tag; all release docs + notices published. |
+
+## Track L — Future (optional profiles)
+
+| ID | slice | SPEC BL | note |
+|----|-------|---------|------|
+| SS-201 | backend non-eliding explicit fill | BL-101 | needs SS-U11 (OQ-006). |
+| SS-202 | Annex K decision; if accepted, a separate complete profile spec slice | BL-102 | cherry-picking `_s` names is non-conforming. |
+| SS-203 | exact C ABI manifest + unsafe caller obligations | BL-103 | needs OQ-007 resolved. |
+| SS-204 | feature-gated raw C ABI + external linkage tests | BL-104 | `strings_unsafe_abi`, separately versioned, off by default. |
+| SS-205 | separate Unicode-algorithms package spec | BL-105 | SPEC OQ-008 recommends a distinct `unicode` package. |
+
+## start here (dependency order, no toolchain changes)
+
+1. **SS-001** — source/org audit refresh.
+2. **SS-002** — catalog skeleton + validator.
+3. **SS-003** — seed the requirement catalog from SPEC.
+4. **SS-005** — `Ordering` + non-borrowing error/report types + `types_smoke`.
+5. **SS-004** — standards-matrix extractor.
+6. **SS-009** — embedded-NUL red corpus (produces the concrete F0 signal that
+   UP-001 is unmet — hand to the Track U owner).
+7. **SS-010** — `scripts/test` staging runner v1 (C).
+8. **SS-008** + **SS-007** — nested-module expected-fail probe + doc-fence lint.
+
+In parallel, open Track U: **SS-U01** (`byte` alias — smallest), then
+**SS-U03a** and **SS-U02a** (the two normative `sv0doc` decisions that unblock
+the bulk of R0.1/R0.2). After SS-U01 + SS-U03b/c land, Track L R0.1
+(SS-101..SS-111) opens.
+
+## dependencies
+
+/require: bash
+
+/ai: keep this index aligned with `task/sv0-strings-library.Rmd` and SPEC
+Appendix D. A slice is done only at its stated stopping point — do not roll two
+slices together. `red` slices must fail for the intended reason before their
+impl slice starts. Track U slices land in the owning submodule with their own
+gated tests first; then flip the paired Track L slice from `blocked`.

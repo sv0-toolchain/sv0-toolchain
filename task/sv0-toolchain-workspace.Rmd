@@ -30,7 +30,7 @@ type: task
 
 this task file is the **index** for agent and human workflows: environment layout, milestone task files under `task/`, and verification that submodules are present.
 
-**Consumer-library planning:** `task/sv0-strings-library.Rmd` is the standalone planning hub for **sv0-strings** — the F0→R1 release ladder, the ~20 upstream toolchain capability gaps that gate F0 (SPEC §4.4 / §18.1, `UP-001..UP-028`), and the `BL-001..BL-121` backlog. It is SPEC-governed and tracked like sv0-mathlib, not a toolchain milestone, so it is intentionally absent from the milestone table and `task/milestone-orientation.json`.
+**Consumer-library planning:** `task/sv0-strings-library.Rmd` is the standalone planning **hub** for **sv0-strings** — the F0→R1 release ladder, the ~20 upstream toolchain capability gaps that gate F0 (SPEC §4.4 / §18.1, `UP-001..UP-028`), and the `BL-001..BL-121` backlog. `task/sv0-strings-checklist.Rmd` is its trackable **slice index** (`SS-###`: bite-sized chunks with an explicit stopping point, an upstream-enablement track + a library track). Both are SPEC-governed and tracked like sv0-mathlib, not a toolchain milestone, so they are intentionally absent from the milestone table and `task/milestone-orientation.json`.
 
 ## dependencies
 
