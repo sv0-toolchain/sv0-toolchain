@@ -66,11 +66,11 @@ Everything here compiles against today's toolchain (enums, free functions, and
 
 | ID | slice | refs | status | done when |
 |----|-------|------|--------|-----------|
-| SS-001 | **Source/org audit refresh.** `docs/audit/2026-08-30.md`: full 40-hex SHAs + source paths + evidence boundaries for the 5 core repos + sv0-mathlib + sv0-vsc-extension. | BL-001, GOV-002 | todo | file committed; `README.md` links it; every SHA is 40 hex. |
-| SS-002 | **Catalog skeleton + validator.** `tools/catalogs/{requirements,tests,standards,fixtures,provenance}.tsv` + `tools/check_catalogs.py` (schema, unique IDs, forward/reverse link check). | BL-003, TEST-001..005, GOV-007 | todo | `python3 tools/check_catalogs.py` green on seed data; unique-ID + dangling-ref checks active. |
-| SS-003 | **Seed requirement catalog.** Every SPEC ID (`MODEL-*`, `BYTE-*`, `TEXT-*`, `ASCII-*`, `CSTR-*`, `TOK-*`, `C23-*`, `POSIX-*`, `LEGACY-*`, `HOST-*`, `UP-*`, `BACKEND-*`, `SEC-*`, `PERF-*`, `ARCH-*`, `GOV-*`, `DOC-*`, `LIC-*`) with release + section + verification method + `status=todo`. | BL-003, TEST-001 | todo | each SPEC requirement ID present exactly once; validator green. |
+| SS-001 | **Source/org audit refresh.** `docs/audit/2026-08-30.md`: full 40-hex SHAs + source paths + evidence boundaries for the 5 core repos + sv0-mathlib + sv0-vsc-extension. | BL-001, GOV-002 | **done** | `docs/audit/2026-08-30.md` + README link (sv0-strings `811e1d0`). SPEC §4 findings hold verbatim at current pins. |
+| SS-002 | **Catalog skeleton + validator.** `tools/catalogs/{requirements,tests,standards,fixtures,provenance}.tsv` + `tools/check_catalogs.py` (schema, unique IDs, forward/reverse link check). | BL-003, TEST-001..005, GOV-007 | **done** | `tools/check_catalogs.py` + `tools/extract_requirements.py` (sv0-strings `626324f`). Forward-ref = ERROR, reverse = WARN/`--strict`. |
+| SS-003 | **Seed requirement catalog.** Every SPEC ID (`MODEL-*`, `BYTE-*`, `TEXT-*`, `ASCII-*`, `CSTR-*`, `TOK-*`, `C23-*`, `POSIX-*`, `LEGACY-*`, `HOST-*`, `UP-*`, `BACKEND-*`, `SEC-*`, `PERF-*`, `ARCH-*`, `GOV-*`, `DOC-*`, `LIC-*`) with release + section + verification method + `status=todo`. | BL-003, TEST-001 | **done** | 270 rows generated from SPEC, every prefix contiguous 1..N; `--check` clean (sv0-strings `c19255e`). (293 in the earlier grep also counted the §22.3 matrix excerpt.) |
 | SS-004 | **Standards-matrix extractor.** `tools/standards_matrix.py` parses SPEC Appendix A into `standards.tsv`; asserts one disposition per symbol; lists C23 §7.26 + POSIX Issue 8 `<string.h>`/`<strings.h>` inventories. | BL-002, C23-001, POSIX-001 | todo | every Appendix A symbol has exactly one disposition row; no missing/dup vs the standards inventory. |
-| SS-005 | **`Ordering` + non-borrowing error/report types.** `lib/strings_types.sv0`: `Ordering`, `BufferError`, `TextError`, `CStrError`, `LocaleError`, `CopyReport`, `MemccpyReport`, `TokenCursor`. `test/cases/types_smoke.sv0` (`fn main() -> i32`) constructs each; returns 42. (`CStr`/`CString`/`CBuffer` deferred — they hold slices/`Vec`.) | BL-005, MODEL-008/009 | todo | `types_smoke` compiles + runs `exit 42` on the C backend. |
+| SS-005 | **`Ordering` + non-borrowing error/report types.** `lib/strings_types.sv0`: `Ordering`, `BufferError`, `TextError`, `CStrError`, `LocaleError`, `CopyReport`, `MemccpyReport`. `test/cases/types_smoke.sv0` constructs + destructures each. (`CStr`/`CString`/`CBuffer`/`TokenCursor` deferred — they borrow / hold `Vec`.) 0 = pass (SPEC §21.1). | BL-005, MODEL-008/009 | **done** | `types_smoke` runs `exit 0` on **C and native VM** (sv0-strings `b444914`). Error enums use tuple variants — toolchain finding **#1** / slice **SS-U13** (struct-variant field names collide → `E0301`). |
 | SS-006 | **Checked `usize` arithmetic helpers.** internal `strings_checked` (or in `strings_types`): `checked_add/sub/mul(usize,usize) -> Option<usize>`. `test/property/checked_overflow.sv0` red cases at `usize::MAX`. | BL-006, MODEL-002, SEC-002 | todo `red`+impl | red overflow cases fail for the right reason, then pass on C. |
 | SS-007 | **Doc-fence lint.** `tools/check_doc_fences.py`: SPEC-style ```text``` interface blocks are never treated as compilable; ```sv0``` fences that claim an unimplemented surface are labelled; parser probe that header-only free-fn decls are rejected. | BL-108, MODEL-016, GOV-011 | todo | lint green on the repo; probe confirms `fn f() -> i32;` (no body) is a parse error. |
 | SS-008 | **Nested-module expected-failure probe.** `test/compile_fail/nested_module.sv0` = `module strings::bytes;`; recorded as expected-fail (`E0309`) with its diagnostic needle. | BL-112 (neg), ARCH-001, UP-019 | todo `red` | probe present; diagnostic needle pinned; runner treats it as expected-fail. |
@@ -112,6 +112,7 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 | SS-U10 | **Native-VM contract-mode selection.** `vm-native-compile --project` accepts `--contract-mode`, or rejects/reports `unsupported`; never silently ignores. | sv0-toolchain, sv0vm | UP-028, OQ-012 | todo | contract-mode capability matrix records effective/unsupported per backend; no silent pass. | SS-011 closure, R1 mode matrix |
 | SS-U11 | **`fill_explicit` non-elision primitive.** sv0doc side-effect rule or sv0c intrinsic that survives optimization. | sv0doc, sv0c | UP-014, OQ-006 | deferred (R0.3) | optimized generated C + VM trace both show the required stores. | SS-108 unblock |
 | SS-U12 | **Host capability ABI (locale/error/signal).** Versioned host capabilities + deterministic VM mappings. | sv0doc, sv0c, sv0vm | UP-015, OQ-005 | deferred (R0.4) | a locale capability opens/compares/transforms with equivalent VM behaviour, or fails closed. | SS-167..169 |
+| SS-U13 | **Struct-variant field-name namespace.** Enum struct-variant field names must be scoped to their variant, not one global namespace. Found in SS-005 (`docs/BUGS.md` #1): any field name reused across two struct variants → `E0301` with a misattributed span. Fix the resolver + fix the span. | sv0c (resolver, diagnostics) | UP-021, UP-023, MODEL-017 | todo | SPEC §8.2's error enums link with their named struct variants + reused field names (`available`, `offset`, `requested`); `strings_types.sv0` reverts from tuple variants. | named-field error enums; readability of every `Result::Err` |
 
 ## Track L — R0.1 safe byte + ASCII core (each gated by SS-U01 + SS-U03b/c)
 
@@ -213,19 +214,22 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 
 ## start here (dependency order, no toolchain changes)
 
-1. **SS-001** — source/org audit refresh.
-2. **SS-002** — catalog skeleton + validator.
-3. **SS-003** — seed the requirement catalog from SPEC.
-4. **SS-005** — `Ordering` + non-borrowing error/report types + `types_smoke`.
-5. **SS-004** — standards-matrix extractor.
-6. **SS-009** — embedded-NUL red corpus (produces the concrete F0 signal that
-   UP-001 is unmet — hand to the Track U owner).
-7. **SS-010** — `scripts/test` staging runner v1 (C).
-8. **SS-008** + **SS-007** — nested-module expected-fail probe + doc-fence lint.
+- [x] **SS-001** — source/org audit refresh. → sv0-strings `811e1d0`
+- [x] **SS-002** — catalog skeleton + validator. → sv0-strings `626324f`
+- [x] **SS-003** — seed the requirement catalog from SPEC (270 rows). → sv0-strings `c19255e`
+- [x] **SS-005** — `Ordering` + error/report types + `types_smoke` (C + VM exit 0). → sv0-strings `b444914`; surfaced toolchain finding #1 / **SS-U13**
+- [ ] **SS-004** — standards-matrix extractor.
+- [ ] **SS-006** — checked `usize` arithmetic helpers + red overflow corpus.
+- [ ] **SS-009** — embedded-NUL red corpus (the concrete F0 signal that UP-001
+  is unmet — hand to the Track U owner).
+- [ ] **SS-010** — `scripts/test` staging runner v1 (C). Formalises the
+  manual stage-`lib/`-plus-one-`main` compile already used to land SS-005.
+- [ ] **SS-008** + **SS-007** — nested-module expected-fail probe + doc-fence lint.
 
-In parallel, open Track U: **SS-U01** (`byte` alias — smallest), then
-**SS-U03a** and **SS-U02a** (the two normative `sv0doc` decisions that unblock
-the bulk of R0.1/R0.2). After SS-U01 + SS-U03b/c land, Track L R0.1
+In parallel, open Track U: **SS-U01** (`byte` alias — smallest), **SS-U13**
+(struct-variant field namespace — now has a concrete repro in `docs/BUGS.md`),
+then **SS-U03a** and **SS-U02a** (the two normative `sv0doc` decisions that
+unblock the bulk of R0.1/R0.2). After SS-U01 + SS-U03b/c land, Track L R0.1
 (SS-101..SS-111) opens.
 
 ## dependencies
