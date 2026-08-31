@@ -108,5 +108,4 @@ The language vision and design narrative:
 
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [MIT license](LICENSE-MIT) at your option. This applies to this meta-repo and
-to each of the sv0c, sv0vm, sv0doc, and sv0-mcp submodules. (sv0-mathlib does
-not yet carry its own LICENSE files.)
+to each of the sv0c, sv0vm, sv0doc, sv0-mathlib, and sv0-mcp submodules.
