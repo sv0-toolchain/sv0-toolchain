@@ -94,7 +94,7 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 
 | ID | slice | owner | refs | status | done when | unblocks |
 |----|-------|-------|------|--------|-----------|----------|
-| SS-U01 | **`byte` alias.** Resolver/checker accept `byte` as the normative alias of `u8` in signatures, generics, modules, generated C, VM bytecode. | sv0c | UP-018, MODEL-001 | todo | `let x: byte = 0;` compiles + round-trips C + VM; SS-008-style `E0301` workaround retired. | all Track L (lets modules use the normative spelling) |
+| SS-U01 | **`byte` alias.** Resolver/checker accept `byte` as the normative alias of `u8` in signatures, generics, modules, generated C, VM bytecode. | sv0c | UP-018, MODEL-001 | **done** | sv0c `cab4ca1` (parent bumps the gitlink + README pin): `byte`→`u8` synonym in resolver/env/checker/lowering/megaTU-main/verify_vcgen; emits `uint8_t`; `test/behavior/cases/type_byte_alias.sv0` + `test/vm-parity/programs/vmf_byte_alias.sv0` (native C↔VM parity 9/9); stage0 + SML-VM goldens refreshed; full `./scripts/sv0 test` green. `byte` now inherits `u8`'s exact behavior on both backends. | all Track L (normative spelling now available; used when `strings_bytes` lands post-SS-U03) |
 | SS-U02a | **`string` repr — normative.** sv0doc: length-bearing owned `string` contract (embedded NUL, UTF-8, ownership, drop, alloc-failure). Decision record. | sv0doc | UP-001, OQ-001 | todo | sv0doc merged; OQ-001 → resolved-pending-impl. | SS-U02b/c/d |
 | SS-U02b | **`string` repr — C backend.** `sv0_string {ptr,len,cap}`; `string_len/eq/concat/substr/char_at` reimplemented length-based (embedded-NUL safe); bounds-checked access. | sv0c | UP-001/002/003 | blocked (SS-U02a) | SS-009 embedded-NUL corpus passes on C. | R0.2 text slices |
 | SS-U02c | **`string` repr — VM.** Align VM string-table repr + builtins to the same length semantics; out-of-range → fail-closed. | sv0vm | UP-001/002/003 | blocked (SS-U02a) | SS-009 corpus passes on VM; C/VM parity green. | R0.2 text slices |
@@ -240,11 +240,22 @@ slices and the C `string` runtime land. Six findings, all with minimal repros in
 
 | priority | slice | why first |
 |---|---|---|
-| 1 | **SS-U01** `byte` alias | smallest, unblocks the normative spelling everywhere |
+| ~~1~~ | ~~**SS-U01** `byte` alias~~ | **done** (sv0c `cab4ca1`) |
 | 2 | **SS-U13** struct-variant field namespace | repro ready; restores named-field error enums |
 | 3 | **SS-U03a** + **SS-U02a** | the two normative `sv0doc` decisions (slice repr, `string` repr) |
 | 4 | **SS-U02b** C `string` runtime | SS-009 already gives executed evidence + a regression corpus |
 | — | SS-U08/U09/U10/U14 | have repros; schedule with their area |
+
+**SS-U01 landed 2026-08-31.** Change pattern for future Track-U slices that
+touch `sv0c/lib/*.sv0`: edit the self-hosted sources, `bash scripts/build-sv0-megatu-native.sh`
++ `build-sv0-megatu-vm-native.sh`, then refresh **both** golden sets —
+`sv0c/lib/golden/stage0/<stem>.c` (SML-delegate emit; regen via
+`./scripts/sv0 self-host-capture-stage0 lib/<stem>.sv0` with
+`SV0_SELF_HOST_COMPILER=build/sv0-self-host-compiler`) and
+`sv0c/test/vm-parity/golden/sml/<stem>.sv0b` (`bash scripts/capture_vm_parity_goldens.sh`)
+— add gated tests (behavior corpus `native` leg + a `vm-parity/programs/` parity
+program), run the full `./scripts/sv0 test`, then bump the parent `sv0c` gitlink
+**and** the README `sv0c commit pinned` line in one commit.
 
 ## dependencies
 
