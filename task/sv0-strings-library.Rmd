@@ -91,8 +91,8 @@ gated tests**, before library code depends on them. `UP-###` IDs are the SPEC's.
 | UP-001 | F0 | One normative length-bearing `string` representation preserving embedded zero + UTF-8 on both backends. | `sv0doc` + `sv0c` runtime + `sv0vm`; std/runtime-ABI slice. **OQ-001.** |
 | UP-002 | F0 | `len_bytes` / equality / concat / byte access / substring not dependent on NUL termination. | `sv0c` C runtime + `sv0vm`. |
 | UP-003 | F0 | Byte access + substring bounds-check before memory access; same typed failure on both backends. | `sv0c` + `sv0vm`. |
-| UP-004 | F0 | Arrays, `&[byte]`, `&mut [byte]`, indexing, mutation compile + execute on C **and** VM. | `sv0c` lowering + `sv0vm` (`IndexAccess` currently rejected). **OQ-002.** |
-| UP-005 | F0 | Slice runtime repr carries data + length; borrow rules preserved through lowering/codegen. | `sv0c` + `sv0vm`. |
+| UP-004 | F0 | Arrays, `&[byte]`, `&mut [byte]`, indexing, mutation compile + execute on C **and** VM. | `sv0c` lowering + `sv0vm` (`IndexAccess` currently rejected). **OQ-002 spec'd (SS-U03a); impl SS-U03b/c.** |
+| UP-005 | F0 | Slice runtime repr carries data + length; borrow rules preserved through lowering/codegen. | `sv0c` + `sv0vm`. **Spec'd — sv0doc §2.2.1 (SS-U03a).** |
 | UP-006 | F0 | Range non-overlap expressible/checkable by full intervals, not pointer inequality. | `sv0doc` contracts + `sv0c` verifier. |
 | UP-007 | F0 | Checked allocation failure + deterministic release for `string` / `Vec<byte>` / `CString`. | `sv0c` runtime. **OQ-003.** |
 | UP-008 | F0 | Checked `usize` length arithmetic + narrowing at C/VM ABI boundaries. | `sv0c`. |
@@ -195,7 +195,7 @@ fixture provenance), LIC-005 (release-artifact notices) remain open.
 | OQ | Blocks | Question |
 |---|---|---|
 | OQ-001 | F0 | Accepted runtime representation of owned `string` (UTF-8, embedded NUL, length, alloc failure, destruction, C+VM). |
-| OQ-002 | F0 | Accepted slice representation + backend ABI (bounds, mutable access, borrowing, interval overlap). |
+| OQ-002 | F0 | Accepted slice representation + backend ABI (bounds, mutable access, borrowing, interval overlap). **Resolved-pending-impl** — sv0doc `type-system/rules.md` §2.2.1 + `bytecode/instructions.md` (SS-U03a, sv0doc `1b20be0`): `{ data: non-null *T, len: usize }`, that field order, by-value, identical both backends, bounds-check-before-access, borrow enforced pre-lowering, overlap = interval predicate. Impl = SS-U03b/c/d. |
 | OQ-003 | R0.2 | How allocator failure and `Drop` are exposed to user libraries. |
 | OQ-004 | — | Durable installed-package manifest + dependency resolution (F0..R1 use documented source-vendored projects; `sv0.toml` is not that). |
 | OQ-005 | R0.4 | Whether locale services join a general host-capability ABI. |
@@ -223,7 +223,9 @@ The bite-sized version of this, with a "start here" dependency order, is the
    representation (**OQ-001** — the widest F0 blocker; needs sv0doc + sv0c
    runtime + sv0vm).
 4. **BL-011 / BL-012** — slice construct/index/mutate red corpus on C+VM, then
-   slice lowering + VM index ops (**OQ-002**).
+   slice lowering + VM index ops. **OQ-002 is now resolved-pending-impl**
+   (sv0doc §2.2.1, SS-U03a); the implementation halves are SS-U03b (C),
+   SS-U03c (VM `IndexAccess`), SS-U03d (borrow compile-fail suite).
 5. **BL-112 / BL-113** — paired flat-module positive / nested-module
    expected-failure project probes; the fresh staging runner + canonical
    installed/workspace native C and native VM consumer commands.

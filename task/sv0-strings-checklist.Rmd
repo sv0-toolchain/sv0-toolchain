@@ -99,7 +99,7 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 | SS-U02b | **`string` repr — C backend.** `sv0_string {ptr,len,cap}`; `string_len/eq/concat/substr/char_at` reimplemented length-based (embedded-NUL safe); bounds-checked access. | sv0c | UP-001/002/003 | blocked (SS-U02a) | SS-009 embedded-NUL corpus passes on C. | R0.2 text slices |
 | SS-U02c | **`string` repr — VM.** Align VM string-table repr + builtins to the same length semantics; out-of-range → fail-closed. | sv0vm | UP-001/002/003 | blocked (SS-U02a) | SS-009 corpus passes on VM; C/VM parity green. | R0.2 text slices |
 | SS-U02d | **Owned alloc-failure + drop.** Checked allocation failure + deterministic release for `string` / `Vec<byte>` / `CString`; fail-at-N + leak hooks on both backends. | sv0c, sv0vm | UP-007/013, OQ-003 | blocked (SS-U02b/c) | fail-at-N + leak tests pass on C and VM. | SS-127/128, R0.2 gate |
-| SS-U03a | **Slice repr — normative.** sv0doc: `&[T]`/`&mut [T]` runtime repr `{data,len}` + borrow rules preserved through lowering/codegen. Decision record. | sv0doc | UP-004/005, OQ-002 | todo | sv0doc merged; OQ-002 → resolved-pending-impl. | SS-U03b/c/d |
+| SS-U03a | **Slice repr — normative.** sv0doc: `&[T]`/`&mut [T]` runtime repr `{data,len}` + borrow rules preserved through lowering/codegen. Decision record. | sv0doc | UP-004/005, OQ-002 | **done** | sv0doc `1b20be0` (parent bumps the gitlink): `type-system/rules.md` §2.2.1 (new) — normative two-field `{ data: non-null *T, len: usize }` record, that field order, by-value, identical layout both backends (`T-SLICE-ABI-001`); construction range-checks at the slicing site; `sl[i]` bounds-checks `i < len` before memory access, same typed failure both backends (UP-003); borrow exclusivity enforced pre-lowering, no lowered path outlives its borrow (→ SS-U03d); overlap = interval question over `[data, data+len)` not pointer identity (→ UP-006). `bytecode/instructions.md` — sv0vm SHALL accept slice `IndexAccess` (→ SS-U03c). **OQ-002 → resolved-pending-impl.** | SS-U03b/c/d |
 | SS-U03b | **Slice — C backend.** Construct / index / mutate `&[u8]` + `&mut [u8]` end-to-end; bounds-checked before access. | sv0c | UP-004/005 | blocked (SS-U03a) | slice construct/index/mutate corpus runs `exit 42` on C. | all R0.1 byte slices |
 | SS-U03c | **Slice — VM `IndexAccess`.** VM accepts slice `IndexAccess` (currently rejected); bounds-check → fail-closed. | sv0vm | UP-004/005 | blocked (SS-U03a) | same corpus runs on VM; C/VM parity. | all R0.1 byte slices |
 | SS-U03d | **Borrow compile-fail suite.** Reject returning `&[u8]` backed by a local; reject simultaneous invalid `&mut`. Stable diagnostic class. | sv0c | UP-005, TEST-010, AC-024 | blocked (SS-U03b) | compile-fail cases fail with a pinned diagnostic class. | SS-126, SS-129 |
@@ -242,8 +242,10 @@ slices and the C `string` runtime land. Six findings, all with minimal repros in
 |---|---|---|
 | ~~1~~ | ~~**SS-U01** `byte` alias~~ | **done** (sv0c `cab4ca1`) |
 | ~~2~~ | ~~**SS-U13** enum struct-variant ctor literals~~ | **deferred** — hit KC-006 self-host fragility; not blocking (tuple variants stand) |
-| 2 | **SS-U03a** + **SS-U02a** | the two normative `sv0doc` decisions (slice repr, `string` repr) |
+| ~~2~~ | ~~**SS-U03a** slice repr — normative~~ | **done** (sv0doc `1b20be0`) — OQ-002 resolved-pending-impl |
+| 2 | **SS-U02a** `string` repr — normative | the remaining `sv0doc` decision (length-bearing owned `string`: embedded NUL, UTF-8, ownership, drop, alloc-failure) → OQ-001 |
 | 3 | **SS-U02b** C `string` runtime | SS-009 already gives executed evidence + a regression corpus |
+| 3 | **SS-U03b/c** slice C + VM `IndexAccess` | now spec'd by SS-U03a; unblocks all R0.1 byte slices (SS-101..111) |
 | — | SS-U08/U09/U10/U14 | have repros; schedule with their area |
 
 **Note on Track-U effort.** After SS-U01 (a clean 1-liner-per-file alias), the
