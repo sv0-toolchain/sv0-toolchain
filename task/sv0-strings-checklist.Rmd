@@ -72,8 +72,8 @@ Everything here compiles against today's toolchain (enums, free functions, and
 | SS-004 | **Standards-matrix extractor.** `tools/standards_matrix.py` parses SPEC Appendix A into `standards.tsv`; asserts one disposition per symbol; lists C23 §7.26 + POSIX Issue 8 `<string.h>`/`<strings.h>` inventories. | BL-002, C23-001, POSIX-001 | **done** | 72 rows generated from Appendix A; C23 core = 3 decls + 26 functions (C23-001 held); `--check` clean (sv0-strings `578ab90`). |
 | SS-005 | **`Ordering` + non-borrowing error/report types.** `lib/strings_types.sv0`: `Ordering`, `BufferError`, `TextError`, `CStrError`, `LocaleError`, `CopyReport`, `MemccpyReport`. `test/cases/types_smoke.sv0` constructs + destructures each. (`CStr`/`CString`/`CBuffer`/`TokenCursor` deferred — they borrow / hold `Vec`.) 0 = pass (SPEC §21.1). | BL-005, MODEL-008/009 | **done** | `types_smoke` runs `exit 0` on **C and native VM** (sv0-strings `b444914`). Error enums use tuple variants — toolchain finding **#1** / slice **SS-U13** (struct-variant field names collide → `E0301`). |
 | SS-006 | **Checked `usize` arithmetic helpers.** `lib/strings_checked.sv0`: `checked_add/sub/mul(usize,usize) -> CheckedUsize`. `test/property/checked_overflow.sv0`, 13 boundary checks at MAX. | BL-006, MODEL-002, SEC-002 | **done (C)** | `checked_overflow` `exit 0` on C (sv0-strings `8ae93a2`). Finding **#2** (generic `Option<usize>` → `E0301`, → SS-U06; concrete `CheckedUsize` carrier). Finding **#3** (VM: u64 wrap near 2^64 → `arithmetic on non-int`, → **SS-U14**); VM leg blocked, `expectations.tsv` `SKIP`. |
-| SS-007 | **Doc-fence lint.** `tools/check_doc_fences.py`: SPEC-style ```text``` interface blocks are never treated as compilable; ```sv0``` fences that claim an unimplemented surface are labelled; parser probe that header-only free-fn decls are rejected. | BL-108, MODEL-016, GOV-011 | todo | lint green on the repo; probe confirms `fn f() -> i32;` (no body) is a parse error. |
-| SS-008 | **Nested-module expected-failure probe.** `test/compile_fail/nested_module.sv0` = `module strings::bytes;`; recorded as expected-fail (`E0309`) with its diagnostic needle. | BL-112 (neg), ARCH-001, UP-019 | todo `red` | probe present; diagnostic needle pinned; runner treats it as expected-fail. |
+| SS-007 | **Doc-fence lint.** `tools/check_doc_fences.py`: header-only free-fn decls in a ```sv0``` block are an ERROR (belong in ```text```); `--probe` shells to the compiler. | BL-108, MODEL-016, GOV-011 | **done** | lint clean on the repo (8 md, 4 sv0 blocks); probe confirms `fn f() -> i32;` is rejected (sv0-strings `bd2039d`). |
+| SS-008 | **Nested-module expected-failure probe.** `test/compile_fail/nested_module.sv0` — a fully-qualified multi-segment `use` → **`E0309`** needle-pinned; `scripts/test` gained `test/compile_fail/` (`EXPECT-FAIL:` marker) support. | BL-112 (neg), ARCH-001, UP-019 | **done** | probe green (sv0-strings `7050154`). Finding **#5**: `module a::b;` itself is accepted silently + `pub` items leak to global scope → **SS-U08**. |
 | SS-009 | **Embedded-NUL red corpus (today's intrinsics).** `test/fixtures/regressions/embedded_nul_{len,eq,concat,substr}.sv0` + `embedded_nul.md` on `"a\0b"`. | BL-007, UP-001/002, AC-001 | **done** | Clean divergence on all 4 (sv0-strings `2632e5b`): **C** exits 101/1/2/4 (`strlen`/`strcmp`-based), **native VM** exits 0 (already length-bearing). The C `string` runtime is the side needing SS-U02b; `BACKEND-001` unmet until then. |
 
 ## Phase 1 — staging runner + gate policy (Track L; wires to the toolchain)
@@ -81,10 +81,10 @@ Everything here compiles against today's toolchain (enums, free functions, and
 | ID | slice | refs | status | done when |
 |----|-------|------|--------|-----------|
 | SS-010 | **`scripts/test` staging runner v1.** Stages `lib/*.sv0` + one selected test file as `main.sv0`; builds + runs on C and (`--backend=vm\|both`) the native VM; exit code is the oracle, RED-fixture expected exits in `test/expectations.tsv`. `--case`/`--dir`/`--list`/`--self-test`/`--keep`. | BL-113, ARCH-011, UP-010/022, AC-021/032 | **done** | `--self-test` green; `--backend=both --dir=test` = 6/6 (sv0-strings `b32c0a8`). Finding **#4** (`--project` silently keeps the last `fn main` by filename, no diagnostic → **SS-U09**); dup-`main` probe is **xfail** until then. Still v1: no installed `--emit=exe`, no `--contract-mode` matrix, no path-order sweep (SS-011/012/013 follow). |
-| SS-011 | **Runner native-VM leg.** Add `./scripts/sv0 vm-native-compile --project` + `vm-run`; record native-emitter identity; frozen SML `vm-project-compile` reported separately, never substituted. | BL-113/120, ARCH-015, UP-027, AC-034 | todo | `scripts/test --backend=vm --case types_smoke` runs and records `emitter=native`. |
+| SS-011 | **Runner native-VM identity + contract-mode.** C leg → `./scripts/sv0 native-compile --project --contract-mode=<m>` (UP-022 canonical); VM leg → `vm-native-compile --project` + `vm-run` (native emitter, identified). `--contract-mode=` (C: 3 modes; VM: runtime only), `--record` TSV. | BL-113/120, ARCH-015, UP-022/027/028, AC-034 | **done** | `--record` sweep 7/7 with `emitter`+`mode` per row (sv0-strings `0ec6171`). Finding **#6**: VM `--project` has no contract-mode selector → **SS-U10**; runner reports it `unsupported`, fail-closed. |
 | SS-012 | **Path-order corpus.** Stage byte-identical sources under multiple lexicographic orders (entry before/after `lib/`); assert identical result or a stable non-empty diagnostic. | BL-119, UP-026, AC-036 | todo `red`+harness | permutation set runs; any rejected form emits a non-empty diagnostic (no silent failure). |
 | SS-013 | **Package-owned serialized comparison + injected mismatch.** Runner emits a serialized `{ok\|err, bytes}` record per case (not just exit code); a deliberately corrupted VM fixture fails the gate even when the C leg passes. | BL-121, BACKEND-009, TEST-021, AC-035 | todo `red`+impl | injected mismatch turns the gate **red**; removing it turns it green. |
-| SS-014 | **CI workflow.** `.github/workflows/ci.yml` (model on `sv0-mathlib/.github/workflows/ci.yml`): check out sv0-toolchain alongside, build native compiler + VM emitter, run `scripts/test` + catalog/lint checks. | BL-113, TEST-006, TEST-014 | todo | first CI run green on live upstream `sv0-toolchain@main`. |
+| SS-014 | **CI workflow + `scripts/check` gate.** `scripts/check` = catalogs + doc-fences + generator drift (no toolchain). `.github/workflows/ci.yml`: `lint` job (fast) + `runner` job (bootstraps sv0-toolchain, `scripts/test --backend=both`). | BL-113, TEST-006, TEST-014, TEST-018 | **done** | `scripts/check` PASS locally; workflow YAML valid (sv0-strings `0de44eb`). First live CI run pending push. |
 
 ## Track U — upstream enablement (sv0c / sv0vm / sv0doc)
 
@@ -109,7 +109,7 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 | SS-U07 | **Diamond import.** One shared type imported from multiple files resolves as one declaration on both project backends. | sv0c, sv0vm | UP-024, AC-031 | todo | diamond-import project builds + runs on C and native VM. | multi-module R0.1+ |
 | SS-U08 | **`pub` visibility enforcement.** Non-`pub` cross-module import fails with a stable diagnostic on both project backends. | sv0c | UP-025, ARCH-014, AC-033 | todo | public import compiles; helper import fails (stable class) on C + VM; public-surface manifest generated. | SS-007 companion, F0 gate |
 | SS-U09 | **Project discovery path-order independence.** Same semantic program for any lexicographic traversal order; discovery/link failure emits a stable non-empty diagnostic. Concrete repro landed in SS-010 (`docs/BUGS.md` #4): two files with `fn main` → last-by-filename wins, silently. | sv0c | UP-026, AC-036 | todo | SS-012 permutation corpus is all-green or all-diagnosed; duplicate-`main` is a stable diagnostic; `scripts/test` dup-`main` probe flips from xfail to hard assertion. | SS-012 closure, F0 gate |
-| SS-U10 | **Native-VM contract-mode selection.** `vm-native-compile --project` accepts `--contract-mode`, or rejects/reports `unsupported`; never silently ignores. | sv0-toolchain, sv0vm | UP-028, OQ-012 | todo | contract-mode capability matrix records effective/unsupported per backend; no silent pass. | SS-011 closure, R1 mode matrix |
+| SS-U10 | **Native-VM contract-mode selection.** `vm-native-compile --project` accepts `--contract-mode`, or rejects/reports `unsupported`; never silently ignores. Concrete repro: SS-011 / `docs/BUGS.md` #6 (flag consumed as the output path; raw megatu `--project --contract-mode` panics). | sv0-toolchain, sv0vm | UP-028, OQ-012 | todo | contract-mode capability matrix records effective/unsupported per backend; `scripts/test --contract-mode` works for VM. | R1 mode matrix (SS-011 already records honestly) |
 | SS-U11 | **`fill_explicit` non-elision primitive.** sv0doc side-effect rule or sv0c intrinsic that survives optimization. | sv0doc, sv0c | UP-014, OQ-006 | deferred (R0.3) | optimized generated C + VM trace both show the required stores. | SS-108 unblock |
 | SS-U12 | **Host capability ABI (locale/error/signal).** Versioned host capabilities + deterministic VM mappings. | sv0doc, sv0c, sv0vm | UP-015, OQ-005 | deferred (R0.4) | a locale capability opens/compares/transforms with equivalent VM behaviour, or fails closed. | SS-167..169 |
 | SS-U13 | **Struct-variant field-name namespace.** Enum struct-variant field names must be scoped to their variant, not one global namespace. Found in SS-005 (`docs/BUGS.md` #1): any field name reused across two struct variants → `E0301` with a misattributed span. Fix the resolver + fix the span. | sv0c (resolver, diagnostics) | UP-021, UP-023, MODEL-017 | todo | SPEC §8.2's error enums link with their named struct variants + reused field names (`available`, `offset`, `requested`); `strings_types.sv0` reverts from tuple variants. | named-field error enums; readability of every `Result::Err` |
@@ -223,19 +223,28 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 - [x] **SS-006** — checked `usize` arithmetic + overflow corpus (C). → `8ae93a2`; findings #2 / **SS-U06**, #3 / **SS-U14**
 - [x] **SS-009** — embedded-NUL red corpus — clean C↔VM divergence. → `2632e5b`
 - [x] **SS-010** — `scripts/test` staging runner v1 (C + VM legs). → `b32c0a8`; finding #4 / **SS-U09**
-- [ ] **SS-007** — doc-fence lint.
-- [ ] **SS-008** — nested-module expected-fail probe. `test/compile_fail/` +
-  `scripts/test` support for `kind=compile-fail` cases.
-- [ ] **SS-011** — runner native-VM identity + contract-mode record.
-- [ ] **SS-012** — path-order permutation corpus (pairs with SS-U09).
+- [x] **SS-007** — doc-fence lint. → `bd2039d`
+- [x] **SS-008** — nested-module compile-fail probe + runner `test/compile_fail/` support. → `7050154`; finding #5 / **SS-U08**
+- [x] **SS-011** — runner native-VM identity + contract-mode record. → `0ec6171`; finding #6 / **SS-U10**
+- [x] **SS-014** — CI workflow + `scripts/check` gate. → `0de44eb`
+- [ ] **SS-012** — path-order permutation corpus. Pairs with **SS-U09**; the
+  compiler has to emit diagnostics on the ambiguous cases first, so this waits
+  for SS-U09.
+- [ ] **SS-013** — package-owned serialized value comparison + injected mismatch.
+  Meaningful once R0.1 tests produce real values (not just exit codes).
 
-Phase 0 is essentially done (SS-007/008 left). Next is **SS-U** work — the
-library implementation slices (R0.1+) cannot start until byte slices and the C
-`string` runtime land. Open, in rough priority: **SS-U01** (`byte` alias),
-**SS-U13** (struct-variant fields — repro ready), **SS-U03a**/**SS-U02a** (the
-two normative `sv0doc` decisions), then **SS-U02b** (C `string` runtime — SS-009
-gives it executed evidence and a regression corpus). Findings #1–#4 all have
-minimal repros in `sv0-strings/docs/BUGS.md`.
+**Phase 0 complete; Phase 1 all but SS-012/013 (both wait on Track U).** Next is
+**Track U** — the library implementation slices (R0.1+) cannot start until byte
+slices and the C `string` runtime land. Six findings, all with minimal repros in
+`sv0-strings/docs/BUGS.md`, seed them:
+
+| priority | slice | why first |
+|---|---|---|
+| 1 | **SS-U01** `byte` alias | smallest, unblocks the normative spelling everywhere |
+| 2 | **SS-U13** struct-variant field namespace | repro ready; restores named-field error enums |
+| 3 | **SS-U03a** + **SS-U02a** | the two normative `sv0doc` decisions (slice repr, `string` repr) |
+| 4 | **SS-U02b** C `string` runtime | SS-009 already gives executed evidence + a regression corpus |
+| — | SS-U08/U09/U10/U14 | have repros; schedule with their area |
 
 ## dependencies
 
