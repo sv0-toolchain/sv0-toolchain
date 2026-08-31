@@ -353,11 +353,11 @@ opcodes 5/6/32-37/48-52. Only interpreter dispatch is the "i32 slice"
   `emit-c` (via `native_exe_canonical_compile.compile_and_publish`) → run vs
   native VM-emit → `sv0vm`; exit codes compared. Fixtures
   `programs/vmf_{f64_arith,f64_struct,f64_contract,f64_dd,i64_arith}.sv0` +
-  `int_min`/`contracts` + optional `--project ../sv0-mathlib` (skipped if
+  `int_min`/`contracts` + optional `--project sv0-mathlib` (skipped if
   absent). `./scripts/sv0 vm-behavioral-parity`; step in `./scripts/sv0 test`
   and `.github/workflows/vm-parity-tier2.yml`. **8/8 OK.**
 - **VMF-019 · done** (sv0-mathlib `79e8200`): `scripts/ci` `--skip-parity`
-  section runs the toolchain harness (picks up `--project ../sv0-mathlib`);
+  section runs the toolchain harness (picks up `--project sv0-mathlib`);
   `test/parity/README.md`; `BUGS.md #2` → FIXED for the native VM path;
   `README.md` + `CHANGELOG.md` updated; CI workflow builds the native VM
   emitter. **COMPAT-001 / COMPAT-002 / TEST-005 closed for the exit-code
