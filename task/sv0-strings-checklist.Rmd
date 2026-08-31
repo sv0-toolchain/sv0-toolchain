@@ -95,7 +95,7 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 | ID | slice | owner | refs | status | done when | unblocks |
 |----|-------|-------|------|--------|-----------|----------|
 | SS-U01 | **`byte` alias.** Resolver/checker accept `byte` as the normative alias of `u8` in signatures, generics, modules, generated C, VM bytecode. | sv0c | UP-018, MODEL-001 | **done** | sv0c `cab4ca1` (parent bumps the gitlink + README pin): `byte`→`u8` synonym in resolver/env/checker/lowering/megaTU-main/verify_vcgen; emits `uint8_t`; `test/behavior/cases/type_byte_alias.sv0` + `test/vm-parity/programs/vmf_byte_alias.sv0` (native C↔VM parity 9/9); stage0 + SML-VM goldens refreshed; full `./scripts/sv0 test` green. `byte` now inherits `u8`'s exact behavior on both backends. | all Track L (normative spelling now available; used when `strings_bytes` lands post-SS-U03) |
-| SS-U02a | **`string` repr — normative.** sv0doc: length-bearing owned `string` contract (embedded NUL, UTF-8, ownership, drop, alloc-failure). Decision record. | sv0doc | UP-001, OQ-001 | todo | sv0doc merged; OQ-001 → resolved-pending-impl. | SS-U02b/c/d |
+| SS-U02a | **`string` repr — normative.** sv0doc: length-bearing owned `string` contract (embedded NUL, UTF-8, ownership, drop, alloc-failure). Decision record. | sv0doc | UP-001, OQ-001 | **done** | sv0doc `a6643f5` (parent bumps the gitlink): `type-system/rules.md` §1.3.1 (new) — owned `string` SHALL be a three-field `{ data: non-null *u8, len: usize, cap: usize }` record, that field order, identical both backends; `len` bytes of well-formed UTF-8, embedded `\0` is content, **no implicit terminator** (C interop via `CStr`/`CString`); `len_bytes`/eq/ordering/concat/byte-access/substring defined purely from `len`+byte range, never a `strlen`/`strcmp` scan (UP-002); byte access + substring bounds-check before memory access, same typed failure both backends (UP-003); alloc failure → typed failure before the value is observable, concat `len+len` overflow checked pre-alloc, `Drop` releases `[data,data+cap)` once both backends (hook surface → SS-U02d/OQ-003); sv0vm string-table + builtins align, fail-closed. `memory-model/ownership.md` §7.3 cross-ref. **OQ-001 → resolved-pending-impl.** | SS-U02b/c/d |
 | SS-U02b | **`string` repr — C backend.** `sv0_string {ptr,len,cap}`; `string_len/eq/concat/substr/char_at` reimplemented length-based (embedded-NUL safe); bounds-checked access. | sv0c | UP-001/002/003 | blocked (SS-U02a) | SS-009 embedded-NUL corpus passes on C. | R0.2 text slices |
 | SS-U02c | **`string` repr — VM.** Align VM string-table repr + builtins to the same length semantics; out-of-range → fail-closed. | sv0vm | UP-001/002/003 | blocked (SS-U02a) | SS-009 corpus passes on VM; C/VM parity green. | R0.2 text slices |
 | SS-U02d | **Owned alloc-failure + drop.** Checked allocation failure + deterministic release for `string` / `Vec<byte>` / `CString`; fail-at-N + leak hooks on both backends. | sv0c, sv0vm | UP-007/013, OQ-003 | blocked (SS-U02b/c) | fail-at-N + leak tests pass on C and VM. | SS-127/128, R0.2 gate |
@@ -243,10 +243,16 @@ slices and the C `string` runtime land. Six findings, all with minimal repros in
 | ~~1~~ | ~~**SS-U01** `byte` alias~~ | **done** (sv0c `cab4ca1`) |
 | ~~2~~ | ~~**SS-U13** enum struct-variant ctor literals~~ | **deferred** — hit KC-006 self-host fragility; not blocking (tuple variants stand) |
 | ~~2~~ | ~~**SS-U03a** slice repr — normative~~ | **done** (sv0doc `1b20be0`) — OQ-002 resolved-pending-impl |
-| 2 | **SS-U02a** `string` repr — normative | the remaining `sv0doc` decision (length-bearing owned `string`: embedded NUL, UTF-8, ownership, drop, alloc-failure) → OQ-001 |
-| 3 | **SS-U02b** C `string` runtime | SS-009 already gives executed evidence + a regression corpus |
-| 3 | **SS-U03b/c** slice C + VM `IndexAccess` | now spec'd by SS-U03a; unblocks all R0.1 byte slices (SS-101..111) |
+| ~~2~~ | ~~**SS-U02a** `string` repr — normative~~ | **done** (sv0doc `a6643f5`) — OQ-001 resolved-pending-impl |
+| 3 | **SS-U03b/c** slice C + VM `IndexAccess` | spec'd by SS-U03a; unblocks all R0.1 byte slices (SS-101..111). Smallest of the impl slices — start here. |
+| 3 | **SS-U02b** C `string` runtime | spec'd by SS-U02a; SS-009 already gives executed evidence + a regression corpus |
 | — | SS-U08/U09/U10/U14 | have repros; schedule with their area |
+
+**Both normative `sv0doc` decisions are now closed.** Every remaining Track-U
+slice is multi-pass `sv0c` / `sv0vm` implementation work (each: front-end +
+lowering + C runtime and/or VM interpreter + both golden sets + gated parity
+tests). SS-U13's prototype already showed `lower_expr_to_value` is fragile to new
+instruction-emitting shapes (KC-006) — budget a full focused session per slice.
 
 **Note on Track-U effort.** After SS-U01 (a clean 1-liner-per-file alias), the
 remaining Track-U slices are milestone-sized: SS-U02/SS-U03 each need a normative
