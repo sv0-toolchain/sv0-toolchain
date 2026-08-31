@@ -1,0 +1,241 @@
+---
+created: "2026-08-30T00:00:00-06:00"
+updated: "2026-08-30T00:00:00-06:00"
+id: task-sv0-strings-library
+key: sv0-strings-library
+state: active
+tags:
+  - sv0
+  - sv0-strings
+  - strings-library
+  - c23
+  - posix
+  - spec-first
+  - planning
+title: "sv0-strings: safe strings + C23/POSIX compat library (SPEC-governed)"
+type: task
+---
+
+# sv0-strings: safe strings + C23/POSIX compatibility library
+
+## purpose
+
+**sv0-strings** is a new, independently versioned sibling package (submodule
+`sv0-strings/`, GitHub `sv0-toolchain/sv0-strings`) that provides a safe,
+sv0-native byte / UTF-8 text / C-string API **plus** semantically compatible
+façades for ISO C23 `<string.h>` and POSIX.1-2024 Issue 8 `<string.h>` /
+`<strings.h>`.
+
+It is **specification-first**. The governing document is:
+
+- `~/Documents/project-specs/sv0-strings/SPEC.md`
+- <https://github.com/sv4u/project-specs/blob/main/sv0-strings/SPEC.md>
+- Spec version `0.4.0-draft`; source audit 2026-08-30.
+
+Like **sv0-mathlib**, sv0-strings is a *consumer* of the toolchain, not a
+toolchain milestone. This file is the meta-repo planning hub: it tracks the
+library backlog **and** the upstream toolchain work that gates it. Closure
+authority is `SPEC.md` (§24 release gates, §23 acceptance scenarios) plus this
+file; the sv0-strings repo carries its own `README.md` / `CHANGELOG.md` and,
+later, a `BUGS.md` in the sv0-mathlib style.
+
+## current state (2026-08-30)
+
+- Repo scaffolded and pinned as a submodule (this branch). Contents: `README.md`,
+  `CHANGELOG.md`, `LICENSE-APACHE`, `LICENSE-MIT`, `docs/README.md`, and 11 flat
+  `lib/strings_*.sv0` **module stubs** (doc header + `module <name>;`, no
+  behavior).
+- Implementation tier (SPEC §4.8): **Tier 0 — observed bootstrap**. Nothing in
+  `lib/` is implemented.
+- **F0 is not currently reachable** — blocked on ~20 upstream capability gaps
+  (below).
+
+## relationship to the toolchain (SPEC §3.4)
+
+| Concern | Owner |
+|---|---|
+| Grammar, types, slices, strings, references, raw pointers, contracts, ownership | `sv0doc` |
+| Parser, resolver, checker, lowering, C / VM codegen, runtime ABI | `sv0c` |
+| VM string representation, byte access, allocation, bounds, builtins | `sv0vm` |
+| Workspace commands, full gates, packaging, compat test orchestration | `sv0-toolchain` |
+| Safe strings API, algorithms, adapters, fixtures, docs | `sv0-strings` |
+
+`sv0-mathlib v0.1.0` already advanced some shared ground — native-VM
+`f64` / wide-int project emission + behavioral parity
+(`task/sv0c-vm-float-parity.Rmd`), flat-module `--project` consumption, and the
+concrete-carrier workaround for missing generics. Per SPEC §4.7 / GOV-013 that
+tag is **not** transitive proof of any sv0-strings requirement; strings needs its
+own byte-slice, ownership, embedded-NUL, and compat evidence.
+
+## release ladder (SPEC §2.3, gates §24)
+
+| Release | Scope | Gate headline |
+|---|---|---|
+| **F0** | Semantic alignment + feasibility: close minimum toolchain gaps; byte ops on C **and** native VM; `Ordering` / errors / flat modules / staging runner / traceability tooling. | UP-001..UP-010, UP-017..UP-028 demonstrated on both backends; AC-001, AC-030..AC-036; no hidden workaround. |
+| **R0.1** | Safe byte-slice core + deterministic ASCII case ops. | every `BYTE-*` / `ASCII-*` ≤ R0.1; exhaustive overlap / byte-domain / overflow / boundary matrices; C/VM parity + sanitizers. |
+| **R0.2** | UTF-8 text, `CStr` / `CString` / `CBuffer`, explicit-state tokenization. | every `TEXT-*` / `CSTR-*` / `TOK-*`; UTF-8 corpus; ownership/borrow compile-fail; allocation-failure; CBuffer model; allocations released on both backends. |
+| **R0.3** | C23 `<string.h>` façade for all non-host-dependent core interfaces. | every C23 row classified; `Exact`/`Adapted` rows pass an independent C oracle; `strcoll`/`strxfrm`/`strerror` profile-gated; optimized-C sanitizer + VM negative suites. |
+| **R0.4** | POSIX.1-2024 Issue 8 façade + host locale/error/signal capabilities. | every POSIX header row classified (CX/XSI); `memmem`, `strlcpy`/`strlcat`, `strnlen`, reentrant tokenization, POSIX-locale case cmp, supported host services; legacy isolated + deprecated. |
+| **R1** | Stable cross-backend release with full traceability + evidence. | every requirement ≤ R1 covered; AC-001..AC-036; pure/accelerated + C/VM + contract-mode matrices; offline clean-checkout rehearsal; fuzz/sanitizer/leak/alloc-fail/perf/traceability evidence immutable; no safety waiver. |
+| **Future** | Optional exact C ABI, more locales, Unicode algorithms, optimization. | direction only. |
+
+## upstream enablement backlog — toolchain-side (SPEC §18.1)
+
+These land in `sv0doc` / `sv0c` / `sv0vm` / `sv0-toolchain` **with their own
+gated tests**, before library code depends on them. `UP-###` IDs are the SPEC's.
+
+| ID | Rel | Gap → deliverable | Likely owner / where it lands |
+|---|---|---|---|
+| UP-001 | F0 | One normative length-bearing `string` representation preserving embedded zero + UTF-8 on both backends. | `sv0doc` + `sv0c` runtime + `sv0vm`; std/runtime-ABI slice. **OQ-001.** |
+| UP-002 | F0 | `len_bytes` / equality / concat / byte access / substring not dependent on NUL termination. | `sv0c` C runtime + `sv0vm`. |
+| UP-003 | F0 | Byte access + substring bounds-check before memory access; same typed failure on both backends. | `sv0c` + `sv0vm`. |
+| UP-004 | F0 | Arrays, `&[byte]`, `&mut [byte]`, indexing, mutation compile + execute on C **and** VM. | `sv0c` lowering + `sv0vm` (`IndexAccess` currently rejected). **OQ-002.** |
+| UP-005 | F0 | Slice runtime repr carries data + length; borrow rules preserved through lowering/codegen. | `sv0c` + `sv0vm`. |
+| UP-006 | F0 | Range non-overlap expressible/checkable by full intervals, not pointer inequality. | `sv0doc` contracts + `sv0c` verifier. |
+| UP-007 | F0 | Checked allocation failure + deterministic release for `string` / `Vec<byte>` / `CString`. | `sv0c` runtime. **OQ-003.** |
+| UP-008 | F0 | Checked `usize` length arithmetic + narrowing at C/VM ABI boundaries. | `sv0c`. |
+| UP-009 | F0 | Exact `Option` / `Result` / struct-enum payload / borrowed-return shapes work across project/module boundaries on both backends. | `sv0c` project mode. |
+| UP-010 | F0 | Repeatable source-vendoring / staging test runner on current `--project`; stages `lib/` + one `main`; runs native C **and** native VM. | `sv0-toolchain` + this repo (`scripts/test`). |
+| UP-011 | R0.1 | Runtime accelerators versioned + capability-discoverable; absence selects pure sv0, not different semantics. | `sv0c` / `sv0vm`. |
+| UP-012 | R0.1 | Backend panic/exception text not the only machine-readable failure signal. | `sv0c` / `sv0vm`. |
+| UP-013 | R0.2 | `string` / `CString` destruction frees C allocations + retires VM storage, no use-after-free. | `sv0c` runtime + `sv0vm`. |
+| UP-014 | R0.3 | Documented compiler/runtime primitive for `fill_explicit` that survives optimization. | `sv0doc` + `sv0c`. **OQ-006.** |
+| UP-015 | R0.4 | Locale/error/signal adapters via versioned host capabilities + deterministic VM mappings. | shared `sv0c`/`sv0vm`/`sv0doc`. **OQ-005.** |
+| UP-016 | Future | Exact C ABI profile: raw pointer types, calling convention, symbols, constness, alloc/free, `errno`, locale handles, target triples. | `sv0doc` + `sv0c`. **OQ-007.** |
+| UP-017 | F0 | Contract evidence labels each clause parsed / runtime-checked / verified / model-tested; native + VM preserve `old` / `forall` / `exists` or fail closed. | `sv0c` lowering + verifier; **M4 follow-up**. **OQ-009.** |
+| UP-018 | F0 | `byte` resolves consistently as the normative `u8` alias in signatures, generics, modules, generated C, VM bytecode. | `sv0c` resolver/checker (currently `E0301`). |
+| UP-019 | F0 | Every release module uses a flat `strings_*` declaration + explicit imports; no gate depends on nested modules / wildcard / re-exports. | this repo + `sv0c` project mode. |
+| UP-020 | F0 | Generic result families with >1 concrete payload monomorphize correctly, or the API uses reviewed concrete carriers. | `sv0c`; **OQ-010.** |
+| UP-021 | F0 | Every public return shape representable on both backends (no whole-struct-in-enum-payload, no multi-element tuple workaround). | `sv0c`. |
+| UP-022 | F0 | Canonical C-backend path is `sv0c --emit=exe --project` / `./scripts/sv0 native-compile`; runtime + entry ABI manifests verified by that driver. | `sv0-toolchain`. |
+| UP-023 | F0 | Known source-shape hazards (match-as-value, inline struct-literal args, struct copy to local, field arithmetic in return/init/contract) fixed upstream or covered by operation-level generated-C / bytecode / diagnostic / execution tests. | `sv0c`; regression corpus. |
+| UP-024 | F0 | Repeated imports of one shared type from multiple files resolve as one declaration on both project backends. | `sv0c` / `sv0vm` project linker. |
+| UP-025 | F0 | `pub` / non-`pub` visibility enforced across modules (or an equivalent compile-time exclusion). | `sv0c`. |
+| UP-026 | F0 | Recursive project discovery is order-independent for any lexicographic renaming; failures emit a stable non-empty diagnostic. | `sv0c` project discovery (path-order defect). |
+| UP-027 | F0 | VM conformance uses `./scripts/sv0 vm-native-compile --project`; emission failures are non-zero + diagnosed; frozen SML `vm-project-compile` reported separately, never substituted. | `sv0-toolchain` + `sv0vm`. |
+| UP-028 | F0 | Every project run records effective contract mode; a backend that can't select a mode rejects it or reports `unsupported`. | `sv0-toolchain` + `sv0vm`. **OQ-012.** |
+
+## library-side backlog (SPEC Appendix D — authoritative row list)
+
+Dependency-ordered `BL-###` tasks; each row is one focused session after its
+deps. `-red` evidence lands before its paired implementation task; expected
+values never come from the impl under test (Appendix C.4).
+
+| Group | Tasks | Deliverable set |
+|---|---|---|
+| **D.1 F0** | BL-001..BL-020, BL-106..BL-121 | Org audit; standards-matrix extractor; requirement/test/standard/fixture/provenance catalogs; license + flat module/test skeleton; `Ordering` + error enums; checked `usize` helpers; embedded-NUL string repr; checked byte access/substr; slice lowering + VM index; interval overlap predicate; alloc/drop counters + failure injection; cross-module multi-layout `Option`/`Result` corpus; advanced-contract fail-closed probes; `byte` alias matrix; doc-fence lint; flat vs nested module probes; staging runner + canonical C/VM consumer commands; generic-payload / struct-payload / tuple probes + monomorphization-or-carriers; source-shape regression corpus; diamond-import; visibility matrix; path-order corpus; native-VM identity + contract-mode records; package-owned serialized result comparison + injected-mismatch hard gate; **F0 gate review**. |
+| **D.2 R0.1** | BL-021..BL-038 | byte compare/equal; find/rfind/starts/ends; `find_slice` reference; span ops; atomic + truncating copy; overlap-safe `move_within`; guard-byte `fill`; blocked `fill_explicit` evidence; exhaustive ASCII ops; pure/accelerated harness (pure only); **R0.1 gate review**. |
+| **D.3 R0.2** | BL-039..BL-058 | UTF-8 validator (precise error offsets); native length/equality/order without NUL calls; one-allocation text concat; multibyte search + boundary-safe slice; `from_utf8` / `as_bytes`; `CStr` validation/views + `CString` constructors; owned clone/concat + cleanup; optional-first-NUL `CBuffer` state machine + truncation reports; immutable explicit-cursor tokenizer; ownership/drop/failure parity; **R0.2 gate review**. |
+| **D.4 R0.3** | BL-059..BL-072, BL-109, BL-110 | independent C23 oracle; `memcpy`/`memccpy`/`memmove`; search + comparison adapters; `strcpy`/`strncpy`/`strcat`/`strncat`; `strdup`/`strndup`; `strspn`/`strcspn`; safe `strtok`; `memset` + blocked `memset_explicit`; O(1) `strlen`; host-dependent `strcoll`/`strxfrm`/`strerror` stubs; unsigned-byte + const-preserving API; header types/macros + type-generic search catalog; terminator search / `int c` conversion / bounded nonterminated sources; close every C23 row + generate compat docs; warnings-as-errors + ASan/UBSan + fuzz; **R0.3 gate review**. |
+| **D.5 R0.4** | BL-073..BL-088, BL-111 | `memmem`; `stpcpy`/`stpncpy`; Issue 8 `strlcpy`/`strlcat` matrix + adapters; guard-page `strnlen`; `strtok_r`; POSIX-locale `strcasecmp`/`strncasecmp` (+ bounded nonterminated); explicit locale capability lifecycle; `_l` compare/transform + consistency property; owned host error/signal capability; `strerror_r`/`strerror_l`/`strsignal`; `ffs`/`ffsl`/`ffsll` XSI; isolated deprecated legacy aliases; close POSIX function/header matrices + Base/CX/XSI docs; ambient-locale + supported-target + fail-closed profile suite; **R0.4 gate review**. |
+| **D.6 R1** | BL-089..BL-100 | bidirectional traceability + unique-ID audit; fixture provenance/digests; pure/accelerated C+VM fuzz budget; release sanitizer/leak/warnings/zero-skip/hard-backend-gate/serialized-result audit; contract-mode capability matrix; pure/accelerated equivalence matrix; complexity + reproducible benchmarks; offline clean-checkout consumer rehearsal (path-order permutations); execute every AC + bind evidence; immutable release manifest; digest/exception/approval verification; **approve/tag R1** + publish compat/security/license/provenance/evidence. |
+| **D.7 Future** | BL-101..BL-105 | backend non-eliding explicit fill; Annex K decision + (if accepted) separate profile spec slice; exact C ABI manifest + unsafe caller obligations; feature-gated raw C ABI + external linkage tests; separate Unicode-algorithms package spec. |
+
+### dependency sequence (Appendix C.2)
+
+```text
+toolchain string/slice semantics
+  -> Ordering + errors + traceability harness
+  -> byte compare/search -> byte copy/move/fill
+  -> UTF-8 validation + byte views
+  -> CStr/CString/CBuffer invariants
+  -> text operations + tokenizer
+  -> C23 semantic façade
+  -> POSIX Issue 8 façade + host capabilities
+  -> acceleration / optional exact ABI
+  -> R1 evidence closure
+```
+
+## five-state TDD cycle (Appendix C.1)
+
+Every function / tightly coupled operation advances through:
+
+1. **Contract stub** — signature, ownership, errors, `requires` / `ensures` /
+   loop-invariant intent. Supported clauses compile + execute; unsupported
+   advanced clauses are labeled `model-only` with an executable reference
+   predicate, never counted as enforced.
+2. **Red evidence** — standards / golden fixtures, negatives, properties, and the
+   backend/profile matrix exist and fail for the intended reason. Skipping red is
+   prohibited.
+3. **Reference green** — simplest pure sv0 implementation passes on one backend
+   without weakening tests / contracts.
+4. **Parity green** — same implementation passes C **and** VM, contract modes,
+   ownership, allocation-failure, sanitizer, and applicable differential tests.
+5. **Optimized and closed** — any optimization passes reference differential
+   tests; docs, traceability, complexity evidence, and the backlog task are
+   closed.
+
+## repo layout (SPEC §9)
+
+```text
+sv0-strings/
+├── README.md  CHANGELOG.md  LICENSE-APACHE  LICENSE-MIT
+├── lib/strings_{types,bytes,text,ascii,cstr,tokenize,locale,c23,posix2024,legacy,unsafe_abi}.sv0
+├── docs/            compatibility.md / security.md / release-evidence/  (R0.3+)
+├── test/            cases/ consumer/ fixtures/ property/ compile_fail/ parity/ differential/ fuzz/ allocation_failure/  (F0+)
+├── tools/           requirement_matrix.* c_oracle/ fixture_provenance.*  (F0+)
+└── scripts/test     staged lib + one main -> toolchain  (BL-113)
+```
+
+Today only `README.md` / `CHANGELOG.md` / licenses / `docs/README.md` /
+`lib/strings_*.sv0` stubs exist. `sv0.toml` is deferred (SPEC ARCH-012: it is
+build config only, never package identity).
+
+## licensing
+
+**`Apache-2.0 OR MIT`** — decision recorded 2026-08-30 in `sv0-strings/README.md`
++ `CHANGELOG.md` (SPEC LIC-001), matching the other five submodules. LIC-002
+(per-file SPDX), LIC-003 (standards-text provenance), LIC-004 (third-party
+fixture provenance), LIC-005 (release-artifact notices) remain open.
+
+## open questions (SPEC §27 — dependencies, not permission to guess)
+
+| OQ | Blocks | Question |
+|---|---|---|
+| OQ-001 | F0 | Accepted runtime representation of owned `string` (UTF-8, embedded NUL, length, alloc failure, destruction, C+VM). |
+| OQ-002 | F0 | Accepted slice representation + backend ABI (bounds, mutable access, borrowing, interval overlap). |
+| OQ-003 | R0.2 | How allocator failure and `Drop` are exposed to user libraries. |
+| OQ-004 | — | Durable installed-package manifest + dependency resolution (F0..R1 use documented source-vendored projects; `sv0.toml` is not that). |
+| OQ-005 | R0.4 | Whether locale services join a general host-capability ABI. |
+| OQ-006 | Future | `fill_explicit` as a language side-effect rule, a runtime intrinsic, or both. |
+| OQ-007 | Future | Whether the project wants an exact C ABI profile. |
+| OQ-008 | — | Whether full Unicode operations become a separate `unicode` package (SPEC recommends yes). |
+| OQ-009 | F0 | Advanced-contract promotion path (runtime lowering for `old` / quantifiers, or a stable `model-only` status consumed by model tests). |
+| OQ-010 | F0 | Whether F0 lands user generic monomorphization or reviewed concrete carriers (must pass AC-031). |
+| OQ-011 | — | When hierarchical `strings::...` aliases can be added (needs nested modules + `pub use`). |
+| OQ-012 | F0/R1 | When native-VM project builds expose explicit contract-mode selection + a version-stable baseline. |
+
+## immediate next steps
+
+1. **BL-001** — refresh the public sv0 organization audit (five core repos +
+   sv0-mathlib + sv0-vsc-extension); record exact SHAs / source paths / evidence
+   boundaries in the sv0-strings repo.
+2. **BL-003 / BL-004** — scaffold the requirement / test / standard / fixture /
+   provenance catalogs with schema validation; the flat module skeleton + the
+   license decision are already done by the initial commit.
+3. **BL-007 / BL-008** — embedded-NUL string parity red corpus for the five
+   bootstrap intrinsics, then the accepted length-bearing `string` runtime
+   representation (**OQ-001** — the widest F0 blocker; needs sv0doc + sv0c
+   runtime + sv0vm).
+4. **BL-011 / BL-012** — slice construct/index/mutate red corpus on C+VM, then
+   slice lowering + VM index ops (**OQ-002**).
+5. **BL-112 / BL-113** — paired flat-module positive / nested-module
+   expected-failure project probes; the fresh staging runner + canonical
+   installed/workspace native C and native VM consumer commands.
+
+Once a compilable `--project sv0-strings` exists (BL-113), add it to
+`sv0c/test/vm-parity/behavioral-manifest.txt` and the `scripts/vm_behavioral_parity.py`
+flow the way `--project sv0-mathlib` is wired, and gate it via a package-owned
+serialized comparison (BL-121 / SPEC BACKEND-009 / AC-035).
+
+## dependencies
+
+/require: bash
+
+/ai: sv0-strings is spec-first. Do not write library code against a toolchain
+capability that is not yet demonstrated end to end (parser + resolver + checker +
+lowering + selected codegen + runtime + consumer project). Upstream slices land
+in sv0c / sv0vm / sv0doc with their own gated tests first; then the paired
+library `BL-###` task. A green sibling suite (sv0-mathlib) is not transitive
+evidence (SPEC §4.7 / GOV-013). For cross-cutting changes, list which submodules
+need commits and in what order (spec first vs code first).

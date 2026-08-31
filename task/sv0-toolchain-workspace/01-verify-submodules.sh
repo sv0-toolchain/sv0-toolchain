@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 ok=1
-for name in sv0doc sv0c sv0vm sv0-mathlib sv0-mcp; do
+for name in sv0doc sv0c sv0vm sv0-mathlib sv0-strings sv0-mcp; do
   target="$ROOT/$name"
   if [[ ! -e "$target/.git" ]]; then
     echo "FAIL: submodule path missing or not initialized: $name (expected $target/.git)"
@@ -14,4 +14,4 @@ if [[ "$ok" -eq 0 ]]; then
   echo "hint: git submodule update --init --recursive"
   exit 1
 fi
-echo "OK: submodules sv0doc sv0c sv0vm sv0-mathlib sv0-mcp present"
+echo "OK: submodules sv0doc sv0c sv0vm sv0-mathlib sv0-strings sv0-mcp present"
