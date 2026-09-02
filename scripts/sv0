@@ -849,6 +849,10 @@ run_test() {
   if ! python3 "$ROOT/scripts/verify_behavior_corpus_vm.py" --root "$ROOT"; then
     ec=1
   fi
+  sv0_info "sv0 test: owned-string allocation fault injection (SS-U02d; UP-007)"
+  if ! python3 "$ROOT/scripts/verify_string_alloc_failure.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: z3 driver (M4-S-011; verifies scripts/sv0-z3.sh, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_z3_driver.py" --root "$ROOT"; then
     ec=1
