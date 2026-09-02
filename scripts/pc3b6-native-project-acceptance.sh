@@ -84,5 +84,33 @@ else
   fi
 fi
 
+# ── SS-U09: --project entry-point discovery guard ───────────────────────────
+#   sv0-strings docs/BUGS.md #4 / SPEC UP-026, AC-036: `--project` used to
+#   silently accept two top-level `fn main`, running whichever path sorts last.
+#   link.sv0 now counts entry files directly in the project dir and fails
+#   closed with a stable E0302 on stderr. A `fn main` in a SUBDIRECTORY
+#   (test-runner convention, e.g. sv0-mathlib/test/) is not an entry candidate.
+dm="$TMP/ssu09_dup"; mkdir -p "$dm/test"
+printf 'fn main() -> i32 { return 7; }\n' > "$dm/main.sv0"
+printf 'fn main() -> i32 { return 9; }\n' > "$dm/main_two.sv0"
+printf 'fn main() -> i32 { return 0; }\n' > "$dm/test/unit.sv0"
+set +e; "$WRAP" --project "$dm" >"$TMP/ssu09_dup.c" 2>"$TMP/ssu09_dup.err"; ec=$?; set -e
+if [ "$ec" -eq 0 ] || ! grep -q 'E0302' "$TMP/ssu09_dup.err"; then
+  echo "pc3b6: FAIL — SS-U09 dup-entry: exit $ec / stderr missing E0302"; cat "$TMP/ssu09_dup.err"; fail=1
+else
+  echo "pc3b6: OK   — SS-U09 dup-entry: two top-level fn main -> nonzero + E0302"
+fi
+
+ok="$TMP/ssu09_ok"; mkdir -p "$ok/test"
+printf 'fn add1(x: i32) -> i32 { return x + 1; }\n' > "$ok/lib.sv0"
+printf 'fn main() -> i32 { return add1(41); }\n' > "$ok/main.sv0"
+printf 'fn main() -> i32 { return 0; }\n' > "$ok/test/unit.sv0"
+set +e; "$WRAP" --project "$ok" >"$TMP/ssu09_ok.c" 2>"$TMP/ssu09_ok.err"; ec=$?; set -e
+if [ "$ec" -ne 0 ] || ! grep -q '#include' "$TMP/ssu09_ok.c" || grep -q 'E0302' "$TMP/ssu09_ok.err"; then
+  echo "pc3b6: FAIL — SS-U09 subdir-main: one root entry + subdir fn main should emit (exit $ec)"; cat "$TMP/ssu09_ok.err"; fail=1
+else
+  echo "pc3b6: OK   — SS-U09 subdir-main: root entry + subdir fn main -> emits, no E0302"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "pc3b6: acceptance FAILED"; exit 1; fi
-echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement: all fixtures)"
+echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement + SS-U09 entry guard: all fixtures)"
