@@ -112,5 +112,41 @@ else
   echo "pc3b6: OK   — SS-U09 subdir-main: root entry + subdir fn main -> emits, no E0302"
 fi
 
+# ── SS-U05: advanced contract clauses are reported model-only, never dropped ──
+#   sv0-strings SPEC UP-017 / AC-026: native + VM lowering does not turn an
+#   `old` / `forall` / `exists` clause into a runtime check. It must not
+#   silently drop it either — it emits a stable machine-readable stderr note
+#   (`sv0c: note: contract clause ... is model-only`). Here the `ensures` is
+#   false at runtime (f returns x+100, not old(x)); a silent drop would let
+#   `f(0) + 42 == 142` through with NO signal. The note is the signal.
+mo="$TMP/ssu05_modelonly.sv0"
+printf 'fn f(x: i32) -> i32\n    ensures(result == old(x))\n{\n    return x + 100;\n}\nfn main() -> i32 { return f(0) + 42; }\n' > "$mo"
+set +e; "$WRAP" "$mo" >"$TMP/ssu05.c" 2>"$TMP/ssu05.err"; ec=$?; set -e
+if [ "$ec" -ne 0 ] || ! grep -q 'is model-only' "$TMP/ssu05.err" || grep -q 'sv0_ensures' "$TMP/ssu05.c"; then
+  echo "pc3b6: FAIL — SS-U05 model-only: exit $ec / missing note / clause wrongly lowered"; cat "$TMP/ssu05.err"; fail=1
+else
+  bin="$TMP/ssu05.bin"
+  if python3 "$ROOT/scripts/native_exe_canonical_compile.py" "$TMP/ssu05.c" "$bin" 2>/dev/null; then
+    set +e; "$bin"; rc=$?; set -e
+    if [ "$rc" -ne 142 ]; then
+      echo "pc3b6: FAIL — SS-U05 model-only: ran to exit $rc (expected 142 — clause not enforced)"; fail=1
+    else
+      echo "pc3b6: OK   — SS-U05 model-only: old() ensures -> stderr note + not enforced (exit 142)"
+    fi
+  else
+    echo "pc3b6: FAIL — SS-U05 model-only: cc failed"; fail=1
+  fi
+fi
+
+# a simple (non-advanced) contract stays silent and IS lowered
+sc="$TMP/ssu05_simple.sv0"
+printf 'fn g(x: i32) -> i32\n    requires(x > 0)\n    ensures(result > 0)\n{\n    return x * 2;\n}\nfn main() -> i32 { return g(21); }\n' > "$sc"
+set +e; "$WRAP" "$sc" >"$TMP/ssu05s.c" 2>"$TMP/ssu05s.err"; ec=$?; set -e
+if [ "$ec" -ne 0 ] || grep -q 'model-only' "$TMP/ssu05s.err" || ! grep -q 'sv0_ensures' "$TMP/ssu05s.c"; then
+  echo "pc3b6: FAIL — SS-U05 simple: spurious note or clause not lowered"; cat "$TMP/ssu05s.err"; fail=1
+else
+  echo "pc3b6: OK   — SS-U05 simple: plain requires/ensures -> no note, lowered"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "pc3b6: acceptance FAILED"; exit 1; fi
-echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement + SS-U09 entry guard: all fixtures)"
+echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement + SS-U09 entry guard + SS-U05 model-only note: all fixtures)"
