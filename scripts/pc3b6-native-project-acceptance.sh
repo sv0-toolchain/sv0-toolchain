@@ -148,5 +148,30 @@ else
   echo "pc3b6: OK   — SS-U05 simple: plain requires/ensures -> no note, lowered"
 fi
 
+# ── SS-U10: vm-native-compile --contract-mode -- accept runtime, refuse rest ──
+#   sv0-strings SPEC UP-028 / OQ-012 / docs/BUGS.md #6: the VM `--project` path
+#   used to consume `--contract-mode=X` as the output path (dirname: illegal
+#   option). The native VM backend runs contracts in 'runtime' mode only; the
+#   driver now accepts `--contract-mode=runtime` and refuses verified/disabled
+#   as *unsupported* (nonzero + message) rather than silently ignoring them.
+u10d="$SV0C/test/integration/modules_enum_match"
+set +e
+"$ROOT/scripts/sv0" vm-native-compile --project "$u10d" --contract-mode=runtime "$TMP/u10_rt.sv0b" >/dev/null 2>"$TMP/u10_rt.err"; rt=$?
+"$ROOT/scripts/sv0" vm-native-compile --project "$u10d" --contract-mode=disabled "$TMP/u10_dis.sv0b" >/dev/null 2>"$TMP/u10_dis.err"; dis=$?
+"$ROOT/scripts/sv0" vm-native-compile --contract-mode=verified --project "$u10d" >/dev/null 2>"$TMP/u10_ver.err"; ver=$?
+"$ROOT/scripts/sv0" vm-native-compile --project "$u10d" --contract-mode=nonsense >/dev/null 2>"$TMP/u10_bad.err"; bad=$?
+set -e
+if [ "$rt" -ne 0 ]; then
+  echo "pc3b6: FAIL — SS-U10: --contract-mode=runtime should be accepted (exit $rt)"; cat "$TMP/u10_rt.err"; fail=1
+elif [ "$dis" -eq 0 ] || ! grep -q 'unsupported' "$TMP/u10_dis.err"; then
+  echo "pc3b6: FAIL — SS-U10: --contract-mode=disabled should be refused as unsupported (exit $dis)"; cat "$TMP/u10_dis.err"; fail=1
+elif [ "$ver" -eq 0 ] || ! grep -q 'unsupported' "$TMP/u10_ver.err"; then
+  echo "pc3b6: FAIL — SS-U10: --contract-mode=verified should be refused as unsupported (exit $ver)"; cat "$TMP/u10_ver.err"; fail=1
+elif [ "$bad" -eq 0 ] || ! grep -q "unknown contract-mode" "$TMP/u10_bad.err"; then
+  echo "pc3b6: FAIL — SS-U10: unknown --contract-mode should be rejected (exit $bad)"; cat "$TMP/u10_bad.err"; fail=1
+else
+  echo "pc3b6: OK   — SS-U10: vm-native-compile --contract-mode runtime ok / verified+disabled unsupported / bad rejected"
+fi
+
 if [ "$fail" -ne 0 ]; then echo "pc3b6: acceptance FAILED"; exit 1; fi
-echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement + SS-U09 entry guard + SS-U05 model-only note: all fixtures)"
+echo "pc3b6: acceptance PASSED (native --project + single-file include + contract enforcement + SS-U09 entry guard + SS-U05 model-only note + SS-U10 vm contract-mode: all fixtures)"

@@ -80,7 +80,7 @@ usage: sv0 <command> [args]
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
-  vm-native-compile <file.sv0>|--project <dir> [out.sv0b]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK)
+  vm-native-compile <file.sv0>|--project <dir> [out.sv0b] [--contract-mode=runtime]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK); VM contracts are 'runtime' only -- verified/disabled are refused as unsupported (SS-U10)
   vm-behavioral-parity  f64/i64 fixtures: native emit-c->run vs VM-emit->sv0vm, exit codes compared (COMPAT-001/002)
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
@@ -1848,6 +1848,30 @@ case "$cmd" in
     _vmn="$ROOT/build/sv0-megatu-vm-native"
     [[ -x "$_vmn" ]] || bash "$ROOT/scripts/build-sv0-megatu-vm-native.sh" >&2
     [[ -x "$_vmn" ]] || { echo "sv0: vm-native-compile: emitter build failed" >&2; exit 1; }
+    # SS-U10 (sv0-strings SPEC UP-028 / OQ-012): the native VM backend runs
+    # contracts in 'runtime' mode only. Recognise --contract-mode=<X> anywhere
+    # in the args -- accept 'runtime', refuse 'verified'/'disabled' as
+    # unsupported rather than mis-consuming the flag as an output path (the
+    # docs/BUGS.md #6 repro), reject anything else as unknown.
+    _vm_args=()
+    _vm_cmode=""
+    for _a in "$@"; do
+      case "$_a" in
+        --contract-mode=*) _vm_cmode="${_a#--contract-mode=}" ;;
+        *) _vm_args+=("$_a") ;;
+      esac
+    done
+    case "$_vm_cmode" in
+      ""|runtime) ;;
+      verified|disabled)
+        echo "sv0: vm-native-compile: --contract-mode=$_vm_cmode is unsupported on the native VM backend" >&2
+        echo "sv0: vm-native-compile: the VM runs contracts in 'runtime' mode only (use the C backend for verified/disabled)" >&2
+        exit 2 ;;
+      *)
+        echo "sv0: vm-native-compile: unknown contract-mode '$_vm_cmode' (want runtime|verified|disabled)" >&2
+        exit 2 ;;
+    esac
+    set -- ${_vm_args[@]+"${_vm_args[@]}"}
     if [[ "${1:-}" == "--project" ]]; then
       _d="${2:-}"
       [[ -n "$_d" && -d "$_d" ]] || { echo "sv0: vm-native-compile --project <dir>: not a directory: ${2:-}" >&2; exit 1; }
