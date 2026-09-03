@@ -49,8 +49,13 @@ acceptance scenarios) plus these two files; the sv0-strings repo carries its own
   behavior).
 - Implementation tier (SPEC §4.8): **Tier 0 — observed bootstrap**. Nothing in
   `lib/` is implemented.
-- **F0 is not currently reachable** — blocked on ~20 upstream capability gaps
-  (below).
+- **F0 is unblocked as of 2026-09-02** — Track U is cleared to the extent it
+  gates F0: the F0-critical upstream capabilities are landed and CI-green on
+  both backends; four items are closed to a tractable arm (deeper arm deferred,
+  Decisions 2–5), three are SPEC-deferred (R0.3 / R0.4). Reviewed deviation
+  list: `sv0-strings/docs/f0-deviations.md`. Track L (R0.1 implementation)
+  proceeds on that basis. The ~20 gaps and their status are the `SS-U##` rows
+  in `task/sv0-strings-checklist.Rmd`.
 
 ## relationship to the toolchain (SPEC §3.4)
 
