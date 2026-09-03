@@ -320,6 +320,24 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 ## prerequisites
 
+- **predefined `Option` / `Result` + lowering-side generic monomorphization
+  (T0-2d) — NOT met; required before the LLVM backend (Epic C) and the crypto
+  API slices (Epic E).** Today `Option`/`Result` are *not* language-provided:
+  `fn f() -> Option<usize>` without an explicit `enum Option<T> { … }` in the
+  program is `error[E0301]` (corrected 2026-09-02 — the earlier grounding audit
+  wrongly assumed they exist). A user-declared generic enum with **scalar**
+  payloads monomorphizes end to end on C + VM, but a **struct/enum payload in a
+  generic slot** (`Result<_, AeadError>`) fails the C backend because the
+  emitted payload slot stays `int` — that is the deferred T0-2d pass
+  (`sv0doc/compiler/bootstrap-generics-policy.md`). The crypto API shapes in
+  design note 5 (`open(...) -> Result<Vec<u8>, AeadError>`,
+  `verify(...) -> Result<(), SigError>`) need both: sv0c injecting
+  `Option`/`Result` so no per-file `enum` boilerplate, and T0-2d so a structured
+  error payload lowers on every backend. Landing this *before* the LLVM backend
+  means the new codegen path inherits correct enum/generic lowering instead of
+  retrofitting it into two backends. (sv0-strings ships a library-local
+  `strings_types::Option`/`Result` as an interim, scalar-only — see that repo's
+  SS-U06 decision B.)
 - stable **sv0-IR** and a mature backend (C + VM, both shipped) for differential
   testing — **met**.
 - **M4 verifier** (`lib/verify_vcgen.sv0`, `sv0 verify`, z3-via-SMT-LIB2 driver) —
@@ -347,6 +365,14 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
   API shapes), a slice dependency DAG + critical path + phase exit gates, a risk
   register with descope triggers, epic sizing, and 5 open decisions. Epic D slices +
   sub-task rescoped accordingly.
+- 2026-09-02: **corrected the `Result`/`Option` assumption.** They are user-declared
+  generic enums, not language built-ins (`fn f() -> Option<usize>` without a decl is
+  `E0301`). Scalar-payload generic enums monomorphize on C + VM; a struct/enum
+  payload in a generic slot fails the C backend (T0-2d gap). Added a **prerequisite**:
+  sv0c predefines `Option`/`Result` + lands T0-2d before the LLVM backend / crypto
+  API slices, so the new codegen path inherits correct generic-enum lowering.
+  Surfaced while closing sv0-strings SS-U06 (decision B: library-local scalar-only
+  `strings_types::Option`/`Result` as the interim).
 
 ## related
 
