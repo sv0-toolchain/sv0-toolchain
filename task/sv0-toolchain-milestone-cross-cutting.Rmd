@@ -72,9 +72,43 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 
 - aspirational in design goals; no numbered milestone — use this section or a dedicated task if work begins
 
+### F — multi-module linker and `pub` visibility (scheduled: post-M5)
+
+- **Problem.** `--project` builds **source-concatenate** every `.sv0` under the
+  directory into one translation unit ("collision-free source-concat, no arena
+  merge" — an M3 expedient, `link.sv0`). No module boundaries survive: a
+  non-`pub` item in one file is reachable from another, `use` clauses are
+  stripped/aliased, and `pub` is a parse-accepted no-op. SPEC UP-025 (via
+  sv0-strings) and the language spec both require real `pub`/private
+  enforcement.
+- **Scope.** Finish the M3 multi-module story: `mapProgramUnit` /
+  `link.linkProjectDir` arena merge (the deferred `mapItem` rewrite), per-item
+  file-origin tracking through resolve + check, and a visibility rule that
+  rejects a cross-file reference to a non-`pub` item. `pub` enforcement falls
+  out of the origin tracking; this also removes the flat-concat leak class the
+  ad-hoc patches work around — the dup-`main` hazard (`link.sv0`
+  `link_listing_root_entry_count`, SS-U09), the assembler's auto-namespacing of
+  colliding type names, silent cross-file shadowing.
+- **Why post-M5.** Not F0-blocking for sv0-strings (flat `module strings_*;`,
+  all-`pub` surface — `pub` enforcement is a no-op there today; recorded as an
+  F0 deviation). Large (parser + link + resolver + checker + lowering; high
+  self-host-loop regression surface). It should not jump the M5 queue absent a
+  concrete pull — e.g. sv0-strings R0.2 wanting hidden internals, or an M5
+  crypto module wanting real encapsulation.
+- **Do NOT** bolt a narrow visibility pass onto flat-concat first: threading
+  file-origin through the resolver is most of this work anyway, so the bolt-on
+  is near-full cost and thrown away by the real merge.
+- Split into its own task file when work starts.
+
 ## refinement log
 
 - 2026-03-25: initial scaffold; streams A–E from design “macro system”, literate section, std vision, future registry, and goals list.
+- 2026-09-02: added **stream F — multi-module linker and `pub` visibility**
+  (Decision 4, sv0-strings SS-U08). `--project` flat-concat leaves `pub`
+  unenforced (UP-025). Deferred as an F0 deviation (library is flat/all-`pub`);
+  scheduled post-M5 as the finish of M3's multi-module linker (`mapItem` /
+  arena merge + file-origin tracking). Bolt-on visibility pass explicitly
+  rejected as throwaway.
 
 ## related
 
