@@ -13,6 +13,23 @@ SV0_MCP="$ROOT/sv0-mcp"
 # compiler has maximum headroom.
 ulimit -s "$(ulimit -Hs)" 2>/dev/null || true
 
+# Several Python verifiers (native_exe_config.py etc.) `import tomllib`, which
+# is stdlib only in Python >= 3.11. If the `python3` on PATH is older (Apple's
+# /usr/bin/python3 is 3.9), find a newer one and put its directory first so
+# every `python3` invocation below picks it up. No-op when python3 is already
+# 3.11+ or when no newer interpreter is installed.
+if ! python3 -c 'import tomllib' >/dev/null 2>&1; then
+  for _py in python3.14 python3.13 python3.12 python3.11 \
+             /opt/homebrew/bin/python3 /usr/local/bin/python3; do
+    _pybin="$(command -v "$_py" 2>/dev/null || true)"
+    if [ -n "$_pybin" ] && "$_pybin" -c 'import tomllib' >/dev/null 2>&1; then
+      PATH="$(dirname "$_pybin"):$PATH"
+      export PATH
+      break
+    fi
+  done
+fi
+
 # shellcheck disable=SC1091
 source "$ROOT/lib/shell/common.sh"
 
