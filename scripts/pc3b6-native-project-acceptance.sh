@@ -28,7 +28,7 @@ bash "$ROOT/scripts/build-sv0-megatu-native.sh" >"$TMP/build.log" 2>&1 || {
   echo "pc3b6: FAIL — native build failed"; tail -20 "$TMP/build.log"; exit 1; }
 
 fail=0
-for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field_pattern \
+for fx in modules_enum_match modules_struct_type modules_struct_sig struct_field_pattern modules_diamond \
           uc_loop_sumsq uc_calculator uc_vec2 uc_vec_stack uc_option_sum \
           impl_methods mcall_compound_arg enum_return_let match_guard int_min shadowing nested_struct question_op; do
   dir="$SV0C/test/integration/$fx"
