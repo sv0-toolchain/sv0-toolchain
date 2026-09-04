@@ -1,16 +1,22 @@
 #!/usr/bin/env python3
-"""SS-U02d (sv0-strings Track U, UP-007 / BL-015): owned-`string` allocation
-fault injection on the C backend.
+"""SS-U02d / SS-U17 (sv0-strings Track U, UP-007 / BL-015 / BACKEND-004):
+owned-`string` allocation fault injection on BOTH backends.
 
-Compiles sv0c/test/behavior/cases/string_alloc_fault.sv0 (4 owned-string
-allocations: 3 literals + 1 concat) with the native mega-TU compiler, then
-runs it under several SV0_STR_FAIL_AT values:
+Compiles sv0c/test/behavior/cases/string_alloc_fault.sv0 with the native
+mega-TU compiler and runs it under several SV0_STR_FAIL_AT values:
 
-  unset / past the last alloc  -> exit 42 (no injection)
-  1 .. 4                       -> exit 1, "sv0 panic: string: allocation failed"
-                                 on stderr (fail closed, no partial value)
+  C backend  (4 owned-string allocations: 3 literals + 1 concat)
+    unset / past the last alloc  -> exit 42 (no injection)
+    1 .. 4                       -> exit 1, "sv0 panic: string: allocation failed"
 
-Run by `./scripts/sv0 test`.
+  VM backend  (SS-U17: literals are table-loaded, so only the 1 runtime
+               concat allocation is counted)
+    unset / >= 2                 -> exit 42 (no injection)
+    1                            -> exit 1, same panic on stderr
+
+Both legs produce the identical typed error, so BACKEND-004 ("injection
+SHALL exist on both backends with equivalent typed errors") holds. Run by
+`./scripts/sv0 test`.
 """
 from __future__ import annotations
 
@@ -27,12 +33,61 @@ from native_exe_errors import BuildError  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "string_alloc_fault.sv0"
 WRAPPER = ROOT / "build" / "sv0-megatu-compiler-native"
+VM_EMITTER = ROOT / "build" / "sv0-megatu-vm-native"
+SV0VM_DIR = ROOT / "sv0vm"
+RUN_SV0B = SV0VM_DIR / "scripts" / "run_sv0b.sml"
 PANIC = "sv0 panic: string: allocation failed"
 
 
 def _fail(msg: str) -> int:
     print(f"verify_string_alloc_failure: {msg}", file=sys.stderr)
     return 1
+
+
+def _verify_vm() -> int:
+    """SS-U17: the VM peer of the C fault injector. Emit string_alloc_fault.sv0
+    with the native VM emitter and run it through sv0vm; only the one runtime
+    concat allocation is counted (literals are table-loaded)."""
+    if not VM_EMITTER.is_file():
+        return _fail(f"missing VM emitter {VM_EMITTER}")
+    if not RUN_SV0B.is_file():
+        return _fail(f"missing {RUN_SV0B}")
+    with tempfile.TemporaryDirectory() as td:
+        sv0b = os.path.join(td, "out.sv0b")
+        emit = subprocess.run(
+            [str(VM_EMITTER)],
+            env={**os.environ, "SV0_DRV_REQUEST": str(CASE)},
+            capture_output=True, timeout=180,
+        )
+        if emit.returncode != 0:
+            return _fail(f"VM emit failed:\n{(emit.stderr or b'').decode('utf-8', 'replace')[-1200:]}")
+        Path(sv0b).write_bytes(emit.stdout)
+
+        def run_vm(fail_at: str | None):
+            env = dict(os.environ)
+            env["SV0B"] = sv0b
+            if fail_at is None:
+                env.pop("SV0_STR_FAIL_AT", None)
+            else:
+                env["SV0_STR_FAIL_AT"] = fail_at
+            with open(RUN_SV0B) as fh:
+                return subprocess.run(
+                    ["sml"], stdin=fh, cwd=str(SV0VM_DIR),
+                    capture_output=True, text=True, env=env, timeout=180,
+                )
+
+        r = run_vm(None)
+        if "vm_exit:42" not in (r.stdout or ""):
+            return _fail(f"VM baseline: expected vm_exit:42, got {r.stdout!r} / {r.stderr!r}")
+        r = run_vm("2")
+        if "vm_exit:42" not in (r.stdout or ""):
+            return _fail(f"VM SV0_STR_FAIL_AT=2: expected vm_exit:42 (past the 1 runtime alloc)")
+        r = run_vm("1")
+        if "vm_exit:1" not in (r.stdout or ""):
+            return _fail(f"VM SV0_STR_FAIL_AT=1: expected vm_exit:1, got {r.stdout!r}")
+        if PANIC not in (r.stderr or ""):
+            return _fail(f"VM SV0_STR_FAIL_AT=1: missing {PANIC!r} on stderr; got {r.stderr!r}")
+    return 0
 
 
 def main() -> int:
@@ -84,7 +139,12 @@ def main() -> int:
                 return _fail(f"SV0_STR_FAIL_AT={n}: missing {PANIC!r} on stderr; "
                              f"got {r.stderr!r}")
 
-    print("verify_string_alloc_failure: OK (baseline + 5 injection points)",
+    vm_rc = _verify_vm()
+    if vm_rc != 0:
+        return vm_rc
+
+    print("verify_string_alloc_failure: OK (C: baseline + 5 injection points; "
+          "VM: baseline + runtime-alloc injection -- BACKEND-004 parity)",
           file=sys.stderr)
     return 0
 
