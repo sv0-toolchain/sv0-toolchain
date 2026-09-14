@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T04:00:00Z"
+updated: "2026-09-14T05:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -182,6 +182,78 @@ lowering every cast got before (`lowering.sv0`'s `tag == 20` handler is
 untouched) — that's FFI-004's job, genuinely next now, not a leftover gap
 in this slice.
 
+**FFI-004 addendum (2026-09-14):** the doc's own grounding audit framed C
+lowering as "nearly free — a raw pointer *is* a C pointer." That is true for
+one specific site and false for two others, discovered only by testing real
+compiles against this machine's actual Clang 21 (which, unlike older/looser
+compilers, treats `int`↔pointer implicit conversion as a hard **error**, not
+a warning — so any silent erasure here doesn't just look wrong, it fails to
+build at all). Three findings:
+
+1. **Fn signatures (params + return types): fixed, real, and the whole
+   slice's shippable scope.** Both funnel through one function,
+   `megatu_cty_of_root` (`lib/megaTU-main.sv0`), which already recursed
+   structurally over the parser's type arena for `TyName`/`TyUnit` — adding
+   `TyPtr`(8)/`TyPtrMut`(9) arms (recurse on the pointee, append `" *"`,
+   prefix `"const "` for `TyPtr`) was exactly the free win the audit
+   predicted. `fn f(p: *const i32) -> *mut i32` now emits
+   `const int * f(const int * p)` / returns `int *`, verified compiling
+   clean under `cc -std=c99 -Wall` and running to the right exit code
+   (checked manually, not landed as a corpus fixture — see below). This is
+   also the directly useful piece for Epic C: `#[extern_c] fn ...;`
+   declarations are signatures, nothing else.
+   **No permanent behavioral-corpus fixture landed for this piece**: a
+   pointer-typed fn can only be *exercised* by calling it with a real
+   pointer value, and finding 3 below means no such value can be
+   constructed yet — so any callable fixture would need the never-called
+   signature functions declared but unused, which trips
+   `native_exe_warning_report`'s (NEX-049b) full-corpus `-Wunused-function`
+   gate (a real, currently-clean invariant — `native_exe_warning_policy.py`'s
+   `SUPPRESSED_WARNINGS` list has no unused-function entry, and adding one
+   for a testing-scope artifact rather than a real language quirk isn't
+   worth that debt). Real behavioral coverage — a fixture whose `main`
+   actually creates and passes a pointer — lands with FFI-004b, once
+   pointer values are constructible at all.
+2. **A real checker bug found and fixed in the same slice, not deferred:**
+   `pty_root_to_type_tag` (`lib/checker.sv0`) is a THIRD, independent
+   ty-tag resolver — separate from `resolve_field_ty_tag`/
+   `ast_ty_to_ty_payload` (both already extended for tags 8/9 in FFI-003).
+   It feeds the fn-signature table that checks `return` expressions and call
+   sites against a declared signature, and FFI-003 missed it: tags 8/9 fell
+   through to `TY_UNKNOWN`, which didn't produce a diagnostic — it crashed
+   the checker **silently** (exit 4, zero output) the instant a real
+   `-> *const T` function actually returned a pointer value. Found by trying
+   to write the very first pointer-returning test program. Fixed with the
+   same two-line pattern as its siblings; a dedicated self-test
+   (`test_pty_root_to_type_tag_ptr`) pins it.
+3. **`let`-bound pointer variables and the `as *const/mut T` cast
+   expression itself: still int-erased, and this is now confirmed to be a
+   hard compile failure, not a stylistic gap.** `ExprCast` lowering
+   (`lowering.sv0` tag 20) unconditionally spills every cast — pointer or
+   not — into a temp declared via `Instr::Assign`, whose C type is inferred
+   generically and defaults to `int`; `let`-statement lowering has a
+   narrow primitive-name whitelist (`is_wide_primitive_ty_name`) that a
+   compound type like `*const T` can never match, so it also falls to a
+   plain `int` `DeclVar`. Tested directly: `let p: *const i32 = &x as
+   *const i32;` — the FFI-003b addendum's own "verified end-to-end" claim —
+   compiles under the SML legacy checker's looser rules but **fails to
+   compile** under real Clang 21 (`error: incompatible pointer to integer
+   conversion` / `incompatible integer to pointer conversion`). Unlike
+   FFI-003b's own turnaround, this doesn't have a free unused-slot fix
+   available: `StmtLet`'s 4 data slots are all occupied (unlike `ExprCast`'s
+   `ed4`), and `Instr::DeclNamed`'s C-type field is a single source token
+   resolved by text, which cannot represent a compound "pointer to X"
+   string. The real fix is a new `Instr` variant carrying a resolved C-type
+   string (or an inner-type token + const/mut flag) instead of one token —
+   which means touching `lowering.sv0`'s `Instr` enum, its two exhaustive
+   matches, `codegen.sv0`'s parallel `Instr` enum and matches (kept in
+   lockstep today, e.g. `DeclNamed` already exists in both), and
+   `megaTU-main.sv0`'s real C-emission consumer — a genuinely new slice's
+   worth of coordinated work, not a follow-up line. **Split off as
+   FFI-004b**, sequenced directly after this slice, so pointer *creation*
+   (the feature's actual entry point per scope decision 2) has a real,
+   compiling path before Epic B/C build on top of it.
+
 ## scope decisions (locked 2026-09-14)
 
 1. **VM backend: out of scope for v1, C-backend-only FFI first.** The VM has no
@@ -302,22 +374,23 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 | **done** — sv0c `f5852abf` |
 | FFI-003 | A | Checker: pointer *type* resolution (`ast_ty_to_ty_payload`/`resolve_field_ty_tag` → `TY_PTR`/`TY_PTRMUT`) + borrow-checker exclusion, proven not assumed | FFI-002 | **done** — sv0c `d0af7326` |
 | FFI-003b | A | Checker: pointer *creation expression* type-checking (`&x as *const T` synthesizes as a real pointer type, not the current blanket `TY_INT()`) | FFI-003 | **done** — sv0c `1a925f32` (turned out NOT to need the 73-call-site thread; see addendum below) |
-| FFI-004 | A | C backend lowering for raw pointer types | FFI-003b | todo |
+| FFI-004 | A | C backend lowering for raw pointer types: fn param/return signatures (`megatu_cty_of_root`) + a real checker crash fix (`pty_root_to_type_tag` missing tags 8/9) | FFI-003b | **done** — sv0c (pending commit); see FFI-004 addendum below |
+| FFI-004b | A | C backend lowering: `let`-bound pointer variables + the `as *const/mut T` cast expression itself (needs a new `Instr` variant — `DeclNamed`'s single-token C-type field can't represent a compound pointer type; confirmed a hard compile failure under Clang 21, not just imprecise typing) | FFI-004 | todo |
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 | todo |
-| FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004 | todo |
+| FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004b | todo |
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 | todo |
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser) | FFI-001 | todo |
-| FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004 | todo |
+| FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | todo |
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | todo |
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | todo |
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | todo |
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | todo |
 | FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | todo |
-| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004, FFI-006, FFI-010, FFI-014 | todo |
+| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | todo |
 
 Sequencing: A and B can start in parallel once FFI-001 locks scope (B's
 dereference-gating check depends on A's pointer type existing, hence
-FFI-006→FFI-004); C depends on both A and B; D depends on C; E can start as
+FFI-006→FFI-004b); C depends on both A and B; D depends on C; E can start as
 soon as B and C's checker-level gates exist, in parallel with D. F (in
 `sv0-strings`) needs everything here pinned.
 
