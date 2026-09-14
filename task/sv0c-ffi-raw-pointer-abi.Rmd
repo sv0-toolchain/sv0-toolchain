@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T01:00:00Z"
+updated: "2026-09-14T02:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -80,6 +80,28 @@ end (parser → checker → both backends), give `unsafe` a real block-scoped
 meaning, add an `extern`/FFI declaration mechanism, and decide what (if
 anything) FFI means on the VM backend at all — before `strings_unsafe_abi` (or
 any other package wanting real C interop) has anything to build on.
+
+**FFI-002 addendum (2026-09-14, found while implementing, not assumed up
+front)**: there are **two independent `Ty` types** in this codebase, both
+named `Ty`, in different modules — `sv0doc`'s own documentation and this
+audit's earlier read only looked at `ast.sv0`'s. `ast.sv0`'s `Ty`
+(`TyName`/`TyRef`/`TyRefMut`/`TyArray`/`TySlice`/`TyTuple`/`TyUnit`/
+`TyInfer`) is what `parser.sv0` actually produces, flattened into parallel
+`ty_tags`/`ty_data1..3` arrays that `checker.sv0` consumes directly by
+numeric tag comparison (`if tag == 1 { ... }`, not `match`). Separately,
+`types.sv0`/`unify.sv0` define their **own**, structurally different `Ty`
+(`TyBool`/`TyChar`/`TyInt(w)`/`TyStruct(id)`/`TyFn(ps,rb)`/… — a real
+unification-engine value type) that is constructed and consumed **only
+within those two files' own self-tests** — grepped for
+`Ty::TyRef(`/`: Ty`/`-> Ty` across every `sv0c/lib/*.sv0` file and found
+zero uses outside `ast.sv0`/`types.sv0`/`unify.sv0` themselves. So FFI-002
+extended `ast.sv0`'s `Ty` (tags 8/9 = `TyPtr`/`TyPtrMut`) and left
+`types.sv0`/`unify.sv0` untouched — **FFI-003 needs to decide explicitly**
+whether checker work extends the live numeric-tag pipeline (matching what
+FFI-002 already did, and what every other type actually flows through
+today) or wires up the standalone unifier module for the first time; do not
+assume the unifier is live without checking, the way this doc's first pass
+assumed `unsafe`/raw pointers were implemented without checking.
 
 ## scope decisions (locked 2026-09-14)
 
@@ -198,7 +220,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | id | epic | slice | depends on | status |
 |---|---|---|---|---|
 | FFI-001 | scope | Lock scope decisions 1-4 above (or supersede with a refinement log entry) | — | **done** — 2026-09-14, decisions above |
-| FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 | todo |
+| FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 | **done** — sv0c `f5852abf` |
 | FFI-003 | A | Checker: pointer creation (`&x as *const T`), borrow-checker exclusion | FFI-002 | todo |
 | FFI-004 | A | C backend lowering for raw pointer types | FFI-003 | todo |
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 | todo |
