@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T03:00:00Z"
+updated: "2026-09-14T04:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -143,6 +143,45 @@ did today — worth its own slice, its own careful regression pass, and (per
 this doc's own discipline) not something to attempt blind in the same
 sitting that just finished a different, safely-scoped piece of work.
 
+**FFI-003b addendum (2026-09-14, found while implementing — the 73-call-site
+estimate above turned out to be the wrong shape of fix, not the right size
+of one)**: threading the type arena through `synth_expr` would have solved
+a more general problem than FFI-003b actually needed to solve. Tracing
+*why* `ExprCast`'s target type is unreachable at check time turned up a
+second, much cheaper path: the parser's own comment at the `ExprCast`
+construction site (`parser.sv0`, `parse_cast_expr`) already documents that
+"the cast target type is parsed into a transient local type arena
+(discarded after the expression)" — and already has a precedent workaround
+for exactly this problem, from an earlier slice (M4-S-034): rather than
+retaining the doomed arena, it extracts the *one fact* a later pass
+actually needs (the target's name token, for contract verification) and
+stores it directly in the `ExprCast` node's own `ed3` data slot. `ed4`, the
+node's fourth data slot, turned out to be **pushed as a hardcoded `0` and
+read by no other pass in the compiler** — grepped `lowering.sv0`,
+`verify_vcgen.sv0` for every `tag == 20` site and confirmed none of them
+touch `ed4`. So FFI-003b applied the exact same pattern M4-S-034 already
+established: at parse time, while the transient arena is still live, check
+whether the cast target resolved to `Ty::TyPtr`/`Ty::TyPtrMut` (tags 8/9)
+and record that one bit (0 = not a pointer cast, 1 = `as *const T`, 2 =
+`as *mut T`) into `ed4` instead of `0`. `synth_expr`'s `tag == 20` handler
+— already receiving `ed4` as an existing parameter, no signature change at
+all — reads that marker: `ptr_cast_kind == 1` requires the source to
+synthesize as `TY_REF` or `TY_REFMUT` and returns `TY_PTR()`;
+`ptr_cast_kind == 2` requires specifically `TY_REFMUT` (a shared `&x` may
+never become `*mut T` — that would manufacture mutable access sv0's own
+reference rules never granted — a real type error, not a silent
+downgrade) and returns `TY_PTRMUT()`; `ptr_cast_kind == 0` is byte-for-byte
+the pre-existing `return TY_INT()` path, unchanged. Zero new function
+parameters, zero cascading signature changes, works for a pointer cast
+**anywhere** an expression can appear (not just top-level `let` bindings),
+and a real end-to-end compile (`let p: *const i32 = &x as *const i32;`)
+now emits real C output rather than failing to check at all — verified
+directly, not just unit-tested. **What this still does not cover**: the
+generated C output for a pointer cast is still the same `((&x))`-into-`int`
+lowering every cast got before (`lowering.sv0`'s `tag == 20` handler is
+untouched) — that's FFI-004's job, genuinely next now, not a leftover gap
+in this slice.
+
 ## scope decisions (locked 2026-09-14)
 
 1. **VM backend: out of scope for v1, C-backend-only FFI first.** The VM has no
@@ -262,7 +301,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-001 | scope | Lock scope decisions 1-4 above (or supersede with a refinement log entry) | — | **done** — 2026-09-14, decisions above |
 | FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 | **done** — sv0c `f5852abf` |
 | FFI-003 | A | Checker: pointer *type* resolution (`ast_ty_to_ty_payload`/`resolve_field_ty_tag` → `TY_PTR`/`TY_PTRMUT`) + borrow-checker exclusion, proven not assumed | FFI-002 | **done** — sv0c `d0af7326` |
-| FFI-003b | A | Checker: pointer *creation expression* type-checking (`&x as *const T` synthesizes as a real pointer type, not the current blanket `TY_INT()`) — needs threading the type arena through `synth_expr`'s ~73 recursive call sites (found while implementing FFI-003, see addendum below) | FFI-003 | todo |
+| FFI-003b | A | Checker: pointer *creation expression* type-checking (`&x as *const T` synthesizes as a real pointer type, not the current blanket `TY_INT()`) | FFI-003 | **done** — sv0c `1a925f32` (turned out NOT to need the 73-call-site thread; see addendum below) |
 | FFI-004 | A | C backend lowering for raw pointer types | FFI-003b | todo |
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 | todo |
 | FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004 | todo |
