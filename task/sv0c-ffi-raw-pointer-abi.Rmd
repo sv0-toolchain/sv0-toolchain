@@ -1,9 +1,9 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T00:00:00Z"
+updated: "2026-09-14T01:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
-state: draft
+state: active
 tags:
   - sv0
   - sv0c
@@ -81,41 +81,57 @@ meaning, add an `extern`/FFI declaration mechanism, and decide what (if
 anything) FFI means on the VM backend at all — before `strings_unsafe_abi` (or
 any other package wanting real C interop) has anything to build on.
 
-## scope decisions (draft — these are the consequential forks; lock before slicing)
+## scope decisions (locked 2026-09-14)
 
 1. **VM backend: out of scope for v1, C-backend-only FFI first.** The VM has no
    foreign-call capability today and building one (marshaling VM values across
    a real C ABI boundary inside an SML interpreter) is a separate, much larger
-   problem than the C-backend case, which is nearly free. **Recommendation**:
-   ship raw pointers + `unsafe` blocks + `extern` + FFI calls on the **C backend
-   only** first; the VM either rejects a project using `strings_unsafe_abi`
-   with a stable diagnostic (matching the existing pattern for VM project-mode
-   contract-mode limits, `docs/BUGS.md` #6) or the feature is gated so VM
-   compilation of a crate importing `strings_unsafe_abi` is simply
-   `MODE_UNSUPPORTED`-shaped, never silently wrong. Revisit VM FFI as its own
-   follow-up epic only if a real consumer needs it.
+   problem than the C-backend case, which is nearly free. **Decided**: ship raw
+   pointers + `unsafe` blocks + `extern` + FFI calls on the **C backend only**
+   first; the VM rejects a project using `strings_unsafe_abi` (or any raw
+   pointer / `unsafe` block / `extern` declaration) with a stable diagnostic
+   (matching the existing pattern for VM project-mode contract-mode limits,
+   `docs/BUGS.md` #6) — `MODE_UNSUPPORTED`-shaped, never silently wrong, never
+   a crash. VM FFI is explicitly deferred to its own future epic, opened only
+   if a real consumer needs it — not pre-built speculatively here.
 2. **Raw pointer surface: minimal, not general "unsafe Rust."** `*const T` /
    `*mut T` as opaque address-carrying values; pointer arithmetic, `unsafe {
    *ptr }` dereference, and pointer↔reference conversions (`&x as *const T`) —
-   the same surface `sv0doc` already documents. **Not** in scope for v1: raw
-   pointer struct/enum field storage, pointer-to-pointer casts beyond `T`↔`byte`,
-   or anything resembling a general unsafe-Rust feature set. The driving
-   consumer (`strings_unsafe_abi`) only needs enough to pass buffers and
-   receive results across an `extern "C"` boundary.
-3. **`extern` declaration shape.** A `extern "C" fn name(args) -> T;`
-   header-only declaration (SPEC's own MODEL-016 already establishes that
-   header-only `fn` syntax needs new grammar, not reuse of ordinary `fn` —
-   see `tools/check_doc_fences.py` in `sv0-strings` for the existing
-   ```text```-vs-```sv0``` distinction this same rule already causes elsewhere).
-   Confirm exact keyword/attribute syntax against `sv0doc` conventions before
-   parser work starts.
-4. **ABI manifest, not per-call trust.** SS-203's own name ("exact C ABI
-   manifest") implies a machine-checked declaration of every `extern` symbol's
-   real C signature (name, types, calling convention), checked against the
-   *actual* linked library where possible (a differential/link-time check, not
-   just "the programmer typed it"), rather than trusting each `extern` block on
-   faith. Exact mechanism (compile-time only vs. a linked-symbol probe) is an
-   open question for Epic D below.
+   the same surface `sv0doc` already documents. **Decided out of scope for
+   v1**: raw pointer struct/enum field storage, pointer-to-pointer casts
+   beyond `T`↔`byte`, or anything resembling a general unsafe-Rust feature
+   set. The driving consumer (`strings_unsafe_abi`) only needs enough to pass
+   buffers and receive results across an `extern "C"` boundary; widen the
+   surface later only against a real second consumer's actual need, not
+   speculatively.
+3. **`extern` declaration shape: attribute-based, not a new keyword.**
+   `sv0doc/keywords/reference.md` already reserves `#[...]` attribute-prefix
+   syntax as a language concept (`#[derive(Debug)]` is documented even though
+   unimplemented pre-M4); there is **no** existing `extern` keyword or
+   precedent anywhere in `sv0doc` for one. **Decided**: reuse the attribute
+   form rather than inventing a bare keyword — `#[extern_c] fn name(args) ->
+   T;` as a header-only declaration (SPEC's own MODEL-016 already establishes
+   that header-only `fn` syntax needs new grammar, not reuse of ordinary `fn`
+   — see `tools/check_doc_fences.py` in `sv0-strings` for the existing
+   ```text```-vs-```sv0``` distinction this same rule already causes
+   elsewhere), with an optional `#[extern_c(name = "...")]` form reserved for
+   a future symbol-name override (not needed by `strings_unsafe_abi`'s own
+   consumer slice, so not built until a real need shows up). Exact attribute
+   argument grammar is FFI-008's own implementation detail, not re-litigated
+   here.
+4. **ABI manifest: compile-time-only for v1, not per-call trust, not a
+   link-time prober.** SS-203's own name ("exact C ABI manifest") implies a
+   machine-checked declaration of every `extern` symbol's real C signature
+   (name, types, calling convention) rather than trusting each `#[extern_c]`
+   block on faith with zero cross-checking. **Decided**: v1 is
+   compile-time-only — the manifest is generated from the declared
+   `#[extern_c]` signatures and checked for internal consistency (no
+   duplicate/conflicting declarations of the same symbol, every declared type
+   has a real safe↔C mapping) — matching how C's own header-trust model
+   already works (a wrong `extern` declaration is UB in real C too, not a
+   compile error). A stronger link-time/symbol probe (`nm`/`dlsym`-style,
+   checking the manifest against an actually-linked library) is explicitly
+   deferred to a follow-up, not built speculatively in Epic D.
 
 ## epics
 
@@ -149,16 +165,13 @@ must document what safety invariant the *caller* must uphold — this is
 exactly what `strings_unsafe_abi`'s own docstring already promises: "every
 function documents its full caller obligations").
 
-**Epic D — the ABI manifest (SS-203's actual deliverable).** Design + build
-the machine-checked manifest: what's declared (symbol, calling convention,
-signature) vs. what's real. Decide compile-time-only (declared-and-trusted,
-simplest, matches C's own header-trust model) vs. a stronger link-time/symbol
-probe (more real, more toolchain work — an `nm`/`dlsym`-style check).
-**Recommendation for v1**: compile-time-only, matching how C itself works
-(a wrong `extern "C"` declaration is UB in real C too) — a stronger check is
-a legitimate follow-up, not a blocker, and over-scoping this epic is the
-single biggest risk of this whole doc ballooning past what SS-203 actually
-needs.
+**Epic D — the ABI manifest (SS-203's actual deliverable).** Build the
+compile-time-only machine-checked manifest per scope decision 4: generated
+from the declared `#[extern_c]` signatures, checked for internal consistency
+(no duplicate/conflicting declarations, every declared type has a real
+safe↔C mapping). A stronger link-time/symbol probe is explicitly deferred
+(decision 4) — over-scoping this epic into that territory is the single
+biggest risk of this whole doc ballooning past what SS-203 actually needs.
 
 **Epic E — VM-side stable rejection (not full support).** Per scope decision
 1: when a project importing `strings_unsafe_abi` (or using raw
@@ -178,25 +191,27 @@ proving the declared signatures really link against a real C library. This is
 `sv0-strings`-side work tracked as SS-203/204 in its own checklist, not part
 of this doc's slice table.
 
-## sliced backlog (draft — `FFI-###`)
+## sliced backlog (`FFI-###`)
 
-| id | epic | slice | depends on |
-|---|---|---|---|
-| FFI-001 | scope | Lock scope decisions 1-4 above (or supersede with a refinement log entry) | — |
-| FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 |
-| FFI-003 | A | Checker: pointer creation (`&x as *const T`), borrow-checker exclusion | FFI-002 |
-| FFI-004 | A | C backend lowering for raw pointer types | FFI-003 |
-| FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 |
-| FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004 |
-| FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 |
-| FFI-008 | C | `extern "C" fn ...;` declaration syntax (parser) | FFI-001 |
-| FFI-009 | C | Checker: safe↔C type-mapping validation for `extern` signatures | FFI-008, FFI-004 |
-| FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 |
-| FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 |
-| FFI-012 | D | ABI manifest format design (compile-time-only per recommendation) | FFI-009 |
-| FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 |
-| FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`extern` projects | FFI-006, FFI-010 |
-| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004, FFI-006, FFI-010, FFI-014 |
+Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
+
+| id | epic | slice | depends on | status |
+|---|---|---|---|---|
+| FFI-001 | scope | Lock scope decisions 1-4 above (or supersede with a refinement log entry) | — | **done** — 2026-09-14, decisions above |
+| FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 | todo |
+| FFI-003 | A | Checker: pointer creation (`&x as *const T`), borrow-checker exclusion | FFI-002 | todo |
+| FFI-004 | A | C backend lowering for raw pointer types | FFI-003 | todo |
+| FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 | todo |
+| FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004 | todo |
+| FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 | todo |
+| FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser) | FFI-001 | todo |
+| FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004 | todo |
+| FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | todo |
+| FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | todo |
+| FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | todo |
+| FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | todo |
+| FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | todo |
+| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004, FFI-006, FFI-010, FFI-014 | todo |
 
 Sequencing: A and B can start in parallel once FFI-001 locks scope (B's
 dereference-gating check depends on A's pointer type existing, hence
@@ -206,9 +221,9 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
 
 ## completion criteria
 
-- [ ] Scope decisions locked (FFI-001) and written into this doc's "locked"
-      section (mirroring M5's own `## scope decisions (locked ...)` pattern)
-      before any implementation slice starts.
+- [x] Scope decisions locked (FFI-001, 2026-09-14) and written into this
+      doc's "locked" section (mirroring M5's own `## scope decisions
+      (locked ...)` pattern) before any implementation slice starts.
 - [ ] A safe sv0 program using no raw pointers/`unsafe`/`extern` is
       byte-identical in its C output before and after this feature lands
       (regression guard — this is additive, must not perturb the existing
@@ -223,9 +238,11 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
 
 ## open questions
 
-- Exact `extern` syntax and attribute placement — needs a decision against
-  `sv0doc`'s own conventions before FFI-008 starts (this doc deliberately
-  does not pre-decide the concrete grammar).
+- Exact `#[extern_c(...)]` attribute-argument grammar (whether the plain
+  no-argument form is the only v1 form, or whether the symbol-name-override
+  argument ships in v1 too) — FFI-008's own implementation detail, not
+  re-litigated at the scope-decision level (decision 3 already locked the
+  structural choice: attribute-based, not a new keyword).
 - Whether the function-level `unsafe` modifier (currently parsed-and-discarded)
   should become "the whole function body is implicitly an unsafe block" (Rust's
   own semantics) or be deprecated in favor of requiring explicit `unsafe { }`
