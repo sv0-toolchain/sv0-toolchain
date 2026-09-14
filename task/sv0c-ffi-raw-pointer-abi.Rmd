@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T02:00:00Z"
+updated: "2026-09-14T03:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -102,6 +102,46 @@ FFI-002 already did, and what every other type actually flows through
 today) or wires up the standalone unifier module for the first time; do not
 assume the unifier is live without checking, the way this doc's first pass
 assumed `unsafe`/raw pointers were implemented without checking.
+
+**FFI-003 addendum (2026-09-14, found while implementing)**: FFI-003 landed
+answered the FFI-002 addendum's question above — the live numeric-tag
+pipeline, confirmed, not the standalone unifier — and extended both
+`resolve_field_ty_tag` and `ast_ty_to_ty_payload` to resolve tags 8/9 to
+new `TY_PTR()`/`TY_PTRMUT()` semantic tags (19/20). It also **proved** the
+borrow-checker-exclusion half rather than asserting it:
+`check_body_slice_borrow` (the E0322/E0323 slice-borrow checker) turns out
+to be a **pure syntactic pattern-matcher** over `&e[..]`/`&e[a..b]`
+AST shape (`slice_ctor_base_node` peels a `Borrow`/`BorrowMut` unop then
+requires the operand be an `ExprIndex` over an `ExprRange`) — it never
+inspects a value's *type* at all. A pointer-creation expression
+`&x as *const T` is syntactically `ExprCast(ExprUnop(Borrow, x), ptr_ty)`;
+the outer node is a `Cast` (tag 20), which doesn't match the peel step at
+all, so it's excluded by construction with **zero code change needed** —
+confirmed by a new test (`test_slice_ctor_base_node_excludes_ptr_cast`)
+rather than left as an assumption inherited from `sv0doc`.
+
+What FFI-003 did **not** reach, and why it's split into **FFI-003b**
+instead of being finished in the same slice: making `&x as *const T`
+actually **type-check** as a pointer (not just resolving the pointer
+*type annotation* when one is written explicitly, which is what the work
+above does) requires `ExprCast`'s checker handling to read the cast's
+target type — and it currently doesn't. `synth_expr`'s `tag == 20`
+(`ExprCast`) branch type-checks the *source* expression and then
+unconditionally `return TY_INT()`, silently ignoring the target type
+entirely (a pre-existing simplification, not something this work broke —
+its own comment already says "simplified"). `ExprCast`'s AST node
+(`d1=expr_idx, d2=type_arena_idx`) DOES carry the target type index, but
+`synth_expr`'s own parameter list has no `ty_tags`/`ty_d1..3`/
+`struct_names`/`enum_names`/`type_params`/`tp_limit` — the type-arena
+context `ast_ty_to_ty_payload` needs — and `synth_expr` recurses into
+itself at **73 call sites** (`grep -c "synth_expr(" sv0c/lib/checker.sv0`).
+Threading new parameters through all 73 sites to make one cast form
+(pointer creation) type-check correctly, inside a function this central
+and this heavily exercised by every existing test in the corpus, is a
+materially different risk profile than everything else FFI-003 actually
+did today — worth its own slice, its own careful regression pass, and (per
+this doc's own discipline) not something to attempt blind in the same
+sitting that just finished a different, safely-scoped piece of work.
 
 ## scope decisions (locked 2026-09-14)
 
@@ -221,8 +261,9 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 |---|---|---|---|---|
 | FFI-001 | scope | Lock scope decisions 1-4 above (or supersede with a refinement log entry) | — | **done** — 2026-09-14, decisions above |
 | FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 | **done** — sv0c `f5852abf` |
-| FFI-003 | A | Checker: pointer creation (`&x as *const T`), borrow-checker exclusion | FFI-002 | todo |
-| FFI-004 | A | C backend lowering for raw pointer types | FFI-003 | todo |
+| FFI-003 | A | Checker: pointer *type* resolution (`ast_ty_to_ty_payload`/`resolve_field_ty_tag` → `TY_PTR`/`TY_PTRMUT`) + borrow-checker exclusion, proven not assumed | FFI-002 | **done** — sv0c `d0af7326` |
+| FFI-003b | A | Checker: pointer *creation expression* type-checking (`&x as *const T` synthesizes as a real pointer type, not the current blanket `TY_INT()`) — needs threading the type arena through `synth_expr`'s ~73 recursive call sites (found while implementing FFI-003, see addendum below) | FFI-003 | todo |
+| FFI-004 | A | C backend lowering for raw pointer types | FFI-003b | todo |
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 | todo |
 | FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004 | todo |
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 | todo |
