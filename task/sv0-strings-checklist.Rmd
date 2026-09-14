@@ -214,11 +214,11 @@ the multi-slice ones). "Unblocks" = the Track L slices that become doable.
 
 | ID | slice | SPEC BL | note |
 |----|-------|---------|------|
-| SS-201 | backend non-eliding explicit fill | BL-101 | needs SS-U11 (OQ-006). |
-| SS-202 | Annex K decision; if accepted, a separate complete profile spec slice | BL-102 | cherry-picking `_s` names is non-conforming. |
-| SS-203 | exact C ABI manifest + unsafe caller obligations | BL-103 | needs OQ-007 resolved. |
-| SS-204 | feature-gated raw C ABI + external linkage tests | BL-104 | `strings_unsafe_abi`, separately versioned, off by default. |
-| SS-205 | separate Unicode-algorithms package spec | BL-105 | SPEC OQ-008 recommends a distinct `unicode` package. |
+| SS-201 | backend non-eliding explicit fill | BL-101 | needs SS-U11 (OQ-006). **Toolchain feature spec drafted 2026-09-14**: `task/sv0c-non-eliding-write.Rmd` (`NEW-###` sliced backlog, epics A–D; this slice is Epic E in that doc). |
+| SS-202 | Annex K decision; if accepted, a separate complete profile spec slice | BL-102 | cherry-picking `_s` names is non-conforming. Policy decision, not a toolchain feature — no spec doc needed until the decision is made. |
+| SS-203 | exact C ABI manifest + unsafe caller obligations | BL-103 | needs OQ-007 resolved. **Toolchain feature spec drafted 2026-09-14**: `task/sv0c-ffi-raw-pointer-abi.Rmd` (`FFI-###` sliced backlog, epics A–E; this slice is Epic F in that doc, along with SS-204). Grounding audit found the gap is bigger than it looks: `unsafe` parses as an inert function modifier only, no `unsafe { }` block exists, and there is no raw-pointer AST type at all despite `sv0doc` documenting `*const T`/`*mut T` — real language-feature work, not a quick toolchain patch. |
+| SS-204 | feature-gated raw C ABI + external linkage tests | BL-104 | `strings_unsafe_abi`, separately versioned, off by default. Same spec as SS-203: `task/sv0c-ffi-raw-pointer-abi.Rmd`. |
+| SS-205 | separate Unicode-algorithms package spec | BL-105 | SPEC OQ-008 recommends a distinct `unicode` package. Scoping decision (own package, not sv0c/sv0vm feature work) — no toolchain spec doc needed here. |
 
 ## start here (dependency order, no toolchain changes)
 

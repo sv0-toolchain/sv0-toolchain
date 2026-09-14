@@ -1,0 +1,240 @@
+---
+created: "2026-09-14T00:00:00Z"
+updated: "2026-09-14T00:00:00Z"
+id: task-sv0c-ffi-raw-pointer-abi
+key: sv0c-ffi-raw-pointer-abi
+state: draft
+tags:
+  - sv0
+  - sv0c
+  - sv0vm
+  - language-feature
+  - ffi
+  - unsafe
+  - abi
+  - sv0-strings
+title: "sv0c/sv0vm: raw pointers, real unsafe blocks, and an FFI/exact-ABI contract (OQ-007)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# sv0c/sv0vm: raw pointers, real `unsafe` blocks, and an FFI/exact-ABI contract
+
+## purpose
+
+Resolve **OQ-007** (the open sv0 FFI/ABI contract question), unblocking
+`sv0-strings` **SS-203** (exact C ABI manifest + unsafe caller obligations,
+BL-103) and **SS-204** (feature-gated raw C ABI + external linkage tests,
+BL-104) — together, `strings_unsafe_abi`, which today is entirely unimplemented
+(`lib/strings_unsafe_abi.sv0`'s own docstring: *"Status: not started — gated
+behind an accepted sv0 FFI/ABI contract"*). This is also the prerequisite any
+other sv0 package would need to call a real C library, so it belongs at the
+language/toolchain level, not inside `sv0-strings`.
+
+**This is a genuinely larger effort than it first looks** — the grounding audit
+below found that `unsafe` and raw pointers, despite being *documented* in
+`sv0doc` as language features, are **not actually implemented**. This doc is
+scoped like an M4/M5-sized feature area (multiple epics, phased, scope
+decisions to lock up front) rather than a single Track U slice, because that is
+what the real gap turns out to be.
+
+## grounding audit (2026-09-14)
+
+**What `sv0doc` documents** (`sv0doc/memory-model/ownership.md` §8.4-8.5,
+`sv0doc/type-system/rules.md` §3.3): `*const T` / `*mut T` raw pointer types;
+creating one is safe, dereferencing requires `unsafe`; raw pointers don't
+participate in the borrow checker; stated purposes include kernel/hardware
+access and **FFI with C libraries**.
+
+**What `sv0c` actually implements** (source-verified, not doc-inferred — the
+same "verify against code" discipline this project's own memory already flags
+for the sibling `impl Trait for T` operator-overload gap):
+
+- `unsafe` **is** a lexed keyword (`lexer.sv0` token 93) and **is** parsed —
+  but only as an **optional modifier before a function declaration**
+  (`ps_skip_optional_unsafe`, `is_unsafe_token`). It is accepted syntactically
+  (`pub unsafe fn foo()`) and then **discarded** — no semantic effect, no
+  checker rule references it, and **there is no `unsafe { ... }` block-expression
+  form at all**. `grep -rn unsafe sv0c/lib/checker.sv0` returns nothing.
+- `Ty` (`sv0c/lib/ast.sv0`) has `TyRef`, `TyRefMut`, `TyArray` — **no
+  `TyPtr`/`TyRaw` variant exists**. Raw pointer types cannot even be named in
+  source today; there is nothing for the parser to produce or the checker to
+  validate.
+- There is **no `extern` keyword, no FFI declaration syntax, and no
+  exact-signature/calling-convention machinery** anywhere in the lexer, parser,
+  or checker.
+- The C backend already *is* real C — every sv0 function is emitted as an
+  ordinary C function with the platform's default calling convention, so the
+  C-backend half of "exact ABI" is largely already true by construction; what's
+  missing is a **declared, checked contract** for calling *external* C symbols
+  (a function the compiler didn't emit) and for a raw-pointer type to pass
+  through that boundary.
+- The VM backend has **no equivalent capability whatsoever**: `sv0vm` is a
+  pure bytecode interpreter over its own value representation; there is no
+  notion of a raw memory address, no foreign-call opcode, and no marshaling
+  layer between VM values and a C ABI.
+
+**Conclusion**: OQ-007 is not "write down a contract for an existing capability
+and ship a feature flag." It is: design and implement raw pointer types end to
+end (parser → checker → both backends), give `unsafe` a real block-scoped
+meaning, add an `extern`/FFI declaration mechanism, and decide what (if
+anything) FFI means on the VM backend at all — before `strings_unsafe_abi` (or
+any other package wanting real C interop) has anything to build on.
+
+## scope decisions (draft — these are the consequential forks; lock before slicing)
+
+1. **VM backend: out of scope for v1, C-backend-only FFI first.** The VM has no
+   foreign-call capability today and building one (marshaling VM values across
+   a real C ABI boundary inside an SML interpreter) is a separate, much larger
+   problem than the C-backend case, which is nearly free. **Recommendation**:
+   ship raw pointers + `unsafe` blocks + `extern` + FFI calls on the **C backend
+   only** first; the VM either rejects a project using `strings_unsafe_abi`
+   with a stable diagnostic (matching the existing pattern for VM project-mode
+   contract-mode limits, `docs/BUGS.md` #6) or the feature is gated so VM
+   compilation of a crate importing `strings_unsafe_abi` is simply
+   `MODE_UNSUPPORTED`-shaped, never silently wrong. Revisit VM FFI as its own
+   follow-up epic only if a real consumer needs it.
+2. **Raw pointer surface: minimal, not general "unsafe Rust."** `*const T` /
+   `*mut T` as opaque address-carrying values; pointer arithmetic, `unsafe {
+   *ptr }` dereference, and pointer↔reference conversions (`&x as *const T`) —
+   the same surface `sv0doc` already documents. **Not** in scope for v1: raw
+   pointer struct/enum field storage, pointer-to-pointer casts beyond `T`↔`byte`,
+   or anything resembling a general unsafe-Rust feature set. The driving
+   consumer (`strings_unsafe_abi`) only needs enough to pass buffers and
+   receive results across an `extern "C"` boundary.
+3. **`extern` declaration shape.** A `extern "C" fn name(args) -> T;`
+   header-only declaration (SPEC's own MODEL-016 already establishes that
+   header-only `fn` syntax needs new grammar, not reuse of ordinary `fn` —
+   see `tools/check_doc_fences.py` in `sv0-strings` for the existing
+   ```text```-vs-```sv0``` distinction this same rule already causes elsewhere).
+   Confirm exact keyword/attribute syntax against `sv0doc` conventions before
+   parser work starts.
+4. **ABI manifest, not per-call trust.** SS-203's own name ("exact C ABI
+   manifest") implies a machine-checked declaration of every `extern` symbol's
+   real C signature (name, types, calling convention), checked against the
+   *actual* linked library where possible (a differential/link-time check, not
+   just "the programmer typed it"), rather than trusting each `extern` block on
+   faith. Exact mechanism (compile-time only vs. a linked-symbol probe) is an
+   open question for Epic D below.
+
+## epics
+
+**Epic A — raw pointer types (parser + checker, C backend only for now).**
+`TyPtr`/`TyRaw` (const/mut) added to `sv0c/lib/ast.sv0`'s `Ty` enum
+(alongside `TyRef`/`TyRefMut`); parser support for `*const T` / `*mut T` type
+syntax; checker rules for pointer creation (`&x as *const T`, safe) and the
+borrow-checker exclusion `sv0doc` already documents (raw pointers don't
+participate); C backend lowering (nearly free — a raw pointer *is* a C
+pointer).
+
+**Epic B — real `unsafe` blocks.** `unsafe { ... }` as a genuine block
+expression (not the currently-inert function modifier, which epic B should
+also give real teeth to — or explicitly deprecate in favor of block-scoped
+`unsafe` only, a scope decision to confirm): parser support for the block
+form; checker enforcement that pointer dereference (`*ptr`) and FFI calls are
+rejected **outside** an `unsafe` block with a specific, stable diagnostic
+(matching this toolchain's existing discipline of never silently accepting
+what should be rejected — see `sv0-strings`' own E0302/E0309/E0323 pattern);
+C backend lowering (again largely free — `unsafe` has no runtime
+representation, only a checker-time gate).
+
+**Epic C — `extern`/FFI declarations, C backend.** New declaration syntax
+(scope decision 3); checker validation of the declared signature against sv0
+types with an explicit safe↔C type mapping (reusing `sv0-strings`'s own safe
+façade type-mapping precedent — `usize`↔`size_t`, `Option::None`↔`NULL`,
+etc. — as prior art, not reinventing it); C backend lowering to a real
+extern C call, correctly passing raw pointers and primitive types across the
+boundary; a caller-obligation diagnostic/doc requirement (every `extern` fn
+must document what safety invariant the *caller* must uphold — this is
+exactly what `strings_unsafe_abi`'s own docstring already promises: "every
+function documents its full caller obligations").
+
+**Epic D — the ABI manifest (SS-203's actual deliverable).** Design + build
+the machine-checked manifest: what's declared (symbol, calling convention,
+signature) vs. what's real. Decide compile-time-only (declared-and-trusted,
+simplest, matches C's own header-trust model) vs. a stronger link-time/symbol
+probe (more real, more toolchain work — an `nm`/`dlsym`-style check).
+**Recommendation for v1**: compile-time-only, matching how C itself works
+(a wrong `extern "C"` declaration is UB in real C too) — a stronger check is
+a legitimate follow-up, not a blocker, and over-scoping this epic is the
+single biggest risk of this whole doc ballooning past what SS-203 actually
+needs.
+
+**Epic E — VM-side stable rejection (not full support).** Per scope decision
+1: when a project importing `strings_unsafe_abi` (or using raw
+pointers/`unsafe`/`extern` at all) is compiled for the VM backend, the VM
+driver reports a stable, typed "unsupported on this backend" diagnostic —
+never a silent miscompile, never a crash. Small compared to A–D, but
+required so `strings_unsafe_abi`'s own SPEC framing ("never imported by a
+safe module; excluded from the default build") has a real, tested backend
+story rather than an untested assumption.
+
+**Epic F — sv0-strings consumer slices (SS-203/204, in sv0-strings).** Once
+A–E land and are pinned upstream: SS-203 writes the actual
+`strings_unsafe_abi` functions + their ABI-manifest entries + caller-obligation
+docs; SS-204 adds the feature-gate (excluded from default build, separately
+versioned per the module's own docstring) + external-linkage test corpus
+proving the declared signatures really link against a real C library. This is
+`sv0-strings`-side work tracked as SS-203/204 in its own checklist, not part
+of this doc's slice table.
+
+## sliced backlog (draft — `FFI-###`)
+
+| id | epic | slice | depends on |
+|---|---|---|---|
+| FFI-001 | scope | Lock scope decisions 1-4 above (or supersede with a refinement log entry) | — |
+| FFI-002 | A | `TyPtr`/`TyRaw` AST variant + parser syntax for `*const T`/`*mut T` | FFI-001 |
+| FFI-003 | A | Checker: pointer creation (`&x as *const T`), borrow-checker exclusion | FFI-002 |
+| FFI-004 | A | C backend lowering for raw pointer types | FFI-003 |
+| FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 |
+| FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004 |
+| FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 |
+| FFI-008 | C | `extern "C" fn ...;` declaration syntax (parser) | FFI-001 |
+| FFI-009 | C | Checker: safe↔C type-mapping validation for `extern` signatures | FFI-008, FFI-004 |
+| FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 |
+| FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 |
+| FFI-012 | D | ABI manifest format design (compile-time-only per recommendation) | FFI-009 |
+| FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 |
+| FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`extern` projects | FFI-006, FFI-010 |
+| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004, FFI-006, FFI-010, FFI-014 |
+
+Sequencing: A and B can start in parallel once FFI-001 locks scope (B's
+dereference-gating check depends on A's pointer type existing, hence
+FFI-006→FFI-004); C depends on both A and B; D depends on C; E can start as
+soon as B and C's checker-level gates exist, in parallel with D. F (in
+`sv0-strings`) needs everything here pinned.
+
+## completion criteria
+
+- [ ] Scope decisions locked (FFI-001) and written into this doc's "locked"
+      section (mirroring M5's own `## scope decisions (locked ...)` pattern)
+      before any implementation slice starts.
+- [ ] A safe sv0 program using no raw pointers/`unsafe`/`extern` is
+      byte-identical in its C output before and after this feature lands
+      (regression guard — this is additive, must not perturb the existing
+      language).
+- [ ] A real "hello from C" FFI round-trip (an `extern "C"` call to a genuinely
+      external, non-sv0-emitted C function, e.g. libc's own `abs()`) compiles,
+      links, and runs correctly on the C backend.
+- [ ] The VM backend rejects the same project with a stable, documented
+      diagnostic — never a crash, never a silent wrong-answer compile.
+- [ ] `sv0-strings` SS-203/204 land, `strings_unsafe_abi` ships real functions
+      with real caller-obligation docs and a real external-linkage test.
+
+## open questions
+
+- Exact `extern` syntax and attribute placement — needs a decision against
+  `sv0doc`'s own conventions before FFI-008 starts (this doc deliberately
+  does not pre-decide the concrete grammar).
+- Whether the function-level `unsafe` modifier (currently parsed-and-discarded)
+  should become "the whole function body is implicitly an unsafe block" (Rust's
+  own semantics) or be deprecated in favor of requiring explicit `unsafe { }`
+  everywhere — affects FFI-007 and is a real ergonomics/safety tradeoff, not a
+  mechanical choice.
+- Whether Epic D's manifest should eventually grow a link-time verification
+  step (the "stronger" option noted in Epic D) — explicitly deferred, not
+  decided, to keep FFI-012/013 from ballooning.
+- Whether VM FFI is ever wanted at all, or whether "C-backend-only,
+  permanently" is the right long-term architectural position for this
+  toolchain (worth a real decision record once a concrete consumer asks for
+  it, rather than speculating now).

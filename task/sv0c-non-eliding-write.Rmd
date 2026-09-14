@@ -1,0 +1,181 @@
+---
+created: "2026-09-14T00:00:00Z"
+updated: "2026-09-14T00:00:00Z"
+id: task-sv0c-non-eliding-write
+key: sv0c-non-eliding-write
+state: draft
+tags:
+  - sv0
+  - sv0c
+  - sv0vm
+  - language-feature
+  - sv0-strings
+title: "sv0c/sv0vm: backend-enforced non-eliding explicit write (SS-U11 / UP-014 / OQ-006)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# sv0c/sv0vm: backend-enforced non-eliding explicit write
+
+## purpose
+
+Unblocks `sv0-strings` **SS-201** (`Track L — Future`, BL-101): a backend-enforced
+guarantee that a write to a buffer survives dead-store elimination even when the
+buffer is otherwise dead after the call — the missing piece behind
+`strings_bytes::fill_explicit` / `strings_c23::memset_explicit`, which have stayed
+`Blocked` (unexported, not aliased to plain `fill`) since SS-108/SS-148 rather than
+ship an unenforced guarantee. This is **SS-U11** in `sv0-strings`'s own Track U
+table (`task/sv0-strings-checklist.Rmd:114`), promoted here to its own doc because
+it is a genuine sv0c/sv0vm **language/backend** feature, not a library-side slice —
+any future sv0 package wanting a scrubbing primitive (crypto key material, M5's own
+`crypto::*` tier) needs the same guarantee.
+
+**Non-goals**: this is not a general `volatile` type qualifier, not a memory model
+change, and not related to `unsafe`/raw pointers (see the separate
+`task/sv0c-ffi-raw-pointer-abi.Rmd` for that). It is one narrowly-scoped intrinsic:
+"zero (or fill) this byte range, and the backend MUST NOT optimize the write away."
+
+## grounding audit (2026-09-14)
+
+**Why the gap is real, not just undocumented**: `sv0-strings/docs/fill-explicit-blocked.md`
+already did the negative-evidence work at SS-108 —
+
+- **C backend**: a fill lowers to bare element stores (`codegen.sv0`'s normal
+  slice-index-assignment path) with no `volatile` qualifier, no compiler barrier,
+  and no `explicit_bzero`/`memset_s` call. `-O2` dead-store elimination MAY drop
+  the entire loop if the buffer is provably dead after the call — this is
+  precisely the vulnerability class C23 added `memset_explicit` to close, and sv0c
+  has no equivalent.
+- **VM backend**: sv0vm executes every `idx_set`/store opcode today (there is no
+  dead-code-elimination pass over bytecode), so nothing currently drops the write
+  — but there is no dedicated opcode or documented guarantee that a *future*
+  bytecode optimizer (were one added) could not legally elide it. "Happens to
+  retain" is not "backend-enforced."
+
+**Existing infrastructure to reuse, not rebuild** (same shape as SS-U16's
+`string_from_bytes`/`string_byte_view`): both backends already have a working
+name-based intrinsic pipeline —
+
+- `sv0c/lib/resolver.sv0`: `is_intrinsic`, `intrinsic_arity`, per-name arity/type
+  tables (`string_concat` etc. as the template).
+- `sv0c/lib/checker.sv0`: `BUILTIN_COUNT`, a builtin-ID dispatch resolved
+  alongside ordinary `fn_table` calls (`resolve_call_or_builtin`).
+- Per-backend lowering: `codegen.sv0` (C emission) and `vm_codegen.sv0` (bytecode
+  emission) each already special-case every existing intrinsic by builtin ID.
+- `sv0vm`'s interpreter (`sv0vm/src/interpreter/interpreter.sml`) already has a
+  `CALL_BUILTIN` dispatch (SS-U16 added builtin ids 35/36 there) — a new builtin
+  id is a small, well-trodden addition, not a new opcode class.
+
+So the real work is **not** inventing new AST/parser/VM machinery — it is (a)
+deciding the C-side lowering strategy, (b) adding one new builtin id end-to-end
+through the existing pipeline on both backends, and (c) the sv0doc side-effect
+rule making the guarantee normative, not just an implementation detail.
+
+## scope decisions (draft — confirm before slicing)
+
+1. **C-side lowering strategy.** Two real options, not mutually exclusive:
+   - **(a) Compiler barrier via `volatile`**: emit the fill loop through a
+     `volatile unsigned char *` pointer. Portable (ISO C), no platform
+     dependency, but slightly weaker than a real barrier on some optimizing
+     linkers (LTO across translation units is the known edge case — not a
+     concern for sv0c's own single-TU-per-build C emission today).
+   - **(b) Shell to the platform's real primitive when available**: detect
+     `explicit_bzero` (BSD/glibc ≥ 2.25) or `memset_s` (C11 Annex K, rare) at
+     `cc` capability-probe time (the same probe pattern `native_exe_cc_probe`
+     already uses for other capabilities) and call it directly when present,
+     falling back to (a) otherwise.
+   - **Recommendation**: ship (a) unconditionally first (it needs no probe, no
+     platform branching, and is sufficient for the guarantee SS-108 actually
+     asks for); land (b) as a strictly-better follow-up once (a) is proven, not
+     a blocking prerequisite.
+2. **VM-side guarantee.** Add a dedicated opcode (not just a `CALL_BUILTIN` id)
+   whose semantics are pinned in `sv0vm`'s own opcode contract as "never
+   eligible for dead-store elimination by any future optimizer pass" — cheaper
+   to reserve the opcode number now (bytecode format is versioned) than to
+   retrofit the guarantee onto an existing generic store opcode later.
+3. **Surface**: one new intrinsic, tentatively `__sv0_fill_explicit(dst: &mut
+   [byte], value: byte) -> ()` at the language level (double-underscore /
+   compiler-recognized, matching how other cross-cutting intrinsics are named),
+   with `strings_bytes::fill_explicit` becoming a thin wrapper once it lands —
+   confirm naming against sv0doc §7 conventions before implementation.
+
+## epics
+
+**Epic A — sv0doc normative rule.** Document the guarantee itself (what "backend
+non-eliding" means precisely, and what it does NOT promise — e.g., not a real
+timing-side-channel guarantee, not `volatile`'s full C semantics) in
+`sv0doc/memory-model/` or `sv0doc/type-system/` (confirm placement — this is
+UP-014's own §7.1 area). This is the artifact SS-U11's own row already names
+("sv0doc side-effect rule").
+
+**Epic B — C backend lowering.** The `volatile`-pointer fill loop (scope decision
+1a); a differential/regression fixture proving `-O2 -DDCE_STRESS` (or equivalent)
+does not eliminate a store to an otherwise-dead buffer — this needs a *real*,
+externally-observable check (e.g. write to a heap buffer, `free` it, and diff
+against a reference build compiled with the naive lowering to prove the naive one
+elides and the new one doesn't), not just "the C compiles."
+
+**Epic C — VM backend lowering.** The new dedicated non-elidable-store opcode;
+`sv0vm` interpreter support; the opcode's contract pinned in
+`sv0vm/doc/bytecode-format.md` (or wherever the opcode table is documented today
+— confirm path) as never-eligible-for-elision, so a future VM optimizer pass has
+an unambiguous constraint to respect.
+
+**Epic D — end-to-end intrinsic wiring.** Resolver/checker/both-codegen
+plumbing for the new builtin id (mechanical, following the SS-U16 pattern
+exactly); cross-backend behavioral test (`test/vm-parity/` style) proving C and
+VM agree on ordinary (non-DCE-stress) fill behavior, since the parity gate this
+whole toolchain already runs would catch any accidental divergence.
+
+**Epic E — sv0-strings consumer slice (SS-201, in sv0-strings).** Once Epics
+A–D land and are pinned upstream, `strings_bytes::fill_explicit` /
+`strings_c23::memset_explicit` become real exported functions wrapping the new
+intrinsic; the existing `test/compile_fail/fill_explicit_blocked.sv0` /
+`c23_memset_explicit_blocked.sv0` probes flip from "symbol must not resolve" to
+deleted (superseded by real positive fixtures), and `docs/fill-explicit-blocked.md`
+gets its "unblocked" update. This is `sv0-strings`-side work, tracked as SS-201
+in its own checklist, not part of this doc's slice table.
+
+## sliced backlog (draft — `NEW-###`)
+
+| id | epic | slice | depends on |
+|---|---|---|---|
+| NEW-001 | A | sv0doc: write the non-eliding-write normative rule (what's guaranteed, what isn't) | — |
+| NEW-002 | B | C backend: `volatile`-pointer lowering for the new intrinsic | NEW-001 |
+| NEW-003 | B | DCE-stress regression fixture proving the naive lowering elides and the new one doesn't | NEW-002 |
+| NEW-004 | C | Reserve + document the new VM opcode's non-elision contract | NEW-001 |
+| NEW-005 | C | `sv0vm` interpreter: implement the opcode | NEW-004 |
+| NEW-006 | D | Resolver/checker: new builtin id, arity, name table entries | NEW-002, NEW-005 |
+| NEW-007 | D | Both-backend codegen wiring (`codegen.sv0` builtin-id case, `vm_codegen.sv0` opcode emission) | NEW-006 |
+| NEW-008 | D | Cross-backend parity fixture (ordinary, non-stress behavior) | NEW-007 |
+| NEW-009 | C-probe (optional) | `explicit_bzero`/`memset_s` capability probe + preferred-path lowering (scope decision 1b) | NEW-003 |
+
+Sequencing: A is a pure-doc slice and can start immediately in parallel with
+nothing; B and C are independent of each other and can run in parallel once A
+lands; D needs both B and C done; E (in `sv0-strings`) needs D done and pinned.
+
+## completion criteria
+
+- [ ] Epic A doc merged, cited by name from `sv0-strings/docs/fill-explicit-blocked.md`.
+- [ ] NEW-003's DCE-stress fixture is red on the naive lowering and green on the
+      new one — proof the guarantee is real, not just "it compiles."
+- [ ] NEW-008 cross-backend parity fixture green in CI on both `sv0c` and
+      `sv0vm`.
+- [ ] `sv0-strings` SS-201 lands, `fill_explicit`/`memset_explicit` ship as real
+      exported functions, and the two `compile_fail` "stays blocked" probes are
+      retired.
+
+## open questions
+
+- Exact intrinsic name and whether it should be a single `fill_explicit(dst,
+  value)` or a more general "mark this write non-elidable" primitive other
+  future code (e.g. M5 crypto key zeroing) could reuse directly rather than
+  going through `strings_bytes`.
+- Where the VM opcode table is authoritatively documented today (confirm path
+  before Epic C starts) — reserve the next free opcode number there, not an
+  ad-hoc one.
+- Whether Epic B's `volatile` lowering needs an explicit compiler-barrier
+  intrinsic (e.g. an inline-asm empty clobber) in addition to `volatile`, for
+  compilers where `volatile` alone has been shown insufficient across
+  translation-unit boundaries (LTO) — likely out of scope for sv0c's current
+  single-TU C emission model, but worth a one-line rationale note either way.
