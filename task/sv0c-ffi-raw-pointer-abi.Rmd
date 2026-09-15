@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T07:00:00Z"
+updated: "2026-09-14T08:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -409,6 +409,64 @@ in `vm_codegen.sv0`/`codegen.sv0`). The `unsafe fn` function-modifier path
 `parse_primary_expr`) is untouched and confirmed still compiles unaffected
 — FFI-007's own open question, not touched here.
 
+**FFI-006 addendum (2026-09-14):** landed the pointer-dereference half of
+this slice's title (`*ptr` outside `unsafe` → E0550); the FFI-call half has
+no surface yet since Epic C (`extern`/`#[extern_c]` declarations) hasn't
+landed — nothing to gate until FFI-008+ exists. New `check_unsafe_gate`
+(`checker.sv0`) walks each function body's expression tree looking for
+`ExprUnop(Deref)` where the operand's type is `TY_PTR()`/`TY_PTRMUT()` and
+the site isn't nested inside an `ExprUnsafeBlock` (tag 34, FFI-005) —
+modeled on the existing `expr_references_result` function (a typeless
+tree-walk already used for contract `old(result)` scanning) rather than
+threading a new `in_unsafe` parameter through `synth_expr`'s own ~76
+recursive call sites, which is the exact shape of fix FFI-003's addendum
+already flagged and rejected once this session for a structurally
+identical problem. Only the Deref check itself calls `synth_expr` (for the
+one type it actually needs); everywhere else the walker just recurses,
+tracking `in_unsafe` and the local `let`-binding environment itself
+(`env_extend`/`env_scope_restore`, mirroring `synth_expr`'s own
+`ExprBlock` handling) — enough to resolve a pointer-typed local OR
+function parameter correctly at the point of dereference, verified for
+both (`let p: *const i32 = ...; *p` and `fn f(p: *const i32) { *p }` are
+both caught, and both accepted once wrapped in `unsafe { }`), including a
+deref nested inside an `if` condition.
+
+**A real segfault was found and fixed while landing this** — the kind of
+finding this session's addenda exist to record. The first draft copied
+`expr_references_result`'s own child-indexing shortcut for `ExprCall`
+args, `ExprMethodCall` args, and `ExprMatch` arms (`first_idx + i`, a
+simple contiguous offset) — valid for that function's actual domain
+(contract-clause expressions, which are argument-simple by construction)
+but silently wrong for real function bodies, where a call argument
+routinely has its own sub-expressions pushed into the arena before it,
+shifting every subsequent "first + i" position off a cliff. This was not
+caught by manual testing (four hand-written cases, all passing) — none of
+them happened to call a function with a compound-expression argument or
+use a `match`. The full test suite's `native --project acceptance` step
+did catch it, immediately and unambiguously: a genuine SIGSEGV compiling
+`test/integration/impl_methods` (`impl_methods: emit failed`,
+`Segmentation fault: 11`), a much louder failure than this session's usual
+"silent, zero-diagnostic" class of bug. Root-caused by reading
+`synth_expr`'s own real `tag==4`/`tag==5`/`tag==11` handling directly
+(checker.sv0's actual producer of these arenas) instead of re-trusting the
+borrowed shortcut: all three use `block_stmt_index`-based sidecar
+resolution, not raw offsets — `ExprMethodCall`'s own field layout doesn't
+even put `args_first` where the shortcut assumed (`ed3`/`ed4` are
+`args_count`/`args_sidecar`, not `args_first`/`args_count`, an extra wrong
+assumption layered on top). Fixed by copying the real resolution instead
+of the approximate one. Two more sites (`ExprStruct` field values,
+`ExprArray` elements) used the identical unproven-contiguous shortcut and
+were not independently verified before this was found — rather than audit
+each one under time pressure, they were simplified to NOT traverse at all,
+matching `synth_expr`'s own actual stance on those two node kinds
+("simplified, field/element traversal deferred" — the main type checker
+doesn't look inside them either). **Lesson**: when reusing an indexing
+pattern from one tree-walker in a new one, verify the arena's field
+layout against that shape's REAL producer/consumer code, not against
+another approximate walker that happened to get away with it in a
+narrower domain — an assumption that's "probably fine" for contract
+clauses is not the same claim as "correct for arbitrary function bodies."
+
 **Epic C — `extern`/FFI declarations, C backend.** New declaration syntax
 (scope decision 3); checker validation of the declared signature against sv0
 types with an explicit safe↔C type mapping (reusing `sv0-strings`'s own safe
@@ -459,7 +517,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-004 | A | C backend lowering for raw pointer types: fn param/return signatures (`megatu_cty_of_root`) + a real checker crash fix (`pty_root_to_type_tag` missing tags 8/9) | FFI-003b | **done** — sv0c (pending commit); see FFI-004 addendum below |
 | FFI-004b | A | C backend lowering: `let`-bound pointer variables + the `as *const/mut T` cast expression itself, via a new `Instr::DeclPtr` variant | FFI-004 | **done** — sv0c `87e23cdf`; Epic A (raw pointer types) fully closed |
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax (new `ExprUnsafeBlock` AST tag; transparent checker/lowering pass-through) | FFI-001 | **done** — sv0c `7cd537bc` |
-| FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004b | todo |
+| FFI-006 | B | Checker: dereference-outside-`unsafe` diagnostic, E0550 (`check_unsafe_gate`); FFI-call half deferred, no surface until Epic C | FFI-005, FFI-004b | **done** — sv0c `73cbd37c` |
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 | todo |
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser) | FFI-001 | todo |
 | FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | todo |
