@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-15T01:00:00Z"
+updated: "2026-09-15T02:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -521,6 +521,42 @@ never puts an `ItemExternFn`'s name in the callable-functions table) since
 that requires FFI-009 (checker validation) and FFI-010 (real lowering),
 neither built yet.
 
+**FFI-009 addendum (2026-09-15):** checker-only slice, no parser or
+lowering changes — `ItemExternFn` (FFI-008) has no body (`id4` is always
+-1), so there was nothing to run `check_fn_body`/`check_unsafe_gate`/etc.
+over; the only thing left to validate is the declared signature itself
+against a safe↔C type-mapping whitelist (scope decision 4: "every declared
+type has a real safe↔C mapping"). New `is_ffi_safe_type_tag`/
+`is_ffi_safe_ret_type_tag` (`checker.sv0`) whitelist the primitive/pointer
+tags (int, uint, bool, char, isize, usize, float, ptr, ptrmut — plus unit
+for a return type only, since C has no void-valued argument and sv0 has no
+`()`-typed parameter syntax); everything else — `String`, struct, enum,
+tuple, ref/refmut, slice, fn, unresolved/generic — is rejected as E0551.
+**One real design call, made and recorded here rather than re-litigated
+per pointer type**: a raw pointer is accepted regardless of its *pointee*
+— `*const MyStruct` is exactly as FFI-safe as `*const i32`, because in C a
+pointer of any kind is just a machine word; the pointee never crosses the
+boundary directly, only its address. This is the ordinary "opaque handle"
+FFI idiom (a `void*`-shaped C API hiding a real struct behind a pointer),
+not a gap in the whitelist — recursing into pointee types would reject
+completely idiomatic C interop for no safety benefit. New
+`check_extern_fn_signature` is wired into `check_program`'s per-item loop
+as a sibling to the existing `it[i] == 0` (ordinary `ItemFn`) branch,
+gated on `it[i] == 8` — the two branches share nothing (an extern
+declaration has no body-check pipeline to run) beyond both reading the
+same `id1`/`id3`/`id5` fields and reusing the existing
+`scan_fn_param_type_tags_arena`/`scan_fn_ret_type_tag_arena` helpers
+`item_fn_ty_to_table` already uses for ordinary functions. Diagnostics are
+spanned on the item's own name token, matching the existing E0409
+item-level-span precedent just above in `check_program`, rather than
+resolving a token deep inside the type arena for a marginally tighter
+span. New fixtures: `test/behavior/cases/ffi_extern_c_signature_valid.sv0`
+(exit 9, all-FFI-safe signature — the regression guard proving the
+whitelist doesn't misfire on legitimate declarations) and
+`test/diagnostics/cases/extern_c_unsafe_abi_type_rejected.sv0` (E0551, a
+`string` parameter). Both native-only, like every `#[extern_c]` fixture so
+far — the syntax doesn't exist in the sml-legacy parser.
+
 **Epic D — the ABI manifest (SS-203's actual deliverable).** Build the
 compile-time-only machine-checked manifest per scope decision 4: generated
 from the declared `#[extern_c]` signatures, checked for internal consistency
@@ -563,7 +599,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-006 | B | Checker: dereference-outside-`unsafe` diagnostic, E0550 (`check_unsafe_gate`); FFI-call half deferred, no surface until Epic C | FFI-005, FFI-004b | **done** — sv0c `73cbd37c` |
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate: **deprecated** (user decision, 2026-09-15) — stays parsed, permanently inert; sv0doc + parser comment updated; regression fixture locks "no whole-body exemption" | FFI-006 | **done** — sv0c (pending commit) |
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser, new `ItemExternFn` item tag) | FFI-001 | **done** — sv0c `58fcbd8b` |
-| FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | todo |
+| FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | **done** — sv0c `43a60fb5` |
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | todo |
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | todo |
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | todo |
