@@ -23,9 +23,21 @@ import argparse
 import os
 import subprocess
 import sys
+import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from native_exe_build import build_native_executable
+
+
+def _job_count() -> int:
+    env = os.environ.get("SV0_JOBS")
+    if env:
+        try:
+            return max(1, int(env))
+        except ValueError:
+            pass
+    return os.cpu_count() or 4
 
 
 def _read_manifest(manifest_path: Path) -> list[tuple[str, int]]:
@@ -40,35 +52,55 @@ def _read_manifest(manifest_path: Path) -> list[tuple[str, int]]:
     return rows
 
 
+def _run_one(sv0c: Path, rel: str, want: int, probe: bool) -> str | None:
+    """Returns None on success, else an error message."""
+    case = sv0c / rel
+    if not case.is_file():
+        return f"missing case {case}"
+    with tempfile.TemporaryDirectory() as td:
+        out = os.path.join(td, "out.bin")
+        try:
+            build_native_executable("file", str(case), out, td, probe=probe)
+        except Exception as exc:  # noqa: BLE001 - report any failure, don't hide it
+            return f"build failed for {rel}: {exc}"
+        got = subprocess.run([out], capture_output=True).returncode
+        if got != want:
+            return f"{rel} exited {got}, expected {want}"
+    return None
+
+
 def run_corpus(root: Path, rows: list[tuple[str, int]] | None = None) -> int:
     sv0c = root / "sv0c"
     manifest_path = sv0c / "test" / "behavior" / "manifest.txt"
     if rows is None:
         rows = _read_manifest(manifest_path)
+    if not rows:
+        print("native_exe_behavior_corpus: OK (0 program(s))", file=sys.stderr)
+        return 0
 
-    n = 0
-    for rel, want in rows:
-        case = sv0c / rel
-        if not case.is_file():
-            print(f"native_exe_behavior_corpus: missing case {case}", file=sys.stderr)
-            return 1
+    # Probe the host compiler once, synchronously, before fanning out --
+    # build_native_executable's `probe` step is a one-time capability check
+    # (NEX-021/022), not build logic; running it once up front means every
+    # parallel worker below can safely pass probe=False.
+    first_rel, first_want = rows[0]
+    err = _run_one(sv0c, first_rel, first_want, probe=True)
+    failures: list[str] = [err] if err is not None else []
 
-        import tempfile
+    rest = rows[1:]
+    if rest:
+        with ThreadPoolExecutor(max_workers=_job_count()) as pool:
+            futures = [pool.submit(_run_one, sv0c, rel, want, False) for rel, want in rest]
+            for fut in futures:
+                e = fut.result()
+                if e is not None:
+                    failures.append(e)
 
-        with tempfile.TemporaryDirectory() as td:
-            out = os.path.join(td, "out.bin")
-            try:
-                build_native_executable("file", str(case), out, td, probe=(n == 0))
-            except Exception as exc:  # noqa: BLE001 - report any failure, don't hide it
-                print(f"native_exe_behavior_corpus: build failed for {rel}: {exc}", file=sys.stderr)
-                return 1
-            got = subprocess.run([out], capture_output=True).returncode
-            if got != want:
-                print(f"native_exe_behavior_corpus: {rel} exited {got}, expected {want}", file=sys.stderr)
-                return 1
-        n += 1
-
-    print(f"native_exe_behavior_corpus: OK ({n} program(s))", file=sys.stderr)
+    if failures:
+        for e in failures:
+            print(f"native_exe_behavior_corpus: {e}", file=sys.stderr)
+        print(f"native_exe_behavior_corpus: {len(failures)} failure(s)", file=sys.stderr)
+        return 1
+    print(f"native_exe_behavior_corpus: OK ({len(rows)} program(s))", file=sys.stderr)
     return 0
 
 

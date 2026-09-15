@@ -18,7 +18,11 @@ ulimit -s "$(ulimit -Hs)" 2>/dev/null || true
 # /usr/bin/python3 is 3.9), find a newer one and put its directory first so
 # every `python3` invocation below picks it up. No-op when python3 is already
 # 3.11+ or when no newer interpreter is installed.
-if ! python3 -c 'import tomllib' >/dev/null 2>&1; then
+# Skipped for __self-host-loop-one: it's a pure-shell/native-binary/sml worker
+# (no python3 at all) dispatched once per file by run_self_host_sv0_loop's
+# parallel driver -- this probe's own python3 startup cost, harmless as a
+# one-off, would otherwise repeat on every single file.
+if [[ "${1:-}" != "__self-host-loop-one" ]] && ! python3 -c 'import tomllib' >/dev/null 2>&1; then
   for _py in python3.14 python3.13 python3.12 python3.11 \
              /opt/homebrew/bin/python3 /usr/local/bin/python3; do
     _pybin="$(command -v "$_py" 2>/dev/null || true)"
@@ -431,9 +435,13 @@ run_check() {
 }
 
 # Python regression guards also run inside run_test; exposed as `sv0 test-guards` for fast iteration.
+# Every check below is independent and read-only (verifies repo state or runs
+# a module's own --selftest), so all 88 run in parallel across
+# sv0_jobs() workers -- each is a fresh `python3` invocation regardless (same
+# process-spawn shape as before), just no longer waiting for the previous one
+# to finish before starting the next.
 run_python_guards() {
   local label="${1:-sv0}"
-  local ec=0
   sv0_require_cmd python3
   # TEST-006: pin locale/timezone/temp-root/umask for the whole test
   # harness run, so every guard below is reproducible regardless of the
@@ -449,358 +457,229 @@ run_python_guards() {
   : "${TMPDIR:=/tmp}"
   export TMPDIR
   umask 022
-  sv0_info "$label: native-exe test harness environment control (TEST-006)"
-  if ! python3 "$ROOT/scripts/native_exe_harness_env.py" --verify; then
-    ec=1
-  fi
-  sv0_info "$label: .sv0 block-comment nesting guard"
-  if ! python3 "$ROOT/scripts/check_sv0_block_comment_nesting.py"; then
-    ec=1
-  fi
-  sv0_info "$label: sv0doc baseline (milestone 0 paths)"
-  if ! python3 "$ROOT/scripts/verify_sv0doc_baseline.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: task/*.Rmd YAML front matter (graph-safe keys)"
-  if ! python3 "$ROOT/scripts/verify_task_rmd_frontmatter.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: task/*.Rmd optional sv0-track anchors + checklist ingestion"
-  if ! python3 "$ROOT/scripts/verify_task_rmd_tracking.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: README.md sv0c pinned SHA vs git submodule (index or HEAD)"
-  if ! python3 "$ROOT/scripts/verify_readme_sv0c_gitlink.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: vm-parity manifest ⊆ sv0c/lib/bootstrap-sources.list"
-  if ! python3 "$ROOT/scripts/verify_vm_parity_manifest_bootstrap.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: task/milestone-orientation.json (schema + primary_tasks exist)"
-  if ! python3 "$ROOT/scripts/verify_milestone_orientation.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: workspace milestone table cites all milestone-orientation primary_tasks"
-  if ! python3 "$ROOT/scripts/verify_workspace_milestone_table.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: compiler .sv0 (lib/lexer/parser) must not use \`raise\` (M3-S-014)"
-  if ! python3 "$ROOT/scripts/verify_compiler_sv0_no_raise.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: commit-msg AI-signoff checker selftest (git-hooks)"
-  if ! python3 "$ROOT/scripts/verify_commit_msg_no_ai_signoff.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G1 Track C per-slice path audit (scripts/m3_g1_active_slices.txt)"
-  if ! python3 "$ROOT/scripts/verify_m3_g1_track_c.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G6 pipeline contract (lib/main.sv0 DRIVER_FULL_PIPELINE_LEN vs PHASE_COUNT)"
-  if ! python3 "$ROOT/scripts/verify_m3_g6_pipeline_contract.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G6 link merge contract (lib/link.sv0 token-stream merge helpers)"
-  if ! python3 "$ROOT/scripts/verify_m3_g6_link_merge_contract.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G6 staging driver contract (sources.cm + main.sv0 staging spine)"
-  if ! python3 "$ROOT/scripts/verify_m3_g6_staging_driver_contract.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G7 diagnostics corpus layout (sv0c/test/diagnostics)"
-  if ! python3 "$ROOT/scripts/verify_diagnostics_corpus_layout.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G7 tier-2 VM parity policy (tier2-manifest vs manifest + goldens)"
-  if ! python3 "$ROOT/scripts/verify_vm_parity_tier2_policy.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G8 native self-host recipe paths (build script + doc)"
-  if ! python3 "$ROOT/scripts/verify_m3_g8_native_recipe_paths.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 G9 SML retirement docs (checklist + cold recovery)"
-  if ! python3 "$ROOT/scripts/verify_m3_g9_retirement_docs_layout.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: M3 GX bootstrap deferred policy (generics T0-2d + deferred surface)"
-  if ! python3 "$ROOT/scripts/verify_m3_gx_bootstrap_policy_docs.py" --root "$ROOT"; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-001 native-exe requirement traceability (checklist ⊇ active-release catalog)"
-  if ! python3 "$ROOT/scripts/verify_native_exe_traceability.py" --root "$ROOT" --active-release R1; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-002 native-exe CLI parser selftest (table-driven corpus)"
-  if ! python3 "$ROOT/scripts/native_exe_cli.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-003 native-exe phase-machine selftest (§12.5 state machine)"
-  if ! python3 "$ROOT/scripts/native_exe_phases.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-003 native-exe build-request normalization selftest (Appendix A)"
-  if ! python3 "$ROOT/scripts/native_exe_request.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-004 native-exe fake core-compiler selftest (§26.2 modes)"
-  if ! python3 "$ROOT/scripts/native_exe_fake_emitter.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-005 native-exe fake C compiler/linker selftest (§26.3 modes)"
-  if ! python3 "$ROOT/scripts/native_exe_fake_cc.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-006 native-exe error phase → exit-class mapping selftest (§18.2)"
-  if ! python3 "$ROOT/scripts/native_exe_errors.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-007/052b native-exe atomic publication + output lock selftest (ART-002..004, ART-013)"
-  if ! python3 "$ROOT/scripts/native_exe_publish.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-052a native-exe output lock/token protocol selftest (ART-013, REL-002, §22.5)"
-  if ! python3 "$ROOT/scripts/native_exe_output_lock.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-052b native-exe same-output concurrent-build stress selftest (AC-021)"
-  if ! python3 "$ROOT/scripts/native_exe_same_output_stress.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-008 native-exe scratch-dir lifecycle selftest (ART-009..010)"
-  if ! python3 "$ROOT/scripts/native_exe_scratch.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-009/034 native-exe argv-only + cancellable subprocess selftest (TOOL-003, SEC-001, SEC-009, REL-003)"
-  if ! python3 "$ROOT/scripts/native_exe_subprocess.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-011/055c native-exe core-compiler reentrant SV0_DRV_REQUEST selftest (REL-004)"
-  if ! python3 "$ROOT/scripts/native_exe_core_compiler.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-012 native-exe emission protocol selftest (PIPE-003..005, ERR-002)"
-  if ! python3 "$ROOT/scripts/native_exe_emit.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-013/014 native-exe entry existence+uniqueness scan selftest (ENTRY-001/004, PIPE-002)"
-  if ! python3 "$ROOT/scripts/native_exe_entry_scan.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: native-exe file-input-shape validation selftest (CLI-008)"
-  if ! python3 "$ROOT/scripts/native_exe_input_validation.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-015 native-exe entry signature validation selftest (ENTRY-002/003)"
-  if ! python3 "$ROOT/scripts/native_exe_entry_signature.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-017 native-exe reserved-symbol collision selftest (ENTRY-008)"
-  if ! python3 "$ROOT/scripts/native_exe_entry_reserved.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-018/039 native-exe staging-C validation/hashing/atomic-write selftest (PIPE-006/011, CLI-014/015)"
-  if ! python3 "$ROOT/scripts/native_exe_staging.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-039 native-exe --emit=c-only selftest (CLI-014)"
-  if ! python3 "$ROOT/scripts/native_exe_emit_c.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-040 native-exe --keep-c retention on success and failure selftest (CLI-015/ART-012)"
-  if ! python3 "$ROOT/scripts/native_exe_keep_c.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-041 native-exe JSON event encoder + phase timing selftest (CLI-016, ERR-009..011)"
-  if ! python3 "$ROOT/scripts/native_exe_json_output.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-042 native-exe atomic build-record JSON selftest (REPRO-002/003)"
-  if ! python3 "$ROOT/scripts/native_exe_build_record.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-043 native-exe sv0.toml schema/discovery/precedence selftest (Section 17)"
-  if ! python3 "$ROOT/scripts/native_exe_config.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-045 native-exe installed runtime bundle manifest/licenses selftest (RT-009)"
-  if ! python3 "$ROOT/scripts/native_exe_runtime_bundle.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-046/060b native-exe installed-layout E2E + default-resolution installed-layout builder selftest (AC-023, OD-009)"
-  if ! python3 "$ROOT/scripts/native_exe_installed_layout.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-060c native-exe installed sv0c launcher selftest (OD-009, CLI-017)"
-  if ! python3 "$ROOT/scripts/native_exe_install_launcher.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-047 native-exe phase-timing + reference benchmark harness selftest (PERF-001..004)"
-  if ! python3 "$ROOT/scripts/native_exe_benchmark.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: native-exe test harness environment control selftest (TEST-006)"
-  if ! python3 "$ROOT/scripts/native_exe_harness_env.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: native-exe per-phase negative-test coverage guard selftest (TEST-005)"
-  if ! python3 "$ROOT/scripts/native_exe_phase_coverage.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: native-exe supported-compiler matrix selftest (TOOL-013)"
-  if ! python3 "$ROOT/scripts/native_exe_supported_compilers.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: native-exe known-conflict registry selftest (GOV-007)"
-  if ! python3 "$ROOT/scripts/native_exe_known_conflicts.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-055a native-exe perf regression budget selftest (PERF-005)"
-  if ! python3 "$ROOT/scripts/native_exe_perf_regression.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-055b native-exe concurrent-build performance certification selftest (PERF-006)"
-  if ! python3 "$ROOT/scripts/native_exe_concurrent_perf.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-056a native-exe release-candidate evidence bundle selftest (TEST-009)"
-  if ! python3 "$ROOT/scripts/native_exe_release_evidence.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-058 native-exe canonical host-compile CLI selftest (GOV-008)"
-  if ! python3 "$ROOT/scripts/native_exe_canonical_compile.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-058 native-exe no-duplicate-cc-recipe static guard selftest (GOV-008)"
-  if ! python3 "$ROOT/scripts/native_exe_no_duplicate_cc_recipe.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-055c native-exe no-new-legacy-control-file static guard selftest (REL-004 step 6)"
-  if ! python3 "$ROOT/scripts/native_exe_no_new_legacy_control_file.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-059 native-exe production CLI entry point selftest (CLI-007..017, end-to-end)"
-  if ! python3 "$ROOT/scripts/native_exe_main.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-049a native-exe accepted warning policy selftest (TEST-008)"
-  if ! python3 "$ROOT/scripts/native_exe_warning_policy.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-049b native-exe full-corpus warning report selftest (TEST-008, §26.6)"
-  if ! python3 "$ROOT/scripts/native_exe_warning_report.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-049c native-exe no-blanket--w acceptance check (TEST-008, §26.6)"
-  if ! python3 "$ROOT/scripts/native_exe_no_blanket_suppression.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-050a native-exe ASan/UBSan build wrapper selftest (TEST-007, §26.7)"
-  if ! python3 "$ROOT/scripts/native_exe_sanitizer_build.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-050b native-exe sanitizer matrix (-O0/-O2) selftest (TEST-007, §26.7)"
-  if ! python3 "$ROOT/scripts/native_exe_sanitizer_matrix.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: native-exe VM-compose phase-6 patch resilience selftest (P4/D1b hardening)"
-  if ! python3 "$ROOT/scripts/native_exe_vm_compose_patch.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-050c native-exe full-corpus sanitizer sweep selftest (TEST-007, §26.7)"
-  if ! python3 "$ROOT/scripts/native_exe_sanitizer_corpus.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-051b native-exe dev-vs-release behavioral parity selftest (AC-024, §16.5)"
-  if ! python3 "$ROOT/scripts/native_exe_release_parity.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-053a native-exe pinned double-build + project-mode reproducibility selftest (REPRO-001/004, §21.3)"
-  if ! python3 "$ROOT/scripts/native_exe_repro_harness.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-019 native-exe compiler-relative runtime resolver selftest (RT-001..003)"
-  if ! python3 "$ROOT/scripts/native_exe_runtime.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-020 native-exe runtime ABI manifest + hash verification selftest (RT-004/005)"
-  if ! python3 "$ROOT/scripts/native_exe_runtime_manifest.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-054a/b native-exe stable entry ABI version + manifest + compat selftest (ENTRY-010)"
-  if ! python3 "$ROOT/scripts/native_exe_entry_abi.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-054b native-exe installed-layout entry-ABI mismatch selftest (ENTRY-010)"
-  if ! python3 "$ROOT/scripts/native_exe_entry_abi_install_mismatch.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-021 native-exe C-compiler selection precedence selftest (TOOL-001/002)"
-  if ! python3 "$ROOT/scripts/native_exe_cc_select.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-022/044 native-exe C-compiler capability probe + bounded probe cache selftest (TOOL-005/006)"
-  if ! python3 "$ROOT/scripts/native_exe_cc_probe.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-023/051a native-exe dev+release profile argv builder selftest (TOOL-004/RT-006, §16.5)"
-  if ! python3 "$ROOT/scripts/native_exe_argv_builder.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-024 native-exe sanitized child environment selftest (SEC-006, TOOL-007/008)"
-  if ! python3 "$ROOT/scripts/native_exe_env.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-025 native-exe host failure diagnostics selftest (TOOL-009/010, ERR-003/004)"
-  if ! python3 "$ROOT/scripts/native_exe_host_compile.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-026 native-exe output path + permission/symlink rules selftest (ART-001,005..011)"
-  if ! python3 "$ROOT/scripts/native_exe_output_path.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-027 native-exe human output formatting selftest (ERR-005..008)"
-  if ! python3 "$ROOT/scripts/native_exe_human_output.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-028/051c native-exe build assembly + profile selection selftest (TEST-004, §11.4)"
-  if ! python3 "$ROOT/scripts/native_exe_build.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-028 native-exe behavior corpus smoke (fast 3-row subset)"
-  if ! python3 "$ROOT/scripts/native_exe_behavior_corpus.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-029 native-exe runtime-feature coverage selftest (RT-007/008)"
-  if ! python3 "$ROOT/scripts/native_exe_runtime_feature_smoke.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-030 native-exe project-mode build selftest (CLI-009, PIPE-007)"
-  if ! python3 "$ROOT/scripts/native_exe_project_mode.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-031 native-exe contract-mode matrix selftest (PIPE-008/009)"
-  if ! python3 "$ROOT/scripts/native_exe_contract_mode.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-032 native-exe prior-output preservation selftest (ART-004, REL-002)"
-  if ! python3 "$ROOT/scripts/native_exe_preservation.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-033 native-exe symlink/scratch hardening selftest (SEC-003..005)"
-  if ! python3 "$ROOT/scripts/native_exe_hardening_smoke.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-035 native-exe parallel distinct-output builds selftest (REL-001)"
-  if ! python3 "$ROOT/scripts/native_exe_parallel_builds.py" --selftest; then
-    ec=1
-  fi
-  sv0_info "$label: NEX-036 native-exe hostile-path pipeline selftest (PORT-004, SEC-001)"
-  if ! python3 "$ROOT/scripts/native_exe_hostile_paths.py" --selftest; then
-    ec=1
-  fi
+  export ROOT
+
+  local -a guard_descs=(
+    'native-exe test harness environment control (TEST-006)'
+    '.sv0 block-comment nesting guard'
+    'sv0doc baseline (milestone 0 paths)'
+    'task/*.Rmd YAML front matter (graph-safe keys)'
+    'task/*.Rmd optional sv0-track anchors + checklist ingestion'
+    'README.md sv0c pinned SHA vs git submodule (index or HEAD)'
+    'vm-parity manifest ⊆ sv0c/lib/bootstrap-sources.list'
+    'task/milestone-orientation.json (schema + primary_tasks exist)'
+    'workspace milestone table cites all milestone-orientation primary_tasks'
+    'compiler .sv0 (lib/lexer/parser) must not use \`raise\` (M3-S-014)'
+    'commit-msg AI-signoff checker selftest (git-hooks)'
+    'M3 G1 Track C per-slice path audit (scripts/m3_g1_active_slices.txt)'
+    'M3 G6 pipeline contract (lib/main.sv0 DRIVER_FULL_PIPELINE_LEN vs PHASE_COUNT)'
+    'M3 G6 link merge contract (lib/link.sv0 token-stream merge helpers)'
+    'M3 G6 staging driver contract (sources.cm + main.sv0 staging spine)'
+    'M3 G7 diagnostics corpus layout (sv0c/test/diagnostics)'
+    'M3 G7 tier-2 VM parity policy (tier2-manifest vs manifest + goldens)'
+    'M3 G8 native self-host recipe paths (build script + doc)'
+    'M3 G9 SML retirement docs (checklist + cold recovery)'
+    'M3 GX bootstrap deferred policy (generics T0-2d + deferred surface)'
+    'NEX-001 native-exe requirement traceability (checklist ⊇ active-release catalog)'
+    'NEX-002 native-exe CLI parser selftest (table-driven corpus)'
+    'NEX-003 native-exe phase-machine selftest (§12.5 state machine)'
+    'NEX-003 native-exe build-request normalization selftest (Appendix A)'
+    'NEX-004 native-exe fake core-compiler selftest (§26.2 modes)'
+    'NEX-005 native-exe fake C compiler/linker selftest (§26.3 modes)'
+    'NEX-006 native-exe error phase → exit-class mapping selftest (§18.2)'
+    'NEX-007/052b native-exe atomic publication + output lock selftest (ART-002..004, ART-013)'
+    'NEX-052a native-exe output lock/token protocol selftest (ART-013, REL-002, §22.5)'
+    'NEX-052b native-exe same-output concurrent-build stress selftest (AC-021)'
+    'NEX-008 native-exe scratch-dir lifecycle selftest (ART-009..010)'
+    'NEX-009/034 native-exe argv-only + cancellable subprocess selftest (TOOL-003, SEC-001, SEC-009, REL-003)'
+    'NEX-011/055c native-exe core-compiler reentrant SV0_DRV_REQUEST selftest (REL-004)'
+    'NEX-012 native-exe emission protocol selftest (PIPE-003..005, ERR-002)'
+    'NEX-013/014 native-exe entry existence+uniqueness scan selftest (ENTRY-001/004, PIPE-002)'
+    'native-exe file-input-shape validation selftest (CLI-008)'
+    'NEX-015 native-exe entry signature validation selftest (ENTRY-002/003)'
+    'NEX-017 native-exe reserved-symbol collision selftest (ENTRY-008)'
+    'NEX-018/039 native-exe staging-C validation/hashing/atomic-write selftest (PIPE-006/011, CLI-014/015)'
+    'NEX-039 native-exe --emit=c-only selftest (CLI-014)'
+    'NEX-040 native-exe --keep-c retention on success and failure selftest (CLI-015/ART-012)'
+    'NEX-041 native-exe JSON event encoder + phase timing selftest (CLI-016, ERR-009..011)'
+    'NEX-042 native-exe atomic build-record JSON selftest (REPRO-002/003)'
+    'NEX-043 native-exe sv0.toml schema/discovery/precedence selftest (Section 17)'
+    'NEX-045 native-exe installed runtime bundle manifest/licenses selftest (RT-009)'
+    'NEX-046/060b native-exe installed-layout E2E + default-resolution installed-layout builder selftest (AC-023, OD-009)'
+    'NEX-060c native-exe installed sv0c launcher selftest (OD-009, CLI-017)'
+    'NEX-047 native-exe phase-timing + reference benchmark harness selftest (PERF-001..004)'
+    'native-exe test harness environment control selftest (TEST-006)'
+    'native-exe per-phase negative-test coverage guard selftest (TEST-005)'
+    'native-exe supported-compiler matrix selftest (TOOL-013)'
+    'native-exe known-conflict registry selftest (GOV-007)'
+    'NEX-055a native-exe perf regression budget selftest (PERF-005)'
+    'NEX-055b native-exe concurrent-build performance certification selftest (PERF-006)'
+    'NEX-056a native-exe release-candidate evidence bundle selftest (TEST-009)'
+    'NEX-058 native-exe canonical host-compile CLI selftest (GOV-008)'
+    'NEX-058 native-exe no-duplicate-cc-recipe static guard selftest (GOV-008)'
+    'NEX-055c native-exe no-new-legacy-control-file static guard selftest (REL-004 step 6)'
+    'NEX-059 native-exe production CLI entry point selftest (CLI-007..017, end-to-end)'
+    'NEX-049a native-exe accepted warning policy selftest (TEST-008)'
+    'NEX-049b native-exe full-corpus warning report selftest (TEST-008, §26.6)'
+    'NEX-049c native-exe no-blanket--w acceptance check (TEST-008, §26.6)'
+    'NEX-050a native-exe ASan/UBSan build wrapper selftest (TEST-007, §26.7)'
+    'NEX-050b native-exe sanitizer matrix (-O0/-O2) selftest (TEST-007, §26.7)'
+    'native-exe VM-compose phase-6 patch resilience selftest (P4/D1b hardening)'
+    'NEX-050c native-exe full-corpus sanitizer sweep selftest (TEST-007, §26.7)'
+    'NEX-051b native-exe dev-vs-release behavioral parity selftest (AC-024, §16.5)'
+    'NEX-053a native-exe pinned double-build + project-mode reproducibility selftest (REPRO-001/004, §21.3)'
+    'NEX-019 native-exe compiler-relative runtime resolver selftest (RT-001..003)'
+    'NEX-020 native-exe runtime ABI manifest + hash verification selftest (RT-004/005)'
+    'NEX-054a/b native-exe stable entry ABI version + manifest + compat selftest (ENTRY-010)'
+    'NEX-054b native-exe installed-layout entry-ABI mismatch selftest (ENTRY-010)'
+    'NEX-021 native-exe C-compiler selection precedence selftest (TOOL-001/002)'
+    'NEX-022/044 native-exe C-compiler capability probe + bounded probe cache selftest (TOOL-005/006)'
+    'NEX-023/051a native-exe dev+release profile argv builder selftest (TOOL-004/RT-006, §16.5)'
+    'NEX-024 native-exe sanitized child environment selftest (SEC-006, TOOL-007/008)'
+    'NEX-025 native-exe host failure diagnostics selftest (TOOL-009/010, ERR-003/004)'
+    'NEX-026 native-exe output path + permission/symlink rules selftest (ART-001,005..011)'
+    'NEX-027 native-exe human output formatting selftest (ERR-005..008)'
+    'NEX-028/051c native-exe build assembly + profile selection selftest (TEST-004, §11.4)'
+    'NEX-028 native-exe behavior corpus smoke (fast 3-row subset)'
+    'NEX-029 native-exe runtime-feature coverage selftest (RT-007/008)'
+    'NEX-030 native-exe project-mode build selftest (CLI-009, PIPE-007)'
+    'NEX-031 native-exe contract-mode matrix selftest (PIPE-008/009)'
+    'NEX-032 native-exe prior-output preservation selftest (ART-004, REL-002)'
+    'NEX-033 native-exe symlink/scratch hardening selftest (SEC-003..005)'
+    'NEX-035 native-exe parallel distinct-output builds selftest (REL-001)'
+    'NEX-036 native-exe hostile-path pipeline selftest (PORT-004, SEC-001)'
+  )
+  local -a guard_cmds=(
+    'python3 "$ROOT/scripts/native_exe_harness_env.py" --verify'
+    'python3 "$ROOT/scripts/check_sv0_block_comment_nesting.py"'
+    'python3 "$ROOT/scripts/verify_sv0doc_baseline.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_task_rmd_frontmatter.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_task_rmd_tracking.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_readme_sv0c_gitlink.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_vm_parity_manifest_bootstrap.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_milestone_orientation.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_workspace_milestone_table.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_compiler_sv0_no_raise.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_commit_msg_no_ai_signoff.py" --selftest'
+    'python3 "$ROOT/scripts/verify_m3_g1_track_c.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_m3_g6_pipeline_contract.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_m3_g6_link_merge_contract.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_m3_g6_staging_driver_contract.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_diagnostics_corpus_layout.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_vm_parity_tier2_policy.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_m3_g8_native_recipe_paths.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_m3_g9_retirement_docs_layout.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_m3_gx_bootstrap_policy_docs.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/verify_native_exe_traceability.py" --root "$ROOT" --active-release R1'
+    'python3 "$ROOT/scripts/native_exe_cli.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_phases.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_request.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_fake_emitter.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_fake_cc.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_errors.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_publish.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_output_lock.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_same_output_stress.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_scratch.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_subprocess.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_core_compiler.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_emit.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_entry_scan.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_input_validation.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_entry_signature.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_entry_reserved.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_staging.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_emit_c.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_keep_c.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_json_output.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_build_record.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_config.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_runtime_bundle.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_installed_layout.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_install_launcher.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_benchmark.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_harness_env.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_phase_coverage.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_supported_compilers.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_known_conflicts.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_perf_regression.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_concurrent_perf.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_release_evidence.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_canonical_compile.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_no_duplicate_cc_recipe.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_no_new_legacy_control_file.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_main.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_warning_policy.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_warning_report.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_no_blanket_suppression.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_sanitizer_build.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_sanitizer_matrix.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_vm_compose_patch.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_sanitizer_corpus.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_release_parity.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_repro_harness.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_runtime.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_runtime_manifest.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_entry_abi.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_entry_abi_install_mismatch.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_cc_select.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_cc_probe.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_argv_builder.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_env.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_host_compile.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_output_path.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_human_output.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_build.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_behavior_corpus.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_runtime_feature_smoke.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_project_mode.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_contract_mode.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_preservation.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_hardening_smoke.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_parallel_builds.py" --selftest'
+    'python3 "$ROOT/scripts/native_exe_hostile_paths.py" --selftest'
+  )
+
+  local resultdir
+  resultdir="$(mktemp -d)"
+  printf '%s\n' "${guard_cmds[@]}" >"$resultdir/commands.txt"
+  local njobs n
+  njobs="$(sv0_jobs)"
+  n=${#guard_cmds[@]}
+
+  seq 1 "$n" \
+    | SV0_GUARD_RESULTDIR="$resultdir" xargs -P "$njobs" -I{} bash -c '
+        idx="$1"
+        cmd="$(sed -n "${idx}p" "$SV0_GUARD_RESULTDIR/commands.txt")"
+        if eval "$cmd" >"$SV0_GUARD_RESULTDIR/${idx}.log" 2>&1; then
+          echo ok >"$SV0_GUARD_RESULTDIR/${idx}.status"
+        else
+          echo fail >"$SV0_GUARD_RESULTDIR/${idx}.status"
+        fi
+      ' _ {}
+
+  # A handful of guards (e.g. native_exe_subprocess's process-group
+  # cancellation case) assume their own background helper process gets
+  # scheduled within a fixed real-time window -- a assumption N-way parallel
+  # execution can occasionally violate under contention, even though the
+  # guard is not actually broken. Retry each apparent failure once, alone
+  # (no contention), before treating it as real: a genuine bug fails both
+  # times; a scheduling flake only fails the first.
+  local ec=0 i status cmd
+  for ((i = 1; i <= n; i++)); do
+    status="$(cat "$resultdir/${i}.status" 2>/dev/null || echo fail)"
+    if [[ "$status" != "ok" ]]; then
+      cmd="${guard_cmds[$((i - 1))]}"
+      if eval "$cmd" >"$resultdir/${i}.log" 2>&1; then
+        continue
+      fi
+      ec=1
+      sv0_info "$label: ${guard_descs[$((i - 1))]}"
+      echo "$label: FAILED (see log below)" >&2
+      cat "$resultdir/${i}.log" >&2
+    fi
+  done
+  rm -rf "$resultdir"
   return "$ec"
 }
 
@@ -1101,7 +980,139 @@ self_host_sv0_loop_fill_paths() {
   return 0
 }
 
+# Shared by the parent (run_self_host_sv0_loop) and each parallel per-file
+# worker (_self_host_sv0_loop_one, dispatched via `sv0 __self-host-loop-one`)
+# -- deliberately recomputed in every process instead of passed down, since
+# it's pure env/filesystem-derived logic (no subprocess cost) and every input
+# (SV0_SELF_HOST_COMPILER, SV0_SKIP_SELF_HOST_COMPILER_DIFF, CC, the script's
+# own path) a worker already inherits or can recompute identically.
+_self_host_sv0_loop_setup() {
+  SHL_CC="${CC:-cc}"
+  SHL_SV0_EMIT="${SV0_SELF_HOST_COMPILER:-}"
+  SHL_SV0_EMIT_BOOTSTRAP=0
+  if [[ -z "$SHL_SV0_EMIT" && -z "${SV0_SKIP_SELF_HOST_COMPILER_DIFF:-}" && -x "$ROOT/scripts/sv0-self-host-emit-c.sh" ]]; then
+    SHL_SV0_EMIT="$ROOT/scripts/sv0-self-host-emit-c.sh"
+    SHL_SV0_EMIT_BOOTSTRAP=1
+  fi
+  SHL_OUTDIR="$ROOT/build/self-host-sv0-loop"
+  SHL_BINDIR="$SHL_OUTDIR/bin"
+  SHL_EMITDIR="$SHL_OUTDIR/emit"
+}
+
+# Process exactly one file of the self-host loop (the original per-file loop
+# body, unchanged). Runs as its own process (dispatched by the parent below),
+# so `sv0_fail` (exit 1) only ends this one file's worker.
+_self_host_sv0_loop_one() {
+  local rel="${1:?}"
+  _self_host_sv0_loop_setup
+  local stem tmp1 tmp2 bin ec
+  stem=$(basename "$rel" .sv0)
+  if [[ ! -f "$SV0C/$rel" ]]; then
+    sv0_fail "self-host-sv0-loop: missing source $SV0C/$rel"
+  fi
+  tmp1="$SHL_EMITDIR/${stem}.a.c"
+  tmp2="$SHL_EMITDIR/${stem}.b.c"
+  if ! _self_host_stage0_emit_c_to "$rel" "$tmp1"; then
+    rm -f "$tmp1" "$tmp2"
+    sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
+  fi
+  if ! _self_host_stage0_emit_c_to "$rel" "$tmp2"; then
+    rm -f "$tmp1" "$tmp2"
+    sv0_fail "self-host-sv0-loop: second SV0_SELF_HOST_COMPILER emit failed for $rel"
+  fi
+  if ! cmp -s "$tmp1" "$tmp2"; then
+    echo "self-host-sv0-loop: non-deterministic C emit for $rel" >&2
+    rm -f "$tmp1" "$tmp2"
+    return 1
+  fi
+  rm -f "$tmp2"
+  bin="$SHL_BINDIR/${stem}.out"
+  local clog
+  clog="$(mktemp)"
+  # No -Werror: sv0c’s emitted C may trigger -Wparentheses-equality on Clang; GCC is the CI compiler.
+  if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$tmp1" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
+    cat "$clog" >&2
+    rm -f "$clog" "$tmp1"
+    sv0_fail "self-host-sv0-loop: ${SHL_CC} failed for $rel"
+  fi
+  rm -f "$clog"
+  rm -f "$tmp1"
+  ec=0
+  "$bin" || ec=$?
+  if [[ "$ec" -ne 0 ]]; then
+    sv0_fail "self-host-sv0-loop: native run exit $ec for $rel (expected 0)"
+  fi
+  if [[ -n "$SHL_SV0_EMIT" ]]; then
+    if [[ ! -x "$SHL_SV0_EMIT" ]]; then
+      sv0_fail "self-host-sv0-loop: compiler script not executable: $SHL_SV0_EMIT"
+    fi
+    local tmp_sv0 tmp_err tmp_ref d
+    tmp_sv0="$SHL_EMITDIR/${stem}.sv0-built.c"
+    tmp_err="$(mktemp)"
+    local abs_emit
+    abs_emit="$(_abs_sv0c_rel "$rel")"
+    if ! "$SHL_SV0_EMIT" "$abs_emit" >"$tmp_sv0" 2>"$tmp_err"; then
+      cat "$tmp_err" >&2
+      rm -f "$tmp_sv0" "$tmp_err"
+      sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
+    fi
+    rm -f "$tmp_err"
+    tmp_ref="$SHL_EMITDIR/${stem}.ref.c"
+    if ! _self_host_emit_c_via_sml_heap_to "$rel" "$tmp_ref"; then
+      rm -f "$tmp_sv0" "$tmp_ref"
+      sv0_fail "self-host-sv0-loop: SML heap reference emit failed for $rel"
+    fi
+    if [[ "${SV0_SELF_HOST_LOOP_MODE:-bytediff}" == "behavioral" ]]; then
+      # Behavioral-mode (PC-6b): the acceptance is emit+cc+run BEHAVIORAL parity
+      # (identical stdout + exit), not byte-identical C. This is the correct
+      # surface for a second, INDEPENDENT sv0-built compiler whose C diverges
+      # from SML by design (temp naming / decl order / expr structuring — only
+      # 40/98 byte-identical, ~109% churn; see doc/l0-closure-roadmap.md B2). Use
+      # this when SV0_SELF_HOST_COMPILER is the native mega-TU binary. The default
+      # (bytediff) keeps the fast SML-delegate local path exact.
+      local bref bsv0 rout sout clog2 re2 se2
+      bref="$SHL_BINDIR/${stem}.ref.out"
+      bsv0="$SHL_BINDIR/${stem}.shc.out"
+      rout="$(mktemp)"; sout="$(mktemp)"; clog2="$(mktemp)"
+      if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bref" "$tmp_ref" \
+           "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
+        cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
+        sv0_fail "self-host-sv0-loop: cc of SML reference C failed for $rel"
+      fi
+      if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bsv0" "$tmp_sv0" \
+           "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
+        cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
+        sv0_fail "self-host-sv0-loop: cc of self-host compiler C failed for $rel"
+      fi
+      rm -f "$clog2"
+      re2=0; se2=0
+      "$bref" >"$rout" 2>/dev/null || re2=$?
+      "$bsv0" >"$sout" 2>/dev/null || se2=$?
+      rm -f "$tmp_ref" "$tmp_sv0" "$bref" "$bsv0"
+      if [[ "$re2" -ne "$se2" ]] || ! cmp -s "$rout" "$sout"; then
+        rm -f "$rout" "$sout"
+        sv0_fail "self-host-sv0-loop: behavioral parity differs for $rel (SML exit $re2 vs compiler exit $se2)"
+      fi
+      rm -f "$rout" "$sout"
+    else
+      set +e
+      diff -u "$tmp_ref" "$tmp_sv0"
+      d=$?
+      set -e
+      rm -f "$tmp_ref" "$tmp_sv0"
+      if [[ "$d" -ne 0 ]]; then
+        sv0_fail "self-host-sv0-loop: self-host compiler C differs from SML for $rel"
+      fi
+    fi
+  fi
+  return 0
+}
+
 # Pilot for milestone 3 sv0→sv0 loop: deterministic SV0_SELF_HOST_COMPILER emit, native cc+run, optional diff vs direct SML heap.
+# Files are independent (separate stems, separate tmp/bin paths), so they run
+# in parallel across up to sv0_jobs() worker processes instead of one at a
+# time -- each worker is a fresh `sv0 __self-host-loop-one <rel>` invocation
+# (cheap: re-parsing this script is <10ms, far below the cc/sml cost per file).
 run_self_host_sv0_loop() {
   require_sml
   ensure_sv0_self_host_compiler
@@ -1117,8 +1128,7 @@ run_self_host_sv0_loop() {
     export SV0_SELF_HOST_COMPILER="$ROOT/build/sv0-megatu-compiler-native"
     export SV0_SELF_HOST_LOOP_MODE="${SV0_SELF_HOST_LOOP_MODE:-behavioral}"
   fi
-  local _cc="${CC:-cc}"
-  if ! command -v "$_cc" >/dev/null 2>&1; then
+  if ! command -v "${CC:-cc}" >/dev/null 2>&1; then
     sv0_fail "self-host-sv0-loop: C compiler not found (install cc or set CC)"
   fi
   if ! _self_host_stage0_heap_ready; then
@@ -1131,120 +1141,38 @@ run_self_host_sv0_loop() {
     sv0_warn "self-host-sv0-loop: empty pilot list; skipped"
     return 0
   fi
-  local sv0_emit="${SV0_SELF_HOST_COMPILER:-}"
-  local sv0_emit_bootstrap=0
-  if [[ -z "$sv0_emit" && -z "${SV0_SKIP_SELF_HOST_COMPILER_DIFF:-}" && -x "$ROOT/scripts/sv0-self-host-emit-c.sh" ]]; then
-    sv0_emit="$ROOT/scripts/sv0-self-host-emit-c.sh"
-    sv0_emit_bootstrap=1
+  _self_host_sv0_loop_setup
+  mkdir -p "$SHL_BINDIR" "$SHL_EMITDIR"
+
+  local resultdir
+  resultdir="$(mktemp -d)"
+  local njobs
+  njobs="$(sv0_jobs)"
+  printf '%s\n' "${SELF_HOST_SV0_LOOP_RELS[@]}" \
+    | SV0_LOOP_SCRIPT="$ROOT/scripts/sv0" SV0_LOOP_RESULTDIR="$resultdir" \
+      xargs -P "$njobs" -I{} bash -c '
+        rel="$1"
+        log="$SV0_LOOP_RESULTDIR/$(printf "%s" "$rel" | tr "/" "_").log"
+        if ! "$SV0_LOOP_SCRIPT" __self-host-loop-one "$rel" >"$log" 2>&1; then
+          printf "%s\n" "$rel" >> "$SV0_LOOP_RESULTDIR/FAILED"
+        fi
+      ' _ {}
+
+  if [[ -s "$resultdir/FAILED" ]]; then
+    local frel flog
+    while IFS= read -r frel || [[ -n "$frel" ]]; do
+      [[ -z "$frel" ]] && continue
+      flog="$resultdir/$(printf "%s" "$frel" | tr "/" "_").log"
+      echo "self-host-sv0-loop: FAILED $frel" >&2
+      [[ -f "$flog" ]] && tail -40 "$flog" >&2
+    done <"$resultdir/FAILED"
+    rm -rf "$resultdir"
+    sv0_fail "self-host-sv0-loop: one or more file(s) failed (see above)"
   fi
-  local rel stem tmp1 tmp2 outdir bindir emitdir bin ec
-  outdir="$ROOT/build/self-host-sv0-loop"
-  bindir="$outdir/bin"
-  emitdir="$outdir/emit"
-  mkdir -p "$bindir" "$emitdir"
-  for rel in "${SELF_HOST_SV0_LOOP_RELS[@]}"; do
-    stem=$(basename "$rel" .sv0)
-    if [[ ! -f "$SV0C/$rel" ]]; then
-      sv0_fail "self-host-sv0-loop: missing source $SV0C/$rel"
-    fi
-    tmp1="$emitdir/${stem}.a.c"
-    tmp2="$emitdir/${stem}.b.c"
-    if ! _self_host_stage0_emit_c_to "$rel" "$tmp1"; then
-      rm -f "$tmp1" "$tmp2"
-      sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
-    fi
-    if ! _self_host_stage0_emit_c_to "$rel" "$tmp2"; then
-      rm -f "$tmp1" "$tmp2"
-      sv0_fail "self-host-sv0-loop: second SV0_SELF_HOST_COMPILER emit failed for $rel"
-    fi
-    if ! cmp -s "$tmp1" "$tmp2"; then
-      echo "self-host-sv0-loop: non-deterministic C emit for $rel" >&2
-      rm -f "$tmp1" "$tmp2"
-      return 1
-    fi
-    rm -f "$tmp2"
-    local bin="$bindir/${stem}.out"
-    local clog
-    clog="$(mktemp)"
-    # No -Werror: sv0c’s emitted C may trigger -Wparentheses-equality on Clang; GCC is the CI compiler.
-    if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$tmp1" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
-      cat "$clog" >&2
-      rm -f "$clog" "$tmp1"
-      sv0_fail "self-host-sv0-loop: ${_cc} failed for $rel"
-    fi
-    rm -f "$clog"
-    rm -f "$tmp1"
-    ec=0
-    "$bin" || ec=$?
-    if [[ "$ec" -ne 0 ]]; then
-      sv0_fail "self-host-sv0-loop: native run exit $ec for $rel (expected 0)"
-    fi
-    if [[ -n "$sv0_emit" ]]; then
-      if [[ ! -x "$sv0_emit" ]]; then
-        sv0_fail "self-host-sv0-loop: compiler script not executable: $sv0_emit"
-      fi
-      local tmp_sv0 tmp_err tmp_ref d
-      tmp_sv0="$emitdir/${stem}.sv0-built.c"
-      tmp_err="$(mktemp)"
-      local abs_emit
-      abs_emit="$(_abs_sv0c_rel "$rel")"
-      if ! "$sv0_emit" "$abs_emit" >"$tmp_sv0" 2>"$tmp_err"; then
-        cat "$tmp_err" >&2
-        rm -f "$tmp_sv0" "$tmp_err"
-        sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
-      fi
-      rm -f "$tmp_err"
-      tmp_ref="$emitdir/${stem}.ref.c"
-      if ! _self_host_emit_c_via_sml_heap_to "$rel" "$tmp_ref"; then
-        rm -f "$tmp_sv0" "$tmp_ref"
-        sv0_fail "self-host-sv0-loop: SML heap reference emit failed for $rel"
-      fi
-      if [[ "${SV0_SELF_HOST_LOOP_MODE:-bytediff}" == "behavioral" ]]; then
-        # Behavioral-mode (PC-6b): the acceptance is emit+cc+run BEHAVIORAL parity
-        # (identical stdout + exit), not byte-identical C. This is the correct
-        # surface for a second, INDEPENDENT sv0-built compiler whose C diverges
-        # from SML by design (temp naming / decl order / expr structuring — only
-        # 40/98 byte-identical, ~109% churn; see doc/l0-closure-roadmap.md B2). Use
-        # this when SV0_SELF_HOST_COMPILER is the native mega-TU binary. The default
-        # (bytediff) keeps the fast SML-delegate local path exact.
-        local bref bsv0 rout sout clog2 re2 se2
-        bref="$bindir/${stem}.ref.out"
-        bsv0="$bindir/${stem}.shc.out"
-        rout="$(mktemp)"; sout="$(mktemp)"; clog2="$(mktemp)"
-        if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bref" "$tmp_ref" \
-             "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
-          cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
-          sv0_fail "self-host-sv0-loop: cc of SML reference C failed for $rel"
-        fi
-        if ! "$_cc" -std=c99 -O0 -I"$SV0C/runtime" -o "$bsv0" "$tmp_sv0" \
-             "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
-          cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
-          sv0_fail "self-host-sv0-loop: cc of self-host compiler C failed for $rel"
-        fi
-        rm -f "$clog2"
-        re2=0; se2=0
-        "$bref" >"$rout" 2>/dev/null || re2=$?
-        "$bsv0" >"$sout" 2>/dev/null || se2=$?
-        rm -f "$tmp_ref" "$tmp_sv0" "$bref" "$bsv0"
-        if [[ "$re2" -ne "$se2" ]] || ! cmp -s "$rout" "$sout"; then
-          rm -f "$rout" "$sout"
-          sv0_fail "self-host-sv0-loop: behavioral parity differs for $rel (SML exit $re2 vs compiler exit $se2)"
-        fi
-        rm -f "$rout" "$sout"
-      else
-        set +e
-        diff -u "$tmp_ref" "$tmp_sv0"
-        d=$?
-        set -e
-        rm -f "$tmp_ref" "$tmp_sv0"
-        if [[ "$d" -ne 0 ]]; then
-          sv0_fail "self-host-sv0-loop: self-host compiler C differs from SML for $rel"
-        fi
-      fi
-    fi
-  done
-  if [[ -n "$sv0_emit" ]]; then
-    if [[ "$sv0_emit_bootstrap" -eq 1 ]]; then
+  rm -rf "$resultdir"
+
+  if [[ -n "$SHL_SV0_EMIT" ]]; then
+    if [[ "$SHL_SV0_EMIT_BOOTSTRAP" -eq 1 ]]; then
       sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; bootstrap wrapper matched SML (set SV0_SELF_HOST_COMPILER to native sv0 compiler when ready)"
     elif [[ "${SV0_SELF_HOST_LOOP_MODE:-bytediff}" == "behavioral" ]]; then
       sv0_ok "self-host-sv0-loop: ${#SELF_HOST_SV0_LOOP_RELS[@]} file(s); emit+cc+run OK; SV0_SELF_HOST_COMPILER BEHAVIORAL parity with SML (identical stdout+exit; C differs by design)"
@@ -1260,7 +1188,7 @@ run_self_host_sv0_loop() {
 run_bootstrap_build() {
   require_sml
   mkdir -p "$SV0C/build/vm"
-  local rel stem sv0b out log
+  local rel stem sv0b
   bootstrap_fill_sv0_paths
   local -a rel_paths=("${BOOTSTRAP_SV0_RELS[@]}")
   if ((${#rel_paths[@]} == 0)); then
@@ -1268,39 +1196,106 @@ run_bootstrap_build() {
     sv0_ok "bootstrap-build: skipped (no sources)"
     return 0
   fi
+  local -a stems=()
   for rel in "${rel_paths[@]}"; do
-    stem=$(basename "$rel" .sv0)
-    sv0b="$SV0C/build/vm/${stem}.sv0b"
     if [[ ! -f "$SV0C/$rel" ]]; then
       echo "bootstrap-build: missing file $SV0C/$rel" >&2
       return 1
     fi
-    log="$(mktemp)"
-    if ! (cd "$SV0C" && echo "CM.make \"sources.cm\"; OS.Process.exit(Main.main ((), [\"--target=vm\", \"$rel\"]));" | sml >"$log" 2>&1); then
-      tail -30 "$log"
-      rm -f "$log"
-      return 1
+    stems+=("$(basename "$rel" .sv0)")
+  done
+
+  # Batch every listed .sv0 through ONE sml process (one CM.make + N in-
+  # process Main.compileFileVm calls) instead of a fresh `sml` cold start
+  # per file — the same batching verify_behavior_corpus_vm.py already uses
+  # for its compile phase (Main.compileFileVm is --target=vm's underlying
+  # emitter). Cuts ~N `sml` process spawns down to 1.
+  local tab=$'\t'
+  local paths_sml="" rel_esc
+  for rel in "${rel_paths[@]}"; do
+    rel_esc="${rel//\\/\\\\}"
+    rel_esc="${rel_esc//\"/\\\"}"
+    paths_sml+="${paths_sml:+, }\"$rel_esc\""
+  done
+  local compile_script clog
+  compile_script=$(cat <<SML
+CM.make "sources.cm";
+fun doCompile p = (Main.compileFileVm p; print ("BRES\t" ^ p ^ "\tOK\n"))
+  handle _ => print ("BRES\t" ^ p ^ "\tERR\n");
+val () = List.app doCompile [${paths_sml}];
+OS.Process.exit OS.Process.success;
+SML
+)
+  clog="$(mktemp)"
+  if ! (cd "$SV0C" && printf '%s\n' "$compile_script" | sml >"$clog" 2>&1); then
+    echo "bootstrap-build: sml compile pass failed" >&2
+    tail -60 "$clog" >&2
+    rm -f "$clog"
+    return 1
+  fi
+  local failed=0
+  for rel in "${rel_paths[@]}"; do
+    if ! grep -qF "BRES${tab}${rel}${tab}OK" "$clog" \
+       || grep -qF "BRES${tab}${rel}${tab}ERR" "$clog"; then
+      echo "bootstrap-build: compile failed for $rel" >&2
+      failed=1
     fi
-    if grep -q 'Error:\|sv0c error:\|error\[' "$log"; then
-      echo "bootstrap-build: compile log for $rel:" >&2
-      cat "$log" >&2
-      rm -f "$log"
-      return 1
-    fi
+  done
+  if grep -q 'Error:\|sv0c error:\|error\[' "$clog"; then
+    echo "bootstrap-build: compile log reported error(s)" >&2
+    failed=1
+  fi
+  if ((failed)); then
+    echo "bootstrap-build: compile log (tail):" >&2
+    tail -100 "$clog" >&2
+    rm -f "$clog"
+    return 1
+  fi
+  rm -f "$clog"
+  for rel in "${rel_paths[@]}"; do
+    stem=$(basename "$rel" .sv0)
+    sv0b="$SV0C/build/vm/${stem}.sv0b"
     if [[ ! -f "$sv0b" ]]; then
-      echo "bootstrap-build: missing $sv0b (for $rel) — log follows:" >&2
-      cat "$log" >&2
-      rm -f "$log"
-      return 1
-    fi
-    rm -f "$log"
-    out="$(cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml 2>&1)" || true
-    if ! echo "$out" | grep -q "vm_exit:0"; then
-      echo "bootstrap-build: FAIL $rel ($(echo "$out" | grep 'vm_exit:' | head -1))" >&2
-      echo "$out" | tail -20
+      echo "bootstrap-build: missing $sv0b (for $rel) after compile" >&2
       return 1
     fi
   done
+
+  # Run every emitted .sv0b on sv0vm in ONE sml process (same batching for
+  # the VM-run leg).
+  local i cases_sml=""
+  for i in "${!rel_paths[@]}"; do
+    cases_sml+="${cases_sml:+, }(\"${stems[$i]}\",\"$SV0C/build/vm/${stems[$i]}.sv0b\")"
+  done
+  local run_script rlog
+  run_script=$(cat <<SML
+use "src/main.sml";
+fun runOne (stem, path) =
+  (let val e = Interpreter.runFile path
+   in print ("VMRES\t" ^ stem ^ "\t" ^ Int.toString e ^ "\n") end)
+  handle _ => print ("VMRES\t" ^ stem ^ "\tERR\n");
+val () = List.app runOne [${cases_sml}];
+OS.Process.exit OS.Process.success;
+SML
+)
+  rlog="$(mktemp)"
+  (cd "$SV0VM" && printf '%s\n' "$run_script" | sml >"$rlog" 2>&1) || true
+  local bad=0 line status
+  for i in "${!stems[@]}"; do
+    line="$(grep -F "VMRES${tab}${stems[$i]}${tab}" "$rlog" | tail -1)"
+    status="${line##*"${tab}"}"
+    if [[ "$status" != "0" ]]; then
+      echo "bootstrap-build: FAIL ${rel_paths[$i]} (vm_exit:${status:-none})" >&2
+      bad=1
+    fi
+  done
+  if ((bad)); then
+    echo "bootstrap-build: VM run log (tail):" >&2
+    tail -60 "$rlog" >&2
+    rm -f "$rlog"
+    return 1
+  fi
+  rm -f "$rlog"
   sv0_ok "bootstrap-build: all listed (or top-level lib/*.sv0) programs passed on VM"
   return 0
 }
@@ -1807,6 +1802,13 @@ case "$cmd" in
     ;;
   self-host-sv0-loop)
     run_self_host_sv0_loop || exit 1
+    ;;
+  __self-host-loop-one)
+    # Hidden: one parallel worker of run_self_host_sv0_loop, dispatched via
+    # xargs -P against a fresh `sv0` invocation per file. Not a public command.
+    rel="${1:-}"
+    if [[ -z "$rel" ]]; then usage; exit 1; fi
+    _self_host_sv0_loop_one "$rel"
     ;;
   build-self-host-compiler)
     bash "$ROOT/scripts/build-sv0-self-host-compiler.sh"

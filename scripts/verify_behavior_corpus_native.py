@@ -4,13 +4,52 @@ cc it, run it, and assert the process exit code matches the manifest.
 
 Manifest: sv0c/test/behavior/manifest.txt, one row per line:  rel | expected_exit
 Run by `./scripts/sv0 test`. Complements the diagnostics (reject) corpus.
+
+Rows are independent (each gets its own temp dir, own emit/compile/run), so
+they run across a small thread pool instead of one at a time -- each row's
+real work (the native-emitter subprocess, `cc`, running the binary) already
+releases the GIL, so threads parallelize the wait just like separate
+processes would, without the extra interpreter-startup cost of one.
 """
 from __future__ import annotations
 import argparse, os, subprocess, sys, tempfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from native_exe_canonical_compile import compile_and_publish
 from native_exe_errors import BuildError
+
+
+def _job_count() -> int:
+    env = os.environ.get("SV0_JOBS")
+    if env:
+        try:
+            return max(1, int(env))
+        except ValueError:
+            pass
+    return os.cpu_count() or 4
+
+
+def _run_one(sv0c: Path, wrapper: Path, rel: str, want: int) -> str | None:
+    """Returns None on success, else an error message."""
+    case = sv0c / rel
+    if not case.is_file():
+        return f"missing case {case}"
+    with tempfile.TemporaryDirectory() as td:
+        cpath = os.path.join(td, "out.c")
+        binp = os.path.join(td, "out.bin")
+        emit = subprocess.run([str(wrapper), str(case)], capture_output=True, text=True, timeout=120)
+        if emit.returncode != 0:
+            return f"emit failed for {rel}\n{(emit.stderr or '')[-1500:]}"
+        Path(cpath).write_text(emit.stdout)
+        try:
+            compile_and_publish(cpath, binp)
+        except BuildError as exc:
+            return f"cc failed for {rel}\n{str(exc)[-1500:]}"
+        got = subprocess.run([binp], capture_output=True).returncode
+        if got != want:
+            return f"{rel} exited {got}, expected {want}"
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     # NEX-055c/REL-004 closure chunk 5: `wrapper` (migrated in chunk 4) now
     # passes argv[1] through via SV0_DRV_REQUEST internally, not the legacy
     # /tmp/.sv0_drv_path control file -- there is nothing to keep present here.
-    n = 0
+    rows: list[tuple[str, int]] = []
     for raw in manifest.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -50,31 +89,22 @@ def main(argv: list[str] | None = None) -> int:
         except ValueError:
             print(f"verify_behavior_corpus_native: bad exit {want_s!r} for {rel}", file=sys.stderr)
             return 1
-        case = sv0c / rel
-        if not case.is_file():
-            print(f"verify_behavior_corpus_native: missing case {case}", file=sys.stderr)
-            return 1
-        with tempfile.TemporaryDirectory() as td:
-            cpath = os.path.join(td, "out.c")
-            binp = os.path.join(td, "out.bin")
-            emit = subprocess.run([str(wrapper), str(case)], capture_output=True, text=True, timeout=120)
-            if emit.returncode != 0:
-                print(f"verify_behavior_corpus_native: emit failed for {rel}", file=sys.stderr)
-                print((emit.stderr or "")[-1500:], file=sys.stderr)
-                return 1
-            Path(cpath).write_text(emit.stdout)
-            try:
-                compile_and_publish(cpath, binp)
-            except BuildError as exc:
-                print(f"verify_behavior_corpus_native: cc failed for {rel}", file=sys.stderr)
-                print(str(exc)[-1500:], file=sys.stderr)
-                return 1
-            got = subprocess.run([binp], capture_output=True).returncode
-            if got != want:
-                print(f"verify_behavior_corpus_native: {rel} exited {got}, expected {want}", file=sys.stderr)
-                return 1
-        n += 1
-    print(f"verify_behavior_corpus_native: OK ({n} program(s))", file=sys.stderr)
+        rows.append((rel, want))
+
+    failures: list[str] = []
+    with ThreadPoolExecutor(max_workers=_job_count()) as pool:
+        futures = {pool.submit(_run_one, sv0c, wrapper, rel, want): rel for rel, want in rows}
+        for fut in futures:
+            err = fut.result()
+            if err is not None:
+                failures.append(err)
+
+    if failures:
+        for err in failures:
+            print(f"verify_behavior_corpus_native: {err}", file=sys.stderr)
+        print(f"verify_behavior_corpus_native: {len(failures)} failure(s)", file=sys.stderr)
+        return 1
+    print(f"verify_behavior_corpus_native: OK ({len(rows)} program(s))", file=sys.stderr)
     return 0
 
 

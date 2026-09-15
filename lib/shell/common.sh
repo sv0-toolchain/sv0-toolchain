@@ -31,3 +31,20 @@ sv0_require_dir() {
         sv0_fail "directory not found: $dir"
     fi
 }
+
+# Worker count for parallel per-file/per-case stages (self-host-sv0-loop,
+# test-guards, ...). SV0_JOBS overrides; otherwise the host's online CPU
+# count (getconf, then sysctl for macOS, then a fixed fallback).
+sv0_jobs() {
+    if [[ -n "${SV0_JOBS:-}" ]]; then
+        printf '%s' "$SV0_JOBS"
+        return 0
+    fi
+    local n
+    n="$(getconf _NPROCESSORS_ONLN 2>/dev/null || true)"
+    if [[ -z "$n" ]]; then
+        n="$(sysctl -n hw.ncpu 2>/dev/null || true)"
+    fi
+    [[ -n "$n" && "$n" -ge 1 ]] || n=4
+    printf '%s' "$n"
+}
