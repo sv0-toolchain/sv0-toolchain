@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T06:00:00Z"
+updated: "2026-09-14T07:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -367,6 +367,48 @@ what should be rejected — see `sv0-strings`' own E0302/E0309/E0323 pattern);
 C backend lowering (again largely free — `unsafe` has no runtime
 representation, only a checker-time gate).
 
+**FFI-005 addendum (2026-09-14):** the grounding audit's claim ("no
+`unsafe { ... }` block-expression form at all") turned out to describe the
+*semantic* gap accurately but understate the *syntactic* state slightly —
+`parser.sv0`'s primary-expression parser already had a branch for token 93
+(`unsafe`) that recognized `unsafe { ... }` and successfully parsed it, but
+by simply skipping the keyword and returning the following `{ ... }` as an
+ordinary, indistinguishable `ExprBlock` — confirmed by compiling
+`fn main() -> i32 { unsafe { return 5; } }` before this slice landed: it
+already compiled and ran correctly, `unsafe`-ness silently discarded at
+the AST level. FFI-005 added a new `ExprUnsafeBlock` (tag 34, wrapping the
+inner block's own node index) so the marker survives past parsing, for
+FFI-006 to act on. Landing this safely (not regressing that
+already-working program) needed patching 4 sites beyond the parser
+production itself, found by tracing every place that dispatches on the
+expression-tag scheme and would either hard-fail or silently drop a value
+for an unrecognized tag: `checker.sv0`'s `synth_expr` (hard error on an
+unmatched tag — `unsafe { 5 }` would fail to type-check at all without a
+transparent tag-34 arm), `lowering.sv0`'s `lower_expr_to_value` (silently
+returned `Value::VUnit` for an unmatched tag — worse than an error, `let x
+= unsafe { 5 };` would compile but silently discard the block's tail
+value), and `parser.sv0`'s `expr_ends_with_braced_block` (used to decide
+whether a following statement needs a separating `;`; without a tag-34
+arm, `unsafe { foo(); } bar();` would have started requiring a semicolon
+it didn't need before this tag existed — a real parsing regression for
+code shaped like existing blocks). Two more `lowering.sv0` sites
+(`lower_for_effect`'s and `lower_into_var_instrs`'s own tag==9 arms) got
+matching tag==34 arms too — not strictly required for correctness (both
+already "self-heal" through their default fallthrough once
+`lower_expr_to_value` is fixed), but avoid an otherwise-needless extra
+result temp for a discarded value. All four transparent-passthrough sites
+just delegate to the exact same handling the wrapped `ExprBlock` already
+gets — `unsafe` has no type or runtime effect of its own yet, matching
+Epic B's own framing exactly. Verified end to end: `unsafe { ... }` as a
+statement, as a `let` initializer, and as a bare block-with-tail all
+compile and run correctly on both the C and VM backends (the VM backend
+needed zero separate changes — it shares `lowering.sv0`'s single pass with
+the C backend, confirmed no VM-specific expr-tag dispatch exists anywhere
+in `vm_codegen.sv0`/`codegen.sv0`). The `unsafe fn` function-modifier path
+(`ps_skip_optional_unsafe`, a separate item-level parse, not
+`parse_primary_expr`) is untouched and confirmed still compiles unaffected
+— FFI-007's own open question, not touched here.
+
 **Epic C — `extern`/FFI declarations, C backend.** New declaration syntax
 (scope decision 3); checker validation of the declared signature against sv0
 types with an explicit safe↔C type mapping (reusing `sv0-strings`'s own safe
@@ -416,7 +458,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-003b | A | Checker: pointer *creation expression* type-checking (`&x as *const T` synthesizes as a real pointer type, not the current blanket `TY_INT()`) | FFI-003 | **done** — sv0c `1a925f32` (turned out NOT to need the 73-call-site thread; see addendum below) |
 | FFI-004 | A | C backend lowering for raw pointer types: fn param/return signatures (`megatu_cty_of_root`) + a real checker crash fix (`pty_root_to_type_tag` missing tags 8/9) | FFI-003b | **done** — sv0c (pending commit); see FFI-004 addendum below |
 | FFI-004b | A | C backend lowering: `let`-bound pointer variables + the `as *const/mut T` cast expression itself, via a new `Instr::DeclPtr` variant | FFI-004 | **done** — sv0c `87e23cdf`; Epic A (raw pointer types) fully closed |
-| FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax | FFI-001 | todo |
+| FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax (new `ExprUnsafeBlock` AST tag; transparent checker/lowering pass-through) | FFI-001 | **done** — sv0c `7cd537bc` |
 | FFI-006 | B | Checker: dereference/FFI-call-outside-`unsafe` diagnostic (stable id, e.g. next free `E0###`) | FFI-005, FFI-004b | todo |
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 | todo |
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser) | FFI-001 | todo |
