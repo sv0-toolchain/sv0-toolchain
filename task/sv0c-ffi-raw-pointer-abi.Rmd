@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-15T00:00:00Z"
+updated: "2026-09-15T01:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -478,6 +478,49 @@ must document what safety invariant the *caller* must uphold — this is
 exactly what `strings_unsafe_abi`'s own docstring already promises: "every
 function documents its full caller obligations").
 
+**FFI-008 addendum (2026-09-15):** landed cleanly and mostly as scoped, with
+one real finding. `#[extern_c] fn name(args) -> T;` is a new item tag
+(`ItemExternFn`, tag 8) — but the actual PARSING work was small, because
+`parse_fn_body` already had exactly the grammar needed: **M4-S-033** built
+a bodyless-`ItemFn` path (`;` instead of `{ ... }`) for trait method
+declarations, and that's structurally identical to a header-only extern
+declaration. Reused it wholesale, tagging the result 8
+instead of 0 (`vec_set` after the call, rather than threading a new
+parameter through `parse_fn_body`'s few call sites) so checker/lowering
+can tell an intentional extern declaration apart from an accidental
+bodyless top-level fn (already silently rejected today with no attribute
+at all — confirmed by testing `fn foo(x: i32) -> i32;` alone, no
+`#[extern_c]`, before writing any of this).
+
+**A real bug found and fixed**: `parse_program`'s own top-level loop
+already called `ps_skip_attributes` on each item's start position *before*
+calling `parse_item` — a pre-existing line, there for handling trailing
+attributes before EOF. The new `#[extern_c]` detector was written to run
+*inside* `parse_item`, which seemed right by that function's own existing
+structure (it already does `ps_skip_attributes` internally too, as a
+fallback for ordinary items) — but `parse_program` was silently consuming
+the exact same tokens one layer above, so `parse_item` never saw them:
+both sides had a skip step, and the wrong one ran first. Manual unit tests
+initially looked like they were passing (parsing succeeded, `r >= 0`) with
+a WRONG result (tag 0 instead of 8) that only a self-test's exact
+assertion caught. Fixed by passing `parse_program`'s unskipped position
+into `parse_item` and letting `parse_item` own all attribute handling
+itself, which is where the actual decision needs to happen anyway.
+**Lesson**: when adding a check to a callee, verify what the *caller*
+already did to the input before the callee gets it — a caller that
+pre-processes tokens "for convenience" and a callee that wants to inspect
+those same tokens is a classic layering bug, and it doesn't announce
+itself as a crash — the code that used the skipped-past position genuinely
+worked, just not on the input the developer thought it was seeing.
+
+Deliberate boundary at the end of this slice, same shape as FFI-002
+before FFI-003: the declaration parses and compiles to real (empty) C
+output; a body on it is a parse error (E0100); *calling* the declared
+function still fails cleanly today (E0300, unbound name — `check_program`
+never puts an `ItemExternFn`'s name in the callable-functions table) since
+that requires FFI-009 (checker validation) and FFI-010 (real lowering),
+neither built yet.
+
 **Epic D — the ABI manifest (SS-203's actual deliverable).** Build the
 compile-time-only machine-checked manifest per scope decision 4: generated
 from the declared `#[extern_c]` signatures, checked for internal consistency
@@ -519,7 +562,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax (new `ExprUnsafeBlock` AST tag; transparent checker/lowering pass-through) | FFI-001 | **done** — sv0c `7cd537bc` |
 | FFI-006 | B | Checker: dereference-outside-`unsafe` diagnostic, E0550 (`check_unsafe_gate`); FFI-call half deferred, no surface until Epic C | FFI-005, FFI-004b | **done** — sv0c `73cbd37c` |
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate: **deprecated** (user decision, 2026-09-15) — stays parsed, permanently inert; sv0doc + parser comment updated; regression fixture locks "no whole-body exemption" | FFI-006 | **done** — sv0c (pending commit) |
-| FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser) | FFI-001 | todo |
+| FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser, new `ItemExternFn` item tag) | FFI-001 | **done** — sv0c `58fcbd8b` |
 | FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | todo |
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | todo |
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | todo |
