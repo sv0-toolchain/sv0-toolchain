@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T08:00:00Z"
+updated: "2026-09-15T00:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -518,7 +518,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-004b | A | C backend lowering: `let`-bound pointer variables + the `as *const/mut T` cast expression itself, via a new `Instr::DeclPtr` variant | FFI-004 | **done** — sv0c `87e23cdf`; Epic A (raw pointer types) fully closed |
 | FFI-005 | B | Parser: `unsafe { ... }` block-expression syntax (new `ExprUnsafeBlock` AST tag; transparent checker/lowering pass-through) | FFI-001 | **done** — sv0c `7cd537bc` |
 | FFI-006 | B | Checker: dereference-outside-`unsafe` diagnostic, E0550 (`check_unsafe_gate`); FFI-call half deferred, no surface until Epic C | FFI-005, FFI-004b | **done** — sv0c `73cbd37c` |
-| FFI-007 | B | Resolve function-modifier `unsafe`'s fate (real gate vs. deprecate) per scope note | FFI-006 | todo |
+| FFI-007 | B | Resolve function-modifier `unsafe`'s fate: **deprecated** (user decision, 2026-09-15) — stays parsed, permanently inert; sv0doc + parser comment updated; regression fixture locks "no whole-body exemption" | FFI-006 | **done** — sv0c (pending commit) |
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser) | FFI-001 | todo |
 | FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | todo |
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | todo |
@@ -558,11 +558,16 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
   argument ships in v1 too) — FFI-008's own implementation detail, not
   re-litigated at the scope-decision level (decision 3 already locked the
   structural choice: attribute-based, not a new keyword).
-- Whether the function-level `unsafe` modifier (currently parsed-and-discarded)
-  should become "the whole function body is implicitly an unsafe block" (Rust's
-  own semantics) or be deprecated in favor of requiring explicit `unsafe { }`
-  everywhere — affects FFI-007 and is a real ergonomics/safety tradeoff, not a
-  mechanical choice.
+- ~~Whether the function-level `unsafe` modifier should become "the whole
+  function body is implicitly an unsafe block" (Rust's own semantics) or be
+  deprecated~~ — **resolved by FFI-007 (2026-09-15): deprecated.** The
+  modifier stays parsed (backward compatibility with existing sources) and
+  permanently inert; it grants no whole-body exemption from FFI-006's
+  `unsafe { }`-only gate. User's call, not a mechanical one — a function-wide
+  modifier lets one unsafe operation silently loosen the safety gate for
+  every other line in that function, which is exactly the class of "silently
+  accept what should be rejected" this toolchain's own diagnostics discipline
+  exists to avoid.
 - Whether Epic D's manifest should eventually grow a link-time verification
   step (the "stronger" option noted in Epic D) — explicitly deferred, not
   decided, to keep FFI-012/013 from ballooning.
