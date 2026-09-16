@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-16T00:00:00Z"
+updated: "2026-09-16T01:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -653,6 +653,57 @@ safe↔C mapping). A stronger link-time/symbol probe is explicitly deferred
 (decision 4) — over-scoping this epic into that territory is the single
 biggest risk of this whole doc ballooning past what SS-203 actually needs.
 
+**FFI-012 addendum (2026-09-16) — ABI manifest format, locked:** FFI-012 is
+this epic's own design-only slice (FFI-013 is the implementation); no
+`sv0c` code changes land with it, matching FFI-001's own precedent (a pure
+scope-lock commit, no submodule bump). Working backward from what scope
+decision 4 actually still leaves open after FFI-009/FFI-010 already shipped:
+
+- **What the manifest checks for, precisely.** Decision 4 names two
+  consistency rules. The second — "every declared type has a real safe↔C
+  mapping" — is **already fully enforced**, per-declaration, by FFI-009's
+  `check_extern_fn_signature` (E0551); the manifest doesn't re-check it, it
+  relies on it (a program with any E0551 violation never reaches manifest
+  consistency checking at all, since `check_program` already fails first).
+  The manifest's own, still-unbuilt job is the **first** rule: no two
+  `#[extern_c]` declarations may name the **same C symbol** with
+  **differing signatures** — a real bug FFI-009's per-declaration check
+  structurally cannot catch, since each conflicting declaration can be
+  individually FFI-safe on its own and only the pair is wrong (two
+  header-shaped prototypes for one C symbol that disagree is UB at link
+  time in real C too, exactly the class of silent-miscompile risk Epic D
+  exists to close). **Decided**: `#[extern_c(name = "...")]` is still
+  deferred (scope decision 3), so for v1 the symbol name is always the sv0
+  fn's own name — the manifest keys on that.
+- **In-memory only, no generated file.** "Compile-time-only" (decision 4)
+  means exactly that: the manifest is a table built fresh inside
+  `check_program` for the duration of one compile, to power the
+  consistency check, and discarded afterward — never written to disk,
+  versioned, or consumed by any tool outside that one compile. A persisted
+  artifact would immediately raise format-stability and cross-compile
+  questions Epic D's own risk callout above already fences off as
+  out-of-scope ("a stronger link-time/symbol probe... explicitly
+  deferred"); if a real consumer (e.g. `sv0-strings` SS-203/204) later
+  needs a shareable, persisted list, that is exactly that deferred
+  follow-up, not pre-built speculatively here.
+- **Where it's built and where it runs.** `register_all_item_fns`
+  (`checker.sv0`, extended for `ItemExternFn` in FFI-010) already walks
+  every `#[extern_c]` item once and has each one's name token + resolved
+  param/return type tags on hand at that exact point — the natural place
+  to also accumulate a small parallel table (symbol name token, a
+  serialized signature key built from the already-resolved type tags) with
+  zero extra AST walking. The cross-check itself is architecturally the
+  same shape as the existing `struct_enum_name_clash_str` (`checker.sv0`)
+  — a single pass over a just-built name table, run once, right after item
+  classification and before any per-item body checking — not a new kind of
+  pass, a new instance of a pattern `check_program` already has.
+- **Diagnostic.** A real conflict is a new code, the next free slot after
+  E0551: **E0552**, `"conflicting #[extern_c] declaration for symbol
+  '<name>'"` — FFI-013's to wire, not built here. Two declarations with
+  the **identical** signature are explicitly allowed (silently), matching
+  real C's own tolerance for repeating an identical `extern` prototype —
+  only a genuine mismatch is an error.
+
 **Epic E — VM-side stable rejection (not full support).** Per scope decision
 1: when a project importing `strings_unsafe_abi` (or using raw
 pointers/`unsafe`/`extern` at all) is compiled for the VM backend, the VM
@@ -690,7 +741,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | **done** — sv0c `43a60fb5` |
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | **done** — sv0c `e4ec8b49` |
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | **done** — sv0c `ef47af2f`, scripts/verify_extern_c_caller_obligations.py |
-| FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | todo |
+| FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | **done** — design-only, see FFI-012 addendum above |
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | todo |
 | FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | todo |
 | FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | todo |
