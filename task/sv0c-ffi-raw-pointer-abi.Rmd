@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-16T01:00:00Z"
+updated: "2026-09-16T02:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -704,6 +704,44 @@ decision 4 actually still leaves open after FFI-009/FFI-010 already shipped:
   real C's own tolerance for repeating an identical `extern` prototype —
   only a genuine mismatch is an error.
 
+**FFI-013 addendum (2026-09-16):** wired exactly what FFI-012 designed, no
+deviation from the plan needed. `register_all_item_fns` (`checker.sv0`)
+got one new output parameter, `fn_is_extern` — a boolean vector, one entry
+per successfully-registered fn-table row, pushed inline in the tag-0/tag-8
+branches that already call `item_fn_ty_to_table`, so it stays index-
+aligned with `fn_names`/`fn_ret_types`/etc without a second walk over
+`it`. New `extern_fn_manifest_conflict` cross-checks it once, called from
+`check_program` immediately after `register_all_item_fns` returns: pairwise
+string-name comparison over the extern-only rows (`extern_fn_signature_eq`
+compares ret type, param count, and every param type via the *existing*
+`fn_table_ret_type`/`fn_table_param_count`/`fn_table_param_type` helpers —
+no new flat-array encoding needed, the fn table already carries everything
+a signature comparison needs). On a name match with a signature mismatch,
+`check_program` pushes E0552 and fails the whole program, exactly like
+FFI-009/FFI-010's own diagnostics.
+
+**One deliberate deviation, called out at design time and confirmed
+here:** `struct_enum_name_clash_str`, the function this cross-check's own
+shape mirrors, is itself silent on conflict — its caller returns a bare
+`-1` with no diagnostic pushed (an older pattern in this checker, predating
+the FFI series' own "never silently accept what should be rejected"
+diagnostics discipline). `extern_fn_manifest_conflict`'s caller does NOT
+follow that older precedent — it pushes a real, message-bearing E0552,
+matching E0550/E0551's own standard rather than the checker's oldest
+silent-reject shape. Mirroring a function's *structure* (build a name
+list, compare pairwise) did not mean inheriting its *diagnostic
+behavior* — worth stating plainly since the two could easily be conflated.
+
+Verified end to end, not just via unit tests on synthetic fn tables:
+`test/diagnostics/cases/extern_c_conflicting_redeclaration.sv0` declares
+`#[extern_c] fn c_thing(x: i32) -> i32;` then `#[extern_c] fn c_thing(x:
+i32, y: i32) -> i32;` — two individually FFI-safe declarations (either
+alone passes FFI-009's E0551) that conflict as a pair — and gets E0552.
+`test/behavior/cases/ffi_extern_c_identical_redecl_ok.sv0` declares the
+exact same `#[extern_c] fn c_dup(x: i32) -> i32;` twice and confirms it
+still compiles and runs (exit 7) — the manifest's "identical redecl stays
+legal" rule, not just asserted in the design doc but actually exercised.
+
 **Epic E — VM-side stable rejection (not full support).** Per scope decision
 1: when a project importing `strings_unsafe_abi` (or using raw
 pointers/`unsafe`/`extern` at all) is compiled for the VM backend, the VM
@@ -742,7 +780,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | **done** — sv0c `e4ec8b49` |
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | **done** — sv0c `ef47af2f`, scripts/verify_extern_c_caller_obligations.py |
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | **done** — design-only, see FFI-012 addendum above |
-| FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | todo |
+| FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | **done** — sv0c `6f500b5c` |
 | FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | todo |
 | FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | todo |
 
