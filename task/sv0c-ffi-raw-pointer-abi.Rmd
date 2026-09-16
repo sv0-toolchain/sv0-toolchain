@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-15T03:00:00Z"
+updated: "2026-09-16T00:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -606,6 +606,45 @@ non-static `int abs(int x);` prototype, linking against the platform's own
 libc, and returning 42. Confirmed no regression on every prior
 `#[extern_c]` fixture (parses, signature validation, body-rejection).
 
+**FFI-011 addendum (2026-09-16):** landed as a standalone script, not a
+`checker.sv0` diagnostic — the reason is structural, found before writing
+any detection logic: sv0's lexer discards ALL comments, `///` included,
+before the parser ever sees a single token (`lexer.sv0`'s
+`skip_line_comment`/`skip_block_comment` just advance past comment text
+and emit nothing). A doc comment's presence is therefore invisible to the
+compiler proper by construction — enforcing this inside `checker.sv0`
+would first require teaching the lexer a new doc-comment token kind and
+threading it through the parser to attach to items, a much larger and
+differently-scoped change than "does a `///` line exist above this
+declaration." `scripts/verify_extern_c_caller_obligations.py` (new, in the
+meta-repo, not `sv0c/`) scans raw `.sv0` source text directly instead —
+the same approach `sv0-strings/tools/check_doc_fences.py` already takes
+for its own doc-fence discipline (there: Markdown code fences; here: `.sv0`
+source lines), which is what "lint, mirrors `sv0-strings`' own doc-fence
+discipline" in this slice's own backlog entry meant. Wired into
+`./scripts/sv0 test-guards` alongside every other Python regression guard
+(2 entries: a `--selftest` unit-testing the detector's own regex logic on
+synthetic input, and the real `--root` scan).
+
+Detection is presence-only (no prose-content check — matches this
+toolchain's own established preference for structural checks over fragile
+content heuristics, see FFI-006/550's real-dereference-only gate): a line
+matching `^\s*#\[extern_c\b` (the attribute starting its own line, only
+leading whitespace before it) needs a `///`-prefixed line immediately
+above it, blank lines skipped over. That anchor is deliberate, not
+incidental — a naive substring search for `#[extern_c` hits five places in
+`sv0c/lib/{checker,parser,megaTU-main,resolver}.sv0` alone, all either
+inside a `/* ... */` comment explaining the syntax or a string-literal
+self-test fixture (`"#[extern_c] fn c_abs(x: i32) -> i32;"`), none of them
+real declarations; the line-start anchor excludes every one of those
+automatically, confirmed via a real grep sweep before committing to the
+rule, not by assumption. All 5 pre-existing `#[extern_c]` fixtures in
+`sv0c/test/` got a real `///` caller-obligation line added (e.g. `abs`'s
+own actual C caller obligation — `x` must not be `i32::MIN`, since
+`abs(INT_MIN)` overflows and is UB) so the workspace passes its own new
+guard from the moment it lands, and so the lint has real, no-longer
+synthetic passing examples the day it ships — not just its own selftest.
+
 **Epic D — the ABI manifest (SS-203's actual deliverable).** Build the
 compile-time-only machine-checked manifest per scope decision 4: generated
 from the declared `#[extern_c]` signatures, checked for internal consistency
@@ -650,7 +689,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser, new `ItemExternFn` item tag) | FFI-001 | **done** — sv0c `58fcbd8b` |
 | FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | **done** — sv0c `43a60fb5` |
 | FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | **done** — sv0c `e4ec8b49` |
-| FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | todo |
+| FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | **done** — sv0c `ef47af2f`, scripts/verify_extern_c_caller_obligations.py |
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | todo |
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | todo |
 | FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | todo |
