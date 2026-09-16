@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-15T02:00:00Z"
+updated: "2026-09-15T03:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -557,6 +557,55 @@ whitelist doesn't misfire on legitimate declarations) and
 `string` parameter). Both native-only, like every `#[extern_c]` fixture so
 far — the syntax doesn't exist in the sml-legacy parser.
 
+**FFI-010 addendum (2026-09-15):** landed the real lowering half of Epic C —
+calling a declared `#[extern_c]` fn now compiles AND links, closing the
+boundary FFI-008/FFI-009 both stopped short of. **Two separate fixes were
+needed, not one**, and finding the second was the actual work of this
+slice: FFI-008's own addendum already named `check_program` (checker.sv0)
+as the reason a call failed with E0300, but the native pipeline's real
+Phase 3 is `resolve_program` (`megatu-main.sv0`, calling into
+`resolver.sv0`) — it runs *before* checker.sv0 and is the actual source of
+that E0300, via `register_item` only ever matching `ItemFn` (tag 0).
+Fixing checker.sv0's `register_all_item_fns` alone (needed anyway, for
+arity/type checking) still left the call unresolved at the earlier
+resolver phase. Both got the same `ItemExternFn` (tag 8) branch added,
+mirroring `ItemFn`'s own handling exactly in each. **Lesson**: when an
+addendum from a prior slice names "the" place a boundary lives, treat that
+as a hypothesis to verify against the real pipeline order (`megatu-main.sv0`'s
+own `main()`, which calls resolve then check, is the ground truth), not a
+given — the diagnostic code alone (E0300) doesn't say which of two
+functions that could plausibly emit it actually did.
+
+C output: `megatu_emit_program` (`megaTU-main.sv0`) never saw
+`ItemExternFn`s at all before this slice — `lower()`'s own block-producing
+loop only pushes a block for an item with a body (`body_root >= 0`), and an
+extern declaration's is always -1, so nothing crashed, the declaration just
+produced zero C output (exactly FFI-008's own stated boundary). Added a
+dedicated pass, separate from the block loop, that builds a prototype-only
+declaration per `ItemExternFn` via the same `megatu_cty_of_root`/
+`megatu_param_list` a real function's own prototype uses (so a raw-pointer
+parameter or return type, FFI-004's own C-pointer mapping, renders
+identically whether the fn has a body or not) — with one deliberate
+difference from every internal fn's own fwd-declaration: **no `static`**.
+`static` gives internal linkage, which is exactly backwards for a symbol
+this translation unit does not define and expects the linker to resolve
+elsewhere; every other fn prototype in this compiler's output is `static`
+specifically because it *is* defined locally, so this is the one place
+that rule inverts. `megatu_fn_ret_cty`'s own item lookup (used to type a
+call's result temp when no `let x: T = ...` annotation is present) got the
+same tag-8 extension — without it, a call to an extern fn returning
+anything other than the accidentally-correct `int` default would have
+silently truncated, the exact BUGS.md #5 shape already documented for f64
+user functions, just reachable through a different item tag.
+
+Verified against the Epic's own completion criterion, not a synthetic
+stub: `test/behavior/cases/ffi_extern_c_call_libc.sv0` declares
+`#[extern_c] fn abs(x: i32) -> i32;` and calls it — a genuinely external,
+non-sv0-emitted C function (libc's own `abs()`), compiling to a real
+non-static `int abs(int x);` prototype, linking against the platform's own
+libc, and returning 42. Confirmed no regression on every prior
+`#[extern_c]` fixture (parses, signature validation, body-rejection).
+
 **Epic D — the ABI manifest (SS-203's actual deliverable).** Build the
 compile-time-only machine-checked manifest per scope decision 4: generated
 from the declared `#[extern_c]` signatures, checked for internal consistency
@@ -600,7 +649,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-007 | B | Resolve function-modifier `unsafe`'s fate: **deprecated** (user decision, 2026-09-15) — stays parsed, permanently inert; sv0doc + parser comment updated; regression fixture locks "no whole-body exemption" | FFI-006 | **done** — sv0c (pending commit) |
 | FFI-008 | C | `#[extern_c] fn ...;` declaration syntax (parser, new `ItemExternFn` item tag) | FFI-001 | **done** — sv0c `58fcbd8b` |
 | FFI-009 | C | Checker: safe↔C type-mapping validation for `#[extern_c]` signatures | FFI-008, FFI-004b | **done** — sv0c `43a60fb5` |
-| FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | todo |
+| FFI-010 | C | C backend lowering: real extern-C call codegen | FFI-009 | **done** — sv0c `e4ec8b49` |
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | todo |
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | todo |
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | todo |
@@ -622,9 +671,10 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
       byte-identical in its C output before and after this feature lands
       (regression guard — this is additive, must not perturb the existing
       language).
-- [ ] A real "hello from C" FFI round-trip (an `extern "C"` call to a genuinely
+- [x] A real "hello from C" FFI round-trip (an `extern "C"` call to a genuinely
       external, non-sv0-emitted C function, e.g. libc's own `abs()`) compiles,
-      links, and runs correctly on the C backend.
+      links, and runs correctly on the C backend. (FFI-010, 2026-09-15 —
+      `test/behavior/cases/ffi_extern_c_call_libc.sv0`.)
 - [ ] The VM backend rejects the same project with a stable, documented
       diagnostic — never a crash, never a silent wrong-answer compile.
 - [ ] `sv0-strings` SS-203/204 land, `strings_unsafe_abi` ships real functions
