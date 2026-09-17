@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-17T00:00:00Z"
+updated: "2026-09-17T01:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -853,6 +853,85 @@ proving the declared signatures really link against a real C library. This is
 `sv0-strings`-side work tracked as SS-203/204 in its own checklist, not part
 of this doc's slice table.
 
+**FFI-016 addendum (2026-09-17) — two real sv0c bugs, found grounding SS-203,
+fixed here as a prerequisite:** SS-203's own first function is SPEC Appendix
+B.8's worked example, `#[extern_c] fn strlen(s: *const byte) -> usize;`.
+Writing it and actually compiling it (not just checking the emitter's own
+exit code) surfaced two independent gaps neither of Epics A–E's own fixtures
+ever exercised — every prior `#[extern_c]` fixture either used only `i32`
+(`abs`, never touching a reserved libc name at all) or was SV0-defined
+(`ffi_ptr_create_and_pass.sv0`, never linked against a real header):
+
+1. **SS-U18 mangling had no `#[extern_c]` awareness.** `link.sv0`'s
+   reserved-C-name collision-avoidance pass (`link_u15_collision_set` /
+   `link_u15_mangle_source`) is a pre-parse, source-TEXT rewrite that
+   module-prefixes any top-level `fn` sharing a name with a reserved libc
+   identifier — necessary so e.g. `strings_c23::strlen` (an ordinary,
+   differently-signatured safe function) doesn't collide with the real
+   `strlen`. It had zero concept of `#[extern_c]`, so it silently renamed
+   `strlen`'s own declaration (and any call site) to
+   `strings_unsafe_abi__strlen` — defeating the entire point of binding the
+   real symbol, with no diagnostic, just a linker "undefined reference"
+   waiting to happen (or, worse in `--project` mode, a silently-emptied
+   translation unit — see below). Fixed: `link_u15_line_is_extern_c_decl`
+   (new, text-scans the line directly above a `fn` def for `#[extern_c]`,
+   mirroring FFI-011's own lint detection) exempts a declaration's own
+   definition line from ever entering `collide`; `link_u15_extern_decl_pairs`
+   (new) builds a `"<modid>#<name>"` set across the whole `--project`
+   listing so `link_u15_mangle_source` can ALSO recognize a qualified
+   (`mod::name`) or `use`-imported call site targeting a KNOWN extern_c
+   declaration and leave it bare, never `mod__name`. An ordinary same-named
+   function in another module (`strings_c23::strlen`) is still correctly
+   mangled — verified explicitly, not just assumed, since a fix that also
+   suppressed THAT case would silently reintroduce the exact C-level name
+   collision SS-U18 exists to prevent. New self-test
+   `test_link_u15_extern_c_not_mangled` (`link.sv0`) covers exactly this
+   coexistence: one extern_c `strlen` + one ordinary `strings_c23::strlen`
+   in the same project, both call sites, asserting the extern one stays
+   literal and the ordinary one stays mangled.
+2. **`usize`/`byte` don't match real libc header spellings.** Every
+   sv0c-emitted C file `#include`s `<string.h>`/`<stdlib.h>`/`<stdio.h>`
+   via `sv0_runtime.h`, which already declares `size_t strlen(const char *)`.
+   sv0's own `usize`→`uintptr_t` and `byte`→`uint8_t` mappings (correct for
+   sv0's internal runtime representation) produce
+   `uintptr_t strlen(const uint8_t *)` — a real, hard
+   `error: conflicting types for 'strlen'`, confirmed by actually compiling
+   the emitted C, not assumed from the emitter's own zero exit code (which
+   only proves the SV0-TO-C step succeeded, not that the C itself compiles).
+   Fixed with two new `megaTU-main.sv0` functions,
+   `megatu_cty_of_root_extern_c` / `megatu_param_list_extern_c` — exact
+   mirrors of the existing `megatu_cty_of_root` / `megatu_param_list`
+   except `usize`→`size_t` and `byte`→`char` at the primitive leaf (recurses
+   correctly through pointer levels too, so `*const usize` gets the
+   exact-ABI spelling, not just a top-level return/param) — used only for
+   `ItemExternFn` (tag 8) forward-declaration emission; ordinary functions
+   keep their existing, correct internal spelling untouched. New behavioral
+   fixture `test/behavior/cases/ffi_extern_c_size_t_mapping.sv0`: declares
+   this exact signature, calls real libc `strlen` on the address of a
+   single zero byte (well-defined — reads exactly the one byte that is
+   genuinely ours, no UB, matching `ffi_ptr_create_and_pass.sv0`'s own
+   scalar-address-of pattern rather than an untested `[byte; N]` array
+   literal), asserts exit 42. Added to `ffi-vm-reject-manifest.txt`
+   (FFI-014's gate) alongside the rest of the FFI corpus.
+
+**A related but explicitly OUT-of-scope finding, not fixed here:** `[byte; N]`
+array literals do not lower to a real contiguous C array — `&buf[0]` takes
+the address of a temporary holding one element read out of what is actually
+a boxed `Vec`, not a pointer into 6 contiguous bytes. This would matter for
+a `strlen` call over a REAL multi-byte buffer (SS-204's own "external-linkage
+test corpus proving real linkage" scope, not SS-203's or this slice's). Not
+pursued here — orthogonal to both bugs above, and this slice's own smoke
+test (a single zero byte, matching the existing scalar-address-of pattern)
+sidesteps it entirely without depending on a fix. Flagged for whoever picks
+up SS-204.
+
+Both fixes verified end to end by hand before landing any test: emitted C
+inspected directly, then actually compiled+linked+run (`cc -std=c99`,
+`size_t strlen(const char * s);` unmangled, zero conflicting-types errors,
+zero link errors, real exit 42) — both in isolation and coexisting with the
+FULL `sv0-strings` corpus (`strings_c23::strlen` mangled correctly alongside
+it), not just checked for a green compiler exit code.
+
 ## sliced backlog (`FFI-###`)
 
 Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
@@ -876,6 +955,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | **done** — sv0c `6f500b5c` |
 | FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | **done** — sv0c (pending commit); see FFI-014 addendum above |
 | FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | **done** — sv0c (pending commit); see FFI-015 addendum above |
+| FFI-016 | C | Fix two real sv0c bugs found grounding SS-203: SS-U18 mangling unaware of `#[extern_c]`; `usize`/`byte` extern_c type-mapping conflicts with real libc headers | FFI-010, FFI-011 | **done** — sv0c `9621d2e1`; see FFI-016 addendum above |
 
 Sequencing: A and B can start in parallel once FFI-001 locks scope (B's
 dereference-gating check depends on A's pointer type existing, hence
