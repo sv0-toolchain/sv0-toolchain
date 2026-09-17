@@ -1,9 +1,9 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-17T01:00:00Z"
+updated: "2026-09-17T02:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
-state: active
+state: complete
 tags:
   - sv0
   - sv0c
@@ -844,14 +844,16 @@ script + doc. The `sv0c` gitlink still bumps (the golden files are new
 `sv0c`-tracked content) but there is no stage0/vm-parity golden regen
 needed, since no `.sv0` source changed.
 
-**Epic F — sv0-strings consumer slices (SS-203/204, in sv0-strings).** Once
-A–E land and are pinned upstream: SS-203 writes the actual
-`strings_unsafe_abi` functions + their ABI-manifest entries + caller-obligation
-docs; SS-204 adds the feature-gate (excluded from default build, separately
-versioned per the module's own docstring) + external-linkage test corpus
-proving the declared signatures really link against a real C library. This is
+**Epic F — sv0-strings consumer slices (SS-203/204, in sv0-strings) — CLOSED
+2026-09-17.** SS-203 wrote the actual `strings_unsafe_abi` function
+(`strlen`, real linkage) + its caller-obligation doc; SS-204 added the
+feature-gate (excluded from default build, separately versioned via
+`abi_version()`) + the external-linkage test corpus (`scripts/
+unsafe_abi_gate`, its own CI step) proving the declared signature really
+links against, and is answered by, a real C library. This is
 `sv0-strings`-side work tracked as SS-203/204 in its own checklist, not part
-of this doc's slice table.
+of this doc's slice table; full detail there and in
+`sv0-strings/docs/unsafe-abi-feature-gate.md`.
 
 **FFI-016 addendum (2026-09-17) — two real sv0c bugs, found grounding SS-203,
 fixed here as a prerequisite:** SS-203's own first function is SPEC Appendix
@@ -981,8 +983,10 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
 - [x] The VM backend rejects the same project with a stable, documented
       diagnostic — never a crash, never a silent wrong-answer compile.
       (FFI-014, 2026-09-16 — E0553, `scripts/verify_vm_ffi_gate.py`.)
-- [ ] `sv0-strings` SS-203/204 land, `strings_unsafe_abi` ships real functions
+- [x] `sv0-strings` SS-203/204 land, `strings_unsafe_abi` ships real functions
       with real caller-obligation docs and a real external-linkage test.
+      (SS-203/204, 2026-09-17 — sv0-strings `scripts/unsafe_abi_gate`,
+      `docs/unsafe-abi-feature-gate.md`.)
 
 ## open questions
 
