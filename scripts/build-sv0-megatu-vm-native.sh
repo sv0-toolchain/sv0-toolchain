@@ -83,7 +83,21 @@ assert n == 1, "compose main shape changed: `let source`"
 #    upstream drift in megatu_emit_program's own signature, silently, with no
 #    test-time signal until someone happened to run this script by hand. See
 #    that module's own docstring for the full history.
-vm_tail = r'''    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program's 4 parallel
+vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
+       DeclPtr/TY_PTR/extern-call handling at all, so a program using raw
+       pointers, `unsafe` blocks, or `#[extern_c]` would otherwise either hit
+       an unhandled codegen path or silently emit wrong bytecode. Refuse it
+       here, before any bytecode is built, with a real diagnostic (E0553) --
+       never a crash, never a silent miscompile. Runs on the same arenas
+       phases 1-5 already populated (it/ptt/bet), no extra pass needed. */
+    let vm_ffi_diag: Vec<i32> = vec_new();
+    if program_uses_ffi_features(it, ptt, bet) {
+        vec_push(vm_ffi_diag, 553);
+        vec_push(vm_ffi_diag, 0 - 1);
+        megatu_emit_diagnostics(vm_ffi_diag, source, starts);
+        return 7;
+    }
+    /* VM tail (P4/D1b): bridge lower's out_blocks -> emit_program's 4 parallel
        block vecs, then vm_codegen.emit_program -> bytecode.encode_strings /
        encode_file -> write_bytes. Reuses megatu_find_item_by_label /
        megatu_type_root_name_tok (defined above for the C emit). */

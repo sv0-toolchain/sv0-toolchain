@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-16T02:00:00Z"
+updated: "2026-09-16T03:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -751,6 +751,58 @@ required so `strings_unsafe_abi`'s own SPEC framing ("never imported by a
 safe module; excluded from the default build") has a real, tested backend
 story rather than an untested assumption.
 
+**FFI-014 addendum (2026-09-16):** implements Epic E exactly as scoped —
+stable rejection, not VM support. The gate is a purely syntactic predicate,
+`program_uses_ffi_features` (`checker.sv0`), over arenas phases 1-5 already
+populate: true if any item has tag 8 (`ItemExternFn`), any parser type-node
+has tag 8/9 (`TyPtr`/`TyPtrMut` — covers param types, return types, `let`
+annotations, and `as *const/mut T` cast targets, since they all thread
+through the one flat type-node arena), or any expr node has tag 34
+(`ExprUnsafeBlock`). No resolved-type info is needed, so it runs before any
+bytecode is built.
+
+The type-node scan is the one that actually matters: `ffi_ptr_create_and_pass.sv0`
+(FFI-004b) creates and passes a raw pointer with **no** `unsafe` block
+anywhere in the source (pointer *creation* was never gated to `unsafe`,
+only *dereference* — FFI-006's own scope), so a scan of `ExprUnsafeBlock`
+alone would have silently missed it. This was caught before implementation
+by checking that fixture's own source, not assumed.
+
+The gate itself lives only in the VM driver, not in `checker.sv0`'s shared
+`check_program` — `checker.sv0` stays target-agnostic (mirroring
+`lower_vm_target()`'s own precedent in `lowering.sv0`: a target-aware
+*decision* applied at the target-specific callsite, not baked into
+shared, backend-independent passes). The callsite is the Python-patched
+VM-tail in `scripts/build-sv0-megatu-vm-native.sh` (phase 6 for the native
+VM compose main): on a positive match it pushes a new diagnostic, **E0553**
+("raw pointers, `unsafe` blocks, and `#[extern_c]` declarations are not
+supported on the VM backend"), through the same `megatu_emit_diagnostics`
+machinery the C backend already uses, and returns a dedicated exit code
+(**7** — the first free code after the compose main's existing 2-6), before
+building any bytecode. The C backend is untouched: it doesn't call this
+predicate at all, so every FFI-002..013 program still compiles and runs
+there exactly as before (re-verified directly: all 7 fixtures below
+compiled by `build/sv0-megatu-compiler-native` with no change in behavior).
+
+Verified end to end via a new gate, `scripts/verify_vm_ffi_gate.py`, driven
+by `sv0c/test/vm-parity/ffi-vm-reject-manifest.txt` — the 7 existing native
+FFI fixtures from Epics A-D (`ffi_ptr_create_and_pass`,
+`ffi_unsafe_block_transparent`, `ffi_unsafe_deref_gated`,
+`ffi_extern_c_decl_parses`, `ffi_extern_c_signature_valid`,
+`ffi_extern_c_call_libc`, `ffi_extern_c_identical_redecl_ok`) — each
+confirmed to exit 7 with `E0553` in stderr on `build/sv0-megatu-vm-native`.
+Reusing the existing corpus rather than writing new fixtures kept this
+slice's own testing DRY while still exercising every FFI surface area
+(raw pointers, `unsafe`, `#[extern_c]`, identical-redecl) against the VM
+gate specifically. `vm_behavioral_parity.py`'s existing fixture set (no
+FFI usage) is the regression guard that ordinary programs still compile
+and run correctly on the VM backend, unaffected by this gate — also
+re-run and confirmed clean. 4 new `checker.sv0` self-tests cover the
+predicate directly: a clean program (false), an extern item alone (true),
+a pointer type node alone with no unsafe/extern (true — the
+`ffi_ptr_create_and_pass.sv0`-shaped case), and an unsafe block alone
+(true).
+
 **Epic F — sv0-strings consumer slices (SS-203/204, in sv0-strings).** Once
 A–E land and are pinned upstream: SS-203 writes the actual
 `strings_unsafe_abi` functions + their ABI-manifest entries + caller-obligation
@@ -781,7 +833,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-011 | C | Caller-obligation doc-comment requirement (lint, mirrors `sv0-strings`' own doc-fence discipline) | FFI-010 | **done** — sv0c `ef47af2f`, scripts/verify_extern_c_caller_obligations.py |
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | **done** — design-only, see FFI-012 addendum above |
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | **done** — sv0c `6f500b5c` |
-| FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | todo |
+| FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | **done** — sv0c (pending commit); see FFI-014 addendum above |
 | FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | todo |
 
 Sequencing: A and B can start in parallel once FFI-001 locks scope (B's
@@ -803,8 +855,9 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
       external, non-sv0-emitted C function, e.g. libc's own `abs()`) compiles,
       links, and runs correctly on the C backend. (FFI-010, 2026-09-15 —
       `test/behavior/cases/ffi_extern_c_call_libc.sv0`.)
-- [ ] The VM backend rejects the same project with a stable, documented
+- [x] The VM backend rejects the same project with a stable, documented
       diagnostic — never a crash, never a silent wrong-answer compile.
+      (FFI-014, 2026-09-16 — E0553, `scripts/verify_vm_ffi_gate.py`.)
 - [ ] `sv0-strings` SS-203/204 land, `strings_unsafe_abi` ships real functions
       with real caller-obligation docs and a real external-linkage test.
 
