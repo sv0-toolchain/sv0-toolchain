@@ -808,6 +808,10 @@ run_test() {
   if ! python3 "$ROOT/scripts/verify_vm_ffi_gate.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: FFI regression corpus (FFI-015 — E0550/E0551/E0552/E0553 never fire on safe code)"
+  if ! python3 "$ROOT/scripts/verify_ffi_regression_corpus.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
   if ! run_self_host_stage0_golden; then
     ec=1
@@ -827,7 +831,7 @@ run_test() {
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
   fi
-  sv0_ok "sv0 test: units + C integration + VM integration + diagnostics corpus behavioral + bootstrap-in-sv0 + vm-parity SML goldens + optional vm-parity tier-2 emit + VM FFI gate + stage0 golden + self-host sv0 loop + native --project acceptance + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline/link-merge/staging-driver contracts + M3 G7 diagnostics layout + M3 G7 tier-2 policy + M3 G8 native recipe paths + M3 G9 retirement docs + doctests"
+  sv0_ok "sv0 test: units + C integration + VM integration + diagnostics corpus behavioral + bootstrap-in-sv0 + vm-parity SML goldens + optional vm-parity tier-2 emit + VM FFI gate + FFI regression corpus + stage0 golden + self-host sv0 loop + native --project acceptance + block-comment guard + sv0doc baseline + task YAML + README sv0c gitlink + vm-parity manifest ⊆ bootstrap + compiler sv0 no-raise + M3 G1 slice path audit + M3 G6 pipeline/link-merge/staging-driver contracts + M3 G7 diagnostics layout + M3 G7 tier-2 policy + M3 G8 native recipe paths + M3 G9 retirement docs + doctests"
 }
 
 run_doctests() {

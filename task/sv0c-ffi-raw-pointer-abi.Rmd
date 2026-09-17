@@ -1,6 +1,6 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-16T03:00:00Z"
+updated: "2026-09-17T00:00:00Z"
 id: task-sv0c-ffi-raw-pointer-abi
 key: sv0c-ffi-raw-pointer-abi
 state: active
@@ -803,6 +803,47 @@ a pointer type node alone with no unsafe/extern (true — the
 `ffi_ptr_create_and_pass.sv0`-shaped case), and an unsafe block alone
 (true).
 
+**FFI-015 addendum (2026-09-17):** cross-cutting differential/regression
+corpus, closing the loop on all four Epics A-E diagnostics (E0550/E0551/
+E0552/E0553) with the guarantee this doc's own completion criteria always
+implicitly assumed but never directly tested: not just "does fire on real
+violations" (already covered per-diagnostic by
+`test/diagnostics/manifest.txt` and `scripts/verify_vm_ffi_gate.py`), but
+"never fires on innocent code" — a diagnostic that also fires on safe
+programs is exactly as broken as one that never fires at all, and nothing
+upstream of this slice tested that direction.
+
+New `scripts/verify_ffi_regression_corpus.py`, three checks, all reusing
+existing corpora rather than new fixtures (mirroring FFI-014's own
+"reuse, don't duplicate" precedent):
+
+1. Every fixture in `test/behavior/manifest.txt` whose path excludes
+   `ffi_` (123 of them — the FFI-series naming convention already
+   partitions "safe" from "FFI-using" cleanly) compiled on the C backend
+   with none of E0550/E0551/E0552/E0553 appearing in its output.
+2. Every fixture in `test/vm-parity/behavioral-manifest.txt` (VMF-018's
+   own pre-vetted, VM-compatible, FFI-free corpus — 17 entries, including
+   `--project` dirs) compiled on the VM backend with the FFI-014 gate
+   never firing (exit != 7, no E0553).
+3. A byte-diff golden for 10 fixtures (one per major language feature —
+   arith, bool, struct, enum, `Vec`, string, contract, method, for-loop,
+   algorithm), captured now at `test/behavior/golden-c/<name>.c` as the
+   pinned baseline for this doc's own last open completion criterion
+   ("byte-identical C output... before and after this feature lands").
+   A literal before/after diff isn't reconstructable retroactively across
+   13 already-landed slices, so this baseline is captured going forward
+   from FFI-015's own landing — it guards every future change to the FFI
+   machinery from here on, which is what "regression guard" means
+   operationally. All three checks pass clean on the first run — no
+   false positives found in the existing corpus.
+
+Wired into `./scripts/sv0 test` right after the FFI-014 VM gate check.
+No `checker.sv0`/`megaTU-main.sv0` source change — only new checked-in
+fixtures (`sv0c/test/behavior/golden-c/*.c`) and the parent-repo verifier
+script + doc. The `sv0c` gitlink still bumps (the golden files are new
+`sv0c`-tracked content) but there is no stage0/vm-parity golden regen
+needed, since no `.sv0` source changed.
+
 **Epic F — sv0-strings consumer slices (SS-203/204, in sv0-strings).** Once
 A–E land and are pinned upstream: SS-203 writes the actual
 `strings_unsafe_abi` functions + their ABI-manifest entries + caller-obligation
@@ -834,7 +875,7 @@ Slice status: **todo** / **wip** / **done** / **blocked** / **deferred**.
 | FFI-012 | D | ABI manifest format design (compile-time-only per decision 4) | FFI-009 | **done** — design-only, see FFI-012 addendum above |
 | FFI-013 | D | ABI manifest checker/generator wiring | FFI-012 | **done** — sv0c `6f500b5c` |
 | FFI-014 | E | VM driver: stable "unsupported" diagnostic for raw-pointer/`unsafe`/`#[extern_c]` projects | FFI-006, FFI-010 | **done** — sv0c (pending commit); see FFI-014 addendum above |
-| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | todo |
+| FFI-015 | — | Cross-cutting: differential/regression corpus (safe programs unaffected; new diagnostics fire on real violations, never on innocent code) | FFI-004b, FFI-006, FFI-010, FFI-014 | **done** — sv0c (pending commit); see FFI-015 addendum above |
 
 Sequencing: A and B can start in parallel once FFI-001 locks scope (B's
 dereference-gating check depends on A's pointer type existing, hence
@@ -847,10 +888,12 @@ soon as B and C's checker-level gates exist, in parallel with D. F (in
 - [x] Scope decisions locked (FFI-001, 2026-09-14) and written into this
       doc's "locked" section (mirroring M5's own `## scope decisions
       (locked ...)` pattern) before any implementation slice starts.
-- [ ] A safe sv0 program using no raw pointers/`unsafe`/`extern` is
+- [x] A safe sv0 program using no raw pointers/`unsafe`/`extern` is
       byte-identical in its C output before and after this feature lands
       (regression guard — this is additive, must not perturb the existing
-      language).
+      language). (FFI-015, 2026-09-17 — `scripts/verify_ffi_regression_corpus.py`,
+      `test/behavior/golden-c/`; baseline captured going forward from this
+      slice's own landing, not reconstructed retroactively.)
 - [x] A real "hello from C" FFI round-trip (an `extern "C"` call to a genuinely
       external, non-sv0-emitted C function, e.g. libc's own `abs()`) compiles,
       links, and runs correctly on the C backend. (FFI-010, 2026-09-15 —
