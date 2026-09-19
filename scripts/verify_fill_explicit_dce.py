@@ -56,29 +56,36 @@ STORE_INSN = re.compile(
 )
 
 
+# A real top-level function label -- Mach-O `_name:` or ELF `name:`,
+# optionally followed by a compiler-added clone suffix (GCC's
+# `-fipa-cp-clone`/`constprop` renames a function specialized for
+# constant arguments to `name.constprop.0` etc; this harness's calls are
+# always made with the same constant arguments, so this is expected, not
+# a naming accident). Deliberately excludes local jump-target labels,
+# which never look like a plain identifier: Mach-O uses `LBB<n>_<n>:`
+# (starts with an uppercase L immediately followed by a digit) and ELF
+# uses `.L<name>:` (starts with a literal dot).
+_FUNC_LABEL = re.compile(r"^_?([A-Za-z_][A-Za-z0-9_]*)(\.[A-Za-z0-9_]+)*:\s*(;.*)?$")
+
+
 def find_function_body(asm: str, label: str) -> str | None:
     """Returns the assembly lines belonging to `label`'s function body
-    (from its label to the next top-level label / directive that starts
-    a new function), or None if `label` never appears at all -- the
+    (from its label -- possibly compiler-clone-suffixed, e.g.
+    `label.constprop.0:` -- to the next top-level function label), or
+    None if `label` never appears at all as a function definition -- the
     signal a whole function was eliminated."""
     lines = asm.splitlines()
     start = None
     for i, line in enumerate(lines):
-        # Matches both `_label:` (Mach-O) and `label:` (ELF) definitions.
-        if re.match(rf"^_?{re.escape(label)}:", line):
+        m = _FUNC_LABEL.match(line)
+        if m and m.group(1) == label:
             start = i
             break
     if start is None:
         return None
     end = len(lines)
     for j in range(start + 1, len(lines)):
-        # A new global/local function label ends this one's body.
-        if re.match(r"^_?[A-Za-z_][A-Za-z0-9_]*:\s*(;.*)?$", lines[j]) and (
-            "naive_fill" in lines[j]
-            or "explicit_fill_wrapper" in lines[j]
-            or "main:" in lines[j]
-            or lines[j].startswith("_main:")
-        ):
+        if _FUNC_LABEL.match(lines[j]):
             end = j
             break
     return "\n".join(lines[start:end])
