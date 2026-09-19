@@ -131,11 +131,13 @@ vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.s
             if vhr == 1 {
                 let vrn: string = megatu_cty_of_root(vec_get(frt, vitem),
                     ptt, ptd1, ptd2, pp, source, starts, ends, it, id1);
-                if string_eq(vrn, "double") {
-                    vrc = 1;
-                } else {
-                    if string_eq(vrn, "int64_t") { vrc = 2; }
-                }
+                /* Same mapping the C backend uses (double/float 1, int64_t 2,
+                   uint64_t 3), so a call returning u64 compares/divides
+                   unsigned instead of reading 2^64-1 as -1 (BUGS #21). */
+                vrc = megatu_cty_category(vrn);
+                /* u32 is its own category on the VM (non-negative wide cell,
+                   wrapped mod 2^32); the C backend keeps it category 0. */
+                if string_eq(vrn, "uint32_t") { vrc = 4; }
             }
         }
         vec_push(vbpn, vpn);
@@ -145,7 +147,7 @@ vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.s
     }
     let vpool: Vec<i32> = vec_new();
     let vft: Vec<i32> = vec_new();
-    let vfc: i32 = vm_codegen_emit_program(it, id1, ifc, ivm, id3, sfn, vbl, vbpn, vbpc, vbi,
+    let vfc: i32 = vm_codegen_emit_program(it, id1, ifc, ivm, id3, sfn, sit_field_cat, vbl, vbpn, vbpc, vbi,
                                 vbrc, source, starts, ends, vpool, vft);
     if vfc < 0 { return 5; }
     let vstrbuf: Vec<i32> = vec_new();
