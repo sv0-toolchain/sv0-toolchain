@@ -39,11 +39,25 @@ _RECIPE_RE = re.compile(r"\b(?:cc|gcc|clang)[\s,\"']+-std=")
 # quotes the pattern in prose/regex form for documentation), and the
 # canonical-compile CLI + no-blanket-`-w` modules (whose own docstrings
 # quote the exact legacy pattern they replace/check for, for documentation).
+#
+# verify_fill_explicit_dce.py (SS-U11/NEW-003) is a genuinely different
+# compilation mode the canonical dev-build path (native_exe_canonical_
+# compile.compile_and_publish / build_dev_profile_argv) does not and
+# should not be extended to support: it compiles to OPTIMIZED (-O2)
+# ASSEMBLY (-S) for static inspection of dead-code elimination, never
+# links or runs a binary. Forcing this through the canonical
+# link-and-run pipeline (fixed dev-profile flags, no -S, no -O2 option)
+# would not reduce duplication -- there is nothing to share -- it would
+# just misuse a differently-scoped tool. GOV-008's own text ("the
+# canonical host-link implementation SHALL be shared by user commands
+# and integration tests") is about the LINK step; this script never
+# links.
 _EXEMPT_BASENAMES = {
     "native_exe_argv_builder.py",
     "native_exe_no_duplicate_cc_recipe.py",
     "native_exe_canonical_compile.py",
     "native_exe_no_blanket_suppression.py",
+    "verify_fill_explicit_dce.py",
 }
 
 

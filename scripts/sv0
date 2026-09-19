@@ -812,6 +812,10 @@ run_test() {
   if ! python3 "$ROOT/scripts/verify_ffi_regression_corpus.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: fill_explicit DCE-stress (SS-U11/NEW-003 — naive fill elided, sv0_fill_explicit is not)"
+  if ! python3 "$ROOT/scripts/verify_fill_explicit_dce.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
   if ! run_self_host_stage0_golden; then
     ec=1

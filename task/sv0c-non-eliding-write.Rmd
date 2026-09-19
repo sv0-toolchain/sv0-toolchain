@@ -1,9 +1,9 @@
 ---
 created: "2026-09-14T00:00:00Z"
-updated: "2026-09-14T00:00:00Z"
+updated: "2026-09-18T00:00:00Z"
 id: task-sv0c-non-eliding-write
 key: sv0c-non-eliding-write
-state: draft
+state: complete
 tags:
   - sv0
   - sv0c
@@ -154,16 +154,45 @@ Sequencing: A is a pure-doc slice and can start immediately in parallel with
 nothing; B and C are independent of each other and can run in parallel once A
 lands; D needs both B and C done; E (in `sv0-strings`) needs D done and pinned.
 
-## completion criteria
+## completion criteria — ALL CLOSED 2026-09-18
 
-- [ ] Epic A doc merged, cited by name from `sv0-strings/docs/fill-explicit-blocked.md`.
-- [ ] NEW-003's DCE-stress fixture is red on the naive lowering and green on the
-      new one — proof the guarantee is real, not just "it compiles."
-- [ ] NEW-008 cross-backend parity fixture green in CI on both `sv0c` and
-      `sv0vm`.
-- [ ] `sv0-strings` SS-201 lands, `fill_explicit`/`memset_explicit` ship as real
+- [x] Epic A doc merged, cited by name from `sv0-strings/docs/fill-explicit-blocked.md`.
+      Landed as `sv0doc/memory-model/ownership.md` §6.5 (sv0doc `49fce85`);
+      `fill-explicit-blocked.md` updated to point at it.
+- [x] NEW-003's DCE-stress fixture is red on the naive lowering and green on the
+      new one — proof the guarantee is real, not just "it compiles." Landed
+      2026-09-18 (found stale on a later pass — the feature itself shipped
+      2026-09-18 too, but this specific criterion wasn't actually built at
+      the time): `sv0c/test/dce-stress/fill_explicit_dce_stress.c` +
+      `scripts/verify_fill_explicit_dce.py`, wired into `./scripts/sv0 test`.
+      Confirmed empirically (not assumed): at `-O2`, a raw-pointer naive fill
+      to a buffer that's immediately freed and never read is fully eliminated
+      by the compiler (the function vanishes from the assembly entirely);
+      `sv0_fill_explicit`'s call retains real store instructions despite an
+      identically-dead destination. One honest caveat found while building
+      it: the intrinsic's writes survive for two independent, layered
+      reasons — the `volatile` qualifier itself, and incidentally, going
+      through `sv0_slice_table`'s global indirection (opaque to this
+      compiler's escape analysis regardless of `volatile`). `volatile`
+      remains the portable, standards-mandated guarantee that holds even if
+      a future compiler's whole-program analysis sees through the
+      indirection — see the fixture's own top comment for the full
+      reasoning.
+- [x] NEW-008 cross-backend parity fixture green in CI on both `sv0c` and
+      `sv0vm`. `sv0c/test/behavior/cases/fill_explicit_intrinsic.sv0`, wired
+      into `vm_behavioral_parity` (both backends, exit 42).
+- [x] `sv0-strings` SS-201 lands, `fill_explicit`/`memset_explicit` ship as real
       exported functions, and the two `compile_fail` "stays blocked" probes are
-      retired.
+      retired. sv0-strings `c2efd0c` (the SS-108/SS-148 unblock).
+
+**Implementation deviation from this doc's own scope decision #2** (worth
+recording, not a gap): Epic C shipped as a `CALL_BUILTIN` builtin id (id 37,
+matching the cheaper, already-established SS-U16 pattern this same doc's own
+"existing infrastructure to reuse" section names), not a newly-reserved,
+separately-documented bytecode opcode as originally scoped. The dedicated-id
+dispatch already gives `sv0vm`'s interpreter an unambiguous, distinct case to
+respect for non-elision — a real design simplification made at
+implementation time, not a shortfall against the guarantee itself.
 
 ## open questions
 
