@@ -149,7 +149,13 @@ vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.s
     let vft: Vec<i32> = vec_new();
     let vfc: i32 = vm_codegen_emit_program(it, id1, ifc, ivm, id3, sfn, sit_field_cat, vbl, vbpn, vbpc, vbi,
                                 vbrc, source, starts, ends, vpool, vft);
-    if vfc < 0 { return 5; }
+    if vfc < 0 {
+        /* The VM emitter refused a construct it cannot lay out (for example a
+           nested struct field access `a.b.c`, or a struct value stored into a
+           struct field). Say so instead of exiting with a bare status. */
+        write_file("/dev/stderr", "error[E0554]: the VM backend cannot compile this program: a construct in it is not supported on the VM (for example a nested struct field access `a.b.c`); build it with the C backend\n");
+        return 5;
+    }
     let vstrbuf: Vec<i32> = vec_new();
     let vstrlen: i32 = encode_strings(vpool, source, starts, ends, vstrbuf);
     let vout: Vec<i32> = vec_new();
