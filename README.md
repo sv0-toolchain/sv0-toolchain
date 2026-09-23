@@ -63,6 +63,10 @@ notes.
 
 ## status
 
+**Latest release: [`v0.1.0`](CHANGELOG.md)** (2026-09-23) — the first tagged
+release of the toolchain (meta-repo + `sv0doc`/`sv0c`/`sv0vm`/`sv0-mcp` all at
+`v0.1.0`). Install from source: **[INSTALL.md](INSTALL.md)**.
+
 Design **milestones 0–4 are complete.** M0–M2 (spec, C-backend compiler, bytecode
 VM); **M3** — a self-hosting compiler written in sv0 — closed 2026-08-05 (the native
 sv0-built compiler is the default; the SML bootstrap is a retired reference);
