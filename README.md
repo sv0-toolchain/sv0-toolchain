@@ -1,9 +1,9 @@
 # sv0-toolchain
 
 Development workspace for **sv0**, a Rust-like systems language with built-in
-contracts (`requires` / `ensures` / `loop_invariant`). This meta-repo pins six
+contracts (`requires` / `ensures` / `loop_invariant`). This meta-repo pins seven
 submodules that together form the language, its self-hosting compiler, a bytecode
-VM, numeric and strings libraries, and developer tooling.
+VM, numeric and strings libraries, a coverage tool, and developer tooling.
 
 ## the subprojects
 
@@ -14,6 +14,7 @@ VM, numeric and strings libraries, and developer tooling.
 | [**sv0vm**](sv0vm/) | the **bytecode VM** that runs sv0c's `--target=vm` output | SML/NJ | M2 complete |
 | [**sv0-mathlib**](sv0-mathlib/) | a contract-first **numeric library** (arith, modular, trig, polar, complex) written in pure sv0 — also a cross-backend conformance load for the compiler | sv0 | `v0.1.0` — SPEC R1 gate closed |
 | [**sv0-strings**](sv0-strings/) | a safe **strings library** — sv0-native bytes / UTF-8 / `CStr` plus C23 & POSIX.1-2024 `<string.h>`/`<strings.h>` compatibility façades, built spec-first | sv0 | `v1.1.0` — R1 shipped; SPEC `v0.4.0-draft` |
+| [**sv0cov**](sv0cov/) | **source-based code coverage**: one coverage truth for `.sv0` source across generated-C and `.sv0b`/sv0vm execution; merge, reports, and policy CLI | Python (sv0 rewrite after R1) | pre-F0: repo skeleton only; SPEC `0.1.71-draft` |
 | [**sv0-mcp**](sv0-mcp/) | Neo4j knowledge graph + MCP servers for AI-assisted development | Python | M0 complete |
 
 **Dependency flow:** sv0doc (spec) → sv0c (compiler) → C backend + VM backend →
@@ -91,6 +92,7 @@ sv0-toolchain/
 ├── sv0vm/           bytecode VM                           (submodule)
 ├── sv0-mathlib/     numeric library in pure sv0           (submodule)
 ├── sv0-strings/     safe strings + C23/POSIX compat lib   (submodule)
+├── sv0cov/          source-based code coverage            (submodule)
 └── sv0-mcp/         MCP server + graph sync               (submodule)
 ```
 
@@ -116,4 +118,6 @@ The language vision and design narrative:
 Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
 [MIT license](LICENSE-MIT) at your option. This applies to this meta-repo and
 to each of the sv0c, sv0vm, sv0doc, sv0-mathlib, sv0-strings, and sv0-mcp
-submodules (sv0-mathlib and sv0-strings also carry their own LICENSE files).
+submodules (sv0-mathlib and sv0-strings also carry their own LICENSE files). sv0cov
+licenses its software under `MIT OR Apache-2.0` and its documentation under
+`CC-BY-4.0`; see its own `LICENSE` map.

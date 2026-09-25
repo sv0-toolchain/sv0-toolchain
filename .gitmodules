@@ -16,3 +16,6 @@
 [submodule "sv0-strings"]
 	path = sv0-strings
 	url = git@github.com:sv0-toolchain/sv0-strings.git
+[submodule "sv0cov"]
+	path = sv0cov
+	url = git@github.com:sv0-toolchain/sv0cov.git
