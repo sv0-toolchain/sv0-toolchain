@@ -1,0 +1,172 @@
+---
+created: "2026-09-24T00:00:00-06:00"
+updated: "2026-09-24T12:00:00-06:00"
+id: task-sv0cov-coverage
+key: sv0cov-coverage
+state: draft
+tags:
+  - sv0
+  - sv0cov
+  - coverage
+  - spec-first
+  - planning
+title: "sv0cov: source-based code coverage (SPEC-governed planning hub)"
+type: task
+---
+
+# sv0cov: source-based code coverage for sv0
+
+## purpose
+
+**sv0cov** is a new standalone product (planned repo `sv0-toolchain/sv0cov`,
+pinned as the `sv0cov/` submodule). It measures execution against original
+`.sv0` source constructs, with one coverage truth across generated-C/native
+execution and `.sv0b` execution on `sv0vm`.
+
+It is **specification-first**. The governing document is:
+
+- `~/Documents/project-specs/sv0cov/SPEC.md`: spec version `0.1.71-draft`
+  (audit 2026-09-13; amended 2026-09-24 for D-1, DEC-086 / §15.6). 86 accepted
+  decisions, none open.
+
+This file is the meta-repo planning **hub**: strategy, the observed gaps
+between the spec's audit baseline and the current pins, open decisions, and the
+release ladder. The trackable slice index is **`task/sv0cov-checklist.Rmd`**
+(`CV-###`). Closure authority is `SPEC.md` (§31 release gates, §29
+acceptance scenarios, §39 definition of done) plus these two files.
+
+Like sv0-strings, sv0cov is a SPEC-governed product rather than a toolchain
+milestone. It is therefore absent from the milestone table and
+`task/milestone-orientation.json`.
+
+## current state (2026-09-24)
+
+- Nothing is implemented. No `sv0cov` repository or submodule exists.
+- Spec status: **Draft governing specification**. Every decision in §34/§35 is
+  `Accepted`. The spec is internally complete, but several accepted decisions
+  assume toolchain capabilities that do not exist (see **observed gaps**).
+
+## ownership (SPEC §3.1)
+
+| Concern | Owner |
+|---|---|
+| Source syntax and semantics, bytecode contract, `coverage` attribute namespace | `sv0doc` |
+| Planning, source regions, lowering provenance, C + VM instrumentation, map emission | `sv0c` |
+| `.sv0b` loading, `COVER_HIT` execution, VM-side counters and profile flush | `sv0vm` |
+| Merge, indexed evidence, reports, policy, public CLI, schemas, diagnostic registry | `sv0cov` |
+| Submodule pin, `compatibility/sv0cov.json`, `./scripts/sv0 coverage` namespace | `sv0-toolchain` |
+
+## observed gaps against current pins
+
+The spec audited revisions from 2026-09-07 (§3.2). The pins are now the
+`v0.1.0` release (meta `c7a72e2`). Re-checked 2026-09-24:
+
+| # | Spec assumption | Observed now | Consequence |
+|---|---|---|---|
+| G-1 | `sv0vm-v2-typed` is an existing container with sections (§15.2, §15.4); F0-G4 required v2 parity (before 0.1.71). | **No v2 container exists.** `sv0vm` (SML, ~1.6k lines) has one format (`formatVersion = 1`: header, strings, funcs, code; no sections). v2 is defined only by the separate, unimplemented `project-specs/sv0vm-implementation-expand/SPEC.md` (target R0.6 of a six-language VM program). | **Resolved by D-1 = A:** v2 staged to R1 (§15.6). |
+| G-2 | sv0c computes SHA-256 (source digests, point IDs, fragment IDs, `map_id`). | **No SHA-256 anywhere** in sv0c, the C runtime, or sv0vm. M5 crypto `M5-S-040a/b` (SHA-256) is `todo`. | Planner map emission is blocked. **Decision D-2.** |
+| G-3 | Parser skips attributes (§3.3 item 9). | Still true, except that `#[extern_c]` is now recognized specially (FFI-008). The grammar has `attributed_item` only; there is no statement attribute. | `coverage` attributes need an sv0doc grammar change plus a parser retention rewrite. That is R0.1 work, not F0. |
+| G-4 | Lexer discards comments (§3.3 item 10). | Still true (`skip_line_comment` / `skip_block_comment`). | A pre-lex directive scanner is needed (R0.1). |
+| G-5 | Spans carry file + line/col + byte offsets. | `Span` fields are `i32`. Project mode concatenates every `.sv0` into one TU (`link_project_concat_sources_*`), so offsets are concat-relative. Columns are byte-based, not Unicode-scalar. | Planner needs a concat-offset → (logical path, file-relative byte) side table plus a scalar-column computation. |
+| G-6 | IR lacks coverage provenance. | Still true (`ir.sv0` `Instr` has no span; the enum payload ceiling is 4). | Hit placement uses a new `Instr` variant keyed to a side table. |
+| G-7 | Opcode 119 is free. | **Free** in sv0vm (118 = `RETURN_SLOTS`; next is 128) and unallocated in the expansion spec's registry. That spec says every unlisted opcode "SHALL fail", so 119 must also be registered there. | Needs a cross-spec note. |
+| G-8 | A managed spawn-and-exec process API exists (§14.2.2). | **sv0 has no process API** in the language, the C runtime, or the VM. The runtime entry is `sv0_runtime_init(argc, argv)`. Contract failure is `exit(1)` from inline header helpers. | The process-lifecycle requirements reduce to fork-handler guards plus a flush hook. **Decision D-4.** |
+| G-9 | CPython launcher rejects shims (§20.6.4). | This dev host resolves `python3.13`/`python3.14` through **pyenv shims**, which the launcher's `sys.executable` equality rejects. | The local launcher will fail closed here by design. Dev work needs a real interpreter first on `PATH`. |
+| G-10 | Contract dispositions `runtime_checked` / `statically_verified` / `disabled` / `unsupported`. | Contract modes exist (`off` / runtime / `--verified` via `sv0 verify`/Z3). Model-only clauses (`old`/`forall`/`exists`) emit a note and no runtime check. | These map cleanly: model-only → `unsupported`, off → `disabled`, Z3-discharged → `statically_verified` (evidence identity = proof record). |
+
+## open decisions
+
+Record the decision and date here when resolved. Slices whose shape depends on
+a decision are marked **blocked (D-n)** in the checklist.
+
+| ID | Blocks | Question | Options |
+|---|---|---|---|
+| ~~D-1~~ | — | **Resolved 2026-09-24: A.** Spec amended to `0.1.71-draft` (DEC-086, §15.6). F0 through R0.1 close on native + `sv0vm-v1-coverage`, v2 bytes are frozen as fixtures, pre-R1 products advertise no v2, and R1 still requires v2 execution. | Was: how to obtain a nonexistent `sv0vm-v2-typed` profile. |
+| **D-2** | CV-104, planner map emission | How does sv0c compute SHA-256? | **A.** Pull `M5-S-040a/b` forward: SHA-256 in sv0 source used by the compiler (also serves M5). **B.** A C-runtime builtin (`sv0_sha256`) callable from the native compiler only. The VM-built compiler path would lose map emission. |
+| **D-3** | CV-315, CV-410, CV-413 | R1 requires **two distinct humans** (release owner + independent approver, COV-PKG-025) and **four dedicated reference hosts**, including physical macOS x86-64 (R1-G9, §24.1). Is that feasible for this project? | **A.** Keep as written (R1 waits on people + hardware). **B.** Amend the spec to allow single-maintainer approval and managed-CI performance evidence, with recorded exceptions. |
+| **D-4** | CV-405 | Scope of §14.2.2 while sv0 has no process API. | **A.** Implement runtime fork guards (`pthread_atfork` disarm + unresolved-parent flag) plus a documented "no managed spawn API exists" boundary. **B.** Also add a toolchain `spawn` builtin as part of sv0cov. |
+| D-5 | CV-233 | Which toolchain entry point does `sv0cov run` use to build? | Default: `./scripts/sv0 native-compile` / `vm-native-compile` with the new `--coverage=instrument` flag. This is non-normative; recorded rather than asked. |
+
+## release ladder (SPEC §6.1, gates §31)
+
+| Stage | Exit boundary | Checklist band |
+|---|---|---|
+| **F0** feasibility | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
+| **R0** developer preview | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
+| **R0.1** policy preview | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
+| **R1** stable contract (`1.0.0`) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
+| **Post-R1** | sv0 rewrite against the Python oracle; continuous counters. | `CV-9xx` (coarse; re-slice when reached) |
+
+## tracks
+
+- **Track P: protocol freeze** (sv0cov repo, pure Python, **no toolchain
+  changes; can start immediately**). Canonical JSON, point-ID preimage, closed
+  schemas + generated validators, raw-profile codec + CRC32C, VM binding/COVR
+  codecs, diagnostic registry, compatibility/version/doctor schemas, semantic
+  fixture corpus. These become the oracle every other track tests against
+  (SPEC §28.3).
+- **Track U: upstream enablement** (sv0doc / sv0c / sv0vm). Bytecode
+  revision, SHA-256, source-unit table, `--coverage` modes, the planner,
+  lowering provenance, C emission + native runtime, VM emission + SML
+  interpreter support. v2 moves to R1 (CV-46x).
+- **Track T: tool** (sv0cov repo). Readers, indexed model, merge, config, CLI,
+  reports, policy.
+- **Track R: root integration** (sv0-toolchain). Submodule, compatibility
+  policy, fixed launcher, `./scripts/sv0 coverage`, toolchain doctor.
+- **Track Q: quality + release.** Fuzzing, portability, performance, supply
+  chain, release engineering.
+
+## critical path to F0
+
+```text
+CV-001 repo ─ CV-004 pyproject ─ CV-007 canonical JSON ─┬─ CV-008 point-ID ─ CV-014..018 map schema + validator ─┐
+                                                        ├─ CV-023..025 CRC32C + raw profile codec ────────────────┤
+                                                        └─ CV-026 VM binding / COVR codecs ───────────────────────┤
+                                           CV-027 F0 fixture + hand-authored expected map (after CV-018) ─────────┤
+CV-103..104 SHA-256 (D-2) ─ CV-105 source units ─ CV-107..111 planner ─ CV-112 hit placement ─┐                   │
+   ├─ CV-113 C emit ─ CV-114..116 native runtime ───────────────────────────────────────────────┼───────────────────┤
+   └─ CV-101 sv0doc ─ CV-117..122 VM v1 emit + sv0vm ───────────────────────────────────────────┘                   │
+                                                      CV-170 reader ─ CV-171 parity comparator (F0-G4) ─ CV-172 F0 gate
+```
+
+## working rules
+
+- **Red first** (SPEC §30): every implementation slice is preceded by fixtures
+  or tests that fail for the intended reason. Expected coverage maps are
+  hand-reviewed. Generated C, bytecode, LCOV, and Cobertura are never the
+  oracle (§28.3).
+- **Cross-repo slices** record authority, producer/consumer versions, update
+  order, conformance test, and rollback (§8.3, COV-GOV-006).
+- Compiler slices follow `30-sv0c-compiler-boundaries.mdc` and the test-suite
+  bar: every sv0c/sv0vm change ships gated tests on both backends where
+  applicable.
+- Cite `COV-*` requirement IDs and `AC-*` scenarios in commits.
+
+## repo layout (SPEC §8.1)
+
+```text
+sv0cov/
+├── README.md  LICENSE  LICENSE-APACHE  LICENSE-MIT  LICENSES/CC-BY-4.0.txt  REUSE.toml
+├── pyproject.toml  uv.lock
+├── scripts/{sv0cov,sv0cov-python}
+├── src/sv0cov/{cli,formats,merge,report,policy,model,_generated/validators}/
+├── runtime/{c,protocol}/        # native collection runtime (C11), byte protocol docs
+├── registries/diagnostics-v1.json
+├── resources/doctor/doctor-r1-smoke.sv0
+├── schemas/                     # canonical Draft 2020-12 closed-profile schemas
+├── tests/{fixtures,conformance,integration,differential,vendor}/
+└── docs/
+```
+
+Placement choice: the native runtime **source** is owned by sv0cov
+(`runtime/c/`, shipped in the wheel per COV-PKG-005) and linked by sv0c's
+native build. The VM counter path lives in sv0vm.
+
+## dependencies
+
+- `task/sv0-toolchain-milestone-5-checklist.Rmd`: `M5-S-040a/b` SHA-256 (if D-2 = A).
+- `project-specs/sv0vm-implementation-expand/SPEC.md`: v2 typed container, which R1 needs (CV-460..463).
+- `task/sv0c-runtime-executable.Rmd`: `sv0.toml` `[build]` parsing, the
+  native driver, entry ABI (the coverage hook sits in `sv0_runtime_init` / exit).
+- `task/sv0-toolchain-milestone-4-verification.Rmd`: `sv0 verify` proof
+  records (`statically_verified` evidence identity).

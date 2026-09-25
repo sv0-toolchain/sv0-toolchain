@@ -32,6 +32,8 @@ this task file is the **index** for agent and human workflows: environment layou
 
 **Consumer-library planning:** `task/sv0-strings-library.Rmd` is the standalone planning **hub** for **sv0-strings** — the F0→R1 release ladder, the ~20 upstream toolchain capability gaps that gate F0 (SPEC §4.4 / §18.1, `UP-001..UP-028`), and the `BL-001..BL-121` backlog. `task/sv0-strings-checklist.Rmd` is its trackable **slice index** (`SS-###`: bite-sized chunks with an explicit stopping point, an upstream-enablement track + a library track). Both are SPEC-governed and tracked like sv0-mathlib, not a toolchain milestone, so they are intentionally absent from the milestone table and `task/milestone-orientation.json`.
 
+**Coverage-product planning:** `task/sv0cov-coverage.Rmd` is the planning **hub** for **sv0cov** (source-based code coverage, SPEC `0.1.70-draft`; planned standalone repo + `sv0cov/` submodule, not yet created). It records the gaps between the spec's audit baseline and the current pins, the open decisions (`D-1..D-5`), and the F0→R1 ladder. `task/sv0cov-checklist.Rmd` is its trackable **slice index** (`CV-###`). Like sv0-strings, both are SPEC-governed and intentionally absent from the milestone table and `task/milestone-orientation.json`.
+
 ## dependencies
 
 /require: bash

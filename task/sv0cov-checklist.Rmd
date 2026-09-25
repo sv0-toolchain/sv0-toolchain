@@ -1,0 +1,314 @@
+---
+created: "2026-09-24T00:00:00-06:00"
+updated: "2026-09-24T12:00:00-06:00"
+id: task-sv0cov-checklist
+key: sv0cov-checklist
+state: draft
+tags:
+  - sv0
+  - sv0cov
+  - coverage
+  - checklist
+  - planning
+title: "sv0cov: development slice backlog (CV-###)"
+type: task
+---
+
+# sv0cov: development slice backlog
+
+## purpose
+
+The trackable **`CV-###`** slice index for **sv0cov**. Each slice is one
+focused session with one explicit stopping point (the **done when** column).
+Strategy, observed gaps (`G-*`), open decisions (`D-*`), and the release ladder
+live in the hub **`task/sv0cov-coverage.Rmd`**. The normative contract is
+`~/Documents/project-specs/sv0cov/SPEC.md` `0.1.71-draft`. This file is a
+**living index**: flip status and record a one-line result + commit as slices
+land.
+
+## how to use
+
+- Bands: `0xx` = F0 in the sv0cov repo (Track P/G, **no toolchain changes**),
+  `1xx` = F0 upstream (sv0doc/sv0c/sv0vm), `2xx` = R0, `3xx` = R0.1,
+  `4xx` = R1, `9xx` = post-R1.
+- Within a band, rows are ordered by dependency. `deps` names the slices that
+  must be **done** first.
+- Status: **todo** / **wip** / **done** / **blocked (D-n)** / **deferred**.
+  `red` in a slice name means evidence-only: fixtures or tests that must fail
+  for the intended reason before the paired implementation slice.
+- `R0.1`, `R1`, and `9xx` rows are deliberately coarser. Re-slice each band
+  when its predecessor gate closes, not before.
+- Repo column: `cov` = sv0cov, `c` = sv0c, `vm` = sv0vm, `doc` = sv0doc,
+  `root` = sv0-toolchain.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"sv0cov.checklist.session","title":"sv0cov slice checklist — session hooks","kind":"checklist-region","ingest":"gfm"} -->
+- [ ] Slice status flipped + one-line result (commit) recorded when a `CV-###` lands
+- [ ] `red` slice fails for the intended reason before its implementation slice starts
+- [ ] Commit cites the `COV-*` requirement IDs and `AC-*` scenarios the slice closes
+- [ ] Cross-repo slices record update order + rollback (SPEC §8.3)
+- [ ] `./scripts/sv0 test-guards` after editing this file
+<!-- sv0-track:end {"id":"sv0cov.checklist.session"} -->
+
+## configuration
+
+/env: SPEC_ROOT=~/Documents/project-specs/sv0cov
+/env: SV0COV_ROOT=sv0cov
+
+## F0 — sv0cov repo: governance + protocol freeze (`0xx`)
+
+Pure Python and docs. Needs no toolchain change. These produce the reference
+encoders, validators, and golden bytes that every upstream slice tests against.
+
+**Governance and repo bootstrap**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-001 | **Repo skeleton.** Create `sv0-toolchain/sv0cov` (GitHub creation is a user action). §8.1 layout, README, `LICENSE` content-class map, `LICENSE-MIT`, `LICENSE-APACHE`, `LICENSES/CC-BY-4.0.txt`, `REUSE.toml`, SPDX headers. | BL-001, BL-089, COV-LIC-001..003, F0-G14 | cov | — | **wip** — skeleton + `tests/test_licensing.py` pass locally (4 tests; negatives verified); awaiting first commit/push | Repo exists; a license-map lint passes; every commentable file carries SPDX. |
+| CV-002 | **Root submodule pin.** Exact `.gitmodules` entry (name/path `sv0cov`, SSH URL, no other keys) + mode-160000 gitlink; list in workspace Rmd + README; guard script asserts the exact entry. | BL-002, COV-GOV-005, COV-PKG-015 | root | CV-001 | todo | `./scripts/sv0 test-guards` includes the `.gitmodules` exact-entry check; a clean recursive clone checks out the pinned commit. |
+| CV-003 | **Audit refresh.** `docs/audit/2026-09-xx.md`: 40-hex SHAs of all repos + re-verification of SPEC §3.3 facts; record hub gaps G-1..G-10 as evidence. | F0-G1 | cov | CV-001 | todo | Audit doc merged; each §3.3 fact marked held / changed with source path. |
+| CV-004 | **Static pyproject + zero runtime deps.** Static `[project]` (version `0.0.0`, `dependencies = []`), console entry point, equality-pinned `hatchling.build`, explicit sdist/wheel allowlists, reproducible mode. | COV-PKG-016, COV-PKG-020, F0-G20, F0-G27 | cov | CV-001 | todo | `uv build` produces sdist → wheel; inspection shows 0 `Requires-Dist`, `py3-none-any`, and only allowlisted members. |
+| CV-005 | **uv.lock + ten groups + PyPI-only.** The ten PEP 735 groups, empty default, one `[[tool.uv.index]]` = PyPI, `first-index`, keyring off, `no-sources`. Lock-check script. | COV-PKG-018, COV-PKG-019, F0-G25, F0-G26 | cov | CV-004 | todo | `uv lock --check --offline` passes; a negative test rejects a second index or a direct-reference requirement. |
+| CV-006 | **CI skeleton.** 4 hosts × CPython 3.13/3.14 running the offline test suite + build/metadata check; networking denied after sync. | COV-PORT-005 (seed), F0-G25 | cov | CV-005 | todo | 8-cell matrix green on a trivial test. |
+
+**Canonical encodings and identities**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-007 | **Canonical JSON codec.** Bounded, duplicate-key-rejecting decoder; §16.2 encoder (sorted keys, no whitespace, integers only, final LF, no BOM); canonical-byte check. | COV-FMT-003 | cov | CV-004 | todo | Golden + negative corpus (dup key, BOM, float, whitespace, trailing byte, depth/size bounds) passes. |
+| CV-008 | **Point-identity preimage + golden vectors.** Python reference encoder for §10.3 (domain `sv0cov.point.v1\0`, all fields, sentinel ordinal, invalid tags). Publish `tests/fixtures/point-id/*.json` vectors with byte offsets. | COV-MAP-017, BL-004, AC-110 | cov | CV-007 | todo | Vectors cover every point kind, both entity presences, ordinal bounds, Unicode paths, and invalid tags; the reader recomputes each ID. |
+| CV-009 | **Diagnostic registry rev 1.** `registries/diagnostics-v1.json` with the exact §20.5.1 entries, self-digest, range/domain checks; diagnostic record type + human / JSON-Lines renderers + phase ordering. | COV-FMT-042, COV-CLI-009 (renderer), AC-113 | cov | CV-007 | todo | Registry golden bytes + digest frozen; mutation (reassign/remove/reorder/unknown field) rejected. |
+
+**Schema toolchain** (Draft 2020-12 closed profile → generated validators)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-010 | **Schema authoring preflight.** Canonical bytes, exact `$schema`, keyword allowlist/denylist, keyword shapes/bounds, local `$ref` forms, acyclic reference graph; offline pinned meta-schema check. | COV-FMT-046, F0-G22, AC-123 | cov | CV-007 | todo | A trap corpus (forbidden keyword, remote ref, cycle, non-canonical schema) fails preflight. |
+| CV-011 | **Validator generator.** Deterministic schema → `src/sv0cov/_generated/validators/*.py` (stdlib only, digest header, frozen check order); clean-tree regeneration check. | COV-FMT-045, F0-G21, AC-122 | cov | CV-010 | todo | Regeneration is byte-identical on 3.13 and 3.14; the CI stale-output check is wired. |
+| CV-012 | **Reference oracle + upstream suite.** Vendor JSON-Schema-Test-Suite at a pinned commit + canonical manifest; mechanical applicability selection; `Draft202012Validator` adapter in the `oracle` group; differential runner. | COV-FMT-047, COV-PKG-017, F0-G23, F0-G24, AC-124, AC-125 | cov | CV-011 | todo | Every applicable upstream case agrees; manifest verification fails on a mutated or extra vendor file. |
+| CV-013 | **Mutation gate for validators.** Delete/invert each generated check and assert that some fixture fails. | COV-FMT-045 | cov | CV-011, CV-012 | todo | Mutation report shows 100% killed for generated checks. |
+
+**Closed artifact schemas + semantic validators**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-014 | **Map 1.0 schema (structural).** `schemas/sv0cov.map-1.0.schema.json`: all 16 top-level properties + nested records; generated validator. | COV-FMT-038, BL-005 | cov | CV-011 | todo | Positive boundary fixtures + unknown/missing/mistyped negatives pass. |
+| CV-015 | **Map semantic validator: sources, entities, points.** Ordering, uniqueness, span-in-source, entity kinds, point-ID recomputation, counter/fragment null pairing, classification rules. | COV-MAP-015, COV-MAP-017, AC-108, AC-111 | cov | CV-008, CV-014 | todo | One negative fixture per invariant fails with its stable code (`COV1010`/`COV1014`/`COV1015`). |
+| CV-016 | **Map semantic validator: fragments + counter space.** Fragment projection + `fragment_id`, slice gap-freeness, zero-length slice base rule, counter bijection. | COV-MAP-013, COV-FMT-039, AC-091 | cov | CV-015 | todo | Permutation, gap, overlap, and zero-length fixtures pass or fail as specified. |
+| CV-017 | **Map semantic validator: regions + expressions + lines.** Normalized linear expression rules, counted-only references, `line_numbers` non-whitespace intersection against source bytes, `line_contributing`. | COV-MAP-016, COV-MET-003, AC-109 | cov | CV-015 | todo | Empty/direct/sub/dup/zero-coeff/range/uncounted-ref fixtures behave per §11.1; CRLF/tab/multibyte line fixtures pass. |
+| CV-018 | **Map semantic validator: branches, contracts, exclusions + `map_id`.** Outcome naming per kind, static-unreachable evidence, contract enforcement bindings, exclusion affected sets, self-omitting `map_id`. | COV-FMT-039, COV-MET-010, AC-111 | cov | CV-016, CV-017 | todo | Complete map validator accepts the hand-authored F0 map (CV-025) and rejects every mutation. |
+| CV-019 | **Run-set manifest 1.0 + run-ID grammar.** | COV-FMT-035 (grammar), COV-FMT-036 | cov | CV-011 | todo | Canonical/negative corpus passes. |
+| CV-020 | **Compatibility policy 1.0 schema + self-hash.** | COV-FMT-043, F0-G15, AC-115 | cov | CV-011 | todo | Golden R1 policy + mutation corpus frozen. |
+| CV-021 | **Version manifest 1.0 schema + `sv0cov version --json` producer.** Fixed R1 inventories, host detection, self-hash. | COV-CLI-010, AC-114 | cov | CV-009, CV-011 | todo | Repeated runs are byte-identical; privacy fields are absent. |
+| CV-022 | **Doctor 1.0 schema + probe registry constants + golden aggregates** (freeze only; probes come later). | COV-FMT-044, F0-G16, AC-117 | cov | CV-021 | todo | Standalone + toolchain golden aggregates validate; summary/skip derivation tests pass. |
+
+**Byte protocols**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-023 | **CRC32C (portable) + goldens.** Castagnoli parameters, `123456789` → `0xe3069283`, empty, single-bit; published vectors for the C and SML ports. | COV-FMT-015, COV-FMT-016, F0-G9, AC-034 | cov | CV-004 | todo | Vector file frozen; Python matches. |
+| CV-024 | **Raw profile 1.0 writer + byte goldens.** §16.4 layout, flags, context four-state, overflow bitmap, `SV0DONE!`, zero-counter profile, fixture-supplied run/profile IDs. | COV-FMT-004/007/008/025..029/034, BL-006, AC-031, AC-093 | cov | CV-023 | todo | Golden `.sv0profraw` files (native / v1 / v2 flag variants, zero-counter, saturated) are frozen. |
+| CV-025 | **Raw profile bounded reader + negative corpus.** Version-first rejection, checked arithmetic, `standard` tier, pre-allocation bounds, marker-before-CRC, self-escalation. | COV-FMT-005, COV-FMT-010, COV-FMT-018, COV-FMT-021, COV-FMT-032, AC-054, AC-057, AC-061, AC-090 | cov | CV-024 | todo | Every §16.4 negative (truncation, byte-swap, unknown bit, 2 backends, bitmap mismatch, 1.1/2.0, over-limit) is rejected with its code. |
+| CV-026 | **VM binding 1.0 + COVR 1.0 codecs + shared semantic projection.** Eleven-property canonical JSON; packed COVR with zero-slot digest; §16.8 projection equality. The COVR goldens are the F0 freeze of the v2 bytes (§15.6). | COV-VM-013/021/023/024, COV-VM-027, AC-093, AC-094, AC-028 | cov | CV-007 | todo | Goldens for both; the projection of the v1 binding and the equivalent COVR is byte-identical. |
+
+**Semantic fixture corpus** (the hand-reviewed oracle)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-027 | **F0 fixture + hand-authored expected map.** One nontrivial `.sv0` (function entry, let/assign/return regions, `if` without `else`, `while`, `match`, multibyte identifier or string, CRLF-free) + a hand-reviewed expected map JSON + expected counts for a fixed input. | BL-003, F0-G2, AC-001 | cov | CV-018 | todo | Expected map validates with CV-018; review notes explain each point/region/branch choice. |
+| CV-028 | **Broader semantic matrix (R0 set).** §28.2 rows: functions, regions, if, loops, match, source text (LF/CRLF/no-final-newline/tabs/Unicode), projects (multi-file, same basename). Contracts, exclusions, and Git come in R0.1. | BL-003 | cov | CV-027 | todo | Each fixture has a reviewed expected map; the index file lists coverage of the §28.2 matrix. |
+
+**Config, scope, launcher, release-policy freezes**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-029 | **Coverage config schema 1.0 + CLI mapping freeze.** Closed `[coverage]` inventory, default snapshot, threshold grammar, CLI applicability table as data. | BL-017, BL-019, COV-CFG-004, COV-CFG-005, AC-101, AC-102 | cov | CV-011 | todo | Exhaustive valid/invalid key-path corpus frozen; `85` and `"8500bp"` resolve identically. |
+| CV-030 | **Gitignore oracle corpus.** Pinned Git 2.55.0; virtual trees + pattern files; `check-ignore --no-index` outputs captured into fixtures. | BL-018, COV-SCP-009 (corpus), AC-100 | cov | CV-001 | todo | Corpus + generator + Git digest checked in; regeneration is reproducible. |
+| CV-031 | **Launcher freeze.** `scripts/sv0cov` + `scripts/sv0cov-python`: ordered `python3.14` → `python3.13` PATH resolution, safety checks, bounded probe, `-I -B` exec, bootstrap diagnostics generated from the registry. | F0-G18, F0-G19, COV-PORT-006, COV-PORT-007, AC-120 | cov | CV-009 | todo | Controlled-PATH test corpus (shim, relative entry, broken link, wrong minor, no fallback) passes. Note G-9: pyenv shims are rejected by design. |
+| CV-032 | **Root namespace contract tests (red).** Driver contract tests for `./scripts/sv0 coverage <7 subcommands>`: aliases rejected, argv/cwd/stream/exit preservation, doctor root injection. | F0-G17, AC-118 | root | CV-002 | todo | Tests exist and fail against the unimplemented namespace. |
+| CV-033 | **Production import boundary audit.** Static import graph + runtime import trace + empty/poisoned-site fixtures. | COV-PKG-016, F0-G20, AC-121 | cov | CV-004 | todo | The audit fails when a third-party import is injected. |
+| CV-034 | **Release-policy freezes (docs + validators).** Product-version grammar, `SHA256SUMS` grammar, `sv0cov.release-manifest` 1.0 schema, SPDX profile, attestation policy, approval/immutable/retention procedures. | F0-G28..G34, COV-PKG-021..027 | cov | CV-011 | todo | Validators + fixtures for version/checksum/release-manifest exist. Procedures written. **D-3** noted in the approval doc. |
+
+**Benchmark harness**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-035 | **Harness + frozen measurement protocol.** Paired on/off runs, ordering, warmup, samples, outliers, retries, invalidation; host-descriptor schema. | BL-014, BL-084 (freeze), COV-PERF-001/005/007, F0-G5, F0-G12 | cov | CV-006 | todo | Repeatable raw-result bundle on one host; the protocol file is hash-frozen. |
+| CV-036 | **Ten-category corpus manifest + generators.** Fixture IDs, seeds, digests, expected semantics, timed boundaries. Real-project fixtures are content-addressed (mathlib, toolchain). | BL-085, COV-PERF-011..014/019, F0-G13, COV-LIC-011 | cov | CV-035 | todo | Generator replay is byte-identical; the manifest validates; the redistribution review is recorded. |
+| CV-037 | **Managed-CI provisional perf jobs (4 hosts).** Labelled provisional; provider metadata; drift split. | BL-087, COV-PERF-021, COV-PERF-022 | cov | CV-036 | todo | Trend bundles are produced and labelled non-conformance. |
+
+## F0 — upstream enablement (`1xx`)
+
+**sv0doc**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-101 | **Bytecode coverage revision (v1).** `sv0doc/bytecode/`: opcode 119 `COVER_HIT u32le` (5 bytes, stack-neutral, no source form), `sv0vm-v1-coverage` profile, explicit `.sv0covbind.json` companion, old-VM rejection, disassembly form, max counters. | BL-010, COV-GOV-001, COV-VM-002/016/017/018, COV-VM-010/011, F0-G6 | doc | — | todo | sv0doc page merged; cross-note filed against the VM expansion spec's opcode registry (G-7). |
+| CV-102 | **Shared identifier registry + collision guard.** One generated registry of opcode 119, `COVR`, `sv0cov.coverage.v1`, `sv0cov.plan.v1`, `sv0cov.vm-binding`; guard in sv0c + sv0vm test suites. | BL-066, COV-VM-017, COV-VM-019, COV-VM-020, F0-G7 | doc, c, vm | CV-101 | todo | Guard fails when any repo diverges from the registry. |
+
+**sv0c: prerequisites**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-103 | **SHA-256 red vectors.** NIST vectors (empty, `abc`, 448-bit, 1M `a`) as sv0 tests. | COV-MAP-004 | c | — | todo | Tests exist and fail (no implementation). |
+| CV-104 | **SHA-256 for the compiler.** Implement per **D-2**; hex encoder. | COV-MAP-004, COV-MAP-017 | c | CV-103 | **blocked (D-2)** | Vectors pass on native (+ VM if D-2 = A). |
+| CV-105 | **Source-unit table.** Logical-path normalization (§10.1), exact-byte digest, concat-offset → (source, file-relative byte) map for project mode, Unicode-scalar columns, normalized-path collision error. | COV-MAP-002, COV-MAP-003, COV-MAP-009, G-5 | c | CV-104 | todo | Multi-file, same-basename, multibyte, CRLF, and collision tests pass. |
+| CV-106 | **`--coverage=off\|map\|instrument` + `--coverage-map <path>` plumbing.** Native driver (`native_exe_cli.py` + megaTU CLI patch) and VM driver; mode recorded in build metadata; `off` is byte-identical to today. | COV-INS-001, COV-INS-002, COV-INS-004 (seed) | c, root | — | todo | `off` goldens unchanged; `map` writes a placeholder file path; unknown mode → usage error. |
+
+**sv0c: planner** (new `lib/coverage_plan.sv0`, added to `megaTU-modules.list`)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-107 | **Planner scaffolding + function entities.** Side tables keyed by AST item/expr/stmt handles (after resolve/check, before lower); function entities, qualified names, `function_entry` points; nested functions own themselves. | BL-007, COV-MAP-001, COV-MET-001, COV-MAP-014 (seed) | c | CV-105 | todo | Unit tests list the expected entities/points for small programs. |
+| CV-108 | **Regions (F0 kinds).** `initializer`, `assignment`, `expression_statement`, `return`, `break`, `continue`, `call`, `branch_body`, `loop_body`, `match_arm` regions with direct-counter expressions; no wrapper double counting. | COV-MET-002, COV-MAP-016 | c | CV-107 | todo | CV-027 region set reproduced exactly. |
+| CV-109 | **Branch outcomes (F0 kinds).** `if` true/false (implicit false), `while` body/exit, `match` `arm:i`. | COV-MET-004, COV-MET-006 | c | CV-108 | todo | CV-027 branch set reproduced exactly. |
+| CV-110 | **Canonical map emission + `map_id`.** Point IDs via CV-104; one fragment (single TU); canonical JSON writer in sv0; `--coverage=map` writes `.sv0covmap.json`. | BL-005, COV-FMT-038, COV-FMT-039, COV-MAP-005, COV-MAP-006 | c | CV-104, CV-109 | todo | Emitted map for CV-027 is **byte-identical** to the hand-authored expected map and passes the CV-018 validator. |
+| CV-111 | **Map determinism + off/map no-op proof.** Five builds → identical bytes; `map` mode emits no hit ops (IR + generated-C + bytecode inspection). | COV-MAP-012, COV-INS-001, COV-INS-002 | c | CV-110 | todo | Determinism + inspection tests are in the sv0c suite. |
+
+**sv0c: lowering + C backend + native runtime**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-112 | **Hit placement through lowering.** New IR `CovHit(counter)` instr driven by the planner side table; invariant check (every counted point placed exactly once, no orphans, no hits for uncounted points). | BL-008, COV-MAP-007, COV-INS-003, COV-INS-017 | c | CV-110 | todo | Orphan/missing/duplicate negative tests fail compile with `COV1020`. |
+| CV-113 | **Generated-C emission.** Namespaced `__sv0cov_hit(i)`; embedded map ID, counter count, protocol major, compiler identity, fragment descriptor; registration before user entry via the `sv0_runtime_init` path. | COV-C-001, COV-C-003, COV-C-002 | c | CV-112 | todo | Generated-C golden for CV-027; the build needs no gcov/debug info. |
+| CV-114 | **Native runtime: arena + transport.** `runtime/c/sv0cov_rt.c` (owned by sv0cov, linked by sv0c's native build): `_Atomic uint64_t` arena, saturating CAS hit, overflow bitmap, exact four-variable transport parsing, required mode, run-ID decode, OS-entropy profile ID. | COV-INS-005, COV-FMT-031, COV-FMT-035, BL-070 (seed) | cov, c | CV-113, CV-024 | todo | C unit tests: saturation, unknown `SV0COV_*` rejection, all-zero ID rejection. |
+| CV-115 | **Native runtime: flush + publish.** Sparse writer + CRC32C, orderly flush on return / exit / contract failure (`exit(1)` path), mode-0600 temp + atomic no-replace publish. | COV-INS-007, COV-FMT-006, COV-FMT-009, BL-009 | cov, c | CV-114 | todo | CV-027 compiled + run → one valid profile; a killed process leaves no published profile. |
+| CV-116 | **Native writer byte parity (F0-G8).** With fixture-supplied IDs, the C writer's bytes equal the Python goldens (CV-024), including zero-counter. | F0-G8, COV-FMT-007 | cov | CV-115 | todo | Byte-diff test green. |
+
+**sv0c + sv0vm: VM v1 coverage**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-117 | **sv0c VM emission of `COVER_HIT`.** `bytecode.sv0` encoder + size table + disassembler; `vm_codegen.sv0` emits hits from the same plan; jump offsets account for 5 bytes. | COV-VM-001, COV-VM-016, COV-VM-018, COV-VM-007 | c | CV-101, CV-112 | todo | Forward/backward jump boundary fixtures + disassembly golden; uninstrumented bytecode is unchanged. |
+| CV-118 | **sv0c v1 binding emission.** `.sv0covbind.json` (canonical, eleven properties, bytecode SHA-256). | COV-VM-010, COV-VM-024, BL-063 | c | CV-117, CV-104 | todo | Emitted binding byte-matches CV-026 golden semantics and validates. |
+| CV-119 | **sv0vm decode/verify opcode 119.** SML encode/decode, stack-neutral verification, disassembly; an unbound `COVER_HIT` is rejected before execution. | COV-VM-002, COV-VM-008, COV-VM-009 | vm | CV-101 | todo | SML tests: round-trip, reject without binding, reject out-of-range operand. |
+| CV-120 | **sv0vm `--coverage-binding` load + arena.** Validate schema, bytecode digest, counter bounds, count ↔ hit-presence consistency before any user instruction; saturating counters. | COV-VM-008, COV-VM-015, AC-027 | vm | CV-119, CV-026 | todo | Tamper/transplant/wrong-neighbor/missing-binding fixtures rejected pre-execution. |
+| CV-121 | **sv0vm raw profile writer.** SML CRC32C, `/dev/urandom` profile ID, transport env, flush on normal exit + contract failure, `BACKEND_VM_V1`. | COV-VM-004, COV-FMT-029 | vm | CV-120, CV-023 | todo | Fixture-ID byte parity with the Python golden; CV-027 run → valid profile. |
+| CV-122 | **Old-VM rejection pin.** The pre-coverage sv0vm rejects opcode 119 as unknown (never misdecodes). | COV-VM-003, AC-019 | vm | CV-119 | todo | Regression test pinned against an old binary / decoder path. |
+
+**F0 closure**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-170 | **Minimal Python map+raw reader.** Resolves counters → point IDs → counts. | BL-012 | cov | CV-018, CV-025 | todo | Reads the CV-115 and CV-121 outputs. |
+| CV-171 | **Parity comparator (F0-G4).** Same fixture, same input: identical point IDs + counts on native and v1 (v2 joins at R1). | BL-013, AC-001, AC-002 | cov | CV-170, CV-116, CV-121 | todo | Parity report green for CV-027. |
+| CV-172 | **F0 gate review.** Walk F0-G1..G34 with evidence links; record deviations (D-2..D-4); confirm COV-VM-027 (no v2 advertised). | §31.1 | root | all F0 | todo | Gate table in the hub filled; deviations reviewed. |
+
+## R0 — developer preview (`2xx`)
+
+**Compiler completion**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-201 | **Remaining region kinds + `mutation` / `expression`.** Complete §11.3 region inventory; synthetic-support provenance for desugaring. | BL-020, COV-MET-002, COV-MET-008, COV-MAP-008 | c | CV-110 | todo | CV-028 region fixtures match. |
+| CV-202 | **`line_numbers` + `line_contributing`** computed against exact source bytes. | BL-021, COV-MET-003 | c | CV-201 | todo | Partial-line matrix matches. |
+| CV-203 | **`for` / `loop` branches + loop edge cases.** Zero/one/many iterations, `break`, `continue`. | BL-022, COV-MET-004 | c | CV-109 | todo | Loop fixture matrix matches on C + v1. |
+| CV-204 | **Normalized linear counter expressions.** Optional counter reduction (e.g. implicit false = cond − true) with a nonnegativity proof from structured flow; evaluator parity with Python. | COV-MAP-016, COV-MET-017 | c, cov | CV-201 | todo | Expression fixtures evaluate identically in sv0c goldens and the Python evaluator. |
+| CV-205 | **Module fragments + program-map assembly.** One fragment per source unit, canonical ordering, slices, `fragment_id`; permutation invariance. | BL-097, COV-MAP-013, AC-091 | c | CV-110 | todo | Every input permutation gives an identical map. |
+| CV-206 | **Native multi-fragment registration.** Descriptor per fragment + aggregator; runtime validates the complete set before user entry. | COV-C-004, COV-C-005, BL-056 | c, cov | CV-205, CV-115 | todo | Duplicate/overlap/gap/wrong-map descriptor matrix fails before entry. |
+| CV-207 | **Zero-counter programs on all backends.** Empty, declaration-only, and fully-uncounted programs publish one complete empty profile. | COV-INS-015, COV-C-006, COV-VM-025, COV-FMT-034, AC-095 | c, vm | CV-206, CV-121 | todo | Zero-counter lifecycle tests pass on native + v1. |
+| CV-208 | **Cache-key / build-metadata separation.** Instrumented and uninstrumented artifacts never collide. | COV-INS-004 | c, root | CV-106 | todo | Cache collision test. |
+| CV-209 | **Dependency ownership from the build graph.** `ownership` / `package` fields from project structure, never path spelling. | COV-SCP-001, COV-SCP-002, COV-SCP-004 (seed) | c | CV-105 | todo | The `tests/examples/vendor` layout fixture stays fully in scope. |
+
+**Runtime hardening**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-210 | **Native concurrency + saturation suite.** Contended atomic hits, saturation + bitmap under contention, alignment, lock-free probe record, TSan/ASan/UBSan. | BL-070, COV-INS-006, COV-INS-009, COV-INS-010, AC-035, AC-036 | cov | CV-115 | todo | Stress + sanitizer jobs green on Linux + macOS. |
+| CV-211 | **Producer tiers (large/custom).** Producers refuse over-tier maps/profiles before start or publish. | COV-FMT-019, COV-FMT-020, COV-FMT-023, BL-081 | cov, vm | CV-115, CV-121 | todo | Boundary tests at the exact tier limits. |
+| CV-212 | **VM lifecycle parity.** Exit, contract-failure, required-mode, and capability rejection match native. | BL-026, COV-VM-004 | vm | CV-121 | todo | Parity tests green. |
+
+**Tool: model, merge, CLI**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-220 | **Indexed schemas (full + semantic) + validators.** | COV-FMT-040, COV-FMT-041, BL-023 | cov | CV-011 | todo | Positive/negative fixtures frozen. |
+| CV-221 | **Semantic model build.** Points (merged counts per context), regions via interval lower bounds, lines inverted from `line_numbers`, branch statuses, contract results, saturation record. | BL-023, COV-MET-017, COV-FMT-041 | cov | CV-220, CV-170 | todo | Model built from CV-027 artifacts equals the expected semantic JSON. |
+| CV-222 | **Full indexed object + reader cross-validation.** Inventory, bindings, run selection, execution record, merge record, completeness, projection hash. | COV-FMT-040, COV-MRG-011, AC-112 | cov | CV-221 | todo | Self-contained replay with the original map/raw removed; mutation corpus rejected. |
+| CV-223 | **Merge engine.** Inventory-first validation, profile-ID + SHA dedupe, run-set selection, saturating combine, source-version conflicts, rejected-input inventory, input-order independence. | BL-024, COV-MRG-001..010, AC-011, AC-013, AC-089, AC-097 | cov | CV-222, CV-019 | todo | Permutation/property tests; copy vs collision vs identical-count distinct producers. |
+| CV-224 | **Config resolver.** `tomllib` closed-schema load, CLI > file > default, per-leaf provenance, resolved-configuration object. | BL-027, COV-CFG-001..005, AC-098 | cov | CV-029 | todo | Precedence + hostile-environment matrix. |
+| CV-225 | **CLI framework.** Exact option/command applicability matrix, exit codes, diagnostic formats, `--quiet` / `--color`. | COV-CLI-004, COV-CLI-007, COV-CLI-009 | cov | CV-009, CV-224 | todo | Per-command usage-error matrix. |
+| CV-226 | **No-replace publication.** Sibling temp (0600/0700), same-filesystem atomic no-replace for files and bundles, symlink/collision refusal, stdout staging. | BL-034, COV-SEC-007, COV-REP-016 | cov | CV-225 | todo | Collision/symlink/race/fault-injection tests. Documents the primitive used per OS. |
+| CV-227 | **`merge` command.** | COV-CLI-002, COV-CLI-006 | cov | CV-223, CV-226 | todo | Integration tests incl. `--output -`. |
+| CV-228 | **Native report 1.0 schema + resolved-configuration schema.** | BL-036, COV-REP-017, COV-CFG-007 | cov | CV-220 | todo | Schemas + fixtures frozen. |
+| CV-229 | **Native report producer + cross-validating reader.** | BL-052, COV-REP-003, COV-REP-018..021, AC-105 | cov | CV-228, CV-222 | todo | Round trip; single-field mutation corpus rejected. |
+| CV-230 | **Terminal report.** Exact covered/total, partial lines, `N/A`, uncovered ranges, color-independent status. | BL-030, COV-REP-001, COV-MET-011 | cov | CV-229 | todo | Golden output (color off). |
+| CV-231 | **`check` + fixed thresholds + integrity evaluation.** Integer cross-multiplication; empty policy. | BL-031, COV-POL-001, COV-MET-012, AC-014, AC-015 | cov | CV-229 | todo | 84/99 vs 85% boundary fails; property tests. |
+| CV-232 | **`report` + `clean` commands.** Format selection rules, destinations, clean ownership. | COV-CLI-008, COV-REP-016 | cov | CV-229, CV-226 | todo | Destination matrix goldens. |
+| CV-233 | **`run` lifecycle (part 1).** Run-dir reservation, secure run ID, env sanitization, build via the toolchain (D-5), argv exec without a shell. | BL-029, COV-CLI-001, COV-CLI-003, COV-SEC-006, AC-018 | cov | CV-227, CV-232 | todo | Metacharacter and environment-poisoning fixtures. |
+| CV-234 | **`run` lifecycle (part 2).** Collect, merge, report, check, combined exit code, signal forwarding, incomplete remnants. | COV-CLI-004, COV-INS-008, AC-022 | cov | CV-233 | todo | End-to-end matrix (pass, policy fail, test fail, killed). |
+| CV-235 | **Standalone doctor (D001–D008) + `version`.** | BL-028, COV-CLI-011 (standalone) | cov | CV-022, CV-225 | todo | Standalone golden aggregate reproduced. |
+| CV-236 | **Parser fuzzing + resource limits.** Raw, JSON, merge, and expression-evaluator harnesses. | BL-032, COV-SEC-004, COV-FMT-022 | cov | CV-223 | todo | Fuzz jobs run in CI; crashes become regression fixtures. |
+| CV-237 | **Security suite.** Network-denied, traversal, injection, environment poisoning. | COV-SEC-001..003, R0-G5 | cov | CV-234 | todo | Suite green. |
+
+**Root integration**
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-240 | **`compatibility/sv0cov.json` + same-commit guard.** | R0-G1, COV-PKG-009, COV-PKG-014 | root | CV-020, CV-002 | todo | Guard fails when policy and gitlink disagree. |
+| CV-241 | **`./scripts/sv0 coverage` namespace + preflight.** Fixed launcher path, compatibility evaluation, argv/stream/exit passthrough. | BL-033, COV-CLI-012, COV-CLI-013, COV-PKG-013 | root | CV-240, CV-031, CV-032 | todo | CV-032 contract tests go green. |
+| CV-242 | **Toolchain doctor (D009–D018) + smoke fixture.** `resources/doctor/doctor-r1-smoke.sv0` + semantic oracle. | COV-CLI-011, AC-117 | cov, root | CV-241, CV-235 | todo | Toolchain doctor passes offline; D016 `not_applicable` pre-R1 (§15.6). |
+| CV-243 | **R0 release dry run.** Build-once pipeline, checksums, release manifest, no publication. | R0-G8, COV-REL-001, COV-PKG-001, COV-PKG-007 | cov | CV-034, CV-004 | todo | Dry-run artifacts validate. |
+| CV-244 | **R0 gate review.** | §31.2 | root | all R0 | todo | Gate table filled. |
+
+## R0.1 — policy preview (`3xx`, coarse)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-301 | **sv0doc `coverage` namespace + `attributed_statement`.** Modes `off` / `branch_off` / `contract_off`, placement, argument rules. | BL-040, BL-073 (grammar), COV-EXC-007/008/013/019 | doc | — | todo | Grammar + semantics page merged. |
+| CV-302 | **Parser retains attributes (items + statements).** Ordered nodes, spans, argument spans, annotated construct; `#[extern_c]` path preserved; expression attributes rejected. | BL-041, BL-073, COV-EXC-009/014/015/016, G-3 | c | CV-301 | todo | AST snapshot + misleading-layout fixtures. |
+| CV-303 | **Formatter preserves attributes.** `scripts/fmt_sv0.py` canonical layout. | BL-074, COV-EXC-017 | root | CV-302 | todo | Format/reparse idempotence. |
+| CV-304 | **Comment-directive pre-lex scanner.** String-literal aware; `ignore-next` / `ignore-start` / `ignore-end`. | BL-042, COV-EXC-002, G-4 | c | CV-201 | todo | Hostile-text + placement fixtures. |
+| CV-305 | **Exclusion resolution + fail-closed matrix.** Ownership subtrees, redundancy/conflict errors, exclusion records in the map, identical plans across backends. | BL-043, BL-075, COV-EXC-003/004/006/011/020..024 | c | CV-302, CV-304 | todo | Fail-closed + parity matrices (AC-006, AC-007, AC-040..044). |
+| CV-306 | **Contract coverage plan.** Contract entities, true/false points, enforcement from contract mode / `sv0 verify` records, nearest-function ownership. | BL-044, COV-MET-009/010/015, COV-MAP-014, G-10 | c | CV-201 | todo | Contract disposition matrix (AC-010, AC-106). |
+| CV-307 | **Short-circuit + conditional-expression branches.** | BL-055, COV-MET-005 | c | CV-203 | todo | `&&` / `\|\|` truth matrix. |
+| CV-308 | **Contexts.** Transport, per-context counts, filtering, aggregate invariance. | BL-045, COV-CTX-001..004, AC-024, AC-058 | cov | CV-234 | todo | Context aggregation tests. |
+| CV-309 | **HTML report.** Self-contained, offline, escaped, keyboard navigation, context filter. | BL-046, COV-REP-002 | cov | CV-229 | todo | Offline/injection/navigation tests. |
+| CV-310 | **Scopes + Gitignore matcher + entity assertions.** | BL-048, COV-SCP-005..009, COV-POL-002/022/023/026, COV-CFG-006/008 | cov | CV-030, CV-231 | todo | Oracle parity + cumulative-assertion matrix. |
+| CV-311 | **Git diff model + merge-base + working-tree capture.** | BL-049, BL-076, BL-077, COV-POL-012..020 | cov | CV-229 | todo | Git fixture repositories (AC-045..049). |
+| CV-312 | **Changed-region checks.** | BL-050, COV-POL-003/004 | cov | CV-311 | todo | AC-016. |
+| CV-313 | **Ratchets.** | BL-051, COV-POL-005, AC-017 | cov | CV-231 | todo | Regression/exclusion-growth suite. |
+| CV-314 | **Exclusion audit + caps in reports and policy.** | COV-EXC-005/025, COV-POL-025 | cov | CV-305, CV-229 | todo | Cap boundary tests. |
+| CV-315 | **Dedicated-host plan (R01-G6).** | R01-G6 | root | CV-037 | **blocked (D-3)** | Accountable path recorded. |
+| CV-316 | **R0.1 gate review.** | §31.3 | root | all R0.1 | todo | Gate table filled. |
+
+## R1 — stable contract (`4xx`, coarse; re-slice at R0.1 close)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-401 | LCOV `sv0cov-lcov-r1-core` + pinned LCOV 1.16/2.5 consumer tests. | BL-053, BL-078, COV-REP-004/008/009/010 | cov | CV-229 | todo | AC-050. |
+| CV-402 | Cobertura `sv0cov-cobertura-r1-core` + pinned DTD + GitLab smoke. | BL-054, BL-079, COV-REP-005/011/012/013 | cov | CV-229 | todo | AC-051. |
+| CV-403 | Export commit manifests. | BL-035, BL-080, COV-FMT-037, COV-REP-014 | cov | CV-401, CV-402 | todo | AC-052, AC-104. |
+| CV-404 | Saturation policy `allow-ordinary` + granular eligibility. | BL-071, COV-POL-007..011/027, COV-INS-013 | cov | CV-229 | todo | AC-037, AC-038. |
+| CV-405 | Process lifecycle per **D-4** (fork guards, unresolved parent, VM rejection). | BL-015, BL-025, COV-INS-016, COV-C-007, COV-VM-026 | cov, vm | CV-210 | **blocked (D-4)** | AC-096. |
+| CV-406 | Orderly-flush-only proof (no checkpoint/mmap writes). | BL-068, COV-FMT-011/012, AC-032 | cov, vm | CV-115, CV-121 | todo | I/O trace tests. |
+| CV-460 | **v2 container available.** Wait for, or contribute to, the sv0vm expansion's typed v2 (R0.6 there). | G-1, DEC-018, DEC-086 | c, vm | — | blocked (sv0vm expansion) | sv0c emits and sv0vm loads uncovered v2. |
+| CV-461 | **sv0doc v2 `COVR` section.** Tag, ordering, unknown-section rule, downgrade rejection. | COV-VM-019, COV-VM-023, §15.4 | doc | CV-460 | todo | Page merged. |
+| CV-462 | **sv0c v2 emission with inline COVR.** Two-pass zero-slot digest; must equal the CV-026 goldens. | COV-VM-012, COV-VM-022, BL-064, BL-098, BL-099 | c | CV-461 | todo | COVR golden matches CV-026. |
+| CV-463 | **sv0vm v2 COVR validation + execution + v2 manifest/doctor inventory.** Digest validated before function decode; `BACKEND_VM_V2`; D016 applies; product advertises `vm-v2`. | COV-VM-013, COV-VM-022, AC-028, AC-092 | vm, cov | CV-462 | todo | Mutation/transplant fixtures rejected early; three-path parity for CV-027. |
+| CV-407 | Full semantic parity suite across backends incl. v2 (R1-G1). | COV-VM-005, COV-VM-014, COV-MET-014, COV-REL-002 | cov | CV-171, CV-463, CV-3xx | todo | Every §28.2 fixture has three-path parity. |
+| CV-408 | HTML WCAG 2.2 AA (automated + manual). | BL-047, COV-REP-007 | cov | CV-309 | todo | AC-020 + audit record. |
+| CV-409 | Four-host × two-Python portability matrix. | BL-057, BL-062, COV-PORT-001..007 | cov | CV-234 | todo | Eight cells green end to end. |
+| CV-410 | Performance on dedicated hosts + budget evaluator. | BL-058, BL-083, BL-088, BL-093, COV-PERF-* | cov | CV-037 | **blocked (D-3)** | R1-G9. |
+| CV-411 | Supply-chain closure: SBOM, licenses, provenance. | BL-059, BL-090, COV-LIC-008..010 | cov | CV-243 | todo | R1-G12. |
+| CV-412 | Freeze R1 schemas + generated validators + compatibility corpus. | BL-060 | cov | all formats | todo | R1-G3. |
+| CV-413 | Release pipeline: attestations, protected approval, immutable release. | BL-091, COV-PKG-002..004/023..027 | cov | CV-411 | **blocked (D-3)** | R1-G15. |
+| CV-414 | Ordered toolchain pin + rollback drill. | BL-092, COV-PKG-011 | root | CV-413 | todo | R1-G13. |
+| CV-415 | Evidence manifest + R1 gate review → `1.0.0`. | BL-061, COV-GOV-007 | root | all R1 | todo | R1-G14; §39 definition of done. |
+
+## post-R1 (`9xx`, direction only)
+
+| ID | slice | refs | status |
+|----|-------|------|--------|
+| CV-901 | Freeze the Python oracle corpus. | BL-100, RW-G1 | deferred |
+| CV-902 | sv0 rewrite: readers → model/merge → policy → reports → CLI parity. | BL-101..105 | deferred |
+| CV-903 | Dual-implementation release candidates + coordinated cutover / rollback. | BL-106, BL-107, RW-G2..G6 | deferred |
+| CV-904 | Continuous-counter working format + opt-in mode + qualification. | BL-108..110, CONT-G1..G8 | deferred |
+
+## next up
+
+Start with the sv0cov-repo slices that need no toolchain change: **CV-001**
+(needs the GitHub repo created), then **CV-007 → CV-008 → CV-023 → CV-024**.
+Upstream work can begin in parallel with **CV-101** (sv0doc) and **CV-103**
+(SHA-256 red vectors). CV-104 waits on **D-2**.
