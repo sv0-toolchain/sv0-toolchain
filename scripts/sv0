@@ -555,6 +555,8 @@ run_python_guards() {
     'NEX-035 native-exe parallel distinct-output builds selftest (REL-001)'
     'NEX-036 native-exe hostile-path pipeline selftest (PORT-004, SEC-001)'
     'pre-push scope classifier selftest (docs/library-only pushes run the light suite)'
+    'content-addressed compile+run cache selftest (hit/miss/invalidation)'
+    'content-addressed emit cache key selftest (include closure, compiler identity, invalidation)'
   )
   local -a guard_cmds=(
     'python3 "$ROOT/scripts/native_exe_harness_env.py" --verify'
@@ -650,6 +652,8 @@ run_python_guards() {
     'python3 "$ROOT/scripts/native_exe_parallel_builds.py" --selftest'
     'python3 "$ROOT/scripts/native_exe_hostile_paths.py" --selftest'
     'python3 "$ROOT/scripts/prepush_scope.py" --selftest'
+    '"$ROOT/scripts/sv0" run-cache-selftest'
+    'python3 "$ROOT/scripts/emit_cache_key.py" --selftest'
   )
 
   # SV0_GUARDS_FAST=1: only the cheap doc-pin / static guards. The native_exe_*
@@ -1067,6 +1071,133 @@ self_host_sv0_loop_fill_paths() {
   return 0
 }
 
+# ---- content-addressed compile+run result cache ---------------------------------
+# Compiling a C program and running it is a pure function of: the C text, the C
+# compiler (identity + flags), the runtime sources it links, and the platform.
+# _cc_run_cached keys on exactly that (sha256) and replays the previously observed
+# (exit status, stdout) instead of re-running cc + the binary. Sound for programs
+# whose result depends only on their C (the self-host loop's parity leg already
+# requires this: it compares two independent runs byte-for-byte).
+#   * disabled by SV0_NO_RUN_CACHE=1 and whenever CI is set (CI runners are fresh
+#     and must never replay a stale result);
+#   * SV0_RUN_CACHE_DIR overrides the location (default build/run-cache);
+#   * entries are written atomically (.rc last), entries older than 14 days pruned.
+_sha256() {
+  if command -v shasum >/dev/null 2>&1; then shasum -a 256 "$@"; else sha256sum "$@"; fi
+}
+_run_cache_dir() { printf '%s' "${SV0_RUN_CACHE_DIR:-$ROOT/build/run-cache}"; }
+_run_cache_on() { [[ -z "${SV0_NO_RUN_CACHE:-}" && -z "${CI:-}" ]]; }
+# Everything besides the C text that determines a compiled program's behaviour.
+# Computed once (parent exports it; workers reuse it) -- cc --version + runtime hash.
+_run_cache_envkey_init() {
+  [[ -n "${SV0_RUN_CACHE_ENVKEY:-}" ]] && return 0
+  local cc="${SHL_CC:-${CC:-cc}}" ver rt
+  ver="$("$cc" --version 2>&1 | head -1)"
+  rt="$(cat "$SV0C"/runtime/*.c "$SV0C"/runtime/*.h | _sha256 | cut -d' ' -f1)"
+  SV0_RUN_CACHE_ENVKEY="$(printf '%s\n%s\n%s\n%s\n' "$(uname -sm)" "$cc|$ver" "-std=c99 -O0" "$rt" | _sha256 | cut -d' ' -f1)"
+  export SV0_RUN_CACHE_ENVKEY
+}
+# _cc_run_cached <c-file> <scratch-bin-path> <stdout-file>
+# Sets RUN_EXIT to the program's exit status and writes its stdout to <stdout-file>.
+# Returns 2 (cc diagnostics on stderr) if the C does not compile; never caches that.
+_cc_run_cached() {
+  local cfile="$1" bin="$2" out="$3" dir key clog tmp
+  RUN_EXIT=0
+  dir="$(_run_cache_dir)"
+  if _run_cache_on; then
+    _run_cache_envkey_init
+    key="$( { printf '%s\n' "$SV0_RUN_CACHE_ENVKEY"; cat "$cfile"; } | _sha256 | cut -d' ' -f1)"
+    if [[ -f "$dir/$key.rc" && -f "$dir/$key.out" ]]; then
+      cp "$dir/$key.out" "$out"
+      RUN_EXIT="$(cat "$dir/$key.rc")"
+      touch "$dir/$key.rc" 2>/dev/null || true
+      return 0
+    fi
+  fi
+  clog="$(mktemp)"
+  # No -Werror: sv0c's emitted C may trigger -Wparentheses-equality on Clang; GCC is the CI compiler.
+  if ! "${SHL_CC:-${CC:-cc}}" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$cfile" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
+    cat "$clog" >&2
+    rm -f "$clog"
+    return 2
+  fi
+  rm -f "$clog"
+  "$bin" >"$out" 2>/dev/null || RUN_EXIT=$?
+  rm -f "$bin"
+  if _run_cache_on; then
+    mkdir -p "$dir"
+    tmp="$dir/.tmp.$$.$RANDOM"
+    { cp "$out" "$tmp.out" && printf '%s' "$RUN_EXIT" >"$tmp.rc" \
+        && mv "$tmp.out" "$dir/$key.out" && mv "$tmp.rc" "$dir/$key.rc"; } 2>/dev/null \
+      || rm -f "$tmp.out" "$tmp.rc"
+  fi
+  return 0
+}
+# Age prune (14 days, by last use -- hits touch their entry), then a size cap:
+# above SV0_RUN_CACHE_MAX_MB (default 1024) drop the least-recently-used quarter
+# of the entries. Each new native-compiler version adds ~50MB of cached emits.
+_run_cache_prune() {
+  local dir kb max_mb="${SV0_RUN_CACHE_MAX_MB:-1024}" total drop
+  dir="$(_run_cache_dir)"
+  [[ -d "$dir" ]] || return 0
+  find "$dir" -type f -mtime +14 -delete 2>/dev/null || true
+  kb="$(du -sk "$dir" 2>/dev/null | cut -f1)"
+  if [[ -n "$kb" && "$kb" -gt $((max_mb * 1024)) ]]; then
+    total="$(ls "$dir" | wc -l | tr -d ' ')"
+    drop=$((total / 4 + 1))
+    ls -tr "$dir" | head -n "$drop" | while IFS= read -r f; do rm -f "$dir/$f"; done
+  fi
+  return 0
+}
+# `sv0 run-cache-selftest`: hit/miss/invalidation behaviour of _cc_run_cached.
+run_cache_selftest() {
+  local td n bad=0; td="$(mktemp -d)"
+  export SV0_RUN_CACHE_DIR="$td/cache"
+  unset SV0_NO_RUN_CACHE CI SV0_RUN_CACHE_ENVKEY 2>/dev/null || true
+  local realcc="${CC:-cc}"; SHL_CC="$realcc"
+  local a="$td/a.c" b="$td/b.c" p="$td/p.c" bad_c="$td/bad.c"
+  printf 'int main(void){return 7;}\n' >"$a"
+  printf 'int main(void){return 9;}\n' >"$b"
+  printf '#include <stdio.h>\nint main(void){puts("hi");return 0;}\n' >"$p"
+  printf 'this is not C\n' >"$bad_c"
+  check() { if ! eval "$2"; then echo "run-cache selftest FAIL: $1" >&2; bad=1; fi; }
+  entries() { ls "$td/cache"/*.rc 2>/dev/null | wc -l | tr -d ' '; }
+
+  _cc_run_cached "$a" "$td/bin" "$td/out"; check "miss runs the program (exit 7)" '[[ $RUN_EXIT -eq 7 ]]'
+  check "miss stores one entry" '[[ $(entries) -eq 1 ]]'
+  SHL_CC=/nonexistent-cc                      # a real recompile would now fail
+  _cc_run_cached "$a" "$td/bin" "$td/out"; check "hit replays exit 7 without cc" '[[ $? -eq 0 && $RUN_EXIT -eq 7 ]]'
+  local rc=0; _cc_run_cached "$b" "$td/bin" "$td/out" 2>/dev/null || rc=$?
+  check "different C misses (cc invoked, fails here)" '[[ $rc -eq 2 ]]'
+  SHL_CC="$realcc"
+  _cc_run_cached "$b" "$td/bin" "$td/out"; check "different C gives its own result (9)" '[[ $RUN_EXIT -eq 9 ]]'
+  _cc_run_cached "$p" "$td/bin" "$td/out"; check "miss captures stdout" '[[ "$(cat "$td/out")" == hi ]]'
+  SHL_CC=/nonexistent-cc; : >"$td/out"
+  _cc_run_cached "$p" "$td/bin" "$td/out"; check "hit replays stdout" '[[ "$(cat "$td/out")" == hi && $RUN_EXIT -eq 0 ]]'
+  SV0_RUN_CACHE_ENVKEY=other-environment; export SV0_RUN_CACHE_ENVKEY
+  rc=0; _cc_run_cached "$a" "$td/bin" "$td/out" 2>/dev/null || rc=$?
+  check "changed environment key invalidates (miss)" '[[ $rc -eq 2 ]]'
+  SHL_CC="$realcc"; unset SV0_RUN_CACHE_ENVKEY
+  n="$(entries)"
+  rc=0; _cc_run_cached "$bad_c" "$td/bin" "$td/out" 2>/dev/null || rc=$?
+  check "cc failure returns 2" '[[ $rc -eq 2 ]]'
+  check "cc failure is never cached" '[[ $(entries) -eq $n ]]'
+  SV0_NO_RUN_CACHE=1; SHL_CC=/nonexistent-cc
+  rc=0; _cc_run_cached "$a" "$td/bin" "$td/out" 2>/dev/null || rc=$?
+  check "SV0_NO_RUN_CACHE=1 bypasses lookups (cc invoked)" '[[ $rc -eq 2 ]]'
+  SHL_CC="$realcc"; n="$(entries)"
+  _cc_run_cached "$b" "$td/bin" "$td/out"
+  check "SV0_NO_RUN_CACHE=1 stores nothing" '[[ $(entries) -eq $n ]]'
+  unset SV0_NO_RUN_CACHE
+  CI=true; SHL_CC=/nonexistent-cc; rc=0
+  _cc_run_cached "$a" "$td/bin" "$td/out" 2>/dev/null || rc=$?
+  check "CI=true bypasses the cache" '[[ $rc -eq 2 ]]'
+  unset CI SV0_RUN_CACHE_DIR
+  rm -rf "$td"
+  if ((bad)); then return 1; fi
+  echo "run-cache: selftest OK (13 checks)"
+}
+
 # Shared by the parent (run_self_host_sv0_loop) and each parallel per-file
 # worker (_self_host_sv0_loop_one, dispatched via `sv0 __self-host-loop-one`)
 # -- deliberately recomputed in every process instead of passed down, since
@@ -1099,20 +1230,41 @@ _self_host_sv0_loop_one() {
   fi
   tmp1="$SHL_EMITDIR/${stem}.a.c"
   tmp2="$SHL_EMITDIR/${stem}.b.c"
-  if ! _self_host_stage0_emit_c_to "$rel" "$tmp1"; then
-    rm -f "$tmp1" "$tmp2"
-    sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
+  # Emit cache (default native compiler only): the emit is a pure function of the
+  # compiler, the source + its include closure, and the platform (see
+  # scripts/emit_cache_key.py). Only emits that already passed the twice-and-cmp
+  # determinism check below are ever stored, so a hit replays a verified-deterministic
+  # result and skips both native emits (~8s each for the largest files).
+  local ekey="" ecache=""
+  if _run_cache_on && [[ "${SV0_SELF_HOST_COMPILER:-}" == "$ROOT/build/sv0-megatu-compiler-native" ]]; then
+    _run_cache_envkey_init
+    ekey="$(python3 "$ROOT/scripts/emit_cache_key.py" key --root "$ROOT" "$(_abs_sv0c_rel "$rel")" 2>/dev/null)" || ekey=""
+    [[ -n "$ekey" ]] && ecache="$(_run_cache_dir)/emit-$ekey.c"
   fi
-  if ! _self_host_stage0_emit_c_to "$rel" "$tmp2"; then
-    rm -f "$tmp1" "$tmp2"
-    sv0_fail "self-host-sv0-loop: second SV0_SELF_HOST_COMPILER emit failed for $rel"
+  if [[ -n "$ecache" && -f "$ecache" ]]; then
+    cp "$ecache" "$tmp1"
+    touch "$ecache" 2>/dev/null || true
+  else
+    if ! _self_host_stage0_emit_c_to "$rel" "$tmp1"; then
+      rm -f "$tmp1" "$tmp2"
+      sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
+    fi
+    if ! _self_host_stage0_emit_c_to "$rel" "$tmp2"; then
+      rm -f "$tmp1" "$tmp2"
+      sv0_fail "self-host-sv0-loop: second SV0_SELF_HOST_COMPILER emit failed for $rel"
+    fi
+    if ! cmp -s "$tmp1" "$tmp2"; then
+      echo "self-host-sv0-loop: non-deterministic C emit for $rel" >&2
+      rm -f "$tmp1" "$tmp2"
+      return 1
+    fi
+    rm -f "$tmp2"
+    if [[ -n "$ecache" ]]; then
+      mkdir -p "$(dirname "$ecache")"
+      cp "$tmp1" "$ecache.tmp.$$" 2>/dev/null && mv "$ecache.tmp.$$" "$ecache" 2>/dev/null \
+        || rm -f "$ecache.tmp.$$"
+    fi
   fi
-  if ! cmp -s "$tmp1" "$tmp2"; then
-    echo "self-host-sv0-loop: non-deterministic C emit for $rel" >&2
-    rm -f "$tmp1" "$tmp2"
-    return 1
-  fi
-  rm -f "$tmp2"
   # Behavioral mode with the emitter == SV0_SELF_HOST_COMPILER (the default):
   # the parity leg below would emit, compile and run the exact same C that
   # emits #1/#2 just proved deterministic. Reuse emit #1 there and fold the
@@ -1173,25 +1325,26 @@ _self_host_sv0_loop_one() {
       # 40/98 byte-identical, ~109% churn; see doc/l0-closure-roadmap.md B2). Use
       # this when SV0_SELF_HOST_COMPILER is the native mega-TU binary. The default
       # (bytediff) keeps the fast SML-delegate local path exact.
-      local bref bsv0 rout sout clog2 re2 se2
+      local bref bsv0 rout sout re2 se2
       bref="$SHL_BINDIR/${stem}.ref.out"
       bsv0="$SHL_BINDIR/${stem}.shc.out"
-      rout="$(mktemp)"; sout="$(mktemp)"; clog2="$(mktemp)"
-      if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bref" "$tmp_ref" \
-           "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
-        cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
+      rout="$(mktemp)"; sout="$(mktemp)"
+      # cc + run of each side goes through the content-addressed result cache:
+      # the SML reference C is a pure function of the (frozen) SML compiler and the
+      # source, so it almost always hits; the native compiler's C hits whenever its
+      # output for this file did not change.
+      re2=0; se2=0
+      if ! _cc_run_cached "$tmp_ref" "$bref" "$rout"; then
+        rm -f "$rout" "$sout" "$tmp_ref" "$tmp_sv0"
         sv0_fail "self-host-sv0-loop: cc of SML reference C failed for $rel"
       fi
-      if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bsv0" "$tmp_sv0" \
-           "$SV0C/runtime/sv0_runtime.c" >"$clog2" 2>&1; then
-        cat "$clog2" >&2; rm -f "$rout" "$sout" "$clog2" "$tmp_ref" "$tmp_sv0"
+      re2="$RUN_EXIT"
+      if ! _cc_run_cached "$tmp_sv0" "$bsv0" "$sout"; then
+        rm -f "$rout" "$sout" "$tmp_ref" "$tmp_sv0"
         sv0_fail "self-host-sv0-loop: cc of self-host compiler C failed for $rel"
       fi
-      rm -f "$clog2"
-      re2=0; se2=0
-      "$bref" >"$rout" 2>/dev/null || re2=$?
-      "$bsv0" >"$sout" 2>/dev/null || se2=$?
-      rm -f "$tmp_ref" "$tmp_sv0" "$bref" "$bsv0"
+      se2="$RUN_EXIT"
+      rm -f "$tmp_ref" "$tmp_sv0"
       if [[ "$reuse_emit" -eq 1 && "$se2" -ne 0 ]]; then
         rm -f "$rout" "$sout"
         sv0_fail "self-host-sv0-loop: native run exit $se2 for $rel (expected 0)"
@@ -1250,6 +1403,10 @@ run_self_host_sv0_loop() {
   fi
   _self_host_sv0_loop_setup
   mkdir -p "$SHL_BINDIR" "$SHL_EMITDIR"
+  if _run_cache_on; then
+    _run_cache_prune
+    _run_cache_envkey_init
+  fi
 
   local resultdir
   resultdir="$(mktemp -d)"
@@ -1913,6 +2070,9 @@ case "$cmd" in
     ;;
   self-host-sv0-loop)
     run_self_host_sv0_loop || exit 1
+    ;;
+  run-cache-selftest)
+    run_cache_selftest
     ;;
   __self-host-loop-one)
     # Hidden: one parallel worker of run_self_host_sv0_loop, dispatched via
