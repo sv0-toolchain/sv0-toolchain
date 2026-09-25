@@ -107,9 +107,17 @@ done
 if ((in_submodule == 0)); then
   # Parent repo: full fast guard suite (README sv0c SHA pin, vm-parity manifest ⊆
   # bootstrap, task YAML, milestone orientation, no-raise, G6/G7 contracts, ...).
-  ( cd "$toolchain_root" && ./scripts/sv0 test-guards >/tmp/sv0-precommit-guards.log 2>&1 ) \
+  # The native_exe_* selftests drive real builds (~20s) and only matter when the
+  # native-exe driver, runtime or compiler changed. Commits whose staged paths are
+  # all docs/task data/library bumps (scripts/prepush_scope.py) run only the cheap
+  # static guards here; pre-push still runs the complete guard set.
+  guard_flag="--fast"
+  scope="$(git diff --cached --name-only -z | python3 "$toolchain_root/scripts/prepush_scope.py" --repo parent 2>/dev/null || echo full)"
+  case "$scope" in full) guard_flag="" ;; esac
+  # shellcheck disable=SC2086
+  ( cd "$toolchain_root" && ./scripts/sv0 test-guards $guard_flag >/tmp/sv0-precommit-guards.log 2>&1 ) \
     || { tail -30 /tmp/sv0-precommit-guards.log >&2; fail "documentation pins / guards failed (see above)"; }
-  info "documentation pins + guards OK"
+  info "documentation pins + guards OK${guard_flag:+ (fast subset: docs/library-only commit)}"
 fi
 
 info "all fast checks passed"

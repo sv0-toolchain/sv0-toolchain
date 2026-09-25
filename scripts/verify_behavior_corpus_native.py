@@ -3,7 +3,12 @@
 cc it, run it, and assert the process exit code matches the manifest.
 
 Manifest: sv0c/test/behavior/manifest.txt, one row per line:  rel | expected_exit
-Run by `./scripts/sv0 test`. Complements the diagnostics (reject) corpus.
+Complements the diagnostics (reject) corpus.
+
+No longer part of `./scripts/sv0 test`: `native_exe_behavior_corpus.py` sweeps the
+same rows with the same exit-code assertion through the canonical driver
+(`build_native_executable`), so it is a strict superset of this hand-rolled
+recipe. Kept as a standalone tool for debugging the emit+cc+run path directly.
 
 Rows are independent (each gets its own temp dir, own emit/compile/run), so
 they run across a small thread pool instead of one at a time -- each row's

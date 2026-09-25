@@ -122,6 +122,12 @@ def _selftest() -> int:
         subprocess.run(["git", "init", "-q"], cwd=td, check=True)
         subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=td, check=True)
         subprocess.run(["git", "config", "user.name", "test"], cwd=td, check=True)
+        # Isolate from the invoking user's global git config: a global
+        # commit.gpgsign=true (or a global hooksPath) would make this throwaway
+        # commit need a gpg pinentry / run real hooks, failing in any
+        # non-interactive run (pre-push hook, CI-like shells).
+        subprocess.run(["git", "config", "commit.gpgsign", "false"], cwd=td, check=True)
+        subprocess.run(["git", "config", "core.hooksPath", os.devnull], cwd=td, check=True)
         with open(os.path.join(td, "f.txt"), "w", encoding="utf-8") as f:
             f.write("x")
         subprocess.run(["git", "add", "."], cwd=td, check=True)

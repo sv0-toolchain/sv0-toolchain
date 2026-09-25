@@ -24,6 +24,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from native_exe_canonical_compile import compile_and_publish  # noqa: E402
@@ -107,7 +108,8 @@ def main():
     build_emitters()
     fails = 0
     skipped = 0
-    for entry in entries:
+
+    def check(entry):
         request, label = resolve(entry)
         # A `--project <dir>` entry is skipped when the dir is absent.
         # `sv0-mathlib` is a submodule, so `--project sv0-mathlib` runs in
@@ -116,12 +118,21 @@ def main():
         if request.startswith("--project "):
             d = request[len("--project "):]
             if not os.path.isdir(d):
-                print(f"  SKIP  {label:50s} (dir absent: {d})")
-                skipped += 1
-                continue
+                return label, None, None, d
         with tempfile.TemporaryDirectory() as wd:
-            c = run_c(request, wd)
-            v = run_vm(request, wd)
+            return label, run_c(request, wd), run_vm(request, wd), None
+
+    # Entries are independent (own temp dir, own emit/cc/sml processes), so
+    # run them across a small pool; results print in manifest order.
+    jobs = int(os.environ.get("SV0_JOBS") or os.cpu_count() or 4)
+    with ThreadPoolExecutor(max_workers=max(1, jobs)) as pool:
+        results = list(pool.map(check, entries))
+
+    for label, c, v, absent in results:
+        if absent is not None:
+            print(f"  SKIP  {label:50s} (dir absent: {absent})")
+            skipped += 1
+            continue
         # Compare exit codes (all current fixtures report pass/fail via exit
         # code). C stdout is checked to be empty -- a fixture that prints would
         # need the ULP/stdout compare path, not yet built.

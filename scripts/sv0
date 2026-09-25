@@ -60,6 +60,8 @@ usage: sv0 <command> [args]
                        emit (when lib/golden/stage0/<stem>.c exists); self-host sv0 loop (SML→C→native + emit diff);
                        Markdown doctests — see task/sv0-toolchain-milestone-2-prep.Rmd for order
   test-guards        Python only: block-comment nesting, sv0doc baseline, task/*.Rmd YAML, README sv0c SHA, vm-parity manifest ⊆ bootstrap list,
+  test-light [mathlib] [strings]  guards + doctests (+ the stages a changed library submodule feeds); what pre-push runs for docs/library-only pushes
+                     (`test-guards --fast` = only the cheap static guards, skipping native_exe_* selftests)
                        task/milestone-orientation.json (primary_tasks exist + bidirectional sync with workspace milestone table),
                        compiler .sv0 no-raise guard (sv0c/lib|lexer|parser — M3-S-014); NEX-001 native-exe
                        requirement traceability (checklist ⊇ active-release catalog)
@@ -552,6 +554,7 @@ run_python_guards() {
     'NEX-033 native-exe symlink/scratch hardening selftest (SEC-003..005)'
     'NEX-035 native-exe parallel distinct-output builds selftest (REL-001)'
     'NEX-036 native-exe hostile-path pipeline selftest (PORT-004, SEC-001)'
+    'pre-push scope classifier selftest (docs/library-only pushes run the light suite)'
   )
   local -a guard_cmds=(
     'python3 "$ROOT/scripts/native_exe_harness_env.py" --verify'
@@ -646,7 +649,25 @@ run_python_guards() {
     'python3 "$ROOT/scripts/native_exe_hardening_smoke.py" --selftest'
     'python3 "$ROOT/scripts/native_exe_parallel_builds.py" --selftest'
     'python3 "$ROOT/scripts/native_exe_hostile_paths.py" --selftest'
+    'python3 "$ROOT/scripts/prepush_scope.py" --selftest'
   )
+
+  # SV0_GUARDS_FAST=1: only the cheap doc-pin / static guards. The native_exe_*
+  # selftests each drive real builds (cc, sanitizers, ...) and only matter when
+  # the native-exe driver, runtime or compiler changed; pre-commit uses this
+  # for commits that touch none of those, and pre-push still runs everything.
+  if [[ -n "${SV0_GUARDS_FAST:-}" ]]; then
+    local -a fast_descs=() fast_cmds=()
+    local gi
+    for gi in "${!guard_cmds[@]}"; do
+      case "${guard_cmds[$gi]}" in
+        *'/scripts/native_exe_'*) ;;
+        *) fast_descs+=("${guard_descs[$gi]}"); fast_cmds+=("${guard_cmds[$gi]}") ;;
+      esac
+    done
+    guard_descs=("${fast_descs[@]}")
+    guard_cmds=("${fast_cmds[@]}")
+  fi
 
   local resultdir
   resultdir="$(mktemp -d)"
@@ -713,6 +734,51 @@ run_test_guards() {
   sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + CV-002 sv0cov submodule pin + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-055c no-new-legacy-control-file guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + VM-compose phase-6 patch resilience selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
 }
 
+# Reduced suite for pushes whose changed paths cannot affect the compiler, VM or
+# runtime (see scripts/prepush_scope.py): every guard + doctests, plus the stages
+# that consume the library submodules named as args (mathlib, strings).
+run_test_light() {
+  local ec=0 want_mathlib=0 want_strings=0 g
+  for g in "$@"; do
+    case "$g" in
+      mathlib) want_mathlib=1 ;;
+      strings) want_strings=1 ;;
+      *) sv0_fail "test-light: unknown group '$g' (want: mathlib, strings)" ;;
+    esac
+  done
+  ensure_sv0_megatu_native
+  ensure_sv0_megatu_verify
+  if ! run_python_guards "sv0 test-light"; then
+    ec=1
+  fi
+  if [[ "$want_strings" -eq 1 ]]; then
+    sv0_info "sv0 test-light: owned-string allocation fault injection (sv0-strings changed)"
+    if ! python3 "$ROOT/scripts/verify_string_alloc_failure.py"; then
+      ec=1
+    fi
+  fi
+  if [[ "$want_mathlib" -eq 1 ]]; then
+    require_sml
+    sv0_info "sv0 test-light: VM behavioral parity (sv0-mathlib changed)"
+    if ! python3 "$ROOT/scripts/vm_behavioral_parity.py"; then
+      ec=1
+    fi
+  fi
+  if [[ "$want_mathlib" -eq 1 || "$want_strings" -eq 1 ]]; then
+    sv0_info "sv0 test-light: native --project acceptance (library submodule changed)"
+    if ! run_native_project_acceptance; then
+      ec=1
+    fi
+  fi
+  if ! run_doctests; then
+    ec=1
+  fi
+  if [[ "$ec" -ne 0 ]]; then
+    sv0_fail "sv0 test-light: one or more stages failed (exit $ec)"
+  fi
+  sv0_ok "sv0 test-light: guards + doctests (mathlib=$want_mathlib strings=$want_strings)"
+}
+
 run_test() {
   local ec=0
   ensure_sv0_self_host_compiler
@@ -741,10 +807,11 @@ run_test() {
   if ! python3 "$ROOT/scripts/verify_diagnostics_corpus_behavior_native.py" --root "$ROOT"; then
     ec=1
   fi
-  sv0_info "sv0 test: behavioral PASS corpus (native compile+cc+run vs expected exit)"
-  if ! python3 "$ROOT/scripts/verify_behavior_corpus_native.py" --root "$ROOT"; then
-    ec=1
-  fi
+  # (verify_behavior_corpus_native.py -- the hand-rolled emit+cc+run recipe over the
+  # same manifest, asserting the same exit codes -- is no longer run here: the
+  # canonical-driver sweep below is a strict superset of it (same rows, same
+  # assertion, plus entry/staging validation), so running both only doubled the
+  # cost. The script stays as a standalone tool.)
   sv0_info "sv0 test: behavioral PASS corpus via native_exe_build (NEX-028; TEST-004)"
   if ! python3 "$ROOT/scripts/native_exe_behavior_corpus.py" --root "$ROOT"; then
     ec=1
@@ -1046,37 +1113,53 @@ _self_host_sv0_loop_one() {
     return 1
   fi
   rm -f "$tmp2"
+  # Behavioral mode with the emitter == SV0_SELF_HOST_COMPILER (the default):
+  # the parity leg below would emit, compile and run the exact same C that
+  # emits #1/#2 just proved deterministic. Reuse emit #1 there and fold the
+  # "native run exits 0" assertion into that single compile+run instead of
+  # paying for a second emit + cc + run of identical C.
+  local reuse_emit=0
+  if [[ "${SV0_SELF_HOST_LOOP_MODE:-bytediff}" == "behavioral" && -n "$SHL_SV0_EMIT" \
+        && "$SHL_SV0_EMIT" == "${SV0_SELF_HOST_COMPILER:-}" ]]; then
+    reuse_emit=1
+  fi
   bin="$SHL_BINDIR/${stem}.out"
   local clog
-  clog="$(mktemp)"
-  # No -Werror: sv0c’s emitted C may trigger -Wparentheses-equality on Clang; GCC is the CI compiler.
-  if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$tmp1" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
-    cat "$clog" >&2
-    rm -f "$clog" "$tmp1"
-    sv0_fail "self-host-sv0-loop: ${SHL_CC} failed for $rel"
-  fi
-  rm -f "$clog"
-  rm -f "$tmp1"
-  ec=0
-  "$bin" || ec=$?
-  if [[ "$ec" -ne 0 ]]; then
-    sv0_fail "self-host-sv0-loop: native run exit $ec for $rel (expected 0)"
+  if [[ "$reuse_emit" -eq 0 ]]; then
+    clog="$(mktemp)"
+    # No -Werror: sv0c’s emitted C may trigger -Wparentheses-equality on Clang; GCC is the CI compiler.
+    if ! "$SHL_CC" -std=c99 -O0 -I"$SV0C/runtime" -o "$bin" "$tmp1" "$SV0C/runtime/sv0_runtime.c" >"$clog" 2>&1; then
+      cat "$clog" >&2
+      rm -f "$clog" "$tmp1"
+      sv0_fail "self-host-sv0-loop: ${SHL_CC} failed for $rel"
+    fi
+    rm -f "$clog"
+    rm -f "$tmp1"
+    ec=0
+    "$bin" || ec=$?
+    if [[ "$ec" -ne 0 ]]; then
+      sv0_fail "self-host-sv0-loop: native run exit $ec for $rel (expected 0)"
+    fi
   fi
   if [[ -n "$SHL_SV0_EMIT" ]]; then
     if [[ ! -x "$SHL_SV0_EMIT" ]]; then
       sv0_fail "self-host-sv0-loop: compiler script not executable: $SHL_SV0_EMIT"
     fi
     local tmp_sv0 tmp_err tmp_ref d
-    tmp_sv0="$SHL_EMITDIR/${stem}.sv0-built.c"
-    tmp_err="$(mktemp)"
-    local abs_emit
-    abs_emit="$(_abs_sv0c_rel "$rel")"
-    if ! "$SHL_SV0_EMIT" "$abs_emit" >"$tmp_sv0" 2>"$tmp_err"; then
-      cat "$tmp_err" >&2
-      rm -f "$tmp_sv0" "$tmp_err"
-      sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
+    if [[ "$reuse_emit" -eq 1 ]]; then
+      tmp_sv0="$tmp1"
+    else
+      tmp_sv0="$SHL_EMITDIR/${stem}.sv0-built.c"
+      tmp_err="$(mktemp)"
+      local abs_emit
+      abs_emit="$(_abs_sv0c_rel "$rel")"
+      if ! "$SHL_SV0_EMIT" "$abs_emit" >"$tmp_sv0" 2>"$tmp_err"; then
+        cat "$tmp_err" >&2
+        rm -f "$tmp_sv0" "$tmp_err"
+        sv0_fail "self-host-sv0-loop: SV0_SELF_HOST_COMPILER emit failed for $rel"
+      fi
+      rm -f "$tmp_err"
     fi
-    rm -f "$tmp_err"
     tmp_ref="$SHL_EMITDIR/${stem}.ref.c"
     if ! _self_host_emit_c_via_sml_heap_to "$rel" "$tmp_ref"; then
       rm -f "$tmp_sv0" "$tmp_ref"
@@ -1109,6 +1192,10 @@ _self_host_sv0_loop_one() {
       "$bref" >"$rout" 2>/dev/null || re2=$?
       "$bsv0" >"$sout" 2>/dev/null || se2=$?
       rm -f "$tmp_ref" "$tmp_sv0" "$bref" "$bsv0"
+      if [[ "$reuse_emit" -eq 1 && "$se2" -ne 0 ]]; then
+        rm -f "$rout" "$sout"
+        sv0_fail "self-host-sv0-loop: native run exit $se2 for $rel (expected 0)"
+      fi
       if [[ "$re2" -ne "$se2" ]] || ! cmp -s "$rout" "$sout"; then
         rm -f "$rout" "$sout"
         sv0_fail "self-host-sv0-loop: behavioral parity differs for $rel (SML exit $re2 vs compiler exit $se2)"
@@ -1748,7 +1835,11 @@ case "$cmd" in
     run_test
     ;;
   test-guards)
+    if [[ "${1:-}" == "--fast" ]]; then export SV0_GUARDS_FAST=1; fi
     run_test_guards
+    ;;
+  test-light)
+    run_test_light "$@"
     ;;
   test-mcp)
     run_test_mcp
