@@ -150,9 +150,30 @@ ensure_sv0_self_host_compiler() {
 # SV0_SELF_HOST_COMPILER. Its wrapper honors the same contract (argv[1] = .sv0 path,
 # emitted C to stdout). Built from lib/*.sv0 via the full compose; rebuilt only when
 # absent (the native --project acceptance rebuilds it later in the same gate).
+# True (0) when <binary> is missing or older than anything its mega-TU build reads:
+# every sv0c/lib/*.sv0 (+ the module manifest), the runtime, sources.cm and the
+# sml-legacy compiler sources (they define the SML heap that compiles the mega-TU),
+# plus the given build/assemble scripts. A superset of the real inputs on purpose --
+# a rebuild is ~2s, whereas testing against a compiler older than the sources under
+# test silently lags the gate by a push.
+_artifact_stale() {
+  local bin="$1"; shift
+  [[ -x "$bin" ]] || return 0
+  local f
+  for f in "$SV0C"/lib/*.sv0 "$SV0C/lib/megaTU-modules.list" "$SV0C/sources.cm" \
+           "$SV0C/runtime/sv0_runtime.c" "$SV0C/runtime/sv0_runtime.h" "$@"; do
+    [[ -e "$f" && "$f" -nt "$bin" ]] && return 0
+  done
+  [[ -n "$(find "$SV0C/sml-legacy" \( -name '*.sml' -o -name '*.sig' \) -not -path '*/.cm/*' \
+            -newer "$bin" -print -quit 2>/dev/null)" ]] && return 0
+  return 1
+}
+
 ensure_sv0_megatu_native() {
   local out="$ROOT/build/sv0-megatu-compiler-native"
-  if [[ ! -x "$out" ]]; then
+  if [[ ! -x "$out" ]] || _artifact_stale "$ROOT/build/sv0-megatu-native" \
+       "$ROOT/scripts/build-sv0-megatu-native.sh" "$ROOT/scripts/assemble-sv0-megaTU.py"; then
+    echo "ensure_sv0_megatu_native: building (missing or older than the compiler sources)" >&2
     bash "$ROOT/scripts/build-sv0-megatu-native.sh" >&2
   fi
   if [[ ! -x "$out" ]]; then
@@ -165,7 +186,9 @@ ensure_sv0_megatu_native() {
 # build-sv0-megatu-verify-native.sh). Rebuilt only when absent.
 ensure_sv0_megatu_verify() {
   local out="$ROOT/build/sv0-megatu-verify"
-  if [[ ! -x "$out" ]]; then
+  if [[ ! -x "$out" ]] || _artifact_stale "$ROOT/build/sv0-megatu-verify-native" \
+       "$ROOT/scripts/build-sv0-megatu-verify-native.sh" "$ROOT/scripts/assemble-sv0-megaTU.py"; then
+    echo "ensure_sv0_megatu_verify: building (missing or older than the compiler sources)" >&2
     bash "$ROOT/scripts/build-sv0-megatu-verify-native.sh" >&2
   fi
   if [[ ! -x "$out" ]]; then
@@ -555,7 +578,7 @@ run_python_guards() {
     'NEX-035 native-exe parallel distinct-output builds selftest (REL-001)'
     'NEX-036 native-exe hostile-path pipeline selftest (PORT-004, SEC-001)'
     'pre-push scope classifier selftest (docs/library-only pushes run the light suite)'
-    'content-addressed compile+run cache selftest (hit/miss/invalidation)'
+    'content-addressed compile+run cache + build-artifact staleness selftest'
     'content-addressed emit cache key selftest (include closure, compiler identity, invalidation)'
   )
   local -a guard_cmds=(
@@ -1193,9 +1216,29 @@ run_cache_selftest() {
   _cc_run_cached "$a" "$td/bin" "$td/out" 2>/dev/null || rc=$?
   check "CI=true bypasses the cache" '[[ $rc -eq 2 ]]'
   unset CI SV0_RUN_CACHE_DIR
+
+  # _artifact_stale: point ROOT/SV0C at a scratch tree (subshell, nothing leaks).
+  # Explicit timestamps throughout (bash 3.2's -nt compares whole seconds).
+  local sr="$td/tree"; mkdir -p "$sr/sv0c/lib" "$sr/sv0c/runtime" "$sr/sv0c/sml-legacy" "$sr/scripts"
+  : >"$sr/sv0c/lib/a.sv0"; : >"$sr/sv0c/sources.cm"; : >"$sr/sv0c/runtime/sv0_runtime.c"
+  : >"$sr/sv0c/sml-legacy/x.sml"; : >"$sr/scripts/build.sh"
+  printf '#!/bin/sh\n' >"$sr/bin"; chmod +x "$sr/bin"
+  local -a inputs=("$sr/sv0c/lib/a.sv0" "$sr/sv0c/sources.cm" "$sr/sv0c/runtime/sv0_runtime.c" \
+                   "$sr/sv0c/sml-legacy/x.sml" "$sr/scripts/build.sh")
+  reset_times() { touch -t 202001010000 "${inputs[@]}"; touch -t 202101010000 "$sr/bin"; }
+  stale() { ( ROOT="$sr"; SV0C="$sr/sv0c"; _artifact_stale "$sr/bin" "$sr/scripts/build.sh" ); }
+  reset_times;                                   check "fresh binary is not stale" '! stale'
+  touch -t 202201010000 "$sr/sv0c/lib/a.sv0";    check "newer lib/*.sv0 => stale" 'stale'
+  reset_times; touch -t 202201010000 "$sr/sv0c/sml-legacy/x.sml"
+                                                 check "newer sml-legacy source => stale" 'stale'
+  reset_times; touch -t 202201010000 "$sr/scripts/build.sh"
+                                                 check "newer build script => stale" 'stale'
+  reset_times; touch -t 202201010000 "$sr/bin";  check "rebuilt (newer) binary is fresh" '! stale'
+  rm -f "$sr/bin";                               check "missing binary => stale" 'stale'
+
   rm -rf "$td"
   if ((bad)); then return 1; fi
-  echo "run-cache: selftest OK (13 checks)"
+  echo "run-cache: selftest OK (19 checks: cache + artifact staleness)"
 }
 
 # Shared by the parent (run_self_host_sv0_loop) and each parallel per-file
