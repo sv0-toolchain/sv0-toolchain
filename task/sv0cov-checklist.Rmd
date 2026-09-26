@@ -144,15 +144,15 @@ encoders, validators, and golden bytes that every upstream slice tests against.
 
 | ID | slice | refs | repo | deps | status | done when |
 |----|-------|------|------|------|--------|-----------|
-| CV-101 | **Bytecode coverage revision (v1).** `sv0doc/bytecode/`: opcode 119 `COVER_HIT u32le` (5 bytes, stack-neutral, no source form), `sv0vm-v1-coverage` profile, explicit `.sv0covbind.json` companion, old-VM rejection, disassembly form, max counters. | BL-010, COV-GOV-001, COV-VM-002/016/017/018, COV-VM-010/011, F0-G6 | doc | — | todo | sv0doc page merged; cross-note filed against the VM expansion spec's opcode registry (G-7). |
+| CV-101 | **Bytecode coverage revision (v1).** `sv0doc/bytecode/`: opcode 119 `COVER_HIT u32le` (5 bytes, stack-neutral, no source form), `sv0vm-v1-coverage` profile, explicit `.sv0covbind.json` companion, old-VM rejection, disassembly form, max counters. | BL-010, COV-GOV-001, COV-VM-002/016/017/018, COV-VM-010/011, F0-G6 | doc | — | **done** — sv0doc `64f839e`: `bytecode/coverage.md` (COVER_HIT opcode 119 u32le, 5 bytes, stack-neutral; `sv0vm-v1-coverage` + explicit companion; load order; old-VM rejection; limits; reserved identifiers), linked from `instructions.md`/`format.md`. G-7 cross-note drafted in `project-specs/sv0vm-implementation-expand/SPEC.md` (uncommitted, awaiting approval) | sv0doc page merged; cross-note filed against the VM expansion spec's opcode registry (G-7). |
 | CV-102 | **Shared identifier registry + collision guard.** One generated registry of opcode 119, `COVR`, `sv0cov.coverage.v1`, `sv0cov.plan.v1`, `sv0cov.vm-binding`; guard in sv0c + sv0vm test suites. | BL-066, COV-VM-017, COV-VM-019, COV-VM-020, F0-G7 | doc, c, vm | CV-101 | todo | Guard fails when any repo diverges from the registry. |
 
 **sv0c: prerequisites**
 
 | ID | slice | refs | repo | deps | status | done when |
 |----|-------|------|------|------|--------|-----------|
-| CV-103 | **SHA-256 red vectors.** NIST vectors (empty, `abc`, 448-bit, 1M `a`) as sv0 tests. | COV-MAP-004 | c | — | todo | Tests exist and fail (no implementation). |
-| CV-104 | **SHA-256 for the compiler.** Implement per **D-2**; hex encoder. | COV-MAP-004, COV-MAP-017 | c | CV-103 | **blocked (D-2)** | Vectors pass on native (+ VM if D-2 = A). |
+| CV-103 | **SHA-256 red vectors.** NIST vectors (empty, `abc`, 448-bit, 1M `a`) as sv0 tests. | COV-MAP-004 | c | — | **done (red)** — sv0c `314c51b`: `test/crypto/sha256/` NIST vectors + padding boundaries, `kat_main.sv0`, `run_kat.py` (hashlib self-check; RED until `lib/sha256.sv0`; KAT flow proven with a lookup stub on native + VM). Not wired into `sv0 test` until CV-104 | Tests exist and fail (no implementation). |
+| CV-104 | **SHA-256 for the compiler.** Implement per **D-2**; hex encoder. | COV-MAP-004, COV-MAP-017 | c | CV-103 | todo | Vectors pass on native (+ VM if D-2 = A). |
 | CV-105 | **Source-unit table.** Logical-path normalization (§10.1), exact-byte digest, concat-offset → (source, file-relative byte) map for project mode, Unicode-scalar columns, normalized-path collision error. | COV-MAP-002, COV-MAP-003, COV-MAP-009, G-5 | c | CV-104 | todo | Multi-file, same-basename, multibyte, CRLF, and collision tests pass. |
 | CV-106 | **`--coverage=off\|map\|instrument` + `--coverage-map <path>` plumbing.** Native driver (`native_exe_cli.py` + megaTU CLI patch) and VM driver; mode recorded in build metadata; `off` is byte-identical to today. | COV-INS-001, COV-INS-002, COV-INS-004 (seed) | c, root | — | todo | `off` goldens unchanged; `map` writes a placeholder file path; unknown mode → usage error. |
 
@@ -270,7 +270,7 @@ encoders, validators, and golden bytes that every upstream slice tests against.
 | CV-312 | **Changed-region checks.** | BL-050, COV-POL-003/004 | cov | CV-311 | todo | AC-016. |
 | CV-313 | **Ratchets.** | BL-051, COV-POL-005, AC-017 | cov | CV-231 | todo | Regression/exclusion-growth suite. |
 | CV-314 | **Exclusion audit + caps in reports and policy.** | COV-EXC-005/025, COV-POL-025 | cov | CV-305, CV-229 | todo | Cap boundary tests. |
-| CV-315 | **Dedicated-host plan (R01-G6).** | R01-G6 | root | CV-037 | **blocked (D-3)** | Accountable path recorded. |
+| CV-315 | **Dedicated-host plan (R01-G6).** | R01-G6 | root | CV-037 | todo | Accountable path recorded. |
 | CV-316 | **R0.1 gate review.** | §31.3 | root | all R0.1 | todo | Gate table filled. |
 
 ## R1 — stable contract (`4xx`, coarse; re-slice at R0.1 close)
@@ -281,7 +281,7 @@ encoders, validators, and golden bytes that every upstream slice tests against.
 | CV-402 | Cobertura `sv0cov-cobertura-r1-core` + pinned DTD + GitLab smoke. | BL-054, BL-079, COV-REP-005/011/012/013 | cov | CV-229 | todo | AC-051. |
 | CV-403 | Export commit manifests. | BL-035, BL-080, COV-FMT-037, COV-REP-014 | cov | CV-401, CV-402 | todo | AC-052, AC-104. |
 | CV-404 | Saturation policy `allow-ordinary` + granular eligibility. | BL-071, COV-POL-007..011/027, COV-INS-013 | cov | CV-229 | todo | AC-037, AC-038. |
-| CV-405 | Process lifecycle per **D-4** (fork guards, unresolved parent, VM rejection). | BL-015, BL-025, COV-INS-016, COV-C-007, COV-VM-026 | cov, vm | CV-210 | **blocked (D-4)** | AC-096. |
+| CV-405 | Process lifecycle per **D-4** (fork guards, unresolved parent, VM rejection). | BL-015, BL-025, COV-INS-016, COV-C-007, COV-VM-026 | cov, vm | CV-210 | todo | AC-096. |
 | CV-406 | Orderly-flush-only proof (no checkpoint/mmap writes). | BL-068, COV-FMT-011/012, AC-032 | cov, vm | CV-115, CV-121 | todo | I/O trace tests. |
 | CV-460 | **v2 container available.** Wait for, or contribute to, the sv0vm expansion's typed v2 (R0.6 there). | G-1, DEC-018, DEC-086 | c, vm | — | blocked (sv0vm expansion) | sv0c emits and sv0vm loads uncovered v2. |
 | CV-461 | **sv0doc v2 `COVR` section.** Tag, ordering, unknown-section rule, downgrade rejection. | COV-VM-019, COV-VM-023, §15.4 | doc | CV-460 | todo | Page merged. |
@@ -290,10 +290,10 @@ encoders, validators, and golden bytes that every upstream slice tests against.
 | CV-407 | Full semantic parity suite across backends incl. v2 (R1-G1). | COV-VM-005, COV-VM-014, COV-MET-014, COV-REL-002 | cov | CV-171, CV-463, CV-3xx | todo | Every §28.2 fixture has three-path parity. |
 | CV-408 | HTML WCAG 2.2 AA (automated + manual). | BL-047, COV-REP-007 | cov | CV-309 | todo | AC-020 + audit record. |
 | CV-409 | Four-host × two-Python portability matrix. | BL-057, BL-062, COV-PORT-001..007 | cov | CV-234 | todo | Eight cells green end to end. |
-| CV-410 | Performance on dedicated hosts + budget evaluator. | BL-058, BL-083, BL-088, BL-093, COV-PERF-* | cov | CV-037 | **blocked (D-3)** | R1-G9. |
+| CV-410 | Performance on dedicated hosts + budget evaluator. | BL-058, BL-083, BL-088, BL-093, COV-PERF-* | cov | CV-037 | todo | R1-G9. |
 | CV-411 | Supply-chain closure: SBOM, licenses, provenance. | BL-059, BL-090, COV-LIC-008..010 | cov | CV-243 | todo | R1-G12. |
 | CV-412 | Freeze R1 schemas + generated validators + compatibility corpus. | BL-060 | cov | all formats | todo | R1-G3. |
-| CV-413 | Release pipeline: attestations, protected approval, immutable release. | BL-091, COV-PKG-002..004/023..027 | cov | CV-411 | **blocked (D-3)** | R1-G15. |
+| CV-413 | Release pipeline: attestations, protected approval, immutable release. | BL-091, COV-PKG-002..004/023..027 | cov | CV-411 | todo | R1-G15. |
 | CV-414 | Ordered toolchain pin + rollback drill. | BL-092, COV-PKG-011 | root | CV-413 | todo | R1-G13. |
 | CV-415 | Evidence manifest + R1 gate review → `1.0.0`. | BL-061, COV-GOV-007 | root | all R1 | todo | R1-G14; §39 definition of done. |
 
