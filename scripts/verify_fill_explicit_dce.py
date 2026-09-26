@@ -61,11 +61,12 @@ STORE_INSN = re.compile(
 # `-fipa-cp-clone`/`constprop` renames a function specialized for
 # constant arguments to `name.constprop.0` etc; this harness's calls are
 # always made with the same constant arguments, so this is expected, not
-# a naming accident). Deliberately excludes local jump-target labels,
-# which never look like a plain identifier: Mach-O uses `LBB<n>_<n>:`
-# (starts with an uppercase L immediately followed by a digit) and ELF
-# uses `.L<name>:` (starts with a literal dot).
-_FUNC_LABEL = re.compile(r"^_?([A-Za-z_][A-Za-z0-9_]*)(\.[A-Za-z0-9_]+)*:\s*(;.*)?$")
+# a naming accident). Excludes assembler-local labels: Mach-O spells them
+# with a leading `L` or `l_` (`LBB1_4:`, `Ltmp0:`, `Lloh2:`, `l_.str:`),
+# while its C functions always carry a leading `_`, and ELF spells them
+# `.L<name>:`, which the pattern cannot match. Treating `LBB1_4:` as a
+# function start cut a body short at its first internal branch.
+_FUNC_LABEL = re.compile(r"^(?!L|l_)_?([A-Za-z_][A-Za-z0-9_]*)(\.[A-Za-z0-9_]+)*:\s*(;.*)?$")
 
 
 def find_function_body(asm: str, label: str) -> str | None:
