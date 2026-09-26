@@ -2190,10 +2190,13 @@ case "$cmd" in
     #   vm-native-compile <file.sv0> [out.sv0b]
     #   vm-native-compile --project <dir> [out.sv0b]
     # Absolute paths accepted (unlike vm-compile). Builds build/sv0-megatu-vm-native
-    # on demand; `rm` it (or run scripts/build-sv0-megatu-vm-native.sh) after a
-    # compiler-source change to force a rebuild.
+    # when it is missing or older than the compiler sources or runtime
+    # (_artifact_stale), like the native compiler.
     _vmn="$ROOT/build/sv0-megatu-vm-native"
-    [[ -x "$_vmn" ]] || bash "$ROOT/scripts/build-sv0-megatu-vm-native.sh" >&2
+    if [[ ! -x "$_vmn" ]] || _artifact_stale "$_vmn" \
+         "$ROOT/scripts/build-sv0-megatu-vm-native.sh" "$ROOT/scripts/assemble-sv0-megaTU.py"; then
+      bash "$ROOT/scripts/build-sv0-megatu-vm-native.sh" >&2
+    fi
     [[ -x "$_vmn" ]] || { echo "sv0: vm-native-compile: emitter build failed" >&2; exit 1; }
     # SS-U10 (sv0-strings SPEC UP-028 / OQ-012): the native VM backend runs
     # contracts in 'runtime' mode only. Recognise --contract-mode=<X> anywhere
