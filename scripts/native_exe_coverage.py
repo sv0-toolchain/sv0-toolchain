@@ -15,9 +15,9 @@ keys. This module holds the rules both drivers apply:
   ``<mode>\\n<absolute map path>``. ``off`` sets nothing, so an off build
   invokes the compiler exactly as before (byte-identical output).
 
-Until the coverage planner lands (CV-107..CV-113) the compiler rejects a
-non-off request with a diagnostic instead of building an unmarked,
-uninstrumented artifact.
+The compiler plans coverage for a non-off request (CV-107) and, until map
+emission (CV-110) and hit placement (CV-112) land, then refuses it with a
+diagnostic instead of building an unmarked, uninstrumented artifact.
 
     python3 scripts/native_exe_coverage.py --selftest
     python3 scripts/native_exe_coverage.py resolve --mode M [--map P] --artifact A

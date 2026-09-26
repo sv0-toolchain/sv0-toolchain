@@ -6,9 +6,10 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
 1. `--coverage=off` is byte-identical to giving no flag: the emitted C (and
    the pinned golden) and the `.sv0b`, even with a stray
    SV0_COVERAGE_REQUEST in the environment.
-2. `map` and `instrument` reach the compiler, which refuses them until the
-   planner lands (CV-107..CV-113): nonzero exit, the diagnostic, and no
-   artifact or map file left behind.
+2. `map` and `instrument` reach the compiler, which plans coverage and then
+   refuses them until map emission (CV-110) and hit placement (CV-112)
+   land: nonzero exit, the diagnostic, and no artifact or map file left
+   behind.
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
    path that collides with the artifact are usage errors (exit 2) that never
    invoke the compiler.
@@ -28,7 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SV0 = str(ROOT / "scripts" / "sv0")
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "struct_field.sv0"
 GOLDEN_C = ROOT / "sv0c" / "test" / "behavior" / "golden-c" / "struct_field.c"
-PENDING = "is not available yet: the sv0 coverage planner"
+PENDING = "is not available yet: coverage map emission"
 
 
 def run(args: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
@@ -105,7 +106,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         return 1
     print("verify_coverage_modes: OK (off byte-identical on native + VM; map/instrument refused "
-          f"pending the planner; {len(usage)} usage errors; build record states the mode)")
+          f"pending map emission; {len(usage)} usage errors; build record states the mode)")
     return 0
 
 
