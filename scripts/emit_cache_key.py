@@ -64,7 +64,7 @@ def include_closure(entry: str) -> list[str]:
     return seen
 
 
-def cache_key(root: str, entry: str, envkey: str) -> str | None:
+def cache_key(root: str, entry: str, envkey: str, coverage_request: str = "") -> str | None:
     tu_c = os.path.join(root, "build", "megaTU-native.c")
     binary = os.path.join(root, "build", "sv0-megatu-native")
     wrapper = os.path.join(root, "build", "sv0-megatu-compiler-native")
@@ -78,6 +78,10 @@ def cache_key(root: str, entry: str, envkey: str) -> str | None:
     h.update(_sha(open(tu_c, "rb").read()).encode() + b"\n")
     h.update(_sha(open(wrapper, "rb").read()).encode() + b"\n")
     h.update(os.path.abspath(entry).encode("utf-8", "surrogateescape") + b"\n")
+    # sv0cov CV-106 / COV-INS-004: a non-off coverage request changes the
+    # emitted artifact; off (empty) keeps every existing key unchanged.
+    if coverage_request:
+        h.update(b"coverage\0" + coverage_request.encode("utf-8", "surrogateescape") + b"\n")
     for f in include_closure(entry):
         try:
             data = _sha(open(f, "rb").read())
@@ -128,6 +132,10 @@ def _selftest() -> int:
         check("entry change invalidates", k() != base)
         w("src/main.sv0", 'include "sub/a.sv0";\n  include "b.sv0" ;\nfn main() -> i32 { 0 }\n')
         check("environment key change invalidates", k("OTHER") != base)
+        check("empty coverage request keeps the key", cache_key(td, entry, "ENV", "") == base)
+        cov_map = cache_key(td, entry, "ENV", "map\n/m.json")
+        check("coverage request invalidates", cov_map not in (None, base))
+        check("coverage mode is part of the key", cache_key(td, entry, "ENV", "instrument\n/m.json") != cov_map)
         check("empty environment key is not cacheable", k("") is None)
         w("build/megaTU-native.c", "int compiler(void){return 2;}\n")
         os.utime(os.path.join(td, "build", "sv0-megatu-native"), (now + 9, now + 9))
@@ -137,7 +145,7 @@ def _selftest() -> int:
 
     if bad:
         return 1
-    print("emit_cache_key: selftest OK (10 checks)")
+    print("emit_cache_key: selftest OK (13 checks)")
     return 0
 
 
@@ -145,7 +153,8 @@ def main(argv: list[str]) -> int:
     if "--selftest" in argv:
         return _selftest()
     if len(argv) >= 4 and argv[0] == "key" and argv[1] == "--root":
-        key = cache_key(argv[2], argv[3], os.environ.get("SV0_RUN_CACHE_ENVKEY", ""))
+        key = cache_key(argv[2], argv[3], os.environ.get("SV0_RUN_CACHE_ENVKEY", ""),
+                        os.environ.get("SV0_COVERAGE_REQUEST", ""))
         if key is None:
             return 3
         print(key)

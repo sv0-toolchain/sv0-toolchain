@@ -103,7 +103,8 @@ usage: sv0 <command> [args]
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
-  vm-native-compile <file.sv0>|--project <dir> [out.sv0b] [--contract-mode=runtime]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK); VM contracts are 'runtime' only -- verified/disabled are refused as unsupported (SS-U10)
+  vm-native-compile <file.sv0>|--project <dir> [out.sv0b] [--contract-mode=runtime] [--coverage=off|map|instrument [--coverage-map <path>]]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK); VM contracts are 'runtime' only -- verified/disabled are refused as unsupported (SS-U10)
+                           --coverage (sv0cov CV-106): off is the default; map/instrument are refused until the coverage planner lands
   vm-behavioral-parity  f64/i64 fixtures: native emit-c->run vs VM-emit->sv0vm, exit codes compared (COMPAT-001/002)
   vm-run <file.sv0b> run bytecode via sv0vm/scripts/run_sv0b.sml
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
@@ -496,6 +497,7 @@ run_python_guards() {
     'CV-104 sv0c/lib/sha256.sv0 matches its generator (scripts/gen_sha256_sv0.py)'
     'CV-102 coverage identifier registry guard selftest'
     'CV-102 sv0doc/sv0c/sv0vm/sv0cov agree with the coverage identifier registry (opcode 119 = COVER_HIT)'
+    'CV-106 --coverage mode/map-path rules selftest (scripts/native_exe_coverage.py)'
     'vm-parity manifest ⊆ sv0c/lib/bootstrap-sources.list'
     'task/milestone-orientation.json (schema + primary_tasks exist)'
     'workspace milestone table cites all milestone-orientation primary_tasks'
@@ -596,6 +598,7 @@ run_python_guards() {
     'python3 "$ROOT/sv0c/scripts/gen_sha256_sv0.py"'
     'python3 "$ROOT/scripts/verify_coverage_identifier_registry.py" --selftest'
     'python3 "$ROOT/scripts/verify_coverage_identifier_registry.py" --root "$ROOT"'
+    'python3 "$ROOT/scripts/native_exe_coverage.py" --selftest'
     'python3 "$ROOT/scripts/verify_vm_parity_manifest_bootstrap.py" --root "$ROOT"'
     'python3 "$ROOT/scripts/verify_milestone_orientation.py" --root "$ROOT"'
     'python3 "$ROOT/scripts/verify_workspace_milestone_table.py" --root "$ROOT"'
@@ -764,7 +767,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + CV-002 sv0cov submodule pin + CV-104 sha256 generator + CV-102 coverage identifier registry + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-055c no-new-legacy-control-file guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + VM-compose phase-6 patch resilience selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + CV-002 sv0cov submodule pin + CV-104 sha256 generator + CV-102 coverage identifier registry + CV-106 coverage mode rules + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-055c no-new-legacy-control-file guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + VM-compose phase-6 patch resilience selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
 }
 
 # Reduced suite for pushes whose changed paths cannot affect the compiler, VM or
@@ -922,6 +925,10 @@ run_test() {
   fi
   sv0_info "sv0 test: coverage source-unit table (CV-105 — logical paths, digests, concat offsets, scalar columns; native + VM)"
   if ! python3 "$ROOT/sv0c/test/coverage/source/run_source_table.py"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: --coverage modes (CV-106 — off byte-identical on native + VM, map/instrument refused until the planner, usage errors)"
+  if ! python3 "$ROOT/scripts/verify_coverage_modes.py"; then
     ec=1
   fi
   sv0_info "sv0 test: fill_explicit DCE-stress (SS-U11/NEW-003 — naive fill elided, sv0_fill_explicit is not)"
@@ -2189,6 +2196,7 @@ case "$cmd" in
     # the path that supports f64 / i64 / wide-int -- see sv0c-vm-float-parity).
     #   vm-native-compile <file.sv0> [out.sv0b]
     #   vm-native-compile --project <dir> [out.sv0b]
+    #   [--coverage=off|map|instrument] [--coverage-map <path>] anywhere
     # Absolute paths accepted (unlike vm-compile). Builds build/sv0-megatu-vm-native
     # when it is missing or older than the compiler sources or runtime
     # (_artifact_stale), like the native compiler.
@@ -2203,13 +2211,30 @@ case "$cmd" in
     # in the args -- accept 'runtime', refuse 'verified'/'disabled' as
     # unsupported rather than mis-consuming the flag as an output path (the
     # docs/BUGS.md #6 repro), reject anything else as unknown.
+    # sv0cov CV-106: --coverage=off|map|instrument and --coverage-map <path>
+    # (SPEC 13.3), resolved by scripts/native_exe_coverage.py like the native
+    # driver; a non-off mode reaches the emitter in SV0_COVERAGE_REQUEST.
     _vm_args=()
     _vm_cmode=""
-    for _a in "$@"; do
-      case "$_a" in
-        --contract-mode=*) _vm_cmode="${_a#--contract-mode=}" ;;
-        *) _vm_args+=("$_a") ;;
+    _vm_cov=""
+    _vm_covmap=""
+    _vm_covmap_seen=0
+    while (($# > 0)); do
+      case "$1" in
+        --contract-mode=*) _vm_cmode="${1#--contract-mode=}" ;;
+        --coverage=*)
+          [[ -z "$_vm_cov" ]] || { echo "sv0: vm-native-compile: repeated option: --coverage" >&2; exit 2; }
+          _vm_cov="${1#--coverage=}"
+          [[ -n "$_vm_cov" ]] || { echo "sv0: vm-native-compile: option --coverage requires a value" >&2; exit 2; } ;;
+        --coverage-map)
+          ((_vm_covmap_seen == 0)) || { echo "sv0: vm-native-compile: repeated option: --coverage-map" >&2; exit 2; }
+          (($# > 1)) || { echo "sv0: vm-native-compile: option --coverage-map requires a value" >&2; exit 2; }
+          _vm_covmap_seen=1
+          _vm_covmap="$2"
+          shift ;;
+        *) _vm_args+=("$1") ;;
       esac
+      shift
     done
     case "$_vm_cmode" in
       ""|runtime) ;;
@@ -2227,16 +2252,27 @@ case "$cmd" in
       [[ -n "$_d" && -d "$_d" ]] || { echo "sv0: vm-native-compile --project <dir>: not a directory: ${2:-}" >&2; exit 1; }
       _d="$(cd "$_d" && pwd)"
       _out="${3:-$ROOT/build/vm/$(basename "$_d").sv0b}"
-      mkdir -p "$(dirname "$_out")"
-      SV0_DRV_REQUEST="--project $_d" "$_vmn" > "$_out"
+      _vm_req="--project $_d"
     else
       _f="${1:-}"
       [[ -n "$_f" && -f "$_f" ]] || { echo "sv0: vm-native-compile <file.sv0>: not a file: ${1:-}" >&2; exit 1; }
       _f="$(cd "$(dirname "$_f")" && pwd)/$(basename "$_f")"
       _out="${2:-$ROOT/build/vm/$(basename "$_f" .sv0).sv0b}"
-      mkdir -p "$(dirname "$_out")"
-      SV0_DRV_REQUEST="$_f" "$_vmn" > "$_out"
+      _vm_req="$_f"
     fi
+    _cov_args=(--mode "${_vm_cov:-off}" --artifact "$_out")
+    ((_vm_covmap_seen == 0)) || _cov_args+=(--map "$_vm_covmap")
+    _cov_req="$(python3 "$ROOT/scripts/native_exe_coverage.py" resolve "${_cov_args[@]}")" || exit 2
+    mkdir -p "$(dirname "$_out")"
+    # Publish through a temp file so a failed compile leaves no partial .sv0b.
+    _vm_tmp="$_out.tmp.$$"
+    if [[ -n "$_cov_req" ]]; then
+      _vm_rc=0; SV0_COVERAGE_REQUEST="$_cov_req" SV0_DRV_REQUEST="$_vm_req" "$_vmn" > "$_vm_tmp" || _vm_rc=$?
+    else
+      _vm_rc=0; env -u SV0_COVERAGE_REQUEST SV0_DRV_REQUEST="$_vm_req" "$_vmn" > "$_vm_tmp" || _vm_rc=$?
+    fi
+    if ((_vm_rc != 0)); then rm -f "$_vm_tmp"; exit "$_vm_rc"; fi
+    mv -f "$_vm_tmp" "$_out"
     echo "sv0: vm-native-compile: wrote $_out" >&2
     ;;
   vm-run)

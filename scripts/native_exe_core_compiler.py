@@ -96,7 +96,7 @@ class CoreCompilerClient:
     def __init__(self, compiler_path: str) -> None:
         self.compiler_path = compiler_path
 
-    def invoke(self, control_value: str) -> CommandResult:
+    def invoke(self, control_value: str, extra_env: dict[str, str] | None = None) -> CommandResult:
         """Run the compiler with `control_value` carried in `SV0_DRV_REQUEST`.
 
         `dict(os.environ)` snapshots the *current* environment into a new,
@@ -105,8 +105,11 @@ class CoreCompilerClient:
         request. The resulting dict is handed straight to `subprocess.run`,
         which gives the child process its own independent copy at exec
         time (real OS-level isolation, not just a Python-level one).
+        `extra_env`, when given, replaces that snapshot as the base (e.g.
+        `native_exe_coverage.child_env`, which adds or strips the coverage
+        request).
         """
-        env = dict(os.environ)
+        env = dict(os.environ) if extra_env is None else dict(extra_env)
         env[ENV_VAR] = control_value
         return run_argv([self.compiler_path], env=env)
 

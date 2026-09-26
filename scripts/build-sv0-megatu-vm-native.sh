@@ -53,7 +53,22 @@ src = pathlib.Path(sys.argv[1]).read_text()
 # every .sv0 under <dir> via link_project_concat_sources_from_dir (one TU, so no
 # per-file duplicate-type issue the SML --project path has). No verified/disabled
 # contract modes on the VM path.
-cli_read = (
+cov_gate = (
+    # sv0cov CV-106: a non-off --coverage mode arrives in SV0_COVERAGE_REQUEST
+    # ("<mode>\n<map path>"; unset for off, so off compiles are unchanged).
+    # Until the planner lands (CV-107..CV-113) the compiler refuses it rather
+    # than emit an unmarked, uninstrumented artifact.
+    'let _cov_req: string = getenv("SV0_COVERAGE_REQUEST");\n'
+    '    if string_len(_cov_req) > 0 {\n'
+    '        let _cov_nl: i32 = megatu_index_of(_cov_req, 10, 0);\n'
+    '        let _cov_mode: string = if _cov_nl >= 0 { string_substr(_cov_req, 0, _cov_nl) } else { _cov_req };\n'
+    '        write_file("/dev/stderr", string_concat(string_concat("--coverage=", _cov_mode),\n'
+    '            " is not available yet: the sv0 coverage planner (sv0cov CV-107..CV-113) has not landed; build with --coverage=off\\n"));\n'
+    '        return 9;\n'
+    '    }\n'
+    '    '
+)
+cli_read = cov_gate + (
     'let _drv_p: string = getenv("SV0_DRV_REQUEST");\n'
     '    let _drv_n: i32 = string_len(_drv_p);\n'
     '    let _drv_c: string = if _drv_n > 0 {\n'

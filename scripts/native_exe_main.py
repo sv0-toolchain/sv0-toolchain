@@ -35,6 +35,8 @@ from native_exe_build_record import build_record, write_build_record_atomically
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_cli import UsageError, parse_args
+from native_exe_coverage import CoverageUsageError
+from native_exe_coverage import resolve as resolve_coverage
 from native_exe_emit_c import emit_c_only
 from native_exe_errors import BuildError
 from native_exe_human_output import format_emit_c_success_message, render_argv_for_display
@@ -139,6 +141,33 @@ def run(argv: list[str], invocation_cwd: str) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 3
 
+    # sv0cov CV-106: validate the coverage mode and resolve the map path
+    # against the artifact before any build work runs.
+    if request.emit is Emit.C_ONLY:
+        coverage_artifact = request.output_path
+        coverage_others: tuple[str, ...] = ()
+    else:
+        coverage_artifact = (
+            request.output_path
+            if request.output_path is not None
+            else default_output_path(request.input_kind.value, request.input_path, request.invocation_cwd)
+        )
+        coverage_others = tuple(
+            p for p in (
+                request.keep_c or (f"{coverage_artifact}.c" if request.keep_c_requested else None),
+                request.build_record
+                or (f"{coverage_artifact}.build-record.json" if request.build_record_requested else None),
+            ) if p is not None
+        )
+    try:
+        coverage = resolve_coverage(
+            request.coverage_mode, request.coverage_map, coverage_artifact,
+            request.invocation_cwd, other_outputs=coverage_others,
+        )
+    except CoverageUsageError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
     if request.emit is Emit.C_ONLY:
         # CLI-014: --emit=c never invokes a host compiler and produces no
         # executable -- a genuinely separate, smaller pipeline
@@ -153,6 +182,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
                 output_path=request.output_path,
                 invocation_cwd=request.invocation_cwd,
                 contract_mode=request.contract_mode_requested.value,
+                coverage=coverage,
             )
         except BuildError as exc:
             print(f"error: {exc.message}", file=sys.stderr)
@@ -194,6 +224,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
                 quiet=request.quiet,
                 keep_c_path=keep_c_path,
                 profile=request.profile.value,
+                coverage=coverage,
             )
     except BuildError as exc:
         print(f"error: {exc.message}", file=sys.stderr)
@@ -225,6 +256,8 @@ def run(argv: list[str], invocation_cwd: str) -> int:
             contract_mode_requested=request.contract_mode_requested.value,
             contract_mode_effective=request.contract_mode_requested.value,
             config={"path": request.config_path} if request.config_path is not None else None,
+            coverage_mode=coverage.mode,
+            coverage_map_path=coverage.map_path,
         )
         write_build_record_atomically(record, build_record_path)
 

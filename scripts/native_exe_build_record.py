@@ -66,6 +66,8 @@ def build_record(
     hermetic: bool = False,
     config: dict | None = None,
     reproducibility: dict | None = None,
+    coverage_mode: str = "off",
+    coverage_map_path: str | None = None,
 ) -> dict:
     """Build one Appendix-C-shaped record dict from a real published artifact.
 
@@ -75,6 +77,9 @@ def build_record(
     this module never runs a double-build itself, it only records the
     classification a caller already computed, distinguishing byte- from
     semantic-only reproducibility rather than conflating the two.
+
+    `coverage` (sv0cov SPEC 13.3, CV-106) always states the mode, `off`
+    included, plus the map path for `map`/`instrument`.
     """
     artifact_bytes_sha256 = _sha256_file(artifact_path)
     artifact_size = os.path.getsize(artifact_path)
@@ -121,6 +126,7 @@ def build_record(
         "hermetic": hermetic,
         "config": config,
         "reproducibility": reproducibility,
+        "coverage": {"mode": coverage_mode, "map_path": coverage_map_path},
     }
 
 

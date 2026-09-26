@@ -21,6 +21,8 @@ Run `python3 scripts/native_exe_emit_c.py --selftest` for the corpus.
 
 from __future__ import annotations
 
+import os
+
 from native_exe_core_compiler import CoreCompilerClient, CoreCompilerRequest
 from native_exe_emit import classify_emission
 from native_exe_entry_reserved import validate_no_reserved_collisions
@@ -29,7 +31,8 @@ from native_exe_entry_signature import validate_entry_signature
 from native_exe_input_validation import validate_file_input_shape
 from native_exe_output_path import ensure_output_parent_dir, validate_output_path
 from native_exe_staging import validate_staging_c, write_text_atomically
-from native_exe_build import DEFAULT_COMPILER_PATH
+from native_exe_build import COVERAGE_OFF, DEFAULT_COMPILER_PATH
+from native_exe_coverage import CoverageRequest, child_env
 
 
 def emit_c_only(
@@ -40,6 +43,7 @@ def emit_c_only(
     contract_mode: str = "runtime",
     proof_path: str | None = None,
     compiler_path: str | None = None,
+    coverage: CoverageRequest | None = None,
 ) -> str:
     """Emit C for `input_path` to `output_path` atomically. Never invokes a
     host C compiler. Returns `output_path`. `output_path` is required here
@@ -65,7 +69,7 @@ def emit_c_only(
         control_value = CoreCompilerRequest.file(input_path)
 
     client = CoreCompilerClient(resolved_compiler_path)
-    core_result = client.invoke(control_value)
+    core_result = client.invoke(control_value, extra_env=child_env(os.environ, coverage or COVERAGE_OFF))
 
     emission = classify_emission(core_result)
     validate_staging_c(emission.c_source)

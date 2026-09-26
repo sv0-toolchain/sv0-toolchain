@@ -52,14 +52,17 @@ class ParsedArgs:
     message_format: str = "human"  # --message-format=human|json
     build_record_seen: bool = False  # true if --build-record (bare or =value) was given
     build_record_path: str | None = None  # explicit path from --build-record=<path>, else None
+    coverage_mode: str = "off"  # --coverage=off|map|instrument (sv0cov SPEC 13.3, CV-106)
+    coverage_map_path: str | None = None  # --coverage-map <path>; None = derived from the output path
     trailing: list[str] = field(default_factory=list)  # tokens after `--`
 
 
 # Options that take exactly one value and may appear at most once (CLI-003:
 # "repeated scalar options are usage errors unless the option explicitly
 # documents repetition" — none of these document repetition).
-_SCALAR_VALUE_OPTIONS = {"-o", "--project", "--cc"}
-_SCALAR_EQUALS_OPTIONS = {"--profile", "--contract-mode", "--emit", "--message-format"}
+_SCALAR_VALUE_OPTIONS = {"-o", "--project", "--cc", "--coverage-map"}
+_SCALAR_EQUALS_OPTIONS = {"--profile", "--contract-mode", "--emit", "--message-format", "--coverage"}
+COVERAGE_MODES = ("off", "map", "instrument")
 # CLI-014/016: options valid either bare (a documented default applies) or
 # with an explicit `=<path>` value -- distinct from _SCALAR_EQUALS_OPTIONS,
 # which always REQUIRES a value.
@@ -88,6 +91,8 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     message_format = "human"
     build_record_seen = False
     build_record_path: str | None = None
+    coverage_mode = "off"
+    coverage_map_path: str | None = None
     project_dir: str | None = None
     positional: list[str] = []
     trailing: list[str] = []
@@ -131,6 +136,12 @@ def parse_args(argv: list[str]) -> ParsedArgs:
                 project_dir = value
             elif arg == "--cc":
                 cc = value
+            elif arg == "--coverage-map":
+                if value == "":
+                    raise UsageError("--coverage-map requires a non-empty path")
+                if value == "-":
+                    raise UsageError("--coverage-map - is invalid: the coverage map is written to a file")
+                coverage_map_path = value
             i += 2
             continue
 
@@ -161,6 +172,12 @@ def parse_args(argv: list[str]) -> ParsedArgs:
                             f"--message-format={value} is invalid (want 'human' or 'json')"
                         )
                     message_format = value
+                elif opt == "--coverage":
+                    if value not in COVERAGE_MODES:
+                        raise UsageError(
+                            f"--coverage={value} is invalid (want 'off', 'map' or 'instrument')"
+                        )
+                    coverage_mode = value
                 matched_equals = True
                 break
         if matched_equals:
@@ -207,6 +224,9 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     if verbose and quiet:
         raise UsageError("--verbose and --quiet are mutually exclusive")
 
+    if coverage_map_path is not None and coverage_mode == "off":
+        raise UsageError("--coverage-map requires --coverage=map or --coverage=instrument")
+
     if emit_value == "c":
         # CLI-014/native_exe_emit_c.emit_c_only's own documented contract:
         # "--emit=c has no default-naming rule of its own in the spec; a
@@ -251,6 +271,8 @@ def parse_args(argv: list[str]) -> ParsedArgs:
             message_format=message_format,
             build_record_seen=build_record_seen,
             build_record_path=build_record_path,
+            coverage_mode=coverage_mode,
+            coverage_map_path=coverage_map_path,
             trailing=trailing,
         )
 
@@ -283,6 +305,8 @@ def parse_args(argv: list[str]) -> ParsedArgs:
         message_format=message_format,
         build_record_seen=build_record_seen,
         build_record_path=build_record_path,
+        coverage_mode=coverage_mode,
+        coverage_map_path=coverage_map_path,
         trailing=[],
     )
 
@@ -424,6 +448,39 @@ _CASES: list[tuple[str, list[str], dict | type]] = [
         "all three R0.1 flags together",
         ["--keep-c=k.c", "--message-format=json", "--build-record=r.json", "hello.sv0"],
         {"keep_c_path": "k.c", "message_format": "json", "build_record_path": "r.json"},
+    ),
+    # sv0cov CV-106 (SPEC 13.3): coverage mode + map path.
+    ("coverage defaults to off", ["hello.sv0"], {"coverage_mode": "off", "coverage_map_path": None}),
+    ("--coverage=off is explicit", ["--coverage=off", "hello.sv0"], {"coverage_mode": "off"}),
+    ("--coverage=map", ["--coverage=map", "hello.sv0"], {"coverage_mode": "map", "coverage_map_path": None}),
+    (
+        "--coverage=instrument with --coverage-map",
+        ["--coverage=instrument", "--coverage-map", "out/h.sv0covmap.json", "hello.sv0"],
+        {"coverage_mode": "instrument", "coverage_map_path": "out/h.sv0covmap.json"},
+    ),
+    (
+        "--coverage=map in project mode",
+        ["--coverage=map", "--project", "calc"],
+        {"input_kind": "project", "coverage_mode": "map"},
+    ),
+    ("unknown coverage mode", ["--coverage=branch", "hello.sv0"], (UsageError, "want 'off', 'map' or 'instrument'")),
+    ("case-variant coverage mode", ["--coverage=Map", "hello.sv0"], (UsageError, "want 'off', 'map' or 'instrument'")),
+    ("empty coverage mode", ["--coverage=", "hello.sv0"], (UsageError, "requires a value")),
+    ("bare --coverage", ["--coverage", "hello.sv0"], (UsageError, "unknown option")),
+    ("repeated --coverage", ["--coverage=map", "--coverage=off", "hello.sv0"], (UsageError, "repeated option")),
+    ("--coverage-map without a mode", ["--coverage-map", "m.json", "hello.sv0"], (UsageError, "requires --coverage=map")),
+    (
+        "--coverage-map with --coverage=off",
+        ["--coverage=off", "--coverage-map", "m.json", "hello.sv0"],
+        (UsageError, "requires --coverage=map"),
+    ),
+    ("--coverage-map missing value", ["--coverage=map", "--coverage-map"], (UsageError, "requires a value")),
+    ("--coverage-map empty", ["--coverage=map", "--coverage-map", "", "hello.sv0"], (UsageError, "non-empty path")),
+    ("--coverage-map to stdout", ["--coverage=map", "--coverage-map", "-", "hello.sv0"], (UsageError, "written to a file")),
+    (
+        "repeated --coverage-map",
+        ["--coverage=map", "--coverage-map", "a.json", "--coverage-map", "b.json", "hello.sv0"],
+        (UsageError, "repeated option"),
     ),
 ]
 

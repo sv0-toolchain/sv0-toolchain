@@ -142,6 +142,8 @@ class NativeBuildRequest:
     verbose: bool
     invocation_cwd: str
     config_path: str | None
+    coverage_mode: str = "off"  # sv0cov CV-106: off | map | instrument
+    coverage_map: str | None = None  # resolved --coverage-map; None = default beside the artifact
 
 
 _PROFILE_VALUES = {p.value for p in Profile}
@@ -259,6 +261,8 @@ def normalize_request(parsed: ParsedArgs, invocation_cwd: str | None = None) -> 
         verbose=parsed.verbose,
         invocation_cwd=cwd,
         config_path=config_path,
+        coverage_mode=parsed.coverage_mode,
+        coverage_map=_resolve(parsed.coverage_map_path, cwd) if parsed.coverage_map_path is not None else None,
     )
 
 

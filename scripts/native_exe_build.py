@@ -33,6 +33,9 @@ from native_exe_argv_builder import build_dev_profile_argv, build_release_profil
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_core_compiler import CoreCompilerClient, CoreCompilerRequest
+from native_exe_coverage import CoverageRequest, child_env
+
+COVERAGE_OFF = CoverageRequest("off", None)
 from native_exe_emit import classify_emission
 from native_exe_entry_abi import verify_entry_abi_compat
 from native_exe_entry_reserved import validate_no_reserved_collisions
@@ -77,6 +80,7 @@ def build_native_executable(
     keep_c_path: str | None = None,
     extra_cc_args: list[str] | None = None,
     profile: str = "dev",
+    coverage: CoverageRequest | None = None,
 ) -> BuildResult:
     """Run the full R0 build pipeline for one file or project input.
 
@@ -155,8 +159,10 @@ def build_native_executable(
     else:
         control_value = CoreCompilerRequest.file(input_path)
 
+    # sv0cov CV-106: a non-off coverage mode reaches the compiler through
+    # its own request variable; off leaves the invocation as it was.
     client = CoreCompilerClient(resolved_compiler_path)
-    core_result = client.invoke(control_value)
+    core_result = client.invoke(control_value, extra_env=child_env(os.environ, coverage or COVERAGE_OFF))
 
     # 6. Emission protocol classification + staging validation (NEX-012/018).
     emission = classify_emission(core_result)
