@@ -931,6 +931,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_plan.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage map determinism + map-mode no-op (CV-111 — repeated builds byte-identical; map-mode C/.sv0b identical to off)"
+  if ! python3 "$ROOT/sv0c/test/coverage/plan/run_determinism.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: --coverage modes (CV-106 — off byte-identical on native + VM, map/instrument refused until the planner, usage errors)"
   if ! python3 "$ROOT/scripts/verify_coverage_modes.py"; then
     ec=1
