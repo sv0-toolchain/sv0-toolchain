@@ -262,6 +262,86 @@
    ]
   },
   {
+   "id": "TID",
+   "title": "Installed toolchain: sv0/sv0c/sv0vm command interface + BR1 binary distribution (SPEC program)",
+   "primary_tasks": [
+    "task/sv0-toolchain-interface-distribution.Rmd",
+    "task/sv0-toolchain-interface-distribution-checklist.Rmd"
+   ],
+   "submodules_hint": [
+    "sv0c",
+    "sv0vm"
+   ],
+   "pre_merge_validation": [
+    "./scripts/sv0 test-guards",
+    "./scripts/sv0 test"
+   ],
+   "closure_authority": "~/Documents/project-specs/sv0-toolchain-interface-and-distribution/SPEC.md \u00a726 (BR1 gate) against the final archive bytes, plus task/sv0-toolchain-interface-distribution.Rmd.",
+   "anti_patterns": [
+    "Claim BR1 or a host tuple from --help, one sample compile, or a rebuilt (untested) archive",
+    "Resolve a cross-spec conflict (hub X-*) by silently picking one spec",
+    "Delete old-CLI tests instead of relabeling them as migration tests",
+    "Make sv0 reimplement compiler, verifier, or VM logic"
+   ],
+   "automation_profile": "Spec-first program: red fixtures and parsers (F0), then native driver slices with the Python native-exe driver kept as the differential oracle, then archive/matrix certification from final bytes.",
+   "ground_truth": [
+    "SPEC \u00a723 requirement catalog and \u00a724 AC-001..045",
+    "./scripts/sv0 test-guards",
+    "./scripts/sv0 test"
+   ],
+   "human_checkpoints": [
+    "Changing a resolved decision (hub D-1..D-4) or cross-spec resolution (X-1..X-9) needs a spec amendment and a hub refinement-log entry",
+    "Certifying a host tuple or publishing an archive (final-byte evidence, SPEC \u00a725.8)"
+   ],
+   "success_signals": [
+    "TID-015 F0 gate record",
+    "TID-199/299/399 R0 gate records",
+    "TID-499 BR1 release record with SHA256SUMS re-verified"
+   ]
+  },
+  {
+   "id": "VMX",
+   "title": "sv0vm multi-implementation expansion: normative .sv0b + six conforming VMs (SPEC program)",
+   "primary_tasks": [
+    "task/sv0vm-multi-implementation.Rmd",
+    "task/sv0vm-multi-implementation-checklist.Rmd"
+   ],
+   "submodules_hint": [
+    "sv0vm",
+    "sv0c",
+    "sv0doc"
+   ],
+   "pre_merge_validation": [
+    "./scripts/sv0 test-guards",
+    "make -C sv0vm test",
+    "./scripts/sv0 vm-parity-tier2-emit",
+    "./scripts/sv0 vm-behavioral-parity"
+   ],
+   "closure_authority": "~/Documents/project-specs/sv0vm-implementation-expand/SPEC.md \u00a726 gates (F0, R0.x, R0.5, R0.6, SML retirement, R1) and Appendix D, plus task/sv0vm-multi-implementation.Rmd.",
+   "anti_patterns": [
+    "Copy interpreter.sml semantics into new ports instead of the normative sv0doc text",
+    "Change an expected result because several implementations agree",
+    "Assign opcode or built-in numbers outside the shared registry",
+    "Feed arbitrary or fuzzed bytes to the SML adapter"
+   ],
+   "automation_profile": "Spec-first: sv0doc extraction + registries + corpora, then producer migrations under the self-host loop, then independent ports gated by one shared conformance manifest.",
+   "ground_truth": [
+    "sv0doc/bytecode/ (after F0)",
+    "sv0vm/spec/*.json registries",
+    "make -C sv0vm test",
+    "./scripts/sv0 vm-behavioral-parity"
+   ],
+   "human_checkpoints": [
+    "Any bytecode-visible change follows SPEC \u00a729 order and, if it alters a DEC-001..032 outcome, a spec amendment",
+    "Changing per-language toolchain pins or CI budget (hub D-4)"
+   ],
+   "success_signals": [
+    "VMX-099 F0 gate record",
+    "Per-implementation Appendix D definition of done",
+    "R0.5/R0.6 all-six manifests"
+   ]
+  },
+  {
    "id": "cross-cutting",
    "title": "Cross-cutting backlog (macros, literate, std, packaging)",
    "primary_tasks": [

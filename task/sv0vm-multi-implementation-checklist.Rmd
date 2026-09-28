@@ -1,0 +1,108 @@
+---
+created: "2026-09-27T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
+id: task-sv0vm-multi-implementation-checklist
+key: sv0vm-multi-implementation-checklist
+state: draft
+tags:
+  - sv0
+  - sv0vm
+  - bytecode
+  - conformance
+  - checklist
+  - planning
+title: "sv0vm multi-implementation (VMX): development slice backlog (VMX-###)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# sv0vm multi-implementation (VMX): development slice backlog
+
+## purpose
+
+The trackable **`VMX-###`** slice index. Strategy, drift (`G-*`), conflicts
+(`X-*`), and decisions (`D-*`) live in the hub
+**`task/sv0vm-multi-implementation.Rmd`**. The contract is
+`~/Documents/project-specs/sv0vm-implementation-expand/SPEC.md` `0.1.36`.
+
+## how to use
+
+- Bands: `0xx` F0 spec/registry/corpus · `1xx` F0 producer + SML adapter ·
+  `2xx` R0.1 Python · `3xx` R0.2 Go + TS · `4xx` R0.3 Haskell + C99 ·
+  `5xx` R0.4 sv0 · `6xx` R0.5 u64 · `7xx` R0.6 v2 · `8xx` SML retirement ·
+  `9xx` R1.
+- Status: **todo** / **wip** / **done** / **blocked (D-n)** / **deferred**.
+  `red` = fixtures that must fail for the intended reason first.
+- Repo: `vm` = sv0vm, `c` = sv0c, `doc` = sv0doc, `root` = sv0-toolchain.
+- Bands `2xx`+ are coarse (one row per SPEC Appendix D deliverable). Re-slice
+  each when its predecessor gate closes.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"vmx.checklist.session","title":"VMX slice checklist — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"VMX"} -->
+- [ ] Slice status flipped + one-line result (commit) recorded when a `VMX-###` lands
+- [ ] Expected results come from normative text + reviewed fixtures, never from "N implementations agree" (SPEC §19.3)
+- [ ] Every PR lists requirements, cases, baselines, commands, and mismatch classifications (SPEC §29)
+- [ ] `./scripts/sv0 test-guards` after editing this file
+<!-- sv0-track:end {"id":"vmx.checklist.session"} -->
+
+## F0 — normative spec, registries, corpus (`0xx`)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| VMX-001 | **Baseline refresh.** Record current sv0vm/sv0c/sv0doc SHAs; rerun unit, tier-2, behavioral, and strict-canonicality over all current goldens (G-6); label the SML tree reference-only in its README (D-3: paths stay). | §3.1, DEC-003 | vm, root | — | todo | Baseline doc with commands + outcomes. G-6 result recorded. |
+| VMX-002 | **sv0doc v1 container + instruction extraction.** Expand `bytecode/format.md` (primitive encodings, sections, 20-byte function records, canonicality) and `bytecode/instructions.md` (per-opcode stack effect, cell types, traps, reserved status, byte-relative jumps from instruction end). | GOV-001, FMT-001..009, §9, §11–13 | doc | VMX-001 | todo | sv0doc has the complete v1 contract. The old "defer to sv0vm/sv0c" pointers are gone. |
+| VMX-003 | **sv0doc semantics for the DEC-031 built-in profiles.** Argument, result, trap, and byte semantics for `sv0vm-v1-slices` (30–34), `sv0vm-v1-bytes` (35–37), and `sv0vm-v1-f64vec` (38–42), extracted from the active producer + runtimes; 18–29 are marked unallocated. | G-2, DEC-031 | doc | VMX-002 | todo | Each built-in has normative text + a registry entry with its profile. |
+| VMX-004 | **u64 inventory freeze (DEC-032).** Complete the unsigned op + conversion inventory (U64-002, CVT-002); adopt 38–45/70–73 where they fit and allocate the rest without collision. | G-1, U64-006, DEC-005, DEC-013, DEC-032 | doc, vm | VMX-002 | todo | The inventory table in sv0doc is frozen with allocations. |
+| VMX-005 | **v2 typed container freeze.** v2 layout, VM-cell type-code registry (`I32 I64 U64 F64 Bool Unit StringRef …`), signature invariants, verifier rules, v1/v2 compatibility, and error precedence. | TYP-007, §10.5, DEC-006 | doc | VMX-002 | todo | Frozen in sv0doc. Negative-fixture list enumerated. |
+| VMX-006 | **Registries + generators.** `sv0vm/spec/{opcodes,builtins,errors}.json` + schemas. Generated constants. The drift check compares with `sv0c/lib/bytecode.sv0` and fails on unapproved add/renumber/reclassify. Folds in the CV-102 coverage guard (opcode 119). | GOV-004, §8.4, Appendix A, G-7 | vm, c | VMX-002, VMX-004 | todo | The drift test is wired into `./scripts/sv0 test-guards` and sv0vm CI. |
+| VMX-007 | **Conformance schemas.** Case, result-record, and NDJSON trace schemas; pass/fail/blocked/not-applicable/harness-error classes. | §16.4, §19.1, §19.4, CLI-002 | vm | VMX-006 | todo | Schemas + validator tests. |
+| VMX-008 | **Hand-authored invalid corpus.** SPEC Appendix B items 1–22 as annotated binaries. | FMT-005..009, VER-*, LOAD-* | vm | VMX-007 | todo | Every Appendix B item has a fixture with a readable byte layout. |
+| VMX-009 | **Hand-authored valid corpus.** One direct case per executable opcode (including HALT/POP/DUP/PUSH_I64/PUSH_F64/JUMP_IF/legacy RETURN, which the goldens miss); built-in success/failure; numeric boundaries (DEC-004 edge); f64 NaN/±0/subnormal. | TEST-001, §19.2 | vm | VMX-007 | todo | The coverage linter shows every executable/reserved opcode and built-in covered. |
+| VMX-010 | **Producer corpus import.** Import current goldens + behavior cases with provenance (source, producer command/revision, digest, semantic note). | TEST-003, §29 | vm | VMX-007 | todo | The provenance manifest validates. |
+| VMX-011 | **Shared runner + restricted SML adapter.** Runner over the case manifest. The SML adapter accepts only provenance-checked known-valid fixtures and labels results `legacy`. | ARC-001, §19, DEC-008 | vm | VMX-010 | todo | A fuzz/unknown input is rejected by the adapter. The positive corpus runs under SML. |
+| VMX-012 | **Six skeletons.** Build entry points + pinned toolchains (D-4) for all six languages, each running one trivial case through the runner. | F0 gate, GOV-005 | vm | VMX-011 | todo | All six build in pinned environments in CI. |
+| VMX-013 | **sv0 binary-I/O feasibility (Appendix C items 1–13).** Depends on VMX-104. | DEC-002, LANG-001, LANG-007 | vm, c | VMX-104 | todo | Items 1–13 pass, or R0.4 is recorded as **Blocked** with evidence. |
+| VMX-099 | **F0 gate.** SPEC §26 Gate F0 checklist with evidence links. | §26 | root | VMX-001..013, VMX-101..105 | todo | Gate record in the hub. |
+
+## F0 — producer migrations + runtime (`1xx`, toolchain-affecting)
+
+Each row ships gated tests on both backends and a self-host-loop + tier-2 run.
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| VMX-101 | **DEC-004 `INT64_MIN / -1` guard.** C runtime/codegen + VM (SML) return `INT64_MIN` / remainder 0 without UB or exception. | NUM-002, G-4 | c, vm | VMX-002 | todo | Cross-backend fixture + UBSan clean. |
+| VMX-102 | **u64 producer gating (DEC-032).** VM-target `u64` is emitted only under the `sv0vm-v1-u64` profile flag, with output marked non-core; otherwise it is rejected before emission. sv0-mathlib/strings VM gates opt in to the flag. | U64-003, G-1, DEC-032 | c, root | VMX-004 | todo | Positive (flag on) and negative (flag off) producer matrix. |
+| VMX-103 | **DEC-011 explicit termination.** Both producers append zero-slot unit returns; no reachable fallthrough; exactly one zero-arity `main`. Goldens regenerated with provenance. | EXEC-005, VER-009, VER-010, G-5 | c | VMX-002 | todo | The retained corpus has no reachable function boundary. The DEC-011 matrix passes. |
+| VMX-104 | **DEC-002 Option B runtime.** `try_read_bytes(path, max_bytes, out)` builtin (status registry from `errors.json`, empty-on-failure) + VM-run `Vec` reclamation/reset in the C runtime. | DEC-002, LANG-001, LANG-007, G-9 | c | VMX-006 | todo | Exact bytes (0–255, NUL), status matrix, repeated-run memory, and ASan/leak clean. |
+| VMX-105 | **DEC-013 conversions.** Generated conversion matrix; checked same-cell casts emit predicate + contract; opcode 161 never emitted. | CVT-001..004, NUM-007 | c, doc | VMX-004 | todo | Matrix completeness + unnecessary-opcode fixtures. |
+| VMX-106 | **red: DEC-015 strict string index.** A boundary corpus (empty/ASCII/NUL/high-bit; `i == len` traps) plus an inventory of every compiler scanner call site that relies on `i == len → 0`. | BI-005, G-3 | c | VMX-002 | todo | The corpus fails today for the intended reason. The call-site inventory is recorded. |
+| VMX-107 | **DEC-015 migration.** Migrate the scanners (lexer, parser, resolver, …) off the one-past-the-end idiom in small commits, then make both runtimes trap. | BI-005, G-3 | c, vm | VMX-106 | todo | Self-host loop + stage0 goldens + tier-2 green. The boundary corpus passes on both backends. |
+
+## R0.1 → R0.4 — implementations (coarse; re-slice at F0 exit)
+
+| ID | slice | refs | status |
+|----|-------|------|--------|
+| VMX-201 | Python: bounded decoder, verifier, typed machine + core opcodes, built-ins via fake adapters, CLI + result records; passes the shared core manifest. | LANG-004, EXEC-*, §18.4, Appendix D | todo |
+| VMX-301 | Go: independent implementation from spec + registries; native fuzz. | LANG-002, §18.2 | todo |
+| VMX-302 | TypeScript/Node LTS: BigInt i64, DataView, closed dispatch tables. | LANG-006, §18.6 | todo |
+| VMX-401 | Haskell: strict ByteString, fixed-width ints, no partial functions. | LANG-003, §18.3 | todo |
+| VMX-402 | C99: tagged-union cells, unsigned wrap, memcpy bit casts, ASan/UBSan + coverage-guided fuzzing, GCC/Clang/Apple Clang. **Installed-toolchain BR1 `sv0vm` library** (VMX DEC-030, TID DEC-064): must expose the library API the installed CLI surface wraps (`TID-305`). | LANG-005, §18.5 | todo |
+| VMX-501 | sv0: decoder/verifier/interpreter in sv0 over `try_read_bytes`, compiled through the native C backend, no hidden C interpreter. | LANG-001, LANG-007, §18.1 | todo |
+
+## R0.5 / R0.6 / retirement / R1 (coarse)
+
+| ID | slice | refs | status |
+|----|-------|------|--------|
+| VMX-601 | `sv0vm-v1-u64` in producer + all six; Section 12.2.4 matrix; C sanitizer + native-C differential. | U64-001..005, CVT-005, REL-003 | todo |
+| VMX-701 | `sv0vm-v2-typed`: producer emits flattened signatures from checked IR; all six decode + verify v2; v1 retained. Unblocks sv0cov R1 VM coverage. | TYP-001..006, CVT-006, REL-004 | todo |
+| VMX-801 | SML retirement: behavior-to-fixture trace, mutation proof without SML, archival manifest + tag, unsafe archival command, and a clean host with no SML/NJ. | ARC-002..005, §4.2.4 | todo |
+| VMX-901 | Hostfs R1: capability grants, `portable-utf8`, `links-deny`, atomic `write_file` (DEC-016..018, 026..029), double-read/scan (DEC-019..021), host-error registry (DEC-022..025). | CAP-*, LNK-*, WRT-*, PTH-*, DIR-*, RDF-*, HER-* | todo |
+| VMX-902 | Fuzz + mutation + differential CI across all six; perf baselines; SBOM/licenses/provenance; release matrix. | TEST-004..006, SEC-*, PERF-001, PKG-001, REL-002 | todo |
+| VMX-903 | DEC-002 Option A `read_bytes -> Result<Vec<byte>, ReadBytesError>` (Appendix C items 14–16). | LANG-008 | todo |
+| VMX-999 | R1 gate (SPEC §26 Gate R1). | §26 | todo |
+
+## related
+
+- Hub: `task/sv0vm-multi-implementation.Rmd`
+- Consumer of VMX-402: `task/sv0-toolchain-interface-distribution-checklist.Rmd` (TID-3xx)

@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-09-24T12:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
 state: draft
@@ -25,9 +25,10 @@ execution and `.sv0b` execution on `sv0vm`.
 
 It is **specification-first**. The governing document is:
 
-- `~/Documents/project-specs/sv0cov/SPEC.md`: spec version `0.1.71-draft`
-  (audit 2026-09-13; amended 2026-09-24 for D-1, DEC-086 / §15.6). 86 accepted
-  decisions, none open.
+- `~/Documents/project-specs/sv0cov/SPEC.md`: spec version `0.1.73-draft`
+  (audit 2026-09-13; amended 2026-09-24 for D-1, DEC-086 / §15.6; amended
+  2026-09-25 for D-3/D-6/D-7/D-8, DEC-087..090; amended 2026-09-27 for the
+  `[tool.sv0cov]` config location, DEC-091). 91 accepted decisions, none open.
 
 This file is the meta-repo planning **hub**: strategy, the observed gaps
 between the spec's audit baseline and the current pins, open decisions, and the
@@ -83,12 +84,26 @@ a decision are marked **blocked (D-n)** in the checklist.
 |---|---|---|---|
 | ~~D-1~~ | — | **Resolved 2026-09-24: A.** Spec amended to `0.1.71-draft` (DEC-086, §15.6). F0 through R0.1 close on native + `sv0vm-v1-coverage`, v2 bytes are frozen as fixtures, pre-R1 products advertise no v2, and R1 still requires v2 execution. | Was: how to obtain a nonexistent `sv0vm-v2-typed` profile. |
 | ~~D-2~~ | CV-104 | **Resolved 2026-09-25: A.** SHA-256 is written in sv0 source (pulling M5-S-040a/b forward), usable by both the native and the VM-built compiler; M5 crypto reuses it. | Was: sv0 source vs a C-runtime builtin. |
-| ~~D-3~~ | CV-315, CV-410, CV-413 | **Resolved 2026-09-25: amend the SPEC.** Single-maintainer release approval with recorded compensating controls, and managed-CI performance evidence with recorded exceptions, replace the two-human and four-dedicated-host requirements. SPEC amendment pending. | Was: keep two humans + four dedicated hosts, or amend. |
+| ~~D-3~~ | CV-315, CV-410, CV-413 | **Resolved 2026-09-25: amend the SPEC.** Single-maintainer release approval with recorded compensating controls, and managed-CI performance evidence with recorded exceptions, replace the two-human and four-dedicated-host requirements. Landed in `0.1.72-draft` as DEC-087 (§24.1, §25.4.5, COV-PERF-023..025, COV-PKG-025, F0-G32, R1-G9). | Was: keep two humans + four dedicated hosts, or amend. |
 | ~~D-4~~ | CV-405 | **Resolved 2026-09-25: A.** Runtime fork guards (`pthread_atfork` disarm + unresolved-parent flag) plus a documented "no managed spawn API exists" boundary; no spawn builtin in sv0cov. | Was: fork guards only, or also a spawn builtin. |
-| ~~D-6~~ | CV-020, CV-021, CV-240 | **Resolved 2026-09-25: as implemented.** Exact R1 inventories from `1.0.0`; for major `0`, sorted subsets that never include VM-v2. SPEC amendment pending. | Was: subsets vs exact sets before 1.0.0. |
-| ~~D-7~~ | CV-021, CV-243 | **Resolved 2026-09-25: A.** The release pipeline adds a generated build-info resource carrying the commit, outside the reviewed tree and covered by provenance and the SBOM; source checkouts keep reading `.git`. SPEC amendment pending; implement with CV-243. | Was: generated resource, product version for wheels, or keep failing. |
-| ~~D-8~~ | CV-036, CV-220, CV-229 | **Resolved 2026-09-25: A.** Coverage-map size tiers mirroring the raw-profile tiers: `standard` 512 MiB, `large` 2 GiB, `custom` (bounded); the effective ceiling is recorded and a file never raises its own limit. SPEC amendment pending; implement before CV-220 (the bench tools keep their explicit bound until then). | Was: tiers, fixed 1 GiB, or keep 64 MiB. |
+| ~~D-6~~ | CV-020, CV-021, CV-240 | **Resolved 2026-09-25: as implemented.** Exact R1 inventories from `1.0.0`; for major `0`, sorted subsets that never include VM-v2. Landed in `0.1.72-draft` as DEC-088 (§15.6, §20.6). | Was: subsets vs exact sets before 1.0.0. |
+| ~~D-7~~ | CV-021, CV-243 | **Resolved 2026-09-25: A.** The release pipeline adds a generated build-info resource carrying the commit, outside the reviewed tree and covered by provenance and the SBOM; source checkouts keep reading `.git`. Landed in `0.1.72-draft` as DEC-089 (§25.2.7.1, COV-PKG-028); implement with CV-243. | Was: generated resource, product version for wheels, or keep failing. |
+| ~~D-8~~ | CV-036, CV-220, CV-229 | **Resolved 2026-09-25: A.** Coverage-map size tiers mirroring the raw-profile tiers: `standard` 512 MiB, `large` 2 GiB, `custom` (bounded); the effective ceiling is recorded and a file never raises its own limit. Landed in `0.1.72-draft` as DEC-090 (§16.3.9, COV-FMT-048); implement before CV-220 (the bench tools keep their explicit bound until then). | Was: tiers, fixed 1 GiB, or keep 64 MiB. |
 | D-5 | CV-233 | Which toolchain entry point does `sv0cov run` use to build? | Default: `./scripts/sv0 native-compile` / `vm-native-compile` with the new `--coverage=instrument` flag. This is non-normative; recorded rather than asked. |
+
+## cross-spec conflicts with the installed-toolchain spec (2026-09-27)
+
+`project-specs/sv0-toolchain-interface-and-distribution/SPEC.md` (0.1.0-draft,
+hub `task/sv0-toolchain-interface-distribution.Rmd`) changes three things
+sv0cov depends on. Nothing here blocks F0, but R0 configuration and the
+build entry point (D-5) each needed an owner decision. **All three were resolved
+2026-09-27** (maintainer accepted the recommendations):
+
+| # | Conflict | Resolution |
+|---|---|---|
+| X-1 | sv0cov config is a root `[coverage]` table in `sv0.toml` (§18.2, DEC-048/051). Manifest v1 rejects unknown root tables and reserves `[tool.<name>]` for companions (TID §9.8, MAN-002). | **Resolved:** SPEC `0.1.73-draft` DEC-091 moves the config to `[tool.sv0cov]`; nothing else changes. CV-2xx config slices use `[tool.sv0cov]`. |
+| X-2 | `--coverage=off\|map\|instrument` / `--coverage-map` (CV-106) are not in the installed `sv0c` BR1 grammar, where unknown options fail (TID CCLI-006). | **Resolved:** TID `0.1.1-draft` DEC-062 / CCLI-015. Release-mode `sv0c` rejects them; they stay repo-driver / development-build options until `sv0 cov` ships as a same-prefix companion (TID DEC-031; `TID-902`). D-5's default (`./scripts/sv0 native-compile` / `vm-native-compile`) stays valid because repository adapters remain (TID §22.2). |
+| X-3 | TID's installed tools must not need Python at run time (DEC-005). sv0cov is Python through R1. | Consistent: `sv0 cov` is deferred past BR1 (TID §12.1). No sv0cov change. |
 
 ## release ladder (SPEC §6.1, gates §31)
 

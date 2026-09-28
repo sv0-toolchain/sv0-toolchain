@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-08-12T00:00:00-07:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0-toolchain-roadmap-full
 key: sv0-toolchain-roadmap-full
 state: active
@@ -53,6 +53,8 @@ use it to:
 | 6 — kernel development | `task/sv0-toolchain-milestone-6-kernel.Rmd` | `asm!`, boot/link, HAL, minimal kernel |
 | (cross-cutting, multi-milestone) | `task/sv0-toolchain-milestone-cross-cutting.Rmd` | macros, `.sv0.md` literate, `std`/concurrency, packaging |
 | developer graph + MCP | `task/sv0-mcp-milestone-0.Rmd` | supports all phases; **task milestone 0 complete** (server, tests, docs, sync discipline); not a language design milestone |
+| (tracked program) installed toolchain — `sv0`/`sv0c`/`sv0vm` CLI, `sv0.toml` v1, BR1 archives | `task/sv0-toolchain-interface-distribution.Rmd` + `…-checklist.Rmd` (`TID-###`) | SPEC `project-specs/sv0-toolchain-interface-and-distribution` `0.1.1-draft`; orientation id **`TID`**; supersedes parts of the native-executable spec |
+| (tracked program) normative bytecode + six conforming VMs | `task/sv0vm-multi-implementation.Rmd` + `…-checklist.Rmd` (`VMX-###`) | SPEC `project-specs/sv0vm-implementation-expand` `0.1.36`; orientation id **`VMX`**; F0 changes the producer (sv0c) and sv0doc |
 
 ## dependency graph (high level)
 
@@ -72,6 +74,19 @@ sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
               cross-cutting (macros, literate, std, packages)
 ```
 
+SPEC-governed programs (added 2026-09-27) hang off that spine:
+
+```
+VMX F0 (normative .sv0b, registries, producer fixes) ──> VMX R0.1..R0.4 (six VMs) ──> R0.5 u64 ──> R0.6 v2 ──> R1
+   │                                                          │ (C99 port)                            │
+   │                                                          v                                       v
+   │                          TID F0 (manifest v1, argv, discovery) ──> TID R0 (native sv0c, sv0, sv0vm) ──> BR1 archives
+   │                                                                                                   │
+   └──> sv0cov R1 needs VMX R0.6 (VM v2 coverage)          sv0-gui / flipper (consumers) need: FFI v2 + ABI layout,
+                                                           runtime reclamation, freestanding emission (M6),
+                                                           manifest v2 + multi-module linker (cross-cutting D/F, post-BR1)
+```
+
 ## refinement protocol (living plan)
 
 **sources of truth**
@@ -88,6 +103,8 @@ sv0doc (spec) ──> sv0c (SML) ──> sv0vm (bytecode)
 
 **recent roadmap notes**
 
+- 2026-09-27 (**America/Denver −06:00**): **Cross-spec conflicts and program decisions resolved** (maintainer accepted every recommendation). Spec amendments: TID `0.1.1-draft` (DEC-062..066: dev-only flags rejected by release `sv0c`; `--keep-c`/`--message-format`/`--build-record` in the grammar; installed `sv0vm` is a thin surface over one VMX library; BR1 VM is `v1-core` without hostfs; §19.3 exit statuses replace the native-exe codes); VMX `0.1.36` (DEC-030..032: CLI split, built-in profiles 30–42, u64 opcode adoption + gating); sv0cov `0.1.73-draft` (DEC-091 `[tool.sv0cov]`); Flipper `0.2.1` (positional project dir; OQ-001/002/008/009 resolved). Program decisions: native driver in sv0 + `#[extern_c]` POSIX shims inside the sv0c repo; R0 `sv0vm` bundles the SML runtime, and BR1 swaps to the VMX C99 library (`TID-305`); GUI stays planned-not-started. Previously blocked slices (TID-301, VMX-003/004/102) are unblocked.
+- 2026-09-27 (**America/Denver −06:00**): **project-specs digest.** Every sv0 spec in `~/Documents/project-specs` now has a planning home. **New tracked programs:** `TID` (installed toolchain + BR1, `task/sv0-toolchain-interface-distribution*.Rmd`) and `VMX` (normative bytecode + six VMs, `task/sv0vm-multi-implementation*.Rmd`), both in `milestone-orientation.json`. **New consumer hubs** (SPEC-governed, not milestones): `task/sv0-gui-lib.Rmd` (GUI-U##), `task/sv0-flipper-ble-scanner.Rmd` (FLP-U##). **Refreshed:** sv0cov → SPEC `0.1.72-draft` (DEC-087..090 landed); native-exe hub marked superseded-in-part. **Cross-spec conflicts** recorded in the TID hub (X-1..X-8: sv0cov `[coverage]` versus strict manifest v1, the installed `sv0c` grammar versus coverage/LLVM/keep-c flags, installed `sv0vm` versus VMX CLI status/hostfs, the SML retirement versus a BR1 native VM, Flipper `--project`, GUI manifest v2). **Sequencing:** M5 stays active. TID F0 and VMX F0 are spec-first and can run in parallel. TID R0 compiler work waits for M5 P1. See § SPEC-governed programs.
 - 2026-08-12 (**America/Los_Angeles −07:00**): **Milestone 3 MET (2026-08-05)** and **post-M3 hardening** in progress. **Phase C** whole-language parity — all numbered PC slices done (cross-module E1/E2/E3, standalone gaps PC-4a/b/c, include E5, native-default behavioral-mode loop E6); **PC-7 resolved the §5e checker blocker** for name-collision mangling (2026-08-11). **Bug hunt** — `sv0c/doc/archive/bug-hunt-findings.md` (13 findings, 4 P1); **BH-1** (native method-call compound args) + **BH-2** (VM i32 arithmetic) fixed; native-completeness cluster (#8/#10/#11) gates the default native-compiler promotion. Detail: `task/sv0-toolchain-milestone-3-checklist.Rmd` (PC-###), `sv0c/doc/archive/post-m3-phase-c-plan.md`, live rollup `task/sv0-toolchain-progress.md` ## Post-M3 hardening status. (Earlier "M3 not met" / "97"-count notes below are historical.)
 - 2026-04-18 (**America/Denver −06:00**): **`thoroughly-execute-document`** on **`task/sv0-toolchain-milestone-3-self-host.Rmd`** — **## validation (agents)** + throughput / SML-inventory reconciliation (post–seed-consolidation); YAML **`updated:`** spacing on **M2 prep**, **M3**, **roadmap** (same integration).
 - 2026-04-18 (**America/Denver −06:00**): **`thoroughly-execute-document`** on this file — **`01-verify-roadmap-artifacts.sh`** OK; **`./scripts/sv0 milestone-orient show M3`** (closure authority + anti-patterns). **§ milestones 0–3** M3 snapshot row reconciled to live counts (**97** bootstrap-listed programs, **97** self-host pilots, **97** vm-parity paths + goldens, **21** stage0 C goldens); **`task/sv0-toolchain-milestone-3-self-host.Rmd`** done-ish prose **101→97**. **M2** mapping note → **`sv0c/doc/tooling-formatter-linter.md`**. **Graph sync** bullets → integration **push + CI** (**`META-6`**). Child task YAML **`updated:`** spacing fixes (**M2 prep**, **M3**).
@@ -148,6 +165,28 @@ This is a human-readable summary; detailed criteria stay in each **`task/sv0-*-m
 
 **Milestone 3 is met** (2026-08-05, closure-authority ruling); the remaining work is **post-M3 hardening** (whole-language feature parity + default native-compiler promotion) tracked in **`task/sv0-toolchain-milestone-3-checklist.Rmd`** (PC-### rows) and **`sv0c/doc/archive/bug-hunt-findings.md`** (BH-### tasks), rolled up in **`task/sv0-toolchain-progress.md`** ## Post-M3 hardening status. Use **`task/sv0-toolchain-milestone-2-prep.Rmd`** (“quick start”) for the unified test entry.
 
+## SPEC-governed programs (outside the vision-doc numbering)
+
+These are governed by external specs in `~/Documents/project-specs/`. Each
+has a planning hub with its own release ladder and closure authority. Only
+the ones that change the toolchain's own shipped surface are tracked in
+`task/milestone-orientation.json`.
+
+| Program | Spec (version) | Hub · checklist | Status | Orientation id |
+|---|---|---|---|---|
+| Native executable output | `sv0c-runtime-executable` | `task/sv0c-runtime-executable.Rmd` · `…-checklist.Rmd` (NEX) | F0–R1 closed; superseded in part by TID | — |
+| Installed toolchain + BR1 archives | `sv0-toolchain-interface-and-distribution` (0.1.1-draft) | `task/sv0-toolchain-interface-distribution.Rmd` · `…-checklist.Rmd` (TID) | planned; F0 ready to start | **TID** |
+| Normative bytecode + six VMs | `sv0vm-implementation-expand` (0.1.36) | `task/sv0vm-multi-implementation.Rmd` · `…-checklist.Rmd` (VMX) | planned; F0 ready to start | **VMX** |
+| Coverage (sv0cov) | `sv0cov` (0.1.73-draft) | `task/sv0cov-coverage.Rmd` · `task/sv0cov-checklist.Rmd` (CV) | F0 in progress (CV-110 next) | — |
+| Safe strings (sv0-strings) | `sv0-strings` | `task/sv0-strings-library.Rmd` · `…-checklist.Rmd` (SS) | v1.1.0 released | — |
+| Math library (sv0-mathlib) | `sv0-mathlib` | in the `sv0-mathlib` submodule | v0.2.0 released | — |
+| VS Code extension | `sv0-vsc-extension` | `task/sv0-vsc-extension-plan.Rmd` · `…-checklist.Rmd` | planned | — |
+| GUI library | `sv0-gui-lib` (0.1.34) | `task/sv0-gui-lib.Rmd` (GUI-U) | planned, not started; toolchain enablement only | — |
+| Flipper BLE scanner (sv0) | `sv0-flipper-ble-scanner` (0.2.1) | `task/sv0-flipper-ble-scanner.Rmd` (FLP-U) | planned, not started; toolchain enablement only | — |
+
+`c-flipper-ble-scanner` is a native-C sibling of the Flipper scanner. It has
+no sv0 toolchain obligations and no hub.
+
 ## suggested implementation order
 
 1. close **VM + integration parity** (`task/sv0vm-milestone-2.Rmd`) — **complete**
@@ -155,6 +194,7 @@ This is a human-readable summary; detailed criteria stay in each **`task/sv0-*-m
 3. **self-hosting** (`task/sv0-toolchain-milestone-3-self-host.Rmd`) — **met (2026-08-05)**; post-M3 hardening (Phase C + bug-hunt) in progress
 4. parallel tracks as staffing allows: **verification** (4), **cross-cutting** items that unblock macros/tests, **MCP** polish
 5. **LLVM + crypto** (5), then **kernel** (6)
+6. **SPEC-governed programs (2026-09-27 placement):** alongside M5, start the spec-first F0 bands of **VMX** (`VMX-0xx`) and **TID** (`TID-0xx`), plus sv0cov F0 (in progress). After M5 P1, run the **TID R0** compiler/driver rewrite (`TID-1xx`/`2xx`). The **VMX producer migrations** (`VMX-1xx`, DEC-015 last) run one slice at a time under the self-host loop. **VMX C99** (`VMX-402`) feeds TID BR1's `sv0vm`. GUI/Flipper toolchain enablement (FFI v2 + ABI layout, runtime reclamation, freestanding emission with M6) waits for a consumer repo, except the cheap GUI-U01 / FLP-U01 decisions.
 
 /ai: when the design doc gains a new numbered milestone or renames scope, update this file’s mapping table and the affected child milestone Rmd files in the same change set.
 

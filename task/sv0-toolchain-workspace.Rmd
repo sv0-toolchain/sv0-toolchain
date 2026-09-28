@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-09T12:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0-toolchain-workspace
 key: sv0-toolchain-workspace
 state: active
@@ -26,14 +26,18 @@ type: task
 | **sv0vm** | Bytecode loader and stack interpreter for `.sv0b` |
 | **sv0-mathlib** | Contract-first numeric library in pure sv0 (`v0.1.0`, SPEC R1 gate closed); also a cross-backend conformance load for the compiler via `--project sv0-mathlib` |
 | **sv0-strings** | Safe strings library: sv0-native bytes / UTF-8 / `CStr` + C23 and POSIX.1-2024 `<string.h>`/`<strings.h>` compatibility façades. Spec-first, pre-F0 (SPEC `v0.4.0-draft`); a compiler consumer like sv0-mathlib |
-| **sv0cov** | Source-based code coverage (merge, reports, policy CLI; Python through R1). Spec-first, pre-F0 (SPEC `0.1.71-draft`); exact `.gitmodules` entry + pin checked by `scripts/verify_sv0cov_submodule.py` |
+| **sv0cov** | Source-based code coverage (merge, reports, policy CLI; Python through R1). Spec-first, F0 in progress (SPEC `0.1.73-draft`); exact `.gitmodules` entry + pin checked by `scripts/verify_sv0cov_submodule.py` |
 | **sv0-mcp** | Neo4j-backed MCP server and sync tooling for AI-assisted development and debugging |
 
 this task file is the **index** for agent and human workflows: environment layout, milestone task files under `task/`, and verification that submodules are present.
 
 **Consumer-library planning:** `task/sv0-strings-library.Rmd` is the standalone planning **hub** for **sv0-strings** — the F0→R1 release ladder, the ~20 upstream toolchain capability gaps that gate F0 (SPEC §4.4 / §18.1, `UP-001..UP-028`), and the `BL-001..BL-121` backlog. `task/sv0-strings-checklist.Rmd` is its trackable **slice index** (`SS-###`: bite-sized chunks with an explicit stopping point, an upstream-enablement track + a library track). Both are SPEC-governed and tracked like sv0-mathlib, not a toolchain milestone, so they are intentionally absent from the milestone table and `task/milestone-orientation.json`.
 
-**Coverage-product planning:** `task/sv0cov-coverage.Rmd` is the planning **hub** for **sv0cov** (source-based code coverage, SPEC `0.1.70-draft`; standalone repo `sv0-toolchain/sv0cov`, pinned as the `sv0cov/` submodule). It records the gaps between the spec's audit baseline and the current pins, the open decisions (`D-1..D-5`), and the F0→R1 ladder. `task/sv0cov-checklist.Rmd` is its trackable **slice index** (`CV-###`). Like sv0-strings, both are SPEC-governed and intentionally absent from the milestone table and `task/milestone-orientation.json`.
+**Coverage-product planning:** `task/sv0cov-coverage.Rmd` is the planning **hub** for **sv0cov** (source-based code coverage, SPEC `0.1.73-draft`; standalone repo `sv0-toolchain/sv0cov`, pinned as the `sv0cov/` submodule). It records the gaps between the spec's audit baseline and the current pins, the open decisions (`D-1..D-5`), and the F0→R1 ladder. `task/sv0cov-checklist.Rmd` is its trackable **slice index** (`CV-###`). Like sv0-strings, both are SPEC-governed and intentionally absent from the milestone table and `task/milestone-orientation.json`.
+
+**Consumer products without a repo yet (toolchain enablement only):** `task/sv0-gui-lib.Rmd` (GUI library, SPEC `0.1.34`; `GUI-U##` slices for FFI v2, ABI layout, runtime reclamation, manifest v2) and `task/sv0-flipper-ble-scanner.Rmd` (Flipper Zero BLE observer, SPEC `0.2.0`; `FLP-U##` slices for library/freestanding C emission, embedded runtime, C export contract). Both are SPEC-governed and intentionally absent from the milestone table and `task/milestone-orientation.json`.
+
+**Tracked SPEC programs:** the installed toolchain (`TID`) and the normative bytecode + six-VM expansion (`VMX`) change the toolchain's own shipped surface. They are therefore in the milestone table below and in `task/milestone-orientation.json`. The roadmap's § SPEC-governed programs lists every spec and its hub.
 
 ## dependencies
 
@@ -87,6 +91,10 @@ use these as entry points for scoped work:
 | kernel / bare metal (design M6) | `task/sv0-toolchain-milestone-6-kernel.Rmd` | sv0c + sv0doc |
 | cross-cutting backlog | `task/sv0-toolchain-milestone-cross-cutting.Rmd` | multi |
 | MCP server + graph | `task/sv0-mcp-milestone-0.Rmd` | sv0-mcp |
+| installed toolchain: `sv0`/`sv0c`/`sv0vm` CLI, manifest v1, BR1 archives (SPEC program) | `task/sv0-toolchain-interface-distribution.Rmd` | sv0c + sv0vm + parent |
+| installed toolchain slice backlog (child, `TID-###`) | `task/sv0-toolchain-interface-distribution-checklist.Rmd` | sv0c + sv0vm + parent |
+| normative bytecode + six conforming VMs (SPEC program) | `task/sv0vm-multi-implementation.Rmd` | sv0vm + sv0c + sv0doc |
+| VMX slice backlog (child, `VMX-###`) | `task/sv0vm-multi-implementation-checklist.Rmd` | sv0vm + sv0c + sv0doc |
 
 **Milestone orientation (LLMs / agents):** [`AGENTS.md`](../AGENTS.md); `./scripts/sv0 milestone-orient list` and `./scripts/sv0 milestone-orient show <id>`; data [`task/milestone-orientation.json`](milestone-orientation.json). Cursor **`.cursor/rules/37-llm-milestone-driven-workflow.mdc`**. **Progress rollup + run log:** [`task/sv0-toolchain-progress.md`](sv0-toolchain-progress.md).
 

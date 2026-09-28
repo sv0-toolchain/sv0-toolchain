@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0-toolchain-milestone-6-kernel
 key: sv0-toolchain-milestone-6-kernel
 state: draft
@@ -46,6 +46,23 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 - **freestanding / `no_std`-style** subset defined in spec and compiler (ties to `core` tier in design)
 - codegen path stable enough for fixed targets (likely **LLVM milestone** or a dedicated freestanding C path — document which)
 
+## first concrete consumer (2026-09-27)
+
+`project-specs/sv0-flipper-ble-scanner` (hub `task/sv0-flipper-ble-scanner.Rmd`)
+needs the freestanding half of this milestone before any `asm!` or boot
+work, on a Cortex-M4 (`arm-none-eabi`) target through the existing C backend:
+
+- a **library/freestanding `--emit=c` mode** with no hosted `main`/`sv0_runtime_init` (FLP-U02, OQ-001);
+- a **minimal freestanding runtime** with its own versioned manifest and a
+  forbidden-symbol scan (no stdio, `exit`, getenv, filesystem, or process-global pools),
+  where contract failure returns control instead of calling `exit(1)` (FLP-U03, OQ-002, RT-001..010);
+- a **stable C export contract** for callbacks into sv0 (FLP-U04).
+
+That answers this file's open prerequisite ("freestanding codegen choice"):
+**C path first**, with target compilation delegated to the platform build
+(`fbt`). An sv0 cross-target mode stays out of scope until it is specified
+(the installed-toolchain spec also defers cross-compilation).
+
 ## completion criteria (refine as you implement)
 
 - **`asm!`**: parse, semantic checks, and codegen for at least one target (document which architecture first)
@@ -74,6 +91,7 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 ## refinement log
 
 - 2026-03-25: initial scaffold from design milestone 6.
+- 2026-09-27: Flipper BLE scanner spec recorded as the first freestanding consumer (FLP-U01..U05); C-path-first stated.
 
 ## related
 

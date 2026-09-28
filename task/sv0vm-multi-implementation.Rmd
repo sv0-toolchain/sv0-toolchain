@@ -1,0 +1,168 @@
+---
+created: "2026-09-27T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
+id: task-sv0vm-multi-implementation
+key: sv0vm-multi-implementation
+state: draft
+tags:
+  - sv0
+  - sv0vm
+  - sv0c
+  - sv0doc
+  - bytecode
+  - conformance
+  - spec-first
+  - planning
+title: "sv0vm multi-implementation expansion: normative bytecode + six conforming VMs (VMX)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# sv0vm multi-implementation expansion (VMX)
+
+## purpose
+
+Turn `.sv0b` from "whatever `sv0c` emits and the SML VM accepts" into a
+normative, versioned, machine-checked contract, then deliver **six
+independent conforming VMs** (sv0, Go, Haskell, Python, C99, TypeScript/Node)
+that share one conformance system. The SML/NJ VM becomes a restricted
+positive-only oracle and is archived after VMX R0.6.
+
+The governing document is:
+
+- `~/Documents/project-specs/sv0vm-implementation-expand/SPEC.md`: version
+  `0.1.36` (draft governing spec; 0.1.36 adds DEC-030..032, 2026-09-27), audit baseline 2026-09-02 (meta
+  `f67a1a8`, sv0c `803c3c0`, sv0vm `50d355d`, sv0doc `a6643f5`), with
+  candidate refreshes through DEC-028 and a 2026-09-25 cross-note reserving
+  opcode 119 for sv0cov `COVER_HIT`. 32 decisions, all accepted (DEC-012 merged
+  into DEC-002).
+
+This file is the planning **hub**. The slice index is
+**`task/sv0vm-multi-implementation-checklist.Rmd`** (`VMX-###`). Closure
+authority is SPEC §26 (gates F0, R0.x, R0.5, R0.6, SML retirement, R1), §24
+(requirement catalog), and Appendix D (per-implementation definition of done).
+
+VMX is tracked in `task/milestone-orientation.json` as `VMX` because its F0
+changes the **producer** (`sv0c`) and the **normative bytecode docs**
+(`sv0doc`), not only the `sv0vm` repo. It also supplies the standalone VM that
+the installed-toolchain release needs (`task/sv0-toolchain-interface-distribution.Rmd` D-3).
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"vmx.hub.session","title":"VMX hub — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"VMX"} -->
+- [ ] Work maps to a `VMX-###` slice and cites SPEC requirement IDs (`FMT-*`, `VER-*`, `NUM-*`, `BI-*`, …)
+- [ ] Bytecode-visible changes follow SPEC §29 order: sv0doc text → registry → decision → producer → fixtures → implementations → docs
+- [ ] `make -C sv0vm test`, `./scripts/sv0 vm-parity-tier2-emit`, and `./scripts/sv0 vm-behavioral-parity` stay green (SPEC §20.4)
+- [ ] `./scripts/sv0 test-guards` after editing `task/` files
+<!-- sv0-track:end {"id":"vmx.hub.session"} -->
+
+## configuration
+
+/env: SPEC_ROOT=~/Documents/project-specs/sv0vm-implementation-expand
+/env: SV0VM_ROOT=sv0vm
+/env: SV0C_ROOT=sv0c
+/env: SV0DOC_ROOT=sv0doc
+
+## ownership (SPEC §3.3, DEC-001)
+
+| Concern | Owner |
+|---|---|
+| Container layout, opcode numbers, operands, stack effects, traps, built-in IDs | `sv0doc/bytecode/` (after the F0 extraction) |
+| Bytecode emission and producer compatibility | `sv0c/lib/bytecode.sv0`, `sv0c/lib/vm_codegen.sv0` |
+| Registries (`spec/opcodes.json`, `builtins.json`, `errors.json`), schemas, conformance corpus, runners | `sv0vm/spec/`, `sv0vm/conformance/` |
+| Six implementations | `sv0vm/implementations/{sv0,go,haskell,python,c99,typescript}/` (same repo, DEC-001) |
+| SML reference (source + history kept through R1; out of active CI after R0.6) | `sv0vm` (existing `src/` or `reference/sml/`; the maintainer chooses) |
+| Workspace parity commands and CI wiring | `sv0-toolchain` |
+
+## release ladder (SPEC §2.2)
+
+| Stage | Exit | Checklist band |
+|---|---|---|
+| **F0** | Normative v1 + frozen v2 layout + frozen u64 and conversion inventories in sv0doc; registries + drift checks; shared valid/invalid corpus; producer migrations (DEC-004/011/013/015); six skeletons build; sv0 binary-input feasibility proven or R0.4 explicitly blocked. | `VMX-0xx` (spec/registry/corpus), `VMX-1xx` (producer + SML) |
+| **R0.1** | Python implementation + shared runner conform to `sv0vm-v1-core`. | `VMX-2xx` |
+| **R0.2** | Go + TypeScript conform. | `VMX-3xx` |
+| **R0.3** | Haskell + C99 conform. | `VMX-4xx` |
+| **R0.4** | sv0 implementation conforms via DEC-002 Option B `try_read_bytes`. | `VMX-5xx` |
+| **R0.5** | Producer + all six conform to `sv0vm-v1-u64` (mandatory, all-or-nothing). | `VMX-6xx` |
+| **R0.6** | Producer + all six conform to `sv0vm-v2-typed` while keeping every v1 profile. | `VMX-7xx` |
+| SML retirement | SPEC §4.2.4 archival criteria + ARC-002..005. | `VMX-8xx` |
+| **R1** | Hostfs (DEC-007/010/014/016..029), fuzz + mutation, differential CI, packaging, perf baselines, DEC-002 Option A. | `VMX-9xx` |
+
+## observed drift since the SPEC audit (re-checked 2026-09-27; sv0vm `1c9c3d4`, sv0c `19c3c24`)
+
+The spec's validated baseline is 2026-09-02. The toolchain has moved since.
+Each row must be reconciled at F0 (SPEC §3.1 requires a clean attributable
+rerun before a new baseline is adopted).
+
+| # | Spec position | Observed now | Consequence |
+|---|---|---|---|
+| G-1 | Unsigned ops get registry allocations only after the full u64 inventory freezes (U64-006, DEC-005). Before R0.5, the producer **rejects** source `u64` for the VM target (U64-003). | Producer + SML already implement unsigned-wide opcodes 38–39 (div/mod), 40–42 (wide shifts), 43–45 (wide AND/OR/XOR), 70–73 (unsigned compares), and the producer emits them for `u64`. | These are candidate allocations. F0 must either adopt them into the frozen `sv0vm-v1-u64` inventory or renumber them. Until R0.5, VM-target `u64` emission contradicts U64-003, so the gate needs a decision: adopt early, or add a temporary producer rejection. See D-2. |
+| G-2 | Core built-ins 0–14, hostfs 15–17; slice built-ins proposed at 30–34 (§3.1 refresh). | SML dispatches built-ins through **42**: slices 30–34, string↔byte 35/36, `fill_explicit` 37, f64 vec 38–40, index sugar 41/42 (all shipped for sv0-strings/mathlib). | `builtins.json` must classify 18–42 into profiles the spec does not yet define. **Spec amendment needed** before registry freeze. See D-1. |
+| G-3 | DEC-015: `string_char_at` traps (`ETRAP_BOUNDS`) for any `i ≥ len`, identically in both backends and all VMs. | C runtime `sv0_str_char_at` and the SML VM both return **0 at `i == len`** on purpose. The self-hosted compiler's own scanners rely on that one-past-the-end idiom. | F0 producer migration with a large regression surface: every compiler scanner (lexer, parser, resolver, …) must stop reading at `len`. Needs its own careful slice series plus the self-host loop and stage0 goldens. |
+| G-4 | DEC-004: `INT64_MIN / -1` = `INT64_MIN`, remainder 0, guarded in **every VM and the native C backend**. | Not guarded (C UB, SML `Overflow`). | Small producer/runtime change plus sanitizer fixtures. |
+| G-5 | DEC-011: exactly one zero-arity `main`; both producers append explicit zero-slot unit returns; no reachable fallthrough; final stack is empty or exactly one `I32`. | SML VM stops at code end, takes the top `I32`, and ignores deeper cells. The producer relies on fallthrough in places. | Producer change (explicit terminators) + golden refresh (tier-2 byte parity changes). |
+| G-6 | DEC-003: strict canonicality (no residue, gaps, overlap, trailing bytes, bool ∉ {0,1}). | All 97 retained goldens satisfied it at audit. New goldens since (u64, slices, f64 vec) are unchecked. | Rerun the strict decoder over the current corpus. |
+| G-7 | Opcode 119 = `COVER_HIT`, only in coverage profiles; unknown in `sv0vm-v1-core`. | sv0vm CV-102 registry guard (`test/coverage-identifiers.json`) reserves it. | Consistent. Fold that guard into the F0 `opcodes.json`. |
+| G-8 | Loader/verifier: bounded decode, whole-module verifier, limits, structured errors. | SML loader is unchecked, has no verifier and no limits, and uses a marker protocol (`SV0VM_RUN_BEGIN`/`vm_exit:`). | Expected. SML is not modernized (DEC-008 D). Only its adapter is restricted (ARC-001). |
+| G-9 | sv0 implementation needs `try_read_bytes(path, max_bytes, out: Vec<byte>) -> i32` and run-scoped `Vec` reclamation (DEC-002 B). R1 needs `Result<Vec<byte>, ReadBytesError>` (Option A). | The C runtime has a process-global `Vec` handle table with no per-vector release or run reset. The byte↔string bridges (35/36) exist. | New runtime + builtin work in sv0c (Appendix C experiment). Option A also needs aggregate `Result` returns through native C. |
+
+## cross-spec conflicts (resolved 2026-09-27)
+
+| # | Conflict | Resolution |
+|---|---|---|
+| X-1 | Installed-toolchain `sv0vm` (exact exit status, `-- args`, tool-info, readiness) versus the VMX CLI (classified status, result file, no args). | Two surfaces. The installed `sv0vm` wraps one conforming library; `sv0vm-<lang>` stays the conformance CLI. VMX `0.1.36` DEC-030 + TID `0.1.1-draft` DEC-064 (VM-007). |
+| X-2 | VMX hostfs is deny-by-default; `sv0 run --backend=vm` has no grant surface. | BR1 `sv0vm` claims `sv0vm-v1-core` only and rejects hostfs built-ins at verification. File I/O is native-only in BR1 (TID DEC-065, VM-008). |
+| X-3 | VMX retires SML after R0.6; TID BR1 needs a native VM. | The TID R0 preview bundles the SML runtime. BR1 ships the C99 library (`VMX-402` → `TID-305`). |
+
+## decisions (resolved 2026-09-27; SPEC DEC-001..032 all accepted)
+
+| ID | Question | Decision |
+|---|---|---|
+| D-1 | How do built-ins 18–42 enter the frozen registry? | **Named profiles** (VMX DEC-031, §2.3): `sv0vm-v1-slices` (30–34), `sv0vm-v1-bytes` (35–37, requires slices), `sv0vm-v1-f64vec` (38–42). IDs 18–29 are unallocated, and an unknown built-in fails verification. Semantics are extracted into sv0doc at F0 (`VMX-003`). |
+| D-2 | Keep or renumber the shipped u64 opcodes? | **Freeze the inventory now and adopt 38–45/70–73 where they fit** (VMX DEC-032). Until R0.5, the producer emits them only under its `sv0vm-v1-u64` profile flag (output marked non-core) and otherwise rejects source `u64` for the VM target (`VMX-102`). |
+| D-3 | Move SML to `reference/sml/`? | **No.** Keep the current paths and label the tree reference-only in its README. |
+| D-4 | Toolchain pins + CI budget | Pin exact Go / GHC+cabal / CPython minor / Node LTS / GCC+Clang. Full matrices run on pushes to `main`; PRs run a path-filtered subset. |
+
+## sequencing
+
+- **Do now (parallel with M5): VMX F0 spec/registry/corpus (`VMX-0xx`).** It
+  gives the toolchain its first complete normative bytecode spec (sv0doc
+  `bytecode/format.md` and `instructions.md` are indexes today). It does not
+  change compiler output.
+- **Producer migrations (`VMX-1xx`) are toolchain-affecting.** Schedule them
+  like compiler work, one slice at a time, with the self-host loop plus tier-2
+  goldens. DEC-015 (G-3) is the largest and riskiest; keep it last in the band.
+- **The six ports (`VMX-2xx`..`5xx`) are independent of M5** and mostly live in
+  the sv0vm repo. The C99 port (`VMX-4xx`) is on the installed-toolchain BR1
+  critical path (TID D-3: the BR1 `sv0vm` wraps the C99 library, `TID-305`).
+- **R0.5/R0.6** touch the producer again (u64 profile gating, v2 signatures
+  from checked IR). Sequence them after M5 so the LLVM backend's type mapping
+  and the v2 VM-cell signatures do not diverge.
+
+## dependencies
+
+- `task/sv0vm-milestone-2.Rmd`, `task/sv0c-vm-float-parity.Rmd`: the existing
+  VM backend and parity harnesses VMX extends.
+- `task/sv0cov-coverage.Rmd`: opcode 119 / `sv0vm-v1-coverage`. sv0cov R1 needs
+  `sv0vm-v2-typed` (VMX R0.6) for VM coverage (sv0cov DEC-086 §15.6).
+- `task/sv0-toolchain-interface-distribution.Rmd`: BR1 `sv0vm` vehicle (D-3),
+  bytecode-version negotiation (VM-003), and the CLI split (X-1).
+- `task/sv0-strings-library.Rmd`, `sv0-mathlib`: the main consumers of the
+  G-1/G-2 surfaces.
+
+## refinement log
+
+- 2026-09-27: maintainer accepted every recommendation. SPEC amended to
+  `0.1.36` (DEC-030 CLI split, DEC-031 built-in profiles, DEC-032 u64 adoption +
+  gating). X-1..X-3 and D-1..D-4 resolved.
+- 2026-09-27: hub created from SPEC `0.1.35`. Drift G-1..G-9 since the
+  2026-09-02 baseline recorded. Cross-spec conflicts X-1..X-3 and
+  implementation decisions D-1..D-4 recorded. Added to
+  `task/milestone-orientation.json` as `VMX`.
+
+## related
+
+- `task/sv0vm-multi-implementation-checklist.Rmd`: slice index
+- `sv0doc/bytecode/`: normative home after F0
+- `scripts/vm_behavioral_parity.py`, `./scripts/sv0 vm-parity-tier2-emit`:
+  current regression gates (SPEC §20.4)

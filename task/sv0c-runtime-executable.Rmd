@@ -1,6 +1,6 @@
 ---
 created: "2026-08-23T00:00:00-06:00"
-updated: "2026-08-23T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0c-runtime-executable
 key: sv0c-runtime-executable
 state: active
@@ -39,6 +39,34 @@ silently redefine this C-backend contract (spec §4.5, ownership table §3.3,
 decision register note in §33.1). No `roadmap_parent` is set for the same
 reason the VS Code extension hub omits one — this is adjacent to, not nested
 under, the numbered design-milestone roadmap.
+
+## superseded in part by the installed-toolchain spec (2026-09-27)
+
+`~/Documents/project-specs/sv0-toolchain-interface-and-distribution/SPEC.md`
+(`0.1.1-draft`, §3.3) supersedes this spec **only** for the canonical `sv0c`
+invocation and default output, file-versus-project input and manifest
+discovery, the `sv0.toml` schema, default output paths, `sv0` project
+commands, installed tool names and companion resolution, the installed
+layout, and the first binary release. Concretely, at TID R0:
+
+- bare `sv0c INPUT` builds `./a.out` (today it emits C); `--emit=exe`
+  stays as a permanent secondary alias;
+- `--project DIR` becomes the positional `sv0c DIR`, and installed `sv0c`
+  rejects `--project` / `--target=vm` (the repo-driver adapters keep them);
+- the optional six-key `sv0.toml` `[build]` table is **not** the manifest v1
+  schema. Profile, contract mode, and cc move to invocation options;
+- direct `sv0c` output no longer defaults under `build/native/`;
+- installed tools use the TID §19.3 exit-status classes instead of this spec's
+  per-phase exit codes (TID DEC-066, spec `0.1.1-draft`). The repo driver keeps
+  the old codes until `TID-111`.
+
+Everything else here stays authoritative: entry adaptation, compiler-matched
+runtime, shell-free cc invocation, staging and atomic publication, cleanup,
+runtime ABI validation, and native behavior tests. The Python driver built
+here becomes the **differential oracle** for the native `sv0c` driver (TID
+SPEC §27.3). The one deliberately deferred item, the automated macOS Apple
+Clang leg, now lives in `TID-405`. Planning:
+`task/sv0-toolchain-interface-distribution.Rmd` and its checklist.
 
 ## where we start (2026-08-23)
 

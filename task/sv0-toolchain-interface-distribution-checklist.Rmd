@@ -1,0 +1,148 @@
+---
+created: "2026-09-27T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
+id: task-sv0-toolchain-interface-distribution-checklist
+key: sv0-toolchain-interface-distribution-checklist
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - cli
+  - packaging
+  - checklist
+  - planning
+title: "installed toolchain (TID): development slice backlog (TID-###)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# installed toolchain (TID): development slice backlog
+
+## purpose
+
+The trackable **`TID-###`** slice index for the installed `sv0` / `sv0c` /
+`sv0vm` program. Each slice is one focused session with one stopping point
+(the **done when** column). Strategy, gaps (`G-*`), cross-spec conflicts
+(`X-*`), and decisions (`D-*`) live in the hub
+**`task/sv0-toolchain-interface-distribution.Rmd`**. The contract is
+`~/Documents/project-specs/sv0-toolchain-interface-and-distribution/SPEC.md`
+`0.1.1-draft`. Flip status and record a one-line result + commit as slices land.
+
+## how to use
+
+- Bands: `0xx` = F0 (SPEC Phases A–B), `1xx` = R0 `sv0c` (Phase C), `2xx` =
+  R0 `sv0` (Phase D), `3xx` = R0 `sv0vm` (Phase E), `4xx` = BR1 (Phase F),
+  `9xx` = post-BR1.
+- Status: **todo** / **wip** / **done** / **blocked (D-n / X-n)** / **deferred**.
+  A `red` slice is fixtures or tests that must fail for the intended reason
+  before its implementation slice (SPEC §27.1 exit criterion).
+- Repo column: `c` = sv0c, `vm` = sv0vm, `doc` = sv0doc, `root` = sv0-toolchain.
+- `1xx`–`4xx` rows are deliberately coarser. Re-slice each band when its
+  predecessor gate closes.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"tid.checklist.session","title":"TID slice checklist — session hooks","kind":"checklist-region","ingest":"gfm","milestone":"TID"} -->
+- [ ] Slice status flipped + one-line result (commit) recorded when a `TID-###` lands
+- [ ] `red` slices fail for the intended reason before the paired implementation slice
+- [ ] Commit cites the SPEC requirement IDs and `AC-*` scenarios the slice closes
+- [ ] Old-CLI tests touched by a slice are re-labeled as migration tests, not deleted (SPEC §27.1 step 5)
+- [ ] `./scripts/sv0 test-guards` after editing this file
+<!-- sv0-track:end {"id":"tid.checklist.session"} -->
+
+## F0 — contract lock (`0xx`, SPEC Phases A–B)
+
+No change to compiler output. Most rows are fixtures and parsers.
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| TID-001 | **Decisions D-1 + D-2.** Record the driver language and the home of `sv0` + shared manifest parser in the hub refinement log. | §29.2, MAN-010 | root | — | **done** — 2026-09-27: D-1 = sv0 + `#[extern_c]` POSIX shims, D-2 = sv0c repo (hub § implementation decisions) | Hub records both decisions with date and rationale. |
+| TID-002 | **Supersession doc sweep.** Mark the superseded native-exe CLI surfaces (bare `sv0c` = C, `--project`, `[build]`) in `sv0c/doc/native-executable*.md`, `sv0c/doc/cli-parity.md`, `INSTALL.md`, and `README.md` as "current behavior; changes at TID R0". | GOV-002 | c, root | — | todo | A doc scan finds no unqualified claim that contradicts SPEC §3.3. |
+| TID-003 | **red: manifest v1 corpus.** `test/tid/manifest/` positive + negative TOML fixtures covering every row of SPEC §25.2 (versions, names, SemVer, roots, entries, `[tool.*]`, `[build]`/`edition`). Each negative asserts phase + stable code. | MAN-001..012, AC-026, AC-030, AC-033, AC-034 | c | TID-001 | todo | Corpus runner exists and every case fails because no parser exists yet. |
+| TID-004 | **Diagnostic registry.** Stable codes × phases (§19.2) × owning tool, plus the exit-status classes (§19.3), as one machine-readable registry. | DIA-001, DIA-002 | c | TID-001 | todo | Registry + drift test; every phase has at least one code. |
+| TID-005 | **TOML 1.0 subset reader.** Bounded, duplicate-key-rejecting reader for the manifest shapes: tables, array-of-tables, inline tables, strings, integers, nested `[tool.*]` passthrough. | MAN-002, §20.5 | c | TID-003 | todo | Reader unit tests pass, including limits, duplicates, and invalid UTF-8. |
+| TID-006 | **Manifest v1 validator.** Schema, package-name grammar, reserved names, SemVer, entry/root canonical spellings, overlap (lexical), inert `[tool.*]`, bounded suggestions, and the migration diagnostic with a minimal example. | MAN-001..009, MAN-011, MAN-012, §22.3 | c | TID-005 | todo | TID-003 corpus green (lexical cases). Physical-identity cases stay red until TID-010. |
+| TID-007 | **red: `sv0c` + `sv0` + `sv0vm` argv parsers.** Table-driven request-normalization goldens for SPEC §25.3: modes × options × `--`, exclusive informational forms, legacy spellings. | CCLI-001, CCLI-006, CCLI-007, CCLI-011, CCLI-013, SCLI-009, VM-004, AC-037, AC-044 | c | TID-004 | todo | Golden normalized-request files exist and fail. |
+| TID-008 | **Argv parsers + normalized request model.** Implement the three grammars into one immutable request type (native, C, VM, check, verify; profile/contract/cc validity matrix §11.5; VM rejects profile/cc/non-runtime). | CCLI-*, POL-001, POL-002, POL-004, AC-011 | c | TID-007, TID-006 | todo | TID-007 goldens green. Every incompatible cross-product is rejected before side effects. |
+| TID-009 | **red: discovery trees.** File/dir/cwd discovery fixtures: nearest manifest, invalid nearest blocks fallback, `--standalone`, directory needs its own manifest, physical versus lexical ancestry, `PWD` ignored, non-regular candidates. | DSC-001..008, AC-003..006, AC-031, AC-032 | c | TID-006 | todo | Fixture harness (temp trees + symlinks + FIFO) exists and fails. |
+| TID-010 | **Discovery + source enumeration.** Physical discovery, manifest stable read, root confinement with no-follow, hidden files included, manifest-order + UTF-8-byte ordering, hard-link and mount-boundary rejection, cycle detection. | DSC-*, SRC-001..005, AC-007, AC-008 | c | TID-009, D-1 syscall shims | todo | TID-009 and AC-007/008 fixtures green on Linux and macOS. |
+| TID-011 | **Stable source snapshot.** Two-pass membership + two-read bytes. The request owns the immutable bytes, and later phases never reopen a path. | SRC-006, AC-039 | c | TID-010 | todo | Mutation fault matrix (add/remove/rename/truncate/rewrite between passes) fails in phase `source`, with no retry. |
+| TID-012 | **Source-snapshot digest.** Schema-1 domain-separated, length-prefixed SHA-256 over `lib/sha256.sv0`, plus the AC-045 fixed vector `7f0d707f…2dca`. | REP-004, AC-045 | c | TID-011 | todo | Vector, empty-content, multi-root, and standalone zero-length cases pass. Relocation leaves the digest unchanged. |
+| TID-013 | **red: installed-layout + archive fixtures.** Expected `<prefix>/bin/{sv0,sv0c,sv0vm}` + `lib/sv0/<version>/…` inventory and archive-member rules as test data. | INS-003, DST-001, DST-003, DST-004, AC-024 | root | — | todo | Layout/archive checkers exist and fail against today's install tree. |
+| TID-014 | **Tool-info / version schema + validator.** Schema-1 envelope, per-tool capability objects, strict parser (duplicate keys, sorted sets, SemVer, target grammar), and the exact `--version` line grammar. | INS-008, INS-009, AC-035, AC-036 | c | TID-004 | todo | The validator corpus in AC-035 (all negative classes) passes. |
+| TID-015 | **F0 gate.** Every F0 requirement has a test that fails for the intended missing implementation, not for a harness gap. Record the evidence bundle. | §27.1 exit | root | TID-001..014 | todo | Gate record in the hub. |
+
+## R0 — `sv0c` production driver (`1xx`, SPEC Phase C)
+
+Retain the Python driver (`scripts/native_exe_*.py`) as the differential
+oracle until TID-199.
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| TID-101 | **Native driver skeleton.** A native `sv0c` entry point that parses (TID-008) and dispatches to the existing compiler core in-process. No Bash/Python on the path. | ARC-003, §27.3.1 | c | TID-015, D-1 | todo | `sv0c --help` / `--version` / `--tool-info` run from a native binary with compiled-in metadata and a `development` distribution mode. |
+| TID-102 | **Bare native default.** `sv0c INPUT` → `./a.out`; exact `-o`; existing-parent preflight; no directory creation; `--emit=exe` request-equal. | CCLI-002..004, CCLI-010, AC-001, AC-002 | c | TID-101 | todo | AC-001/002 pass. `--emit=exe` normalized request equals the bare form. |
+| TID-103 | **Explicit modes on one request.** `--emit=c` (stdout / `-o -` / file), `--emit=vm` (`./a.sv0b`), `--check`, `--verify` share the TID-011 snapshot. | CCLI-005, VM-001, SCLI-006/007 (compiler side), AC-014, AC-015 | c | TID-102 | todo | Every mode consumes the same snapshot trace. Check/verify never probe cc. |
+| TID-104 | **Host cc select + probe, native.** Port precedence (`--cc`, `SV0_CC`, `CC`, `cc`), eligibility floors, the certified set, the single uncertified warning with provenance, and argv-only invocation. | NAT-002..004, NAT-007, AC-016, AC-017, AC-043 | c | TID-102 | todo | Fake-compiler precedence and metacharacter matrices pass against the native driver. |
+| TID-105 | **Installed runtime resolution.** Version-matched runtime from `<prefix>/lib/sv0/<version>/runtime`, manifest and hash validation before cc. | NAT-005, AC-018 | c | TID-101 | todo | The corrupt-runtime case fails in phase `runtime` before cc. |
+| TID-106 | **Publication transaction.** Per-output advisory lock before the snapshot; private staging; mode `0777/0666 & ~umask`, recomputed on replace; protected-input alias rejection by path + identity; atomic rename. | REL-002, REL-004, CCLI-012, SEC-004, NAT-006, AC-025, AC-028, AC-029, AC-042 | c | TID-103 | todo | Cross-mode fault, alias, umask, and contention matrices pass. |
+| TID-107 | **Run leases.** `--sv0-run-lease=` reserved option, hard-link then verified-copy fallback, and pre-commit cleanup. | REL-005, SEC-006, AC-040 | c | TID-106 | todo | The lease-transaction fault matrix passes (hard-link and forced-copy paths). |
+| TID-108 | **Manifest digest pinning.** `--sv0-expected-manifest-sha256=`, reread + compare before enumeration. | MAN-010, SCLI-008, AC-009 (mutation case) | c | TID-103 | todo | The manifest-mutation test fails in phase `manifest` with no output. |
+| TID-109 | **Release self-validation + dev mode.** A compile-time `release`/`development` flag; `release-manifest.json` identity check before any work; informational forms exempt. | INS-006, AC-027 | c | TID-101 | todo | Skewed-component copy fails with status 6. Informational forms still work. |
+| TID-110 | **Determinism audit.** No absolute paths, timestamps, or traversal accidents in generated C or bytecode across relocations, locales, and TZ. | REP-001, REP-003, AC-045 | c | TID-103 | todo | Two-location byte comparison passes for the behavior corpus. |
+| TID-113 | **BR1 grammar additions + dev-only rejection.** `--keep-c[=PATH]` (published via §11.9 right after C emission), `--message-format=human\|json` (stderr JSON lines, no stdout/status change), `--build-record=PATH` (committed outputs only). Release-mode rejection of `--coverage*` and every `--target=`. | CCLI-014, CCLI-015, DEC-062, DEC-063 | c | TID-106 | todo | Keep-C failure/success, JSON-equivalence, record-on-failure, and release-versus-development option matrices pass. |
+| TID-111 | **Legacy spellings.** Installed grammar rejects `--target=vm` / `--project` with status 2 + a replacement hint. The repo driver keeps adapters (`native-compile`, `vm-compile`, `emit-c`, `vm-run`). | CCLI-013, AC-044, DEC-060 | c, root | TID-102, X-2 | todo | AC-044 passes. The repo test suite still passes through the adapters. |
+| TID-112 | **Repo migration.** Move `scripts/sv0`, CI, sv0-mathlib/sv0-strings gates, and sv0cov helpers from `--project`/bare-C to the new spellings or adapters. Old-behavior tests become migration tests. | §22, §27.1.5 | root, c | TID-111 | todo | `./scripts/sv0 test` green with no direct legacy spelling outside the adapters. |
+| TID-199 | **R0 sv0c gate.** Direct `sv0c` acceptance passes from a relocated installed-layout preview without a scripting runtime. Differential run against the Python oracle is recorded. | §27.3 exit | c, root | TID-101..112 | todo | Gate record. |
+
+## R0 — `sv0` orchestrator (`2xx`, SPEC Phase D)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| TID-201 | **`sv0` skeleton + informational forms.** Four subcommands, exclusive help/version/tool-info, shared manifest parser (D-2). | ARC-001, SCLI-009, AC-021, AC-037 | c | TID-015, D-2 | todo | AC-021/037 pass for `sv0`. |
+| TID-202 | **Same-prefix companions + negotiation.** Real-path prefix; `<prefix>/bin/{sv0c,sv0vm}` only; tool-info validation against the release manifest; protocol/ABI/bytecode intersections. | INS-001, INS-002, AC-019, AC-020 | c | TID-201, TID-014 | todo | Decoy-PATH and fake-companion mismatch corpora pass. |
+| TID-203 | **`sv0 build` / `check` / `verify`.** Fixed output layout `build/native/<profile>/<pkg>` + `build/vm/<pkg>.sv0b`, safe dir creation, exact companion argv, no source enumeration. | SCLI-001..003, SCLI-006..008, AC-009..011, AC-014, AC-015 | c | TID-202, TID-108 | todo | Exact-argv traces and real native project builds pass. |
+| TID-204 | **`sv0 run` native.** Lease-backed build-then-run, no stale fallback, args after `--`, caller cwd/env/stdio preserved, exact exit + POSIX signal mirroring. | SCLI-004, SCLI-005, SCLI-011, SCLI-012, DIA-003, AC-012, AC-013, AC-040, AC-041 | c | TID-203, TID-107 | todo | Native run corpus (0..255 exits, SIGINT/SIGTERM mirroring, lease replacement) passes. |
+| TID-205 | **`sv0 run --backend=vm`.** Readiness pipe (`--sv0-status-protocol`/`--sv0-status-fd`), pre/post-readiness outcome split, descriptor hygiene. | SCLI-010, SEC-005, AC-038 | c | TID-204, TID-303 | todo | AC-038 fake-VM outcome corpus passes. |
+| TID-299 | **R0 sv0 gate.** Fake-companion traces + real native project workflows pass. | §27.4 exit | c, root | TID-201..205 | todo | Gate record. |
+
+## R0 — standalone `sv0vm` (`3xx`, SPEC Phase E)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| TID-301 | **Decision D-3 + X-3/X-4 amendments.** Pick the VM vehicle. Get the installed-`sv0vm` versus `sv0vm-<lang>` CLI split and hostfs stance written into both specs. | DEC-039, VM-002 | root, vm | — | **done** — 2026-09-27: D-3 = SML + bundled runtime (R0) → VMX C99 (BR1); TID DEC-064/065 + VMX DEC-030 written (project-specs, uncommitted) | Both specs amended. Hub records the decision. |
+| TID-302 | **Relocatable `sv0vm` (R0 preview, D-3).** The SML VM plus a privately bundled SML/NJ runtime, license and hash in the release manifest; no *system* SML/NJ needed. Validates bytecode before effects. `PROGRAM.sv0b [-- args]` with the program-argument boundary. | VM-002, VM-004, ARC-003, §15.5 | vm | TID-301 | todo | The existing VM parity corpus passes through the bundled binary from a relocated tree with no system SML/NJ. |
+| TID-303 | **Tool-info, version, self-validation, readiness.** Schema-1 capabilities (`accepted_bytecode_versions`, `run_status_protocols`), `SV0VM-STATUS 1 READY\n` after full ingestion, fd closed before effects, no path reopen. | INS-006, INS-008, VM-005, VM-006, AC-036, AC-038 | vm | TID-302 | todo | Effect-sentinel and unlink-after-readiness tests pass. |
+| TID-304 | **Bytecode-version negotiation.** `sv0c` `emitted_bytecode_versions` ∩ `sv0vm` `accepted_bytecode_versions` is checked by `sv0`. | VM-003 | c, vm | TID-303, TID-202 | todo | Mismatch fixtures fail in phase `companion`. |
+| TID-305 | **BR1 swap to the VMX C99 library.** The installed `sv0vm` CLI surface (TID-303 behavior) is rebuilt over `sv0vm/implementations/c99`. It claims `sv0vm-v1-core` only and rejects hostfs built-ins at verification. The release manifest records the implementation + revision. | VM-007, VM-008, DEC-064, DEC-065 | vm | TID-303, VMX-402 | todo | TID-3xx tests pass unchanged against the C99-backed binary. Hostfs bytecode is rejected before effects. |
+| TID-399 | **R0 sv0vm gate.** VM workflows pass in a restricted installed environment with no SML/NJ process. | §27.5 exit | vm, root | TID-301..304 | todo | Gate record. |
+
+## BR1 — archives and certification (`4xx`, SPEC Phase F)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| TID-401 | **Release manifest + archive builder.** Deterministic `release-manifest.json`, component inventory (excluding itself), `sv0-<ver>-<target>.tar.gz` with one top dir, member safety, rejection of dev-mode binaries. | DST-001..004, DST-006, INS-003, AC-024 | root | TID-199, TID-299, TID-399 | todo | TID-013 checkers green on a built archive. Malicious-member fixtures rejected. |
+| TID-402 | **Relocation + current-link drills.** Move the tree; `sv0-current` atomic switch, upgrade, rollback, uninstall; interrupted switch keeps all three tools on one release. | INS-004, INS-007, DST-005, DST-007, AC-022 | root | TID-401 | todo | AC-022 drill scripted and green. |
+| TID-403 | **Restricted-PATH offline acceptance.** Unrelated cwd, no checkout, no Python/Bash/SML on `PATH`, network off. | INS-005, SEC-003, ARC-003, AC-023 | root | TID-401 | todo | AC-023 job green. |
+| TID-404 | **Linux matrix.** Pinned Ubuntu 22.04 x86_64 image; exact GCC ≥ 11 and Clang ≥ 14 legs from final archive bytes; dev + release profile parity. | HOST-001, POL-003, §25.4 | root | TID-403 | todo | Both legs green from final bytes. Versions recorded in the release manifest. |
+| TID-405 | **macOS matrix.** Pinned macOS 14 arm64 runner + exact Apple Clang; full automated leg. Closes the native-exe deferred macOS item. | HOST-002, DEC-037 | root | TID-403 | todo | Automated leg green from final bytes. |
+| TID-406 | **Sanitizer + warning release record.** ASan/UBSan in both profiles; blocking warning set documented. | §25.5 | c, root | TID-404 | todo | Release record lists fixed, suppressed (with rationale), and blocking warnings. |
+| TID-407 | **Fuzz/property layer.** CLI tokens, TOML, path normalization, archive members, tool-info JSON, cancellation state machine. | §25.6 | c, root | TID-015 | todo | Fuzz jobs in CI. Findings minimized into the corpus. |
+| TID-408 | **Docs gate.** Quickstart leads with `sv0c INPUT`; full manifest v1 docs; migration guide; profile/contract/cc/umask/run-contract docs; no `sv0 fmt`/`sv0 cov` in help; WSL labeled uncertified. | ARC-004, HOST-003, §26.6 | root, c | TID-401 | todo | Doc scan + help-consistency test pass. |
+| TID-420 | **Limits documented (D-4).** Every §20.5 limit has a number in help/docs and a boundary test. | §20.5 | c | TID-199 | todo | Boundary fixtures at the limit and at limit+1. |
+| TID-499 | **BR1 gate.** Every §26 item links evidence. Tested archives are published with `SHA256SUMS`, and remote bytes are re-verified. | §26, §25.8, DST-002, REP-002 | root | TID-401..420 | todo | Release record; the `v`-tag release notes call out the §22.1 breaking changes. |
+
+## post-BR1 (`9xx`, coarse)
+
+| ID | slice | status |
+|----|-------|--------|
+| TID-901 | `sv0 fmt` companion (needs a native formatter meeting the installed-tool contract; DEC-031) | deferred |
+| TID-902 | `sv0 cov` companion (needs sv0cov's native rewrite plus X-1/X-2 resolution; DEC-031) | deferred |
+| TID-903 | Manifest v2: dependencies, lockfile, library targets, native link plan (GUI DG-003; cross-cutting stream D) | deferred |
+| TID-904 | More host tuples (Linux arm64, macOS x86_64, native Windows) and cross-compilation (GUI DG-023, Flipper) | deferred |
+| TID-905 | LLVM backend as an installed mode (X-8) | deferred |
+
+## related
+
+- Hub: `task/sv0-toolchain-interface-distribution.Rmd`
+- Oracle: `task/sv0c-runtime-executable.Rmd` / `…-checklist.Rmd` (NEX-###)
+- VM vehicle: `task/sv0vm-multi-implementation.Rmd`

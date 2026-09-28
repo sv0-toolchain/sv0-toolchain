@@ -20,6 +20,12 @@ a sibling directory of verification shell scripts. Agents run a task with
 | [`sv0-vsc-extension-plan.Rmd`](sv0-vsc-extension-plan.Rmd) · [`…-checklist.Rmd`](sv0-vsc-extension-checklist.Rmd) | draft | VS Code extension |
 | [`sv0c-runtime-executable.Rmd`](sv0c-runtime-executable.Rmd) · [checklist](sv0c-runtime-executable-checklist.Rmd) | draft | native host executable from the C backend (`sv0c --emit=exe`); F0–R1 backlog `NEX-001…058`; not part of M5 |
 | [`sv0c-vm-float-parity.Rmd`](sv0c-vm-float-parity.Rmd) | complete | f64 + i64/u64 on the VM backend (native emitter + `sv0vm`); full `sv0-mathlib` VM-runs matching the C backend; cross-backend behavioral-parity harness gates it (COMPAT-001/002, TEST-005). `VMF-001…021` |
+| [`sv0-toolchain-interface-distribution.Rmd`](sv0-toolchain-interface-distribution.Rmd) · [checklist](sv0-toolchain-interface-distribution-checklist.Rmd) | draft | **installed toolchain** (orientation id `TID`): native `sv0`/`sv0c`/`sv0vm`, strict `sv0.toml` v1, relocatable BR1 archives; `TID-###`; supersedes parts of the native-exe CLI |
+| [`sv0vm-multi-implementation.Rmd`](sv0vm-multi-implementation.Rmd) · [checklist](sv0vm-multi-implementation-checklist.Rmd) | draft | **normative `.sv0b` + six conforming VMs** (orientation id `VMX`): sv0/Go/Haskell/Python/C99/TS, shared conformance, SML retired after R0.6; `VMX-###` |
+| [`sv0cov-coverage.Rmd`](sv0cov-coverage.Rmd) · [checklist](sv0cov-checklist.Rmd) | draft | sv0cov source-based coverage (SPEC `0.1.73-draft`); `CV-###` |
+| [`sv0-strings-library.Rmd`](sv0-strings-library.Rmd) · [checklist](sv0-strings-checklist.Rmd) | active | sv0-strings (released `v1.1.0`); `SS-###` |
+| [`sv0-gui-lib.Rmd`](sv0-gui-lib.Rmd) | draft | GUI library consumer: toolchain enablement only (`GUI-U##`) |
+| [`sv0-flipper-ble-scanner.Rmd`](sv0-flipper-ble-scanner.Rmd) | draft | Flipper Zero BLE scanner consumer: freestanding/embedded toolchain enablement (`FLP-U##`) |
 
 ## index & rollups
 

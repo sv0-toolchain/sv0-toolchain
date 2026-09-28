@@ -14,7 +14,7 @@ VM, numeric and strings libraries, a coverage tool, and developer tooling.
 | [**sv0vm**](sv0vm/) | the **bytecode VM** that runs sv0c's `--target=vm` output | SML/NJ | M2 complete |
 | [**sv0-mathlib**](sv0-mathlib/) | a contract-first **numeric library** (arith, modular, trig, polar, complex) written in pure sv0 — also a cross-backend conformance load for the compiler | sv0 | `v0.1.0` — SPEC R1 gate closed |
 | [**sv0-strings**](sv0-strings/) | a safe **strings library** — sv0-native bytes / UTF-8 / `CStr` plus C23 & POSIX.1-2024 `<string.h>`/`<strings.h>` compatibility façades, built spec-first | sv0 | `v1.1.0` — R1 shipped; SPEC `v0.4.0-draft` |
-| [**sv0cov**](sv0cov/) | **source-based code coverage**: one coverage truth for `.sv0` source across generated-C and `.sv0b`/sv0vm execution; merge, reports, and policy CLI | Python (sv0 rewrite after R1) | pre-F0: repo skeleton only; SPEC `0.1.71-draft` |
+| [**sv0cov**](sv0cov/) | **source-based code coverage**: one coverage truth for `.sv0` source across generated-C and `.sv0b`/sv0vm execution; merge, reports, and policy CLI | Python (sv0 rewrite after R1) | F0 in progress; SPEC `0.1.73-draft` |
 | [**sv0-mcp**](sv0-mcp/) | Neo4j knowledge graph + MCP servers for AI-assisted development | Python | M0 complete |
 
 **Dependency flow:** sv0doc (spec) → sv0c (compiler) → C backend + VM backend →
@@ -38,7 +38,11 @@ New to the toolchain? Read in this order:
 4. **[sv0c/doc/](sv0c/doc/README.md)** — deeper compiler documentation (pass-by-pass
    walkthrough, self-hosting, archived milestone history).
 5. **[task/README.md](task/README.md)** — the **planning index**: active milestones,
-   milestone hubs, and the archive of completed sub-tasks.
+   milestone hubs, and the archive of completed sub-tasks. Work governed by
+   external specs (the installed `sv0`/`sv0c`/`sv0vm` toolchain, the
+   six-implementation VM, coverage, strings, GUI, Flipper) is listed in the
+   roadmap's **SPEC-governed programs** table
+   ([task/sv0-toolchain-roadmap-full.Rmd](task/sv0-toolchain-roadmap-full.Rmd)).
 
 **Where docs live:** normative spec → [`sv0doc/`](sv0doc/README.md); compiler
 internals → [`sv0c/doc/`](sv0c/doc/README.md); planning & milestone status →
@@ -106,7 +110,7 @@ SHA in the same commit as any `sv0c` submodule bump (CI enforces the match via
 | | |
 |---|---|
 | **sv0c tag (when cut)** | `bootstrap-sml-final` |
-| **sv0c commit pinned on `main`** | `19c3c24a0815aa96c3c61b73b64aa68b4397b26f` |
+| **sv0c commit pinned on `main`** | `6776c55e2a8ae4c91333a34c813f103a9b24a986` |
 
 ## design document
 

@@ -1,6 +1,6 @@
 ---
 created: "2026-03-25T00:00:00Z"
-updated: "2026-04-21T19:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0-toolchain-milestone-cross-cutting
 key: sv0-toolchain-milestone-cross-cutting
 state: draft
@@ -67,6 +67,19 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
 ### D — package registry and ecosystem
 
 - design mentions a **future** registry — track feasibility, naming, and versioning here until it becomes its own milestone file
+- **2026-09-27: two specs now pin this stream down.**
+  - `project-specs/sv0-toolchain-interface-and-distribution` (hub
+    `task/sv0-toolchain-interface-distribution.Rmd`) defines **manifest v1**:
+    one executable target, named source roots, strict schema, and
+    `[tool.<name>]` as the only extension namespace. It explicitly **defers**
+    dependencies, libraries as targets, workspaces, lockfiles, and a registry
+    past BR1 (§7.4). That deferred work is `TID-903`.
+  - `project-specs/sv0-gui-lib` DG-003 / DG-031 (hub `task/sv0-gui-lib.Rmd`,
+    GUI-U05) is the first consumer that **needs** them: source packages,
+    an exact lockfile with content hashes, target-selected native adapters,
+    declarative native link metadata, provenance/SBOM, and no source
+    concatenation. Manifest v2 should be designed against that consumer, on
+    top of stream F's real module linker.
 
 ### E — quantum simulator and other research use cases
 
@@ -99,6 +112,9 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
   file-origin through the resolver is most of this work anyway, so the bolt-on
   is near-full cost and thrown away by the real merge.
 - Split into its own task file when work starts.
+- **2026-09-27 consumers:** the GUI spec's Gate A7/B3 (application +
+  library composition without concatenation) and TID manifest v2
+  (`TID-903`) both depend on this stream. It remains post-M5.
 
 ## refinement log
 
@@ -109,6 +125,10 @@ Checklist rows bind to the region for **`./scripts/sv0 progress-dashboard`** / *
   scheduled post-M5 as the finish of M3's multi-module linker (`mapItem` /
   arena merge + file-origin tracking). Bolt-on visibility pass explicitly
   rejected as throwaway.
+
+- 2026-09-27: stream D linked to the installed-toolchain manifest v1 (deferred
+  dependencies → `TID-903`) and to the GUI spec's package model (DG-003,
+  GUI-U05). Stream F gains the GUI A7/B3 consumer.
 
 ## related
 

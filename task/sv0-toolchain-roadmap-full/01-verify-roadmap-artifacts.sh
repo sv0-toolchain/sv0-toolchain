@@ -25,4 +25,12 @@ need sv0-toolchain-milestone-5-checklist.Rmd
 need sv0-toolchain-milestone-6-kernel.Rmd
 need sv0-toolchain-milestone-cross-cutting.Rmd
 need sv0-mcp-milestone-0.Rmd
+need sv0-toolchain-interface-distribution.Rmd
+need sv0-toolchain-interface-distribution-checklist.Rmd
+need sv0vm-multi-implementation.Rmd
+need sv0vm-multi-implementation-checklist.Rmd
+need sv0-gui-lib.Rmd
+need sv0-flipper-ble-scanner.Rmd
+need sv0cov-coverage.Rmd
+need sv0cov-checklist.Rmd
 echo "roadmap milestone task files: OK"

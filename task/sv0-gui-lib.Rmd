@@ -1,0 +1,142 @@
+---
+created: "2026-09-27T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
+id: task-sv0-gui-lib
+key: sv0-gui-lib
+state: draft
+tags:
+  - sv0
+  - sv0-gui
+  - consumer-library
+  - ffi
+  - packaging
+  - spec-first
+  - planning
+title: "sv0-gui-lib: GUI library consumer — toolchain enablement hub (GUI-U##)"
+type: task
+---
+
+# sv0-gui-lib: GUI library — toolchain enablement hub
+
+## purpose
+
+`sv0-gui` is a planned GUI library for sv0: a platform-agnostic, deterministic
+core; a versioned internal C host ABI; a headless reference adapter; and
+native adapters (macOS Tahoe 26 first, then Windows, then Linux). It is a
+**consumer product** like sv0-strings and sv0-mathlib. Its own repo
+(`sv0-gui-lib`) does not exist yet.
+
+The governing document is:
+
+- `~/Documents/project-specs/sv0-gui-lib/SPEC.md`: version `0.1.34`,
+  "Foundation draft for joint review", last updated 2026-08-28, audit
+  baseline 2026-08-22 (meta `8a1eeb2`, sv0c `ac272be`). Decisions DG-001..034
+  accepted.
+
+This hub owns **only the toolchain side**: which sv0 language, compiler,
+runtime, linker, and packaging capabilities the spec's DG-009 gates (Appendix
+C, rows A1–A14, B1–B35, C1–C18) need from `sv0doc`/`sv0c`/`sv0vm`/`sv0-toolchain`,
+and where each already stands. GUI-internal work (widgets, renderer, text
+engine, macOS lab, notarization) belongs to the future GUI repo and is only
+summarized here.
+
+Like sv0-strings, it is SPEC-governed and **not** a toolchain milestone, so it
+is absent from `task/milestone-orientation.json`.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"gui.hub.session","title":"sv0-gui toolchain enablement — session checklist","kind":"checklist-region","ingest":"gfm"} -->
+- [ ] A toolchain change made for the GUI cites its DG-009 row (A*/B*/C*) and a `GUI-U##` slice
+- [ ] Readiness estimates below are not treated as GUI probe evidence (SPEC C.1: only focused probes change row status)
+- [ ] `./scripts/sv0 test-guards` after editing this file
+<!-- sv0-track:end {"id":"gui.hub.session"} -->
+
+## configuration
+
+/env: SPEC_ROOT=~/Documents/project-specs/sv0-gui-lib
+
+## the spec's audit is stale (SPEC §3.1 requires revalidation)
+
+The spec audited 2026-08-22 revisions. Since then the toolchain has shipped
+several items its §4.2 lists as blocking gaps:
+
+| SPEC §4.2 gap | State now (2026-09-27) |
+|---|---|
+| 1. No general host ABI (`extern`/import-symbol) | **Partly closed.** `#[extern_c] fn …;` imports, raw pointers `*const/*mut T`, and real `unsafe { }` blocks ship on the C backend; the VM rejects them with E0553 (`task/sv0c-ffi-raw-pointer-abi.Rmd`, FFI-001..015). Still missing for DG-002: symbol-name override, explicit calling convention, struct/aggregate ABI assertions, raw-pointer struct fields (FFI scope decision 2 excluded them), callbacks into sv0. |
+| 2. No library/package linker contract | **Open.** `--project` is flat source concatenation with `pub` unenforced (cross-cutting stream F). The installed-toolchain manifest v1 has no dependencies (TID X-7). |
+| 3. No window/event/graphics runtime | Open. By design, that is GUI adapter work over the C ABI, not compiler builtins (DG-002/§6.2 item 3). |
+| 4. VM host surface fixed | Open by design (DG-008: native windowed GUI is C-backend-only through Release 0.1). |
+| 5. Closures maturity-sensitive | Open. Gate C3 (deferred); DG-005 avoids closures. |
+| 6. Raw pointers, RAII, Drop, Send/Sync, monomorphization, floats, slices, fn pointers unverified | **Floats:** f64 (+ i64/u64) now runs on both backends (`task/sv0c-vm-float-parity.Rmd`). **Slices:** range slices + hosted-C slice ABI shipped. **Raw pointers:** shipped (C backend). Drop, Send/Sync, fn pointers, full monomorphization are unverified. |
+| 7. Global vector tables / fixed box pool | **Open.** The C runtime still has process-global tables with no per-vector release (same gap as VMX G-9). Growable tables landed (sv0c `5dce60e`) but not reclamation. |
+| 8. Text insufficient | Owned by the GUI text engine (ICU4C + HarfBuzz, DG-004). The toolchain side is only B6 length-carrying buffers: the length-bearing `sv0_str` handle ABI with embedded-NUL safety has shipped. |
+| 9. No accessibility bridge | GUI adapter work. |
+
+**GUI-U01** below is the formal revalidation: it feeds a spec baseline refresh.
+
+## toolchain readiness by DG-009 row (planning estimate, not probe evidence)
+
+Only toolchain-owned rows are listed. `ready` = the capability exists at the
+current pins and a GUI probe should pass. `partial` = exists with gaps.
+`missing` = no implementation.
+
+| Row | Capability | Toolchain readiness | Owning toolchain work |
+|---|---|---|---|
+| A1 | Revision-pinned compile/link/run harness | ready (native driver, build records, `--message-format=json`) | — |
+| A2 | Structs, payload enums, exhaustive match, C layout inspection | partial: language ready; no C size/align/tag assertion tooling | GUI-U03 |
+| A3 | Mutable state across helpers | ready (probe needed) | — |
+| A4 | Bounded sequence storage with reset/reuse | partial: `Vec` exists; no reset/reuse or capacity limit | GUI-U04 (shared with VMX-104) |
+| A5 | Typed success/failure propagation | partial: enums/`match` ready; generic `Result` + `?` unverified | probe; alternative allowed |
+| A6 | Q24.8/Q8.24 fixed point, checked i64, C/VM contract parity | partial: i64 on both backends; checked-arithmetic helpers are library work | probe in GUI repo |
+| A7 | Application + library composition | partial: flat `--project` concat (the alternative is allowed only with a migration condition) | cross-cutting stream F; GUI-U05 |
+| A8 | Bounded UTF-8 transfer with explicit length | ready-ish: length-bearing `sv0_str`, string↔byte bridges | probe |
+| A10 | Deterministic core execution | ready (probe needed) | — |
+| B1 | General versioned C symbol import | partial: `#[extern_c]` (no name override or calling convention) | GUI-U02 |
+| B2 | Stable ABI representations (sizes, alignment, tags, handles, buffers) | missing | GUI-U03 |
+| B3 | Package graph + exact lockfile + native link plan, no concatenation | missing | GUI-U05 (TID-903, stream F) |
+| B4/B5/B7 | Bounded reusable allocation, deterministic release, typed exhaustion | missing (global tables, abort on exhaustion) | GUI-U04 |
+| B6 | Length-carrying strings/slices/buffers | partial (strings + slices; FFI pointer+length marshalling) | GUI-U03 |
+| B8 | Contract-mode consistency | ready (runtime/verified/disabled wired) | — |
+| B9 | Cross-backend portable-core consistency | ready-ish (C/VM behavioral parity harness) | GUI portable core must avoid FFI types (VM E0553) |
+| B10 | Sanitizers + debug across host boundary | ready (ASan/UBSan corpus, native-exe) | — |
+| B11 | Stable diagnostics classes | partial (diagnostics corpus; no stable-code registry) | TID-004 registry pattern |
+| C1 | f32/f64 | f64 ready on both backends; f32 unverified | — |
+| C2–C7 | fn pointers, closures, generics/monomorphization, trait dispatch, Drop, Send/Sync | missing / unverified | deferred (Gate C) |
+| C8 | VM host calls | missing by design | deferred |
+
+## toolchain enablement slices (`GUI-U##`)
+
+| ID | slice | rows | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| GUI-U01 | **Revalidate SPEC §4 against current pins.** Write a delta memo (the table above, with commands) for the spec owner to refresh the §3.1 baseline. | §3.1, §4 | root | — | todo | Memo delivered. The spec refresh is the owner's call. |
+| GUI-U02 | **FFI v2 for real C libraries.** `#[extern_c(name = "…")]` symbol override, explicit calling-convention spelling, rejection of non-C-representable types, and a versioned-symbol test (`sv0_gui_v1_*`-style). | B1, DG-002 §1/§3 | doc, c | FFI v1 | todo | Positive + negative corpus. External-library link test. |
+| GUI-U03 | **ABI layout contract.** Fixed-width wire structs with explicit padding, raw-pointer struct fields (widening FFI scope decision 2 against this real consumer), pointer+length buffers, `static_assert` size/align/offset emission, and no C `bool`/native enum on the wire. | A2, B2, B6 | doc, c | GUI-U02 | todo | A generated layout-assertion header compiles on GCC/Clang/Apple Clang. The mismatch fixture fails. |
+| GUI-U04 | **Runtime reclamation + typed exhaustion.** Per-handle release and run/arena reset for `Vec`/`Box`/`str` tables; configurable limits; typed failure instead of abort. Shared with VMX-104 (`try_read_bytes` run cleanup). | A4, B4, B5, B7 | c | — | todo | Long-run steady-state memory test + ASan/LSan clean + exhaustion fixtures. |
+| GUI-U05 | **Package model (post-BR1).** Manifest v2 (dependencies, library targets, exact lockfile, native link metadata/frameworks) + a real multi-module linker (`pub` enforced, no concatenation). | A7, B3, B32, DG-003, DG-031 | doc, c, root | TID BR1, stream F | deferred | Tracked as TID-903 + cross-cutting stream F. |
+| GUI-U06 | **macOS universal + macOS 26 hosts (post-BR1).** `arm64` + `x86_64` builds (cross-compilation or per-slice native), macOS 26 as an uncertified or certified host. | A13, B23, B24, DG-022, DG-023 | root | TID BR1 | deferred | Tracked as TID-904. |
+
+## sequencing and a decision to take
+
+- Nothing here preempts M5 or TID F0. GUI-U01 is cheap and useful now.
+  GUI-U02..U04 are general toolchain improvements that also serve Flipper
+  (E-001/E-002 ABI, RT-005) and VMX (VMX-104). Schedule them when a consumer
+  is ready to probe.
+- **D-1 (resolved 2026-09-27; maintainer accepted the recommendation): when does GUI Phase 0 start?** The spec
+  needs a new repo, a four-role physical macOS lab (DG-024), Developer ID
+  distribution, and two-person governance (DG-034). None of that is toolchain
+  work, and none has an owner yet. Decision: keep GUI in **planned, not
+  started** state. Run GUI-U01 now. Start the GUI repo only after TID R0 (so
+  its manifest story is not built on `--project`) and GUI-U02..U04.
+
+## refinement log
+
+- 2026-09-27: hub created from SPEC `0.1.34`. Toolchain readiness per DG-009
+  row estimated. Enablement slices GUI-U01..U06 defined. The spec's §4 audit
+  flagged as stale.
+
+## related
+
+- `task/sv0c-ffi-raw-pointer-abi.Rmd`: FFI v1 (the base for GUI-U02/U03)
+- `task/sv0-toolchain-interface-distribution.Rmd`: X-7 (manifest v2, universal macOS)
+- `task/sv0-toolchain-milestone-cross-cutting.Rmd`: stream D (packages), stream F (multi-module linker)
+- `task/sv0-flipper-ble-scanner.Rmd`: shares the ABI-layout and freestanding asks

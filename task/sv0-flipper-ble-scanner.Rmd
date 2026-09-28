@@ -1,0 +1,108 @@
+---
+created: "2026-09-27T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
+id: task-sv0-flipper-ble-scanner
+key: sv0-flipper-ble-scanner
+state: draft
+tags:
+  - sv0
+  - flipper
+  - embedded
+  - freestanding
+  - consumer-library
+  - spec-first
+  - planning
+title: "sv0-flipper-ble-scanner: embedded consumer — toolchain enablement hub (FLP-U##)"
+type: task
+---
+
+# sv0-flipper-ble-scanner: embedded consumer — toolchain enablement hub
+
+## purpose
+
+A Flipper Zero (STM32WB55, `f7`) BLE **observer** app whose product logic
+(advertising-data parsing, device table, dedup, filters, scanner state) is
+written in sv0. It is shipped as generated C plus a minimal C bridge inside a
+`.fap` (preferred R1 path A), or as an internal app in custom firmware
+(preview path B).
+
+The governing document is:
+
+- `~/Documents/project-specs/sv0-flipper-ble-scanner/SPEC.md`: version
+  `0.2.1` (0.2.0 plus the 2026-09-27 CLI reconciliation and OQ resolutions), sv0 audit 2026-08-31 (meta `05587fc`, sv0c `cab4ca1`), Flipper
+  audit 2026-08-23. OQ-001/002/008/009 (the sv0-side decisions) resolved 2026-09-27; OQ-003..007 belong to the Flipper/product side.
+
+The sibling `~/Documents/project-specs/c-flipper-ble-scanner/SPEC.md` is an
+independent **native C** implementation of the same product. It carries no
+sv0 toolchain obligations and is out of scope here.
+
+This hub owns only the **toolchain side**: the non-hosted emission, embedded
+runtime, ABI, and regression evidence the scanner's F0 gate needs from sv0.
+Radio, firmware, and UI work belongs to the future scanner repo. The project
+is SPEC-governed and **not** a toolchain milestone (absent from
+`task/milestone-orientation.json`). Its freestanding asks are the first
+concrete consumer for design milestone 6 (`task/sv0-toolchain-milestone-6-kernel.Rmd`).
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"flp.hub.session","title":"flipper scanner toolchain enablement — session checklist","kind":"checklist-region","ingest":"gfm"} -->
+- [ ] A toolchain change made for the scanner cites its SPEC ID (`TOOL-*`, `RT-*`, `E-0**`, `OQ-*`) and a `FLP-U##` slice
+- [ ] No slice claims `sv0c --emit=exe` is an ARM/FAP cross-compiler (TOOL-004)
+- [ ] `./scripts/sv0 test-guards` after editing this file
+<!-- sv0-track:end {"id":"flp.hub.session"} -->
+
+## configuration
+
+/env: SPEC_ROOT=~/Documents/project-specs/sv0-flipper-ble-scanner
+
+## what the scanner needs from the toolchain (SPEC §4.4, §15, Appendix B)
+
+| Need | SPEC | State now (2026-09-27) |
+|---|---|---|
+| Canonical, hash-stable `--emit=c` for a project | TOOL-002, E-009 | **Ready** (atomic `--emit=c -o`). The spelling changes under the installed-toolchain spec (X-1). |
+| Non-hosted entry: no hosted `main(argc, argv)`/`sv0_runtime_init`; a library or FAP entry | TOOL-003, TOOL-005, E-011, OQ-001 | **Missing.** Hosted entry ABI v1 always emits `sv0_user_main` + C `main`. |
+| Freestanding runtime: no stdio, `exit`, getenv, filesystem, or bootstrap pools | RT-001..003, RT-008..010, E-004, OQ-002 | **Missing.** `sv0_runtime.h` is hosted. Its tables are process-global (now growable, sv0c `5dce60e`, but still malloc-backed and never released). |
+| Namespaced generated symbols | RT-006 | **Partial.** User identifiers are prefixed `sv0u_` (sv0c `d6e306d`). A collision audit against firmware + the hosted ABI names is still needed. |
+| C → sv0 calls and callback-shaped invocation | E-001..003, §15.1 | **Partial.** C can call generated `sv0u_*` functions, but there is no stable exported-symbol contract (`#[export_c]`-style) or naming guarantee. |
+| sv0 → C calls (bridge, Furi) | OQ-008 | **Partial.** `#[extern_c]` imports ship on the C backend (FFI v1). This answers OQ-008's "motivates an sv0 `extern` feature" question: the feature exists. What is missing is struct/pointer ABI layout (shared with GUI-U03). |
+| ABI width/sign/align/offset assertions | RT-005, E-001, E-002 | **Missing** (shared with GUI-U03). |
+| Contract failure → recoverable stop, not `exit(1)` | RT-002, E-005 | **Missing.** Contract failure is `exit(1)` from inline header helpers. |
+| C/VM pure-core parity; dev + release; ASan/UBSan | TOOL-007, TOOL-008, E-010 | **Ready** (behavioral parity harness, release parity, sanitizer corpus). |
+| Regression pack for scanner-used shapes | TOOL-010, E-012 | Scanner-repo work over existing corpora. |
+
+## cross-spec conflict
+
+| # | Conflict | Resolution |
+|---|---|---|
+| X-1 | The scanner spec standardizes `sv0c --emit=c --project <dir> -o …` and host policy (profile, contract mode, retained C, cc) in `sv0.toml`. The installed-toolchain spec rejects `--project` in installed `sv0c` and forbids policy keys in manifest v1. | Amend the scanner spec: `sv0c --emit=c -o <path> <dir>` with a v1 manifest; host policy on the command line; embedded settings in the separate integration manifest the scanner spec already requires (§15.3). Until the TID R0 CLI lands, the repo-driver adapter keeps `--project` working. **Resolved 2026-09-27:** written into the scanner spec `0.2.1`. |
+
+## toolchain enablement slices (`FLP-U##`)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| FLP-U01 | **Decide OQ-001 (entry) + OQ-002 (runtime) + OQ-009 (runtime home).** Options: upstream library/freestanding emission mode; compiler-side embedded entry adapter; byte-preserving wrapper. Chosen: a **`--emit=c` library mode** (no hosted adapter, exported entry list), with a versioned freestanding runtime bundle owned by sv0c (it is also M6's `no_std` seed). OQ-008: `#[extern_c]` for sv0→C plus a stable C export contract (FLP-U04). | OQ-001, OQ-002, OQ-008, OQ-009 | root | — | **done** — 2026-09-27: maintainer accepted; recorded in scanner spec `0.2.1` and M6 | Decision recorded here and in M6. |
+| FLP-U02 | **Library/freestanding C emission.** Omit the hosted `main`/`sv0_runtime_init`; emit a declared export list; zero-parameter `main` no longer required in library mode (TOOL-005 escape). | TOOL-003, TOOL-005, E-011 | doc, c | FLP-U01 | todo | Host + ARM symbol tests show no hosted adapter and the expected exports. |
+| FLP-U03 | **Freestanding runtime manifest + forbidden-symbol scan.** Minimal runtime (allocator hook, panic/contract hook returning control), its own versioned manifest (file hashes, ABI version, target triple), and a scanner for `printf`/`fopen`/`exit`/`getenv`/hosted `main`. | RT-001..003, RT-008..010, E-004, E-005 | c | FLP-U02 | todo | `arm-none-eabi` object with no forbidden symbols. Contract failure returns to the caller. |
+| FLP-U04 | **Stable C export contract.** An attribute or manifest for sv0 functions callable from C with fixed names (beyond the `sv0u_` prefix) + collision audit vs `sv0_user_main`/`sv0_runtime_init`/firmware. | E-001, E-003, RT-006, §15.1 | doc, c | FLP-U02 | todo | Callback-shaped 100k-iteration host test + collision audit. |
+| FLP-U05 | **ABI layout assertions.** Shared with GUI-U03: width/sign/align/offset `static_assert`s for boundary types, including a 31-byte payload array. | RT-005, E-001, E-002 | c | GUI-U03 | todo | Host + ARM assertion headers compile; the mismatch fixture fails. |
+| FLP-U06 | **Scanner spec amendment for the TID CLI (X-1).** | TOOL-002, TID X-6 | root | — | **done** — 2026-09-27: scanner spec `0.2.1` (project-specs, uncommitted) | Amendment text delivered to the spec owner. |
+
+## sequencing
+
+FLP-U01 is a decision and can happen any time. FLP-U02..U05 are real compiler
+and runtime work with no consumer repo yet. Schedule them together with M6
+phase 2 ("freestanding linking model"), or earlier if the scanner repo starts.
+They do not block M5 or TID.
+
+## refinement log
+
+- 2026-09-27: hub created from SPEC `0.2.0`. Toolchain needs re-checked
+  against current pins (FFI v1, `sv0u_` prefix, growable runtime tables all
+  post-date the spec audit). X-1 recorded. Slices FLP-U01..U06 defined.
+
+## related
+
+- `task/sv0-toolchain-milestone-6-kernel.Rmd`: freestanding / `no_std` home
+- `task/sv0c-runtime-executable.Rmd`: hosted entry ABI v1 and runtime manifest (the hosted counterparts)
+- `task/sv0-gui-lib.Rmd`: shares the ABI-layout slice (GUI-U03)
+- `task/sv0c-ffi-raw-pointer-abi.Rmd`: `#[extern_c]` imports

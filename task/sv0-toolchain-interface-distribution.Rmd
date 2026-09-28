@@ -1,0 +1,201 @@
+---
+created: "2026-09-27T00:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
+id: task-sv0-toolchain-interface-distribution
+key: sv0-toolchain-interface-distribution
+state: draft
+tags:
+  - sv0
+  - sv0-toolchain
+  - sv0c
+  - sv0vm
+  - cli
+  - packaging
+  - release
+  - spec-first
+  - planning
+title: "installed toolchain: sv0 / sv0c / sv0vm command interface and binary distribution (TID, BR1)"
+type: task
+roadmap_parent: sv0-toolchain-roadmap-full
+---
+
+# installed toolchain: command interface and binary distribution (TID)
+
+## purpose
+
+Plan the move from a repository-driven toolchain to an **installed product**:
+three native commands with separate jobs, a mandatory `sv0.toml` project
+manifest, and relocatable release archives.
+
+```text
+sv0     project orchestration (build / run / check / verify)
+sv0c    compilation, checking, verification  (bare `sv0c FILE` -> ./a.out)
+sv0vm   .sv0b execution
+```
+
+The governing document is:
+
+- `~/Documents/project-specs/sv0-toolchain-interface-and-distribution/SPEC.md`:
+  spec version `0.1.1-draft` (0.1.0-draft plus the 2026-09-27 cross-spec
+  reconciliation, DEC-062..066), audit 2026-09-26 at meta `c82cfb5` / sv0c
+  `19c3c24` / sv0vm `1c9c3d4` / sv0doc `aa1ca39` / sv0cov `5138bf1`. 66
+  accepted decisions (DEC-001..066). §29.4: no product decision blocks F0.
+
+This file is the planning **hub**: ownership, observed gaps, cross-spec
+conflicts, open implementation decisions, the release ladder, and
+sequencing. The slice index is **`task/sv0-toolchain-interface-distribution-checklist.Rmd`**
+(`TID-###`). Closure authority is SPEC §26 (BR1 gate), §24 (AC-001..045),
+and §23 (requirement catalog), plus these two files.
+
+Unlike sv0-strings and sv0cov, this program changes the toolchain's own
+shipped surface. It is therefore a tracked milestone (`TID` in
+`task/milestone-orientation.json`). It is not a numbered design milestone
+of the vision document.
+
+## progress dashboard (sv0-track)
+
+<!-- sv0-track:begin {"id":"tid.hub.session","title":"TID hub — session checklist","kind":"checklist-region","ingest":"gfm","milestone":"TID"} -->
+- [ ] Work maps to a `TID-###` slice and cites the SPEC requirement IDs (`MAN-*`, `CCLI-*`, `SCLI-*`, …) and `AC-*` scenarios it closes
+- [ ] Current-state claims refresh the revision table first (SPEC GOV-001)
+- [ ] A cross-spec conflict touched this session is recorded under **cross-spec conflicts**, not silently resolved
+- [ ] `./scripts/sv0 test-guards` after editing `task/` files
+<!-- sv0-track:end {"id":"tid.hub.session"} -->
+
+## configuration
+
+/env: SPEC_ROOT=~/Documents/project-specs/sv0-toolchain-interface-and-distribution
+/env: SV0TOOLCHAIN_ROOT=.
+/env: SV0C_ROOT=sv0c
+/env: SV0VM_ROOT=sv0vm
+
+## supersession (SPEC §3.3)
+
+This spec overrides `project-specs/sv0c-runtime-executable/SPEC.md`
+(owned here by `task/sv0c-runtime-executable.Rmd`) **only** for:
+
+- the canonical `sv0c` invocation and default output: bare `sv0c INPUT`
+  builds `./a.out`; `--emit=exe` becomes a permanent, secondary alias;
+- file versus project input and manifest discovery: `--project DIR` becomes
+  a positional directory;
+- the manifest schema: v1 is strict, with no `[build]` table;
+- default output paths: nothing under `build/native/` for direct `sv0c`;
+- `sv0` project commands, installed tool names, companion resolution, the
+  installed layout, and the release archive.
+
+Everything else in the native-executable spec stays authoritative: entry
+adaptation, compiler-matched runtime, shell-free cc invocation, staging,
+atomic publication, cleanup, runtime ABI validation, and native behavior
+tests. Most of that is already shipped (NEX F0..R1).
+
+## ownership
+
+| Concern | Owner |
+|---|---|
+| Language and bytecode semantics | `sv0doc` (unchanged by this spec) |
+| `sv0c` driver: request model, source snapshot, native/C/VM/check/verify modes, publication, locks, run leases, tool-info | `sv0c` |
+| Shared manifest v1 parser (MAN-010: one implementation for `sv0` and `sv0c`) | `sv0c` (decision D-2) |
+| `sv0` orchestrator: discovery, output layout, companion negotiation, run process contract | decision D-2 |
+| Standalone, relocatable `sv0vm` with tool-info and readiness protocol | `sv0vm` (vehicle: decision D-3) |
+| Repository developer driver (`scripts/sv0`), CI, archives, release evidence | `sv0-toolchain` |
+
+## release ladder (SPEC §2.2, §7, §27)
+
+| Stage | Meaning | SPEC phase | Checklist band |
+|---|---|---|---|
+| **F0** contract lock | Parsers, schemas, fixtures, and failing acceptance tests exist. No product claim. | A, B | `TID-0xx` |
+| **R0** installed-layout preview | The three commands work from a relocated tree on one dev host with no Python, Bash, SML/NJ, or checkout. | C, D, E | `TID-1xx` (sv0c), `TID-2xx` (sv0), `TID-3xx` (sv0vm) |
+| **BR1** first binary release | Certified archives for `x86_64-unknown-linux-gnu` (Ubuntu 22.04, exact GCC + Clang) and `aarch64-apple-darwin` (macOS 14, Apple Clang). | F | `TID-4xx` |
+| Post-BR1 | `sv0 fmt`/`sv0 cov` companions, more hosts, manifest v2, cross-compilation. | §27.7 | `TID-9xx` (coarse) |
+
+## observed gaps (re-checked 2026-09-27; meta HEAD still `c82cfb5`)
+
+The audit commit is the current meta HEAD, so SPEC §4.2 still holds. Gaps
+worth naming for planning:
+
+| # | Spec target | Current state | Consequence |
+|---|---|---|---|
+| G-1 | Native `sv0c` executable entry, no scripting runtime (ARC-003, DEC-005). | Installed `sv0c` is a Bash launcher over the Python driver (`scripts/native_exe_*.py`, ~60 modules; `native_exe_install_launcher.py`, `native_exe_installed_layout.py`). The compiler core (`build/sv0-megatu-native`) is already native. | The driver logic (request, cc select/probe, runtime bundle, staging, publish, output lock, build records) must move into a native program. The Python driver remains the differential oracle (SPEC §27.3 step 1). |
+| G-2 | Installed `sv0` end-user orchestrator (ARC-001, DEC-024). | `scripts/sv0` is the large developer/CI driver. No installed `sv0` exists. | New program. The repo driver stays and keeps its developer commands. |
+| G-3 | Standalone relocatable `sv0vm` (VM-002, DEC-039). | `sv0vm` is SML/NJ (~1.6k lines), launched via `sml` + heap. `project-specs/sv0vm-implementation-expand` retires SML from active CI after its R0.6. | BR1 needs a native VM. See D-3 and `task/sv0vm-multi-implementation.Rmd`. |
+| G-4 | Manifest v1: required `manifest-version = 1`, `[package]`, `[target]`, `[[source-roots]]`, strict, `[tool.*]` inert (MAN-001..012). | `native_exe_config.py` parses an optional six-key `[build]` table. No TOML parser exists in sv0. | Manifest core is new. The parser must be shared by `sv0` and `sv0c` (MAN-010), so it belongs in the native driver's language. |
+| G-5 | Bare `sv0c INPUT` builds `./a.out`; `--emit=c` for C; positional project directory (CCLI-001..013). | Bare `sv0c FILE` emits C. `--project DIR`, `--target=vm`, and `--emit=exe` are in wide use: scripts, CI, sv0cov CV-106, mathlib/strings gates, and M5 `--target=llvm`. | Breaking CLI migration. The repo adapters keep old spellings (SPEC §22.2); installed tools reject them. |
+| G-6 | Source enumeration includes hidden paths; no-follow, mount-bounded, hard-link-checked, two-pass stable snapshot (SRC-001..006). | Recursive project composition skips some hidden paths and does not check identity, mount, or stability. | Rewrite of project discovery. Also changes which files the compiler sees, which can move goldens. |
+| G-7 | Byte-deterministic generated C and bytecode, source-snapshot digest (REP-003/004). | C output is deterministic in practice (stage0 goldens, run-cache), but it is not audited for absolute paths or traversal order across relocations. `lib/sha256.sv0` exists (sv0cov CV-104). | The digest vector (AC-045: `7f0d70…2dca`) is implementable now in sv0. |
+| G-8 | `--version` / `--tool-info` schema-1 envelope on all three tools (INS-008/009). | No tool-info exists anywhere. | New compiled-metadata plumbing in each tool. |
+| G-9 | macOS arm64 full automated release leg (HOST-002, DEC-037). | CI is Ubuntu x86_64. The macOS Apple Clang leg was deliberately deferred in native-exe R1. | Hosted macOS runners and pinned Xcode are on the BR1 critical path. |
+| G-10 | Global control files forbidden (REL-001). | Already met: `/tmp/.sv0_drv_path` was retired in favor of `getenv("SV0_DRV_REQUEST")` (NEX-055c/REL-004). | Recheck when the native driver lands. `SV0_DRV_REQUEST` is itself an internal env channel between the Python driver and the compiler core, so it must not leak into the program environment (SCLI-012). |
+
+## cross-spec conflicts (all resolved 2026-09-27)
+
+These were contradictions between this spec and the other SPEC-governed
+plans in `~/Documents/project-specs`. The maintainer accepted the
+recommendations below on 2026-09-27, and each was written into the named spec
+as an amendment. The amendments are uncommitted edits in the project-specs
+repo until the maintainer commits them. The **resolution** column is
+authoritative. The **recommendation** column is kept for history.
+
+| # | Conflict | Specs | Recommendation | Resolution |
+|---|---|---|---|---|
+| X-1 | sv0cov configures policy in a root `[coverage]` table of `sv0.toml` (sv0cov §18.2, DEC-048/051). Manifest v1 rejects unknown root tables (MAN-002) and reserves `[tool.<name>]` for companions (§9.8). | TID, sv0cov | Amend sv0cov to `[tool.sv0cov]`. It already fits DEC-045: a separately specified companion may own its namespace, and core tools stay inert. | **Resolved:** sv0cov `0.1.73-draft` DEC-091 moves config to `[tool.sv0cov]`. |
+| X-2 | The installed `sv0c` grammar (§11.4) lists no `--coverage`, `--coverage-map`, `--keep-c`, `--message-format=json`, or LLVM mode, and unknown options fail (CCLI-006). sv0c already ships `--coverage=off\|map\|instrument` (CV-106) and `--keep-c`/`--message-format` (NEX). M5 adds `--target=llvm`. | TID, sv0cov, native-exe, M5 | Decide per flag: (a) add it to the BR1 grammar by spec revision, or (b) keep it repository-only (developer driver or development-mode build). Recommendation: coverage flags and LLVM stay repo-only until their products ship companions (DEC-031). `--keep-c` and JSON messages get a TID spec revision, because they are user-facing diagnostics. | **Resolved:** TID `0.1.1-draft` DEC-062/063. `--keep-c[=PATH]`, `--message-format`, and `--build-record=PATH` join the grammar (CCLI-014). Coverage flags and `--target=` spellings are rejected by release-mode `sv0c` (CCLI-015). |
+| X-3 | The installed `sv0vm` must return the program's exit status exactly, accept `-- PROGRAM_ARG…`, and emit tool-info and a readiness record (§15.2, §19.3). The multi-implementation VM CLI (`sv0vm-<lang>`, VMX §16.2–16.3) instead classifies status (nonzero program → 1), has no program arguments, and records the exact status only in a result file. | TID, VMX | Two surfaces: the installed `sv0vm` follows TID, and the language-qualified `sv0vm-<lang>` conformance CLIs follow VMX. The BR1 `sv0vm` wraps one conforming VMX library. Record this in both specs. | **Resolved:** TID DEC-064 (VM-007) + VMX `0.1.36` DEC-030. |
+| X-4 | VMX defaults hostfs to **deny** (CAP-004, R1). `sv0 run --backend=vm` has no capability-grant surface. Today's VM programs that call `read_file`/`write_file`/`read_dir` would fail once installed `sv0vm` adopts VMX R1 semantics. | TID, VMX | Either BR1 `sv0vm` predates VMX R1 hostfs (ambient, documented as such), or TID gains an explicit grant option later. Recommendation: BR1 claims only `sv0vm-v1-core`, and file I/O programs are native-only in BR1. | **Resolved:** TID DEC-065 (VM-008). BR1 `sv0vm` is `sv0vm-v1-core` only, hostfs is rejected at verification, and file I/O is native-only in BR1. |
+| X-5 | VMX retires SML from active CI after VMX R0.6 (DEC-008 D2). TID BR1 needs a native, relocatable `sv0vm` (DEC-039). | TID, VMX | See D-3. | **Resolved:** D-3 below (SML with bundled runtime for the R0 preview; VMX C99 for BR1), recorded in VMX DEC-030. |
+| X-6 | The Flipper scanner spec (0.2.0) standardizes `sv0c --emit=c --project <dir> -o …` and host policy in `sv0.toml` (profile, contract mode, cc). Installed BR1 rejects `--project`, and manifest v1 forbids policy keys. | TID, flipper | Amend the Flipper spec to `sv0c --emit=c -o … <dir>`, with invocation-only policy. Embedded settings go in its separate integration manifest, which the Flipper spec already prescribes for target data. | **Resolved:** Flipper spec `0.2.1` (positional project dir; policy on the command line). |
+| X-7 | The GUI library needs source packages with dependencies, an exact lockfile, native link metadata, and a macOS universal (`arm64`+`x86_64`) artifact (DG-003, DG-023). Manifest v1 has no dependencies, no library targets, no link flags, and no cross-compilation. macOS x86_64 is deferred (§7.4). | TID, GUI | Not a BR1 conflict: GUI Gate B needs a manifest v2 and a link-plan spec after BR1. Track it in `task/sv0-toolchain-milestone-cross-cutting.Rmd` stream D and `task/sv0-gui-lib.Rmd`. | **Resolved as planned:** post-BR1 (`TID-903`, `TID-904`). No spec change. |
+| X-8 | M5 uses `--target=llvm` (+ `--project`). Installed `sv0c` rejects `--target=` spellings (CCLI-013), and the native pipeline is defined only as generated C + cc (§14). | TID, M5 | LLVM stays repo-only for BR1. When LLVM becomes a user product, revise TID with an `--emit=llvm`/backend option. | **Resolved:** TID DEC-062. LLVM stays repo-only until a later revision. |
+| X-9 | The native-executable spec assigns per-phase exit codes (host-compile = 6, frontend = 4/5, …). TID §19.3 defines different status classes for all three tools, but its §3.3 supersession list did not name exit statuses. | TID, native-exe | Make §19.3 authoritative for installed tools. | **Resolved:** TID DEC-066 adds exit statuses to §3.3. The repo driver keeps the old codes until TID-111 migrates it. |
+
+## implementation decisions (resolved 2026-09-27)
+
+| ID | Question | Decision |
+|---|---|---|
+| D-1 | What language is the native `sv0c` driver (and `sv0`) written in? | **sv0 source + `#[extern_c]` POSIX shims.** Thin runtime/libc wrappers for openat/`O_NOFOLLOW`, fstat, flock, renameat, linkat, readdir, realpath, and posix_spawn, kept to a reviewed allowlist. The Python driver stays as the differential oracle until TID-199. |
+| D-2 | Where do `sv0` and the shared manifest parser live? | **The sv0c repo.** `sv0` is a second entry point beside the compiler (for example `sv0c/tools/sv0/`), and both binaries link one `lib/manifest.sv0`, so MAN-010 holds by construction. |
+| D-3 | What vehicle ships the standalone `sv0vm`? | **R0 preview:** the SML/NJ VM with a privately bundled runtime, license and hash declared (§15.5). **BR1:** the VMX C99 implementation library behind the installed CLI surface (TID DEC-064, VMX DEC-030). The swap is `TID-305`. |
+| D-4 | Numeric limits | Implementation-defined at F0; documented with boundary tests before BR1 (`TID-420`). |
+
+## sequencing against the active milestone
+
+- **M5 (LLVM + crypto) stays the active milestone.** This program does not
+  preempt it.
+- **F0 (`TID-0xx`) can run in parallel now.** It is spec-first, and most of it
+  is fixtures, schemas, and parser work with no change to compiler output.
+  The manifest parser depends on D-1/D-2.
+- **R0 compiler work (`TID-1xx`) should start after M5 P1** (LLVM MVP). Both
+  edit `lib/main.sv0` CLI parsing and the driver, and two concurrent CLI
+  rewrites would thrash the self-host loop.
+- **R0 `sv0vm` (`TID-3xx`)** uses the SML VM with a bundled runtime (D-3), so it
+  does not wait on VMX. The BR1 swap to the VMX C99 library (`TID-305`) waits on
+  `VMX-402`.
+- **BR1 (`TID-4xx`)** needs the macOS runner leg (G-9) plus the final-archive
+  matrices.
+
+## dependencies
+
+- `task/sv0c-runtime-executable.Rmd`: shipped native driver (the oracle), the
+  entry ABI, runtime bundle, cc selection, profiles, and contract modes.
+- `task/sv0c-ffi-raw-pointer-abi.Rmd`: `#[extern_c]` for D-1 = A POSIX shims.
+- `task/sv0vm-multi-implementation.Rmd`: the D-3 VM vehicle, bytecode-version
+  negotiation (VM-003), and X-3/X-4/X-5.
+- `task/sv0cov-coverage.Rmd`: X-1 and X-2. `sv0 cov` is deferred past BR1
+  (DEC-031).
+- `task/sv0-toolchain-milestone-5-llvm-crypto.Rmd`: X-8 and CLI-rewrite sequencing.
+- `task/sv0-toolchain-milestone-cross-cutting.Rmd` stream D: manifest v2
+  (dependencies, libraries), which is post-BR1.
+
+## refinement log
+
+- 2026-09-27: maintainer accepted every recommendation. Spec amended to
+  `0.1.1-draft` (DEC-062..066). sv0cov (DEC-091), VMX (DEC-030..032), and
+  Flipper (0.2.1) amended in step. X-1..X-9 and D-1..D-4 resolved.
+- 2026-09-27: hub created from SPEC `0.1.0-draft` (audit 2026-09-26). Gaps
+  G-1..G-10, cross-spec conflicts X-1..X-8, and implementation decisions
+  D-1..D-4 recorded. Added to `task/milestone-orientation.json` as `TID`.
+
+## related
+
+- `task/sv0-toolchain-interface-distribution-checklist.Rmd`: slice index
+- `task/sv0-toolchain-roadmap-full.Rmd`: roadmap placement
+- `INSTALL.md`, `CHANGELOG.md`: current v0.1.0 install story (repo-driven),
+  which BR1 replaces

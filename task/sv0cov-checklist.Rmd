@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-09-24T12:00:00-06:00"
+updated: "2026-09-27T12:00:00-06:00"
 id: task-sv0cov-checklist
 key: sv0cov-checklist
 state: draft
@@ -22,7 +22,7 @@ The trackable **`CV-###`** slice index for **sv0cov**. Each slice is one
 focused session with one explicit stopping point (the **done when** column).
 Strategy, observed gaps (`G-*`), open decisions (`D-*`), and the release ladder
 live in the hub **`task/sv0cov-coverage.Rmd`**. The normative contract is
-`~/Documents/project-specs/sv0cov/SPEC.md` `0.1.71-draft`. This file is a
+`~/Documents/project-specs/sv0cov/SPEC.md` `0.1.73-draft`. This file is a
 **living index**: flip status and record a one-line result + commit as slices
 land.
 
