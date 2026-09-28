@@ -104,10 +104,11 @@ src, n = re.subn(committed_block, cli_read, src, count=1)
 assert n == 1, "compose main shape changed: could not find committed source+contract-mode block"
 
 cov_read = (
-    # sv0cov CV-106/CV-107: read SV0_COVERAGE_REQUEST ("<mode>\n<map path>";
-    # unset for off) into main's committed _cov_* defaults. megaTU-main.sv0
-    # plans coverage after check and, until map emission lands, refuses map/
-    # instrument (exit 9); plan-dump is an internal test hook.
+    # sv0cov CV-106..CV-113: read SV0_COVERAGE_REQUEST ("<mode>\n<map path>\n
+    # <target>\n<compiler identity>"; unset for off) into main's committed
+    # _cov_* defaults. megaTU-main.sv0 plans coverage after check; map writes
+    # the map, instrument places hits (C emission only; the VM refuses it
+    # until CV-117); plan-dump and hit-dump are internal test hooks.
     'let _cov_req: string = getenv("SV0_COVERAGE_REQUEST");\n'
     '    let _cov_mode: i32 = megatu_cov_mode_of(_cov_req);\n'
     # (plain assignments: the SML bootstrap mistypes string-valued `if`

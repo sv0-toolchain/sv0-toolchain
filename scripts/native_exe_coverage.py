@@ -19,8 +19,11 @@ keys. This module holds the rules both drivers apply:
 
 The compiler plans coverage for a non-off request. ``map`` writes the
 canonical ``.sv0covmap.json`` (CV-110) and builds the uninstrumented
-artifact; ``instrument`` is refused with a diagnostic until hit placement
-(CV-112) lands, rather than building an unmarked, uninstrumented artifact.
+artifact; ``instrument`` places and checks the hits (CV-112) and emits
+instrumented C with its map (CV-113). Linking an instrumented executable is
+refused until the native coverage runtime (CV-114) lands, and the VM
+refuses ``instrument`` until COVER_HIT emission (CV-117), rather than
+building an unmarked, uninstrumented artifact.
 
     python3 scripts/native_exe_coverage.py --selftest
     python3 scripts/native_exe_coverage.py resolve --mode M [--map P] --artifact A

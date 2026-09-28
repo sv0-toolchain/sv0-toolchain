@@ -142,6 +142,17 @@ def build_native_executable(
     runtime = runtime_override if runtime_override is not None else resolve_runtime_dir()
     verify_manifest(runtime)
     verify_entry_abi_compat(runtime.dir)
+    # sv0cov CV-113: instrumented C calls the native coverage runtime
+    # (__sv0cov_start/__sv0cov_hit), which does not exist until CV-114, so
+    # the link could only fail. Refuse before the compiler runs (no map, no
+    # C); --emit=c still produces the instrumented C and its map.
+    if coverage is not None and coverage.mode == "instrument":
+        raise BuildError(
+            DiagnosticPhase.RUNTIME,
+            "--coverage=instrument cannot link an executable yet: the native coverage runtime "
+            "(sv0cov CV-114) has not landed; use --emit=c to get the instrumented C and its map, "
+            "or build with --coverage=off or --coverage=map",
+        )
 
     # 4. Host C compiler selection + capability probe (NEX-021/022).
     cc_path, _cc_selection = select_cc(explicit_cc, os.environ)

@@ -10,9 +10,11 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    `--coverage-map`) on both drivers; the emitted C and `.sv0b` are
    byte-identical to an `off` build (map mode adds no hit operations), and
    the map names the artifact's stem as its target and `sv0c+<revision>` as
-   the compiler identity. `instrument` places and checks its hits (CV-112)
-   and is then refused until emission (CV-113/CV-117) lands: nonzero exit,
-   the diagnostic, nothing left behind.
+   the compiler identity. `instrument --emit=c` writes the instrumented C
+   (CV-113) and its map; linking an instrumented executable is refused
+   until the native runtime (CV-114) lands, and the VM refuses instrument
+   until COVER_HIT emission (CV-117): nonzero exit, the diagnostic, nothing
+   left behind.
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
    path that collides with the artifact are usage errors (exit 2) that never
    invoke the compiler.
@@ -32,7 +34,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SV0 = str(ROOT / "scripts" / "sv0")
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "struct_field.sv0"
 GOLDEN_C = ROOT / "sv0c" / "test" / "behavior" / "golden-c" / "struct_field.c"
-PENDING = "is not available yet: coverage hits are placed and checked"
+NATIVE_PENDING = "cannot link an executable yet: the native coverage runtime (sv0cov CV-114)"
+VM_PENDING = "is not available on the VM yet: coverage hits are placed and checked"
 
 
 def run(args: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
@@ -86,21 +89,28 @@ def main() -> int:
         elif (t / "v.json").read_bytes() != mjson.read_bytes().replace(b'"name":"mapped"', b'"name":"vmapped"') \
                 .replace(json.loads(mjson.read_bytes())["map_id"].encode(), json.loads((t / "v.json").read_bytes())["map_id"].encode()):
             errors.append("vm map: differs from the native driver's map beyond the target name")
-        for mode in ("instrument",):
-            exe = t / f"{mode}-exe"
-            p = run(["native-compile", f"--coverage={mode}", "-o", str(exe), str(CASE)])
-            if p.returncode == 0 or PENDING not in p.stderr or f"--coverage={mode}" not in p.stderr:
-                errors.append(f"native {mode}: rc={p.returncode} stderr={p.stderr!r}")
-            left = [x.name for x in t.iterdir() if x.name.startswith(f"{mode}-exe")]
-            if left:
-                errors.append(f"native {mode}: left {left}")
-            bc = t / f"{mode}.sv0b"
-            q = run(["vm-native-compile", f"--coverage={mode}", "--coverage-map", str(t / f"{mode}.json"), str(CASE), str(bc)])
-            if q.returncode != 9 or PENDING not in q.stderr:
-                errors.append(f"vm {mode}: rc={q.returncode} stderr={q.stderr!r}")
-            left = [x.name for x in t.iterdir() if x.name.startswith(f"{mode}.")]
-            if left:
-                errors.append(f"vm {mode}: left {left}")
+        ic = t / "instrument.c"
+        p = run(["native-compile", "--emit=c", "--coverage=instrument", "-o", str(ic), str(CASE)])
+        ijson = t / "instrument.sv0covmap.json"
+        if p.returncode or not ic.is_file() or not ijson.is_file() \
+                or "__sv0cov_start(__sv0cov_modules, 1u);" not in ic.read_text() \
+                or json.loads(ijson.read_bytes())["map_id"] not in ic.read_text():
+            errors.append(f"native instrument --emit=c: rc={p.returncode} C/map missing or unregistered: {p.stderr}")
+        exe = t / "instrument-exe"
+        p = run(["native-compile", "--coverage=instrument", "-o", str(exe), str(CASE)])
+        if p.returncode != 7 or NATIVE_PENDING not in p.stderr:
+            errors.append(f"native instrument: rc={p.returncode} stderr={p.stderr!r}")
+        left = [x.name for x in t.iterdir() if x.name.startswith("instrument-exe")]
+        if left:
+            errors.append(f"native instrument: left {left}")
+        bc = t / "instrument-vm.sv0b"
+        q = run(["vm-native-compile", "--coverage=instrument", "--coverage-map", str(t / "instrument-vm.json"),
+                 str(CASE), str(bc)])
+        if q.returncode != 9 or VM_PENDING not in q.stderr:
+            errors.append(f"vm instrument: rc={q.returncode} stderr={q.stderr!r}")
+        left = [x.name for x in t.iterdir() if x.name.startswith("instrument-vm")]
+        if left:
+            errors.append(f"vm instrument: left {left}")
 
         # 3. usage errors never reach the compiler.
         usage = [
@@ -115,7 +125,7 @@ def main() -> int:
         ]
         for args, needle in usage:
             p = run(args)
-            if p.returncode != 2 or needle not in p.stderr or PENDING in p.stderr:
+            if p.returncode != 2 or needle not in p.stderr or "coverage hits" in p.stderr:
                 errors.append(f"{' '.join(args[:3])}: rc={p.returncode} stderr={p.stderr!r}")
 
         # 4. build metadata records the mode.
@@ -132,7 +142,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         return 1
     print("verify_coverage_modes: OK (off byte-identical on native + VM; map writes the map with "
-          f"unchanged C/.sv0b; instrument refused; {len(usage)} usage errors; build record states the mode)")
+          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, link/VM refused; {len(usage)} usage errors; build record states the mode)")
     return 0
 
 

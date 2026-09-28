@@ -939,7 +939,11 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_hits.py"; then
     ec=1
   fi
-  sv0_info "sv0 test: --coverage modes (CV-106 — off byte-identical on native + VM, map/instrument refused until the planner, usage errors)"
+  sv0_info "sv0 test: coverage generated-C emission (CV-113 — registration prelude = map, one hit per counter, C minus coverage = off, stub-runtime counts = expected counts, f0 golden)"
+  if ! python3 "$ROOT/sv0c/test/coverage/plan/run_emit_c.py"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: --coverage modes (CV-106/CV-113 — off byte-identical on native + VM, map writes the map, instrument --emit=c, link/VM refused, usage errors)"
   if ! python3 "$ROOT/scripts/verify_coverage_modes.py"; then
     ec=1
   fi

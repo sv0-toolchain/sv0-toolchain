@@ -75,10 +75,11 @@ src, n = re.subn(r'let source: string = "[^"]*";', cli_read, src, count=1)
 assert n == 1, "compose main shape changed: `let source`"
 
 cov_read = (
-    # sv0cov CV-106/CV-107: read SV0_COVERAGE_REQUEST ("<mode>\n<map path>";
-    # unset for off) into main's committed _cov_* defaults. megaTU-main.sv0
-    # plans coverage after check and, until map emission lands, refuses map/
-    # instrument (exit 9); plan-dump is an internal test hook.
+    # sv0cov CV-106..CV-113: read SV0_COVERAGE_REQUEST ("<mode>\n<map path>\n
+    # <target>\n<compiler identity>"; unset for off) into main's committed
+    # _cov_* defaults. megaTU-main.sv0 plans coverage after check; map writes
+    # the map, instrument places hits (C emission only; the VM refuses it
+    # until CV-117); plan-dump and hit-dump are internal test hooks.
     'let _cov_req: string = getenv("SV0_COVERAGE_REQUEST");\n'
     '    let _cov_mode: i32 = megatu_cov_mode_of(_cov_req);\n'
     # (plain assignments: the SML bootstrap mistypes string-valued `if`
@@ -107,7 +108,14 @@ assert n == 1, "compose main shape changed: missing the committed _cov_* default
 #    upstream drift in megatu_emit_program's own signature, silently, with no
 #    test-time signal until someone happened to run this script by hand. See
 #    that module's own docstring for the full history.
-vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
+vm_tail = r'''    /* sv0cov: the hits are placed and checked by now, but the VM does not
+       emit COVER_HIT yet (CV-117), so an instrument build is refused here and
+       writes nothing (no map, no bytecode). */
+    if _cov_mode == 2 {
+        write_file("/dev/stderr", "--coverage=instrument is not available on the VM yet: coverage hits are placed and checked, but COVER_HIT emission (sv0cov CV-117) has not landed; build with --coverage=off or --coverage=map, or use the C backend\n");
+        return 9;
+    }
+    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
        DeclPtr/TY_PTR/extern-call handling at all, so a program using raw
        pointers, `unsafe` blocks, or `#[extern_c]` would otherwise either hit
        an unhandled codegen path or silently emit wrong bytecode. Refuse it
