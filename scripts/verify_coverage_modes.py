@@ -10,8 +10,9 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    `--coverage-map`) on both drivers; the emitted C and `.sv0b` are
    byte-identical to an `off` build (map mode adds no hit operations), and
    the map names the artifact's stem as its target and `sv0c+<revision>` as
-   the compiler identity. `instrument` is refused until hit placement
-   (CV-112) lands: nonzero exit, the diagnostic, nothing left behind.
+   the compiler identity. `instrument` places and checks its hits (CV-112)
+   and is then refused until emission (CV-113/CV-117) lands: nonzero exit,
+   the diagnostic, nothing left behind.
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
    path that collides with the artifact are usage errors (exit 2) that never
    invoke the compiler.
@@ -31,7 +32,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SV0 = str(ROOT / "scripts" / "sv0")
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "struct_field.sv0"
 GOLDEN_C = ROOT / "sv0c" / "test" / "behavior" / "golden-c" / "struct_field.c"
-PENDING = "is not available yet: coverage instrumentation"
+PENDING = "is not available yet: coverage hits are placed and checked"
 
 
 def run(args: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
