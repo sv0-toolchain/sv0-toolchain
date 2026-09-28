@@ -142,15 +142,16 @@ def build_native_executable(
     runtime = runtime_override if runtime_override is not None else resolve_runtime_dir()
     verify_manifest(runtime)
     verify_entry_abi_compat(runtime.dir)
-    # sv0cov CV-113: instrumented C calls the native coverage runtime
-    # (__sv0cov_start/__sv0cov_hit), which does not exist until CV-114, so
-    # the link could only fail. Refuse before the compiler runs (no map, no
-    # C); --emit=c still produces the instrumented C and its map.
+    # sv0cov CV-113/CV-114: instrumented C calls the native coverage runtime
+    # (sv0cov/runtime/c), which counts but cannot publish a raw profile until
+    # CV-115, so an instrumented executable would run and never produce
+    # evidence. Refuse before the compiler runs (no map, no C); --emit=c
+    # still produces the instrumented C and its map.
     if coverage is not None and coverage.mode == "instrument":
         raise BuildError(
             DiagnosticPhase.RUNTIME,
             "--coverage=instrument cannot link an executable yet: the native coverage runtime "
-            "(sv0cov CV-114) has not landed; use --emit=c to get the instrumented C and its map, "
+            "cannot publish profiles until sv0cov CV-115 lands; use --emit=c to get the instrumented C and its map, "
             "or build with --coverage=off or --coverage=map",
         )
 

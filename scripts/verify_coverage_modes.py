@@ -12,7 +12,7 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    the map names the artifact's stem as its target and `sv0c+<revision>` as
    the compiler identity. `instrument --emit=c` writes the instrumented C
    (CV-113) and its map; linking an instrumented executable is refused
-   until the native runtime (CV-114) lands, and the VM refuses instrument
+   until the native runtime can publish profiles (CV-115), and the VM refuses instrument
    until COVER_HIT emission (CV-117): nonzero exit, the diagnostic, nothing
    left behind.
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
@@ -34,7 +34,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SV0 = str(ROOT / "scripts" / "sv0")
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "struct_field.sv0"
 GOLDEN_C = ROOT / "sv0c" / "test" / "behavior" / "golden-c" / "struct_field.c"
-NATIVE_PENDING = "cannot link an executable yet: the native coverage runtime (sv0cov CV-114)"
+NATIVE_PENDING = "cannot link an executable yet: the native coverage runtime cannot publish profiles"
 VM_PENDING = "is not available on the VM yet: coverage hits are placed and checked"
 
 

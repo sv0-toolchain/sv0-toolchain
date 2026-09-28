@@ -21,7 +21,7 @@ The compiler plans coverage for a non-off request. ``map`` writes the
 canonical ``.sv0covmap.json`` (CV-110) and builds the uninstrumented
 artifact; ``instrument`` places and checks the hits (CV-112) and emits
 instrumented C with its map (CV-113). Linking an instrumented executable is
-refused until the native coverage runtime (CV-114) lands, and the VM
+refused until the native coverage runtime can publish profiles (CV-115), and the VM
 refuses ``instrument`` until COVER_HIT emission (CV-117), rather than
 building an unmarked, uninstrumented artifact.
 
