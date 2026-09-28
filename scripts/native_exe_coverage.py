@@ -12,12 +12,15 @@ keys. This module holds the rules both drivers apply:
 - ``resolve``: validates the mode and map path and returns the request.
 - ``request_value``/``child_env``: the core compiler receives a non-off mode
   in its own environment variable, ``SV0_COVERAGE_REQUEST``, as
-  ``<mode>\\n<absolute map path>``. ``off`` sets nothing, so an off build
-  invokes the compiler exactly as before (byte-identical output).
+  ``<mode>\\n<absolute map path>\\n<target name>\\n<compiler identity>``
+  (target = the artifact's stem, identity = ``sv0c+<sv0c revision>``).
+  ``off`` sets nothing, so an off build invokes the compiler exactly as
+  before (byte-identical output).
 
-The compiler plans coverage for a non-off request (CV-107) and, until map
-emission (CV-110) and hit placement (CV-112) land, then refuses it with a
-diagnostic instead of building an unmarked, uninstrumented artifact.
+The compiler plans coverage for a non-off request. ``map`` writes the
+canonical ``.sv0covmap.json`` (CV-110) and builds the uninstrumented
+artifact; ``instrument`` is refused with a diagnostic until hit placement
+(CV-112) lands, rather than building an unmarked, uninstrumented artifact.
 
     python3 scripts/native_exe_coverage.py --selftest
     python3 scripts/native_exe_coverage.py resolve --mode M [--map P] --artifact A
@@ -45,6 +48,30 @@ class CoverageUsageError(Exception):
 class CoverageRequest:
     mode: str  # "off" | "map" | "instrument"
     map_path: str | None  # absolute; None exactly when mode is "off"
+    target: str = ""  # the map's target name: the artifact's stem
+    identity: str = ""  # the map's compiler identity: sv0c+<sv0c revision>
+
+
+def target_name(artifact_path: str) -> str:
+    """The artifact's file name without a .sv0b/.c suffix."""
+    name = os.path.basename(artifact_path)
+    for suffix in _ARTIFACT_SUFFIXES:
+        if name.endswith(suffix) and len(name) > len(suffix):
+            return name[: -len(suffix)]
+    return name
+
+
+def compiler_identity(toolchain_root: str | None = None) -> str:
+    """sv0c+<git revision of sv0c>, or sv0c+unknown outside a checkout."""
+    import subprocess
+
+    root = toolchain_root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        rev = subprocess.run(["git", "-C", os.path.join(root, "sv0c"), "rev-parse", "HEAD"],
+                             capture_output=True, text=True, timeout=30).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        rev = ""
+    return f"sv0c+{rev or 'unknown'}"
 
 
 def default_map_path(artifact_path: str) -> str:
@@ -85,14 +112,14 @@ def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
             raise CoverageUsageError(f"--coverage-map {resolved} is also a build output; choose a different path")
     if os.path.isdir(resolved):
         raise CoverageUsageError(f"--coverage-map {resolved} is a directory")
-    return CoverageRequest(mode, resolved)
+    return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity())
 
 
 def request_value(req: CoverageRequest) -> str | None:
     """The SV0_COVERAGE_REQUEST value, or None for off (variable unset)."""
     if req.mode == "off":
         return None
-    return f"{req.mode}\n{req.map_path}"
+    return f"{req.mode}\n{req.map_path}\n{req.target}\n{req.identity}"
 
 
 def child_env(base: dict[str, str], req: CoverageRequest) -> dict[str, str]:
@@ -122,13 +149,16 @@ def _selftest() -> int:
     check("off request", off == CoverageRequest("off", None) and request_value(off) is None)
     m = resolve("map", None, "dist/hello", "/w")
     check("map default path", m.map_path == "/w/dist/hello.sv0covmap.json")
-    check("map request value", request_value(m) == "map\n/w/dist/hello.sv0covmap.json")
+    ident = compiler_identity()
+    check("identity", ident.startswith("sv0c+") and len(ident) > 5)
+    check("map request value", request_value(m) == f"map\n/w/dist/hello.sv0covmap.json\nhello\n{ident}")
+    check("target of sv0b", target_name("/o/prog.sv0b") == "prog" and target_name("/o/a.c") == "a")
     i = resolve("instrument", "cov/m.json", "dist/hello", "/w")
     check("instrument explicit map", i.map_path == "/w/cov/m.json")
 
     env = child_env({"PATH": "/bin", ENV_VAR: "instrument\n/stale"}, off)
     check("off drops inherited value", ENV_VAR not in env and env["PATH"] == "/bin")
-    check("instrument sets value", child_env({}, i)[ENV_VAR] == "instrument\n/w/cov/m.json")
+    check("instrument sets value", child_env({}, i)[ENV_VAR] == f"instrument\n/w/cov/m.json\nhello\n{ident}")
 
     def rejects(name: str, needle: str, *args, **kw) -> None:
         try:
