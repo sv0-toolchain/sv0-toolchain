@@ -11,8 +11,9 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    byte-identical to an `off` build (map mode adds no hit operations), and
    the map names the artifact's stem as its target and `sv0c+<revision>` as
    the compiler identity. `instrument --emit=c` writes the instrumented C
-   (CV-113) and its map; linking an instrumented executable is refused
-   until the native runtime can publish profiles (CV-115), and the VM refuses instrument
+   (CV-113) and its map; `instrument` links the sv0cov runtime, and the
+   executable publishes one raw profile under a valid SV0COV_* transport
+   (CV-115) and runs unchanged without one; the VM refuses instrument
    until COVER_HIT emission (CV-117): nonzero exit, the diagnostic, nothing
    left behind.
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
@@ -34,7 +35,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SV0 = str(ROOT / "scripts" / "sv0")
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "struct_field.sv0"
 GOLDEN_C = ROOT / "sv0c" / "test" / "behavior" / "golden-c" / "struct_field.c"
-NATIVE_PENDING = "cannot link an executable yet: the native coverage runtime cannot publish profiles"
+RUN_ID = "0123456789abcdef0123456789abcdef"
 VM_PENDING = "is not available on the VM yet: coverage hits are placed and checked"
 
 
@@ -98,11 +99,24 @@ def main() -> int:
             errors.append(f"native instrument --emit=c: rc={p.returncode} C/map missing or unregistered: {p.stderr}")
         exe = t / "instrument-exe"
         p = run(["native-compile", "--coverage=instrument", "-o", str(exe), str(CASE)])
-        if p.returncode != 7 or NATIVE_PENDING not in p.stderr:
-            errors.append(f"native instrument: rc={p.returncode} stderr={p.stderr!r}")
-        left = [x.name for x in t.iterdir() if x.name.startswith("instrument-exe")]
-        if left:
-            errors.append(f"native instrument: left {left}")
+        emap = t / "instrument-exe.sv0covmap.json"
+        if p.returncode or not exe.is_file() or not emap.is_file():
+            errors.append(f"native instrument: rc={p.returncode} exe={exe.is_file()} map={emap.is_file()}: {p.stderr}")
+        else:
+            prof = t / "profiles"
+            prof.mkdir()
+            base = {k: v for k, v in os.environ.items() if not k.startswith("SV0COV")}
+            r = subprocess.run([str(exe)], capture_output=True, timeout=60, env=dict(
+                base, SV0COV_PROFILE_DIR=str(prof), SV0COV_RUN_ID=RUN_ID, SV0COV_REQUIRED="1"))
+            got = [x.name for x in prof.iterdir()]
+            if r.returncode != 42 or r.stderr or len(got) != 1 or not got[0].startswith(RUN_ID + "-") \
+                    or not got[0].endswith(".sv0profraw"):
+                errors.append(f"native instrument run: rc={r.returncode} profiles={got} stderr={r.stderr!r}")
+            # Outside sv0cov (no transport, not required): the program runs as
+            # usual, says why nothing was collected, and publishes nothing.
+            r = subprocess.run([str(exe)], capture_output=True, timeout=60, env=base)
+            if r.returncode != 42 or b"error[COV2001]" not in r.stderr or len(list(prof.iterdir())) != 1:
+                errors.append(f"native instrument run without transport: rc={r.returncode} stderr={r.stderr!r}")
         bc = t / "instrument-vm.sv0b"
         q = run(["vm-native-compile", "--coverage=instrument", "--coverage-map", str(t / "instrument-vm.json"),
                  str(CASE), str(bc)])
@@ -142,7 +156,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         return 1
     print("verify_coverage_modes: OK (off byte-identical on native + VM; map writes the map with "
-          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, link/VM refused; {len(usage)} usage errors; build record states the mode)")
+          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, native instrument publishes a profile, VM refused; {len(usage)} usage errors; build record states the mode)")
     return 0
 
 

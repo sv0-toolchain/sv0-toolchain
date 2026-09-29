@@ -20,10 +20,15 @@ keys. This module holds the rules both drivers apply:
 The compiler plans coverage for a non-off request. ``map`` writes the
 canonical ``.sv0covmap.json`` (CV-110) and builds the uninstrumented
 artifact; ``instrument`` places and checks the hits (CV-112) and emits
-instrumented C with its map (CV-113). Linking an instrumented executable is
-refused until the native coverage runtime can publish profiles (CV-115), and the VM
+instrumented C with its map (CV-113); the native driver links it with the
+sv0cov runtime (``sv0cov/runtime/c/sv0cov_rt.c``, CV-114/CV-115), which
+publishes one raw profile per run into ``SV0COV_PROFILE_DIR``. The VM
 refuses ``instrument`` until COVER_HIT emission (CV-117), rather than
 building an unmarked, uninstrumented artifact.
+
+- ``coverage_runtime_source``/``compile_coverage_runtime``: locate the
+  runtime in the toolchain checkout and compile it (C11) to an object in the
+  build's scratch directory.
 
     python3 scripts/native_exe_coverage.py --selftest
     python3 scripts/native_exe_coverage.py resolve --mode M [--map P] --artifact A
@@ -118,6 +123,39 @@ def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
     return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity())
 
 
+RUNTIME_RELPATH = os.path.join("sv0cov", "runtime", "c", "sv0cov_rt.c")
+
+
+def coverage_runtime_source(toolchain_root: str | None = None) -> str:
+    """The sv0cov native runtime source, or BuildError(RUNTIME) if absent."""
+    from native_exe_errors import BuildError, DiagnosticPhase
+
+    root = toolchain_root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    path = os.path.join(root, RUNTIME_RELPATH)
+    if not os.path.isfile(path):
+        raise BuildError(DiagnosticPhase.RUNTIME,
+                         f"--coverage=instrument needs the sv0cov native runtime, but {path} is missing "
+                         "(is the sv0cov submodule checked out?)")
+    return path
+
+
+def compile_coverage_runtime(cc_path: str, source: str, scratch_dir: str, env: dict[str, str]) -> str:
+    """Compile the runtime to <scratch>/sv0cov_rt.o and return that path."""
+    from native_exe_errors import BuildError, DiagnosticPhase
+    from native_exe_subprocess import SubprocessError, run_argv
+
+    obj = os.path.join(scratch_dir, "sv0cov_rt.o")
+    argv = [cc_path, "-std=c11", "-O2", "-c", source, "-o", obj]
+    try:
+        result = run_argv(argv, env=dict(env))
+    except SubprocessError as exc:
+        raise BuildError(DiagnosticPhase.HOST_COMPILE, f"failed to compile the coverage runtime: {exc}") from exc
+    if result.returncode != 0 or not os.path.isfile(obj):
+        raise BuildError(DiagnosticPhase.HOST_COMPILE,
+                         f"compiling the coverage runtime failed: {result.stderr or result.returncode}")
+    return obj
+
+
 def request_value(req: CoverageRequest) -> str | None:
     """The SV0_COVERAGE_REQUEST value, or None for off (variable unset)."""
     if req.mode == "off":
@@ -179,6 +217,14 @@ def _selftest() -> int:
     rejects("map is the kept C", "also a build output", "map", "k.c", "a", "/w", other_outputs=("k.c",))
     rejects("line break", "line break", "map", "a\nb", "a", "/w")
     rejects("directory", "is a directory", "map", "/", "a", "/w")
+
+    check("runtime source", coverage_runtime_source().endswith(RUNTIME_RELPATH))
+    try:
+        coverage_runtime_source("/nonexistent-toolchain")
+        failures.append("missing runtime: accepted")
+    except Exception as exc:  # BuildError(RUNTIME)
+        if "sv0cov native runtime" not in str(exc) and "sv0cov native runtime" not in getattr(exc, "message", ""):
+            failures.append(f"missing runtime: {exc}")
 
     if failures:
         for f in failures:

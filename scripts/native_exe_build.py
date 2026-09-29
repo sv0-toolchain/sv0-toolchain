@@ -33,7 +33,7 @@ from native_exe_argv_builder import build_dev_profile_argv, build_release_profil
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_core_compiler import CoreCompilerClient, CoreCompilerRequest
-from native_exe_coverage import CoverageRequest, child_env
+from native_exe_coverage import CoverageRequest, child_env, compile_coverage_runtime, coverage_runtime_source
 
 COVERAGE_OFF = CoverageRequest("off", None)
 from native_exe_emit import classify_emission
@@ -142,18 +142,12 @@ def build_native_executable(
     runtime = runtime_override if runtime_override is not None else resolve_runtime_dir()
     verify_manifest(runtime)
     verify_entry_abi_compat(runtime.dir)
-    # sv0cov CV-113/CV-114: instrumented C calls the native coverage runtime
-    # (sv0cov/runtime/c), which counts but cannot publish a raw profile until
-    # CV-115, so an instrumented executable would run and never produce
-    # evidence. Refuse before the compiler runs (no map, no C); --emit=c
-    # still produces the instrumented C and its map.
+    # sv0cov CV-115: instrumented C calls the native coverage runtime
+    # (sv0cov/runtime/c/sv0cov_rt.c), linked in below; resolve it before the
+    # compiler runs so a missing runtime writes no map or C.
+    coverage_runtime = None
     if coverage is not None and coverage.mode == "instrument":
-        raise BuildError(
-            DiagnosticPhase.RUNTIME,
-            "--coverage=instrument cannot link an executable yet: the native coverage runtime "
-            "cannot publish profiles until sv0cov CV-115 lands; use --emit=c to get the instrumented C and its map, "
-            "or build with --coverage=off or --coverage=map",
-        )
+        coverage_runtime = coverage_runtime_source()
 
     # 4. Host C compiler selection + capability probe (NEX-021/022).
     cc_path, _cc_selection = select_cc(explicit_cc, os.environ)
@@ -192,8 +186,13 @@ def build_native_executable(
             f.write(emission.c_source)
         tmp_output_path = os.path.join(scratch.path, "program.tmp-exe")
 
-        argv = build_argv(cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=extra_cc_args)
         env = sanitized_child_env(os.environ)
+        link_inputs = list(extra_cc_args or [])
+        if coverage_runtime is not None:
+            # The runtime is C11 (stdatomic); the program C stays gnu99, so it
+            # is compiled on its own and linked as an object.
+            link_inputs.append(compile_coverage_runtime(cc_path, coverage_runtime, scratch.path, env))
+        argv = build_argv(cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=link_inputs or None)
         run_host_compile(argv, env, tmp_output_path)
 
         # 8. Atomic publication (NEX-007).
