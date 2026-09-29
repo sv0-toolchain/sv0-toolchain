@@ -14,7 +14,8 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    (CV-113) and its map; `instrument` links the sv0cov runtime, and the
    executable publishes one raw profile under a valid SV0COV_* transport
    (CV-115) and runs unchanged without one; the VM driver writes bytecode
-   with COVER_HIT instructions and the map (CV-117).
+   with COVER_HIT instructions, the map (CV-117), and the <stem>.sv0covbind.json
+   companion bound to the bytecode's length and SHA-256 (CV-118).
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
    path that collides with the artifact are usage errors (exit 2) that never
    invoke the compiler.
@@ -23,6 +24,7 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -121,6 +123,21 @@ def main() -> int:
         if q.returncode or not bc.is_file() or bytes([119]) not in bc.read_bytes() or not vmap.is_file() \
                 or len(outs) == 3 and bc.read_bytes() == outs["none"][1]:
             errors.append(f"vm instrument: rc={q.returncode} no COVER_HIT bytecode or map: {q.stderr}")
+        else:
+            # CV-118: the companion binding sits beside the .sv0b and binds
+            # its exact bytes to the map.
+            vbind = t / "instrument-vm.sv0covbind.json"
+            try:
+                b = json.loads(vbind.read_bytes())
+                code = bc.read_bytes()
+                ok = (b["bytecode_length"] == len(code)
+                      and b["bytecode_sha256"] == hashlib.sha256(code).hexdigest()
+                      and b["map_id"] == json.loads(vmap.read_bytes())["map_id"]
+                      and b["profile"] == "sv0vm-v1-coverage")
+            except (OSError, ValueError, KeyError):
+                ok = False
+            if not ok:
+                errors.append("vm instrument: the .sv0covbind.json companion is missing or does not bind the bytecode")
 
         # 3. usage errors never reach the compiler.
         usage = [
@@ -152,7 +169,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         return 1
     print("verify_coverage_modes: OK (off byte-identical on native + VM; map writes the map with "
-          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, native instrument publishes a profile, VM instrument emits COVER_HIT; {len(usage)} usage errors; build record states the mode)")
+          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, native instrument publishes a profile, VM instrument emits COVER_HIT + its binding; {len(usage)} usage errors; build record states the mode)")
     return 0
 
 

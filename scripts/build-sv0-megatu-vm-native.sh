@@ -109,7 +109,11 @@ assert n == 1, "compose main shape changed: missing the committed _cov_* default
 #    upstream drift in megatu_emit_program's own signature, silently, with no
 #    test-time signal until someone happened to run this script by hand. See
 #    that module's own docstring for the full history.
-vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
+vm_tail = r'''    /* sv0cov CV-118: refuse an instrument build that cannot write its
+       companion binding before any bytecode or map is written. */
+    let vcov_rc: i32 = megatu_cov_vm_check(_cov_mode);
+    if vcov_rc >= 0 { return vcov_rc; }
+    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
        DeclPtr/TY_PTR/extern-call handling at all, so a program using raw
        pointers, `unsafe` blocks, or `#[extern_c]` would otherwise either hit
        an unhandled codegen path or silently emit wrong bytecode. Refuse it
@@ -192,9 +196,10 @@ vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.s
     } else {
         write_bytes("/dev/stdout", vout);
     }
-    /* sv0cov CV-117: an instrument build writes its map once the bytecode
-       (with its COVER_HIT instructions) exists. */
-    megatu_cov_write_map(_cov_mode, cov);'''
+    /* sv0cov CV-117/CV-118: an instrument build writes its map and its
+       companion binding once the bytecode (with its COVER_HIT
+       instructions) exists. */
+    megatu_cov_write_vm(_cov_mode, cov, vout, vtotal);'''
 src = patch_phase6(src, vm_tail)
 pathlib.Path(sys.argv[2]).write_text(src)
 print("build-sv0-megatu-vm-native: derived VM compose main", file=sys.stderr)

@@ -13,7 +13,9 @@ keys. This module holds the rules both drivers apply:
 - ``request_value``/``child_env``: the core compiler receives a non-off mode
   in its own environment variable, ``SV0_COVERAGE_REQUEST``, as
   ``<mode>\\n<absolute map path>\\n<target name>\\n<compiler identity>``
-  (target = the artifact's stem, identity = ``sv0c+<sv0c revision>``).
+  (target = the artifact's stem, identity = ``sv0c+<sv0c revision>``), plus
+  ``\\n<binding path>`` for a VM ``instrument`` build: the companion
+  ``<stem>.sv0covbind.json`` beside the ``.sv0b`` (CV-118).
   ``off`` sets nothing, so an off build invokes the compiler exactly as
   before (byte-identical output).
 
@@ -23,8 +25,9 @@ artifact; ``instrument`` places and checks the hits (CV-112) and emits
 instrumented C with its map (CV-113); the native driver links it with the
 sv0cov runtime (``sv0cov/runtime/c/sv0cov_rt.c``, CV-114/CV-115), which
 publishes one raw profile per run into ``SV0COV_PROFILE_DIR``. On the VM,
-``instrument`` writes bytecode with COVER_HIT instructions (CV-117); a VM
-runs it only with a coverage binding (CV-118..CV-120). Neither backend ever
+``instrument`` writes bytecode with COVER_HIT instructions (CV-117) and its
+companion ``<stem>.sv0covbind.json`` (CV-118); a VM runs it only with that
+binding (sv0vm support: CV-119, CV-120). Neither backend ever
 builds an unmarked, uninstrumented artifact for ``instrument``.
 
 - ``coverage_runtime_source``/``compile_coverage_runtime``: locate the
@@ -46,6 +49,7 @@ from dataclasses import dataclass
 ENV_VAR = "SV0_COVERAGE_REQUEST"
 MODES = ("off", "map", "instrument")
 MAP_SUFFIX = ".sv0covmap.json"
+BINDING_SUFFIX = ".sv0covbind.json"
 _ARTIFACT_SUFFIXES = (".sv0b", ".c")
 
 
@@ -59,6 +63,7 @@ class CoverageRequest:
     map_path: str | None  # absolute; None exactly when mode is "off"
     target: str = ""  # the map's target name: the artifact's stem
     identity: str = ""  # the map's compiler identity: sv0c+<sv0c revision>
+    binding_path: str | None = None  # VM instrument only: the .sv0covbind.json companion
 
 
 def target_name(artifact_path: str) -> str:
@@ -121,7 +126,18 @@ def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
             raise CoverageUsageError(f"--coverage-map {resolved} is also a build output; choose a different path")
     if os.path.isdir(resolved):
         raise CoverageUsageError(f"--coverage-map {resolved} is a directory")
-    return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity())
+    binding = None
+    if mode == "instrument" and artifact.endswith(".sv0b") and len(artifact) > len(".sv0b"):
+        # sv0cov CV-118 (sv0doc bytecode/coverage.md 4): VM instrument bytecode
+        # needs its companion binding, <stem>.sv0covbind.json beside it.
+        binding = artifact[: -len(".sv0b")] + BINDING_SUFFIX
+        for other in (artifact, resolved, *(absolute(o) for o in other_outputs)):
+            if os.path.realpath(binding) == os.path.realpath(other):
+                raise CoverageUsageError(f"the coverage binding {binding} would overwrite another build output; "
+                                         "choose a different --coverage-map or output path")
+        if os.path.isdir(binding):
+            raise CoverageUsageError(f"the coverage binding path {binding} is a directory")
+    return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity(), binding)
 
 
 RUNTIME_RELPATH = os.path.join("sv0cov", "runtime", "c", "sv0cov_rt.c")
@@ -161,7 +177,10 @@ def request_value(req: CoverageRequest) -> str | None:
     """The SV0_COVERAGE_REQUEST value, or None for off (variable unset)."""
     if req.mode == "off":
         return None
-    return f"{req.mode}\n{req.map_path}\n{req.target}\n{req.identity}"
+    value = f"{req.mode}\n{req.map_path}\n{req.target}\n{req.identity}"
+    if req.binding_path is not None:
+        value += f"\n{req.binding_path}"
+    return value
 
 
 def child_env(base: dict[str, str], req: CoverageRequest) -> dict[str, str]:
@@ -218,6 +237,13 @@ def _selftest() -> int:
     rejects("map is the kept C", "also a build output", "map", "k.c", "a", "/w", other_outputs=("k.c",))
     rejects("line break", "line break", "map", "a\nb", "a", "/w")
     rejects("directory", "is a directory", "map", "/", "a", "/w")
+
+    vi = resolve("instrument", None, "out/prog.sv0b", "/w")
+    check("vm binding path", vi.binding_path == "/w/out/prog.sv0covbind.json"
+          and request_value(vi) == f"instrument\n/w/out/prog.sv0covmap.json\nprog\n{ident}\n/w/out/prog.sv0covbind.json")
+    check("no binding for map mode", resolve("map", None, "out/prog.sv0b", "/w").binding_path is None)
+    check("no binding for native", resolve("instrument", None, "dist/hello", "/w").binding_path is None)
+    rejects("map is the binding", "would overwrite", "instrument", "out/prog.sv0covbind.json", "out/prog.sv0b", "/w")
 
     check("runtime source", coverage_runtime_source().endswith(RUNTIME_RELPATH))
     try:
