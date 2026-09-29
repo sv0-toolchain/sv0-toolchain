@@ -78,8 +78,9 @@ cov_read = (
     # sv0cov CV-106..CV-113: read SV0_COVERAGE_REQUEST ("<mode>\n<map path>\n
     # <target>\n<compiler identity>"; unset for off) into main's committed
     # _cov_* defaults. megaTU-main.sv0 plans coverage after check; map writes
-    # the map, instrument places hits (C emission only; the VM refuses it
-    # until CV-117); plan-dump and hit-dump are internal test hooks.
+    # the map, instrument places hits (COVER_HIT on the VM, CV-117) and
+    # writes the map after the bytecode; plan-dump and hit-dump are internal
+    # test hooks.
     'let _cov_req: string = getenv("SV0_COVERAGE_REQUEST");\n'
     '    let _cov_mode: i32 = megatu_cov_mode_of(_cov_req);\n'
     # (plain assignments: the SML bootstrap mistypes string-valued `if`
@@ -108,14 +109,7 @@ assert n == 1, "compose main shape changed: missing the committed _cov_* default
 #    upstream drift in megatu_emit_program's own signature, silently, with no
 #    test-time signal until someone happened to run this script by hand. See
 #    that module's own docstring for the full history.
-vm_tail = r'''    /* sv0cov: the hits are placed and checked by now, but the VM does not
-       emit COVER_HIT yet (CV-117), so an instrument build is refused here and
-       writes nothing (no map, no bytecode). */
-    if _cov_mode == 2 {
-        write_file("/dev/stderr", "--coverage=instrument is not available on the VM yet: coverage hits are placed and checked, but COVER_HIT emission (sv0cov CV-117) has not landed; build with --coverage=off or --coverage=map, or use the C backend\n");
-        return 9;
-    }
-    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
+vm_tail = r'''    /* FFI-014 (Epic E): stable VM-backend rejection. vm_codegen.sv0 has no
        DeclPtr/TY_PTR/extern-call handling at all, so a program using raw
        pointers, `unsafe` blocks, or `#[extern_c]` would otherwise either hit
        an unhandled codegen path or silently emit wrong bytecode. Refuse it
@@ -191,7 +185,16 @@ vm_tail = r'''    /* sv0cov: the hits are placed and checked by now, but the VM 
     let vstrlen: i32 = encode_strings(vpool, source, starts, ends, vstrbuf);
     let vout: Vec<i32> = vec_new();
     let vtotal: i32 = encode_file(vstrbuf, vstrlen, vft, vout);
-    write_bytes("/dev/stdout", vout);'''
+    /* SV0_VM_DISASM (any value): print the disassembly of the bytecode
+       (bytecode.sv0 disasm_file) instead of the bytes. */
+    if string_len(getenv("SV0_VM_DISASM")) > 0 {
+        write_file("/dev/stdout", disasm_file(vout, vtotal));
+    } else {
+        write_bytes("/dev/stdout", vout);
+    }
+    /* sv0cov CV-117: an instrument build writes its map once the bytecode
+       (with its COVER_HIT instructions) exists. */
+    megatu_cov_write_map(_cov_mode, cov);'''
 src = patch_phase6(src, vm_tail)
 pathlib.Path(sys.argv[2]).write_text(src)
 print("build-sv0-megatu-vm-native: derived VM compose main", file=sys.stderr)

@@ -22,9 +22,10 @@ canonical ``.sv0covmap.json`` (CV-110) and builds the uninstrumented
 artifact; ``instrument`` places and checks the hits (CV-112) and emits
 instrumented C with its map (CV-113); the native driver links it with the
 sv0cov runtime (``sv0cov/runtime/c/sv0cov_rt.c``, CV-114/CV-115), which
-publishes one raw profile per run into ``SV0COV_PROFILE_DIR``. The VM
-refuses ``instrument`` until COVER_HIT emission (CV-117), rather than
-building an unmarked, uninstrumented artifact.
+publishes one raw profile per run into ``SV0COV_PROFILE_DIR``. On the VM,
+``instrument`` writes bytecode with COVER_HIT instructions (CV-117); a VM
+runs it only with a coverage binding (CV-118..CV-120). Neither backend ever
+builds an unmarked, uninstrumented artifact for ``instrument``.
 
 - ``coverage_runtime_source``/``compile_coverage_runtime``: locate the
   runtime in the toolchain checkout and compile it (C11) to an object in the

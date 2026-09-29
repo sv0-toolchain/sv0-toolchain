@@ -13,9 +13,8 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    the compiler identity. `instrument --emit=c` writes the instrumented C
    (CV-113) and its map; `instrument` links the sv0cov runtime, and the
    executable publishes one raw profile under a valid SV0COV_* transport
-   (CV-115) and runs unchanged without one; the VM refuses instrument
-   until COVER_HIT emission (CV-117): nonzero exit, the diagnostic, nothing
-   left behind.
+   (CV-115) and runs unchanged without one; the VM driver writes bytecode
+   with COVER_HIT instructions and the map (CV-117).
 3. Unknown/case-variant modes, `--coverage-map` without a mode, and a map
    path that collides with the artifact are usage errors (exit 2) that never
    invoke the compiler.
@@ -36,7 +35,6 @@ SV0 = str(ROOT / "scripts" / "sv0")
 CASE = ROOT / "sv0c" / "test" / "behavior" / "cases" / "struct_field.sv0"
 GOLDEN_C = ROOT / "sv0c" / "test" / "behavior" / "golden-c" / "struct_field.c"
 RUN_ID = "0123456789abcdef0123456789abcdef"
-VM_PENDING = "is not available on the VM yet: coverage hits are placed and checked"
 
 
 def run(args: list[str], env: dict[str, str] | None = None) -> subprocess.CompletedProcess:
@@ -118,13 +116,11 @@ def main() -> int:
             if r.returncode != 42 or b"error[COV2001]" not in r.stderr or len(list(prof.iterdir())) != 1:
                 errors.append(f"native instrument run without transport: rc={r.returncode} stderr={r.stderr!r}")
         bc = t / "instrument-vm.sv0b"
-        q = run(["vm-native-compile", "--coverage=instrument", "--coverage-map", str(t / "instrument-vm.json"),
-                 str(CASE), str(bc)])
-        if q.returncode != 9 or VM_PENDING not in q.stderr:
-            errors.append(f"vm instrument: rc={q.returncode} stderr={q.stderr!r}")
-        left = [x.name for x in t.iterdir() if x.name.startswith("instrument-vm")]
-        if left:
-            errors.append(f"vm instrument: left {left}")
+        vmap = t / "instrument-vm.json"
+        q = run(["vm-native-compile", "--coverage=instrument", "--coverage-map", str(vmap), str(CASE), str(bc)])
+        if q.returncode or not bc.is_file() or bytes([119]) not in bc.read_bytes() or not vmap.is_file() \
+                or len(outs) == 3 and bc.read_bytes() == outs["none"][1]:
+            errors.append(f"vm instrument: rc={q.returncode} no COVER_HIT bytecode or map: {q.stderr}")
 
         # 3. usage errors never reach the compiler.
         usage = [
@@ -156,7 +152,7 @@ def main() -> int:
             print(f"  - {e}", file=sys.stderr)
         return 1
     print("verify_coverage_modes: OK (off byte-identical on native + VM; map writes the map with "
-          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, native instrument publishes a profile, VM refused; {len(usage)} usage errors; build record states the mode)")
+          f"unchanged C/.sv0b; instrument --emit=c registers + writes the map, native instrument publishes a profile, VM instrument emits COVER_HIT; {len(usage)} usage errors; build record states the mode)")
     return 0
 
 
