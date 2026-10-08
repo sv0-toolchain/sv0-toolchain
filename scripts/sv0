@@ -947,6 +947,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_emit_vm.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage VM raw profiles (CV-121 — one valid vm-v1 profile per run, counts = native runtime = expected; contract failure publishes, crash and transport failures do not)"
+  if ! python3 "$ROOT/sv0c/test/coverage/plan/run_vm_profile.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: --coverage modes (CV-106..CV-117 — off byte-identical on native + VM, map writes the map, instrument on C and VM, usage errors)"
   if ! python3 "$ROOT/scripts/verify_coverage_modes.py"; then
     ec=1
