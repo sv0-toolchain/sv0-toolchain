@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-09-27T12:00:00-06:00"
+updated: "2026-10-08T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
 state: draft
@@ -109,11 +109,72 @@ build entry point (D-5) each needed an owner decision. **All three were resolved
 
 | Stage | Exit boundary | Checklist band |
 |---|---|---|
-| **F0** feasibility | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
+| **F0** feasibility (**closed 2026-10-08**, see the F0 gate review) | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
 | **R0** developer preview | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
 | **R0.1** policy preview | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
 | **R1** stable contract (`1.0.0`) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
 | **Post-R1** | sv0 rewrite against the Python oracle; continuous counters. | `CV-9xx` (coarse; re-slice when reached) |
+
+## F0 gate review (CV-172, SPEC §31.1)
+
+**F0 is closed (2026-10-08): all 34 gates pass.** Reviewed against meta `13a41f7` with submodules sv0c `b63d2ab`,
+sv0vm `cf5b24e`, sv0doc `d2187dd`, sv0cov `f341a38`, sv0-strings `61a3b77`,
+sv0-mathlib `6710b9d`, sv0-mcp `6b1a735`. Every cited suite was green at
+that commit, locally and in GitHub CI (`./scripts/sv0 test`, `sv0 test-guards`,
+VM parity tier-2, sv0cov's 8-cell CI, sv0vm `make test`).
+
+| Gate | Status | Evidence |
+|---|---|---|
+| G1 source/remote audit revisions | pass | CV-003 audit (`docs/audit/2026-09-24.md`); this review records the closing revisions above. |
+| G2 authoritative semantic fixtures reviewed | pass | CV-027/CV-028: 7 fixtures with hand-written maps and counts, conventions in `docs/planning-conventions.md`; the 2026-09-27 decisions settled the disputed points. **Reviewed by the owner on 2026-10-08.** Every backend reproduces them exactly. |
+| G3 byte-level identity + raw protocol tests frozen | pass | CV-008 point-ID vectors; CV-024 raw-profile goldens; CV-025 bounded reader + negative corpus; CV-110 maps byte-identical to the expected maps. |
+| G4 generated-C / VM-v1 parity | pass | CV-171: `sv0cov.parity` passes for all 8 programs on real outputs; f0 (CV-027) report `build/coverage-parity/f0.json` (status pass, 9 points). v2 is R1 (§15.6). |
+| G5 benchmark harness repeatable | pass | CV-035 (`bench/harness.py`, protocol hash-pinned). |
+| G6 opcode 119 + v1 encoding/sizing/jumps/decoder/verifier/disassembler goldens | pass, with DV-8 | CV-101/102 registry; CV-117 encoder, size table, jump boundaries, sv0c disassembly golden; CV-119 sv0vm decode, load checks, disassembly equal to sv0c's; CV-122 pre-coverage rejection pin. |
+| G7 `COVR` / capabilities / `sv0cov.vm-binding` reserved; v1 JSON exact; v2 bytes frozen | pass | CV-102 registry guard; CV-026 binding + COVR codecs and shared projection; CV-118 emitted binding = `encode_v1`; CV-120 strict SML reader + 22 non-canonical variants. |
+| G8 native + VM-v1 writers byte-identical to goldens; secure random IDs | pass | CV-116 (C writer = 5 goldens + 40 random cases); CV-121 (SML writer = 5 goldens); CV-114 `getentropy`, CV-121 `/dev/urandom`, no fallback; CV-025 negative corpus. |
+| G9 portable + accelerated CRC32C | pass, with DV-7 | CV-023 vectors; the Python, C (CV-115) and SML (CV-121) implementations all match them. No accelerated implementation exists yet. |
+| G10 `standard` limits | pass | CV-025 (boundaries, checked arithmetic, pre-allocation rejection, self-escalation); producers refuse maps over the tier (C CV-115, VM CV-121: `COV6001`). |
+| G11 flags / context / overflow / backend / `SV0DONE!` agree; malformed fails closed | pass | CV-024/025; C and SML writers byte-identical to the goldens (CV-116, CV-121); CV-170 reader rejects incomplete and corrupt profiles. |
+| G12 managed-CI descriptors + measurement protocol frozen | pass | CV-035 (`bench/protocol.json`), as amended by D-3 (DEC-087). |
+| G13 offline corpus | pass | CV-036 (38 fixtures, generators, digests). |
+| G14 licensing machine-verifiable | pass | CV-001 (REUSE, SPDX, `tests/test_licensing.py`). |
+| G15 compatibility 1.0 | pass | CV-020. |
+| G16 doctor 1.0 + 18-probe registry | pass | CV-022. |
+| G17 root `coverage` namespace contract | pass | CV-032. |
+| G18 fixed launcher path | pass | CV-031. |
+| G19 Python resolution | pass | CV-031. |
+| G20 stdlib-only production boundary | pass | CV-004, CV-033 (import audit, run in CI). |
+| G21 schema generation | pass | CV-011. |
+| G22 Draft 2020-12 profile | pass | CV-010. |
+| G23 `Draft202012Validator` oracle | pass | CV-012. |
+| G24 vendored JSON-Schema-Test-Suite | pass | CV-012. |
+| G25 root `uv.lock` | pass | CV-005, CV-006. |
+| G26 PyPI index authority | pass | CV-005. |
+| G27 hatchling build policy | pass | CV-004 (`tools/check_packaging.py`). |
+| G28..G34 versioning, provenance, checksums/SBOM, approval, immutable release, retention | pass, with D-3 | CV-034 (`sv0cov.formats.release`, `docs/release-policy.md`). |
+
+**COV-VM-027 (no v2 advertised): confirmed.** `sv0cov version --json` lists no backends and no bytecode profiles. Nothing in sv0c, sv0vm or the drivers emits or claims `sv0vm-v2-typed`.
+
+**Decisions D-2..D-4 as delivered.**
+- D-2 (SHA-256 in sv0 source): delivered in CV-104 and used by the map, point IDs and the VM binding. sv0vm has its own SML SHA-256 (CV-120).
+- D-3 (single maintainer + managed CI): the SPEC was amended (DEC-087); G12 and G32 rest on it.
+- D-4 (fork guards only): F0 has the flush-time guard, under which a forked process image never publishes inherited counters (`COV2120`, CV-115). The `pthread_atfork` disarm and unresolved-parent flag remain CV-405 (R1).
+
+**Implementation deviations found during F0.** The owner reviewed and accepted all ten on 2026-10-08. None blocks F0; DV-5 and DV-6 are scheduled in R1 and R0.
+
+| ID | Deviation | Where recorded |
+|---|---|---|
+| DV-1 | A required-mode runtime failure exits with status 1, the sv0 runtime's panic/contract status. The SPEC only says "runtime error contract". | `sv0cov/docs/generated-c-protocol.md`; sv0vm `Coverage` |
+| DV-2 | sv0vm checks the binding against the raw file bytes before decoding them. sv0doc §3 lists decoding first; valid input gives the same outcome either way. | sv0doc `bytecode/coverage.md` §3 |
+| DV-3 | A binding edited to a larger counter count passes the VM's checks. The binding is unauthenticated; the raw-profile reader catches the mismatch against the map. | sv0doc `bytecode/coverage.md` §3 |
+| DV-4 | An instrumented program run outside sv0cov prints one `COV2001` note on stderr. This is the SPEC's missing-transport diagnostic. | generated-c-protocol.md; `verify_coverage_modes.py` |
+| DV-5 | sv0c emits one generated-C module per program (the whole mega-TU). Multi-module registration (COV-C-004) is R1. | generated-c-protocol.md |
+| DV-6 | The F0 reader adds all contexts into one aggregate; per-context counts are R0. | `sv0cov/src/sv0cov/resolve.py` |
+| DV-7 | G9: only portable CRC32C implementations exist, so there is no accelerated one to test. | this table |
+| DV-8 | G6: sv0vm has no general bytecode verifier. `COVER_HIT` operands are checked at load, and stack neutrality is shown by execution tests. | sv0vm `test/coverage_test.sml` |
+| DV-9 | The profile filename is `<run_id>-<profile_id>.sv0profraw`. The SPEC fixes only that both IDs appear. | generated-c-protocol.md; sv0doc |
+| DV-10 | VM collection needs an explicitly named binding (`SV0B_COVERAGE_BINDING`, `sv0 vm-run --coverage-binding`), not an `SV0COV_*` name, because the runtime rejects unknown transport names. | sv0doc `bytecode/coverage.md` |
 
 ## tracks
 
