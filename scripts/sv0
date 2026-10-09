@@ -935,6 +935,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/regions/run_regions.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
+  if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage map determinism + map-mode no-op (CV-111 — repeated builds byte-identical; map-mode C/.sv0b identical to off)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_determinism.py"; then
     ec=1
