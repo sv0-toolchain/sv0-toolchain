@@ -66,7 +66,7 @@ cli_read = (
     '        string_eq(string_substr(_drv_c, 0, 10), "--project ")\n'
     '    } else { false };\n'
     '    let source: string = if _is_proj {\n'
-    '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
+    '        megatu_project_concat(string_substr(_drv_c, 10, _drv_cn - 10))\n'
     '    } else {\n'
     '        read_file(_drv_c)\n'
     '    };'

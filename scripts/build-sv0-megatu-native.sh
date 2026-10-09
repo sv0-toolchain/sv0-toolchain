@@ -89,7 +89,7 @@ cli_read = (
     '    } else { if _is_disabled {\n'
     '        expand_from_file(string_substr(_drv_c, 11, _drv_cn - 11))\n'
     '    } else { if _is_proj {\n'
-    '        link_project_concat_sources_from_dir(string_substr(_drv_c, 10, _drv_cn - 10))\n'
+    '        megatu_project_concat(string_substr(_drv_c, 10, _drv_cn - 10))\n'
     '    } else {\n'
     '        expand_from_file(_drv_c)\n'
     '    } } };'
