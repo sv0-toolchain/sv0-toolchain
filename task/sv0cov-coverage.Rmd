@@ -169,7 +169,7 @@ VM parity tier-2, sv0cov's 8-cell CI, sv0vm `make test`).
 | DV-2 | sv0vm checks the binding against the raw file bytes before decoding them. sv0doc §3 lists decoding first; valid input gives the same outcome either way. | sv0doc `bytecode/coverage.md` §3 |
 | DV-3 | A binding edited to a larger counter count passes the VM's checks. The binding is unauthenticated; the raw-profile reader catches the mismatch against the map. | sv0doc `bytecode/coverage.md` §3 |
 | DV-4 | An instrumented program run outside sv0cov prints one `COV2001` note on stderr. This is the SPEC's missing-transport diagnostic. | generated-c-protocol.md; `verify_coverage_modes.py` |
-| DV-5 | sv0c emits one generated-C module per program (the whole mega-TU). Multi-module registration (COV-C-004) is R1. | generated-c-protocol.md |
+| DV-5 | sv0c emits one generated-C translation unit per program (the whole mega-TU). Since CV-206 it carries one module descriptor per map fragment and registers them all; separately compiled C files with their own descriptors (COV-C-004) are R1. | generated-c-protocol.md |
 | DV-6 | The F0 reader adds all contexts into one aggregate; per-context counts are R0. | `sv0cov/src/sv0cov/resolve.py` |
 | DV-7 | G9: only portable CRC32C implementations exist, so there is no accelerated one to test. | this table |
 | DV-8 | G6: sv0vm has no general bytecode verifier. `COVER_HIT` operands are checked at load, and stack neutrality is shown by execution tests. | sv0vm `test/coverage_test.sml` |
