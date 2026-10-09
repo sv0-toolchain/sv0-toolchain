@@ -935,6 +935,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/regions/run_regions.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage loops (CV-203 — loop outcomes vs hand-derived counts; unreachable loop/while-true exits; probe region counts = entry counts; native + VM)"
+  if ! python3 "$ROOT/sv0c/test/coverage/loops/run_loops.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
   if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
     ec=1
