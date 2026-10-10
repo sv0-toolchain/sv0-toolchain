@@ -955,6 +955,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/tiers/run_tiers.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage lifecycle (CV-212 — native = sv0vm on exit status, contract failures, runtime panics, required mode, publication failure, hard termination; capability rejection)"
+  if ! python3 "$ROOT/sv0c/test/coverage/lifecycle/run_lifecycle.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
   if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
     ec=1
