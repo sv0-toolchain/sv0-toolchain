@@ -943,6 +943,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage zero-counter programs (CV-207 — declarations-only map + binding; stand-in fully excluded program publishes one empty profile on C + VM; count/hit mismatches rejected)"
+  if ! python3 "$ROOT/sv0c/test/coverage/zero/run_zero.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
   if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
     ec=1
