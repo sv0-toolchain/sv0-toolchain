@@ -96,8 +96,10 @@ printf 'fn main() -> i32 { return 7; }\n' > "$dm/main.sv0"
 printf 'fn main() -> i32 { return 9; }\n' > "$dm/main_two.sv0"
 printf 'fn main() -> i32 { return 0; }\n' > "$dm/test/unit.sv0"
 set +e; "$WRAP" --project "$dm" >"$TMP/ssu09_dup.c" 2>"$TMP/ssu09_dup.err"; ec=$?; set -e
-if [ "$ec" -eq 0 ] || ! grep -q 'E0302' "$TMP/ssu09_dup.err"; then
-  echo "pc3b6: FAIL — SS-U09 dup-entry: exit $ec / stderr missing E0302"; cat "$TMP/ssu09_dup.err"; fail=1
+# Exactly one diagnostic: a second write to /dev/stderr truncates the first
+# when stderr is a file on Linux, so no other message may follow E0302.
+if [ "$ec" -eq 0 ] || ! grep -q 'E0302' "$TMP/ssu09_dup.err" || grep -q 'E0100' "$TMP/ssu09_dup.err"; then
+  echo "pc3b6: FAIL — SS-U09 dup-entry: exit $ec / stderr must hold E0302 and nothing after it"; cat "$TMP/ssu09_dup.err"; fail=1
 else
   echo "pc3b6: OK   — SS-U09 dup-entry: two top-level fn main -> nonzero + E0302"
 fi
