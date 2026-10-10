@@ -144,6 +144,9 @@ class NativeBuildRequest:
     config_path: str | None
     coverage_mode: str = "off"  # sv0cov CV-106: off | map | instrument
     coverage_map: str | None = None  # resolved --coverage-map; None = default beside the artifact
+    coverage_tier: str | None = None  # sv0cov CV-211: --coverage-tier, validated by native_exe_coverage
+    coverage_max_counters: str | None = None
+    coverage_max_bytes: str | None = None
 
 
 _PROFILE_VALUES = {p.value for p in Profile}
@@ -263,6 +266,9 @@ def normalize_request(parsed: ParsedArgs, invocation_cwd: str | None = None) -> 
         config_path=config_path,
         coverage_mode=parsed.coverage_mode,
         coverage_map=_resolve(parsed.coverage_map_path, cwd) if parsed.coverage_map_path is not None else None,
+        coverage_tier=parsed.coverage_tier,
+        coverage_max_counters=parsed.coverage_max_counters,
+        coverage_max_bytes=parsed.coverage_max_bytes,
     )
 
 

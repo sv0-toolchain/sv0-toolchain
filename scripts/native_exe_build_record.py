@@ -69,6 +69,7 @@ def build_record(
     reproducibility: dict | None = None,
     coverage_mode: str = "off",
     coverage_map_path: str | None = None,
+    coverage_tier: dict | None = None,
 ) -> dict:
     """Build one Appendix-C-shaped record dict from a real published artifact.
 
@@ -81,7 +82,8 @@ def build_record(
 
     `coverage` (sv0cov SPEC 13.3, CV-106) always states the mode, `off`
     included, plus the map path for `map`/`instrument` and (CV-208) the
-    versions of the coverage formats that build wrote (`null` for `off`).
+    versions of the coverage formats that build wrote (`null` for `off`),
+    and (CV-211) the raw-profile tier with its numeric ceilings.
     """
     artifact_bytes_sha256 = _sha256_file(artifact_path)
     artifact_size = os.path.getsize(artifact_path)
@@ -132,6 +134,8 @@ def build_record(
             "mode": coverage_mode,
             "map_path": coverage_map_path,
             "formats": dict(FORMAT_VERSIONS) if coverage_mode != "off" else None,
+            # CV-211 / COV-FMT-024: the resolved raw-profile tier and its ceilings.
+            "tier": coverage_tier,
         },
     }
 

@@ -163,6 +163,8 @@ def run(argv: list[str], invocation_cwd: str) -> int:
         coverage = resolve_coverage(
             request.coverage_mode, request.coverage_map, coverage_artifact,
             request.invocation_cwd, other_outputs=coverage_others,
+            tier=request.coverage_tier, max_counters=request.coverage_max_counters,
+            max_bytes=request.coverage_max_bytes,
         )
     except CoverageUsageError as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -258,6 +260,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
             config={"path": request.config_path} if request.config_path is not None else None,
             coverage_mode=coverage.mode,
             coverage_map_path=coverage.map_path,
+            coverage_tier=coverage.tier.record() if coverage.mode != "off" else None,
         )
         write_build_record_atomically(record, build_record_path)
 

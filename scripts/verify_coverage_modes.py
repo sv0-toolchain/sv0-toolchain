@@ -20,8 +20,8 @@ Through the real `sv0 native-compile` and `sv0 vm-native-compile` drivers:
    path that collides with the artifact are usage errors (exit 2) that never
    invoke the compiler.
 4. The build record states the mode (`{"mode": "off", "map_path": null,
-   "formats": null}`), and for `map`/`instrument` the coverage format
-   versions the build wrote.
+   "formats": null, "tier": null}`), and for `map`/`instrument` the coverage
+   format versions the build wrote and its raw-profile tier (CV-211).
 5. CV-208 (COV-INS-004): instrumented and uninstrumented artifacts never
    collide. Rebuilding the same output path in another mode leaves no stale
    companion: an off build removes the earlier map (native, `--emit=c`) and
@@ -265,14 +265,15 @@ def main() -> int:
         p = run(["native-compile", "--build-record=" + str(rec), "-o", str(t / "rec-exe"), str(CASE)])
         if p.returncode:
             errors.append(f"build record build failed: {p.stderr}")
-        elif json.loads(rec.read_text()).get("coverage") != {"mode": "off", "map_path": None, "formats": None}:
+        elif json.loads(rec.read_text()).get("coverage") != {"mode": "off", "map_path": None, "formats": None, "tier": None}:
             errors.append(f"build record coverage field: {json.loads(rec.read_text()).get('coverage')!r}")
         for mode in ("map", "instrument"):
             rec = t / f"r-{mode}.json"
             exe = t / f"rec-{mode}"
             p = run(["native-compile", f"--coverage={mode}", "--build-record=" + str(rec), "-o", str(exe), str(CASE)])
             got = json.loads(rec.read_text()).get("coverage") if p.returncode == 0 else None
-            want = {"mode": mode, "map_path": str(exe) + ".sv0covmap.json", "formats": FORMAT_VERSIONS}
+            want = {"mode": mode, "map_path": str(exe) + ".sv0covmap.json", "formats": FORMAT_VERSIONS,
+                    "tier": {"name": "standard", "max_counters": 4194304, "max_bytes": 67108864, "map_max_bytes": 536870912}}
             if got != want:
                 errors.append(f"{mode} build record coverage field: {got!r} (want {want!r}) {p.stderr}")
 

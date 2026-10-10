@@ -103,10 +103,10 @@ usage: sv0 <command> [args]
   integration-vm     VM pipeline integration tests (task script)
   vm-compile <rel>   sv0c --target=vm; path relative to sv0c/
   vm-project-compile <dir>  sv0c --target=vm --project <dir>; path relative to sv0c/ (writes build/vm/main.sv0b when main.sv0 exists)
-  vm-native-compile <file.sv0>|--project <dir> [out.sv0b] [--contract-mode=runtime] [--coverage=off|map|instrument [--coverage-map <path>]]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK); VM contracts are 'runtime' only -- verified/disabled are refused as unsupported (SS-U10)
+  vm-native-compile <file.sv0>|--project <dir> [out.sv0b] [--contract-mode=runtime] [--coverage=off|map|instrument [--coverage-map <path>] [--coverage-tier=standard|large|custom [--coverage-max-counters <n> --coverage-max-bytes <n>]]]  emit .sv0b via the native VM emitter (f64/i64/wide-int capable; abs paths OK); VM contracts are 'runtime' only -- verified/disabled are refused as unsupported (SS-U10)
                            --coverage (sv0cov CV-106..CV-118): off is the default; map writes <stem>.sv0covmap.json; instrument adds COVER_HIT and writes the map plus the <stem>.sv0covbind.json companion
   vm-behavioral-parity  f64/i64 fixtures: native emit-c->run vs VM-emit->sv0vm, exit codes compared (COMPAT-001/002)
-  vm-run [--coverage-binding <file.sv0covbind.json>] <file.sv0b>  run bytecode via sv0vm/scripts/run_sv0b.sml (an instrumented program needs its binding)
+  vm-run [--coverage-binding <file.sv0covbind.json>] [--raw-profile-tier standard|large|custom [--raw-profile-max-counters <n> --raw-profile-max-bytes <n>]] <file.sv0b>  run bytecode via sv0vm/scripts/run_sv0b.sml (an instrumented program needs its binding; the tier bounds the raw profile it may publish, standard by default)
   repl               interactive line-at-a-time eval via VM (i32 expr or println(\"...\"))
   ci                 check + full ./scripts/sv0 test (no sv0-mcp; same as \`make ci\`)
   ci-all             after ci, run test-mcp when uv is available (full toolchain smoke)
@@ -949,6 +949,10 @@ run_test() {
   fi
   sv0_info "sv0 test: coverage ownership (CV-209 — tests/examples/vendor/... layout stays fully in scope; ownership from the build graph, not path spelling; native + VM)"
   if ! python3 "$ROOT/sv0c/test/coverage/ownership/run_ownership.py"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: coverage producer tiers (CV-211 — compilers, native runtime and sv0vm refuse over-tier maps/profiles at the exact limits; large and custom tiers; usage errors)"
+  if ! python3 "$ROOT/sv0c/test/coverage/tiers/run_tiers.py"; then
     ec=1
   fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
@@ -2279,6 +2283,9 @@ case "$cmd" in
     _vm_cov=""
     _vm_covmap=""
     _vm_covmap_seen=0
+    _vm_tier=""
+    _vm_maxc=""
+    _vm_maxb=""
     while (($# > 0)); do
       case "$1" in
         --contract-mode=*) _vm_cmode="${1#--contract-mode=}" ;;
@@ -2291,6 +2298,22 @@ case "$cmd" in
           (($# > 1)) || { echo "sv0: vm-native-compile: option --coverage-map requires a value" >&2; exit 2; }
           _vm_covmap_seen=1
           _vm_covmap="$2"
+          shift ;;
+        # sv0cov CV-211: the raw-profile tier this build is made for.
+        --coverage-tier=*)
+          [[ -z "$_vm_tier" ]] || { echo "sv0: vm-native-compile: repeated option: --coverage-tier" >&2; exit 2; }
+          _vm_tier="${1#--coverage-tier=}"
+          [[ -n "$_vm_tier" ]] || { echo "sv0: vm-native-compile: option --coverage-tier requires a value" >&2; exit 2; } ;;
+        --coverage-max-counters|--coverage-max-bytes)
+          (($# > 1)) || { echo "sv0: vm-native-compile: option $1 requires a value" >&2; exit 2; }
+          if [[ "$1" == "--coverage-max-counters" ]]; then
+            [[ -z "$_vm_maxc" ]] || { echo "sv0: vm-native-compile: repeated option: $1" >&2; exit 2; }
+            _vm_maxc="$2"
+          else
+            [[ -z "$_vm_maxb" ]] || { echo "sv0: vm-native-compile: repeated option: $1" >&2; exit 2; }
+            _vm_maxb="$2"
+          fi
+          [[ -n "$2" ]] || { echo "sv0: vm-native-compile: option $1 requires a value" >&2; exit 2; }
           shift ;;
         *) _vm_args+=("$1") ;;
       esac
@@ -2322,6 +2345,9 @@ case "$cmd" in
     fi
     _cov_args=(--mode "${_vm_cov:-off}" --artifact "$_out")
     ((_vm_covmap_seen == 0)) || _cov_args+=(--map "$_vm_covmap")
+    [[ -z "$_vm_tier" ]] || _cov_args+=(--tier "$_vm_tier")
+    [[ -z "$_vm_maxc" ]] || _cov_args+=(--max-counters "$_vm_maxc")
+    [[ -z "$_vm_maxb" ]] || _cov_args+=(--max-bytes "$_vm_maxb")
     _cov_req="$(python3 "$ROOT/scripts/native_exe_coverage.py" resolve "${_cov_args[@]}")" || exit 2
     mkdir -p "$(dirname "$_out")"
     # Publish through a temp file so a failed compile leaves no partial .sv0b.
@@ -2341,25 +2367,47 @@ case "$cmd" in
   vm-run)
     # sv0cov CV-120: --coverage-binding <path> names the program's
     # .sv0covbind.json explicitly (sv0vm never picks up a neighbouring file).
+    # sv0cov CV-211: --raw-profile-tier standard|large|custom (custom needs
+    # --raw-profile-max-counters and --raw-profile-max-bytes) selects the
+    # raw-profile tier sv0vm enforces; the SV0COV_* transport cannot.
     _vm_binding=""
-    if [[ "${1:-}" == "--coverage-binding" ]]; then
-      [[ -n "${2:-}" ]] || { echo "sv0: vm-run: --coverage-binding requires a path" >&2; exit 2; }
-      _vm_binding="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
-      shift 2
-    fi
+    _vm_rtier=()
+    while [[ "${1:-}" == --* ]]; do
+      case "$1" in
+        --coverage-binding)
+          [[ -n "${2:-}" ]] || { echo "sv0: vm-run: --coverage-binding requires a path" >&2; exit 2; }
+          _vm_binding="$(cd "$(dirname "$2")" && pwd)/$(basename "$2")"
+          shift 2 ;;
+        --raw-profile-tier|--raw-profile-max-counters|--raw-profile-max-bytes)
+          [[ -n "${2:-}" ]] || { echo "sv0: vm-run: $1 requires a value" >&2; exit 2; }
+          _vm_rtier+=("--${1#--raw-profile-}" "$2")
+          shift 2 ;;
+        *) echo "sv0: vm-run: unknown option: $1" >&2; exit 2 ;;
+      esac
+    done
+    _vm_limits="$(python3 "$ROOT/scripts/native_exe_coverage.py" tier ${_vm_rtier[@]+"${_vm_rtier[@]}"})" || exit 2
     sv0b="${1:-}"
     if [[ -z "$sv0b" ]]; then usage; exit 1; fi
-    # run_sv0b.sml opens SV0B relative to sv0vm cwd; resolve repo-root paths (e.g. sv0c/build/vm/foo.sv0b)
-    if [[ "$sv0b" != /* ]] && [[ ! -f "$SV0VM/$sv0b" ]]; then
-      if [[ -f "$ROOT/$sv0b" ]]; then
+    # run_sv0b.sml opens SV0B relative to sv0vm cwd: resolve a relative path
+    # against the caller's directory first, then the repo root (e.g.
+    # sv0c/build/vm/foo.sv0b).
+    if [[ "$sv0b" != /* ]]; then
+      if [[ -f "$PWD/$sv0b" ]]; then
+        sv0b="$PWD/$sv0b"
+      elif [[ ! -f "$SV0VM/$sv0b" && -f "$ROOT/$sv0b" ]]; then
         sv0b="$ROOT/$sv0b"
       fi
     fi
-    if [[ -n "$_vm_binding" ]]; then
-      (cd "$SV0VM" && SV0B="$sv0b" SV0B_COVERAGE_BINDING="$_vm_binding" sml < scripts/run_sv0b.sml)
-    else
-      (cd "$SV0VM" && SV0B="$sv0b" sml < scripts/run_sv0b.sml)
-    fi
+    (
+      cd "$SV0VM"
+      export SV0B="$sv0b"
+      unset SV0B_COVERAGE_BINDING SV0B_COVERAGE_MAX_COUNTERS SV0B_COVERAGE_MAX_BYTES
+      [[ -z "$_vm_binding" ]] || export SV0B_COVERAGE_BINDING="$_vm_binding"
+      if [[ -n "$_vm_limits" ]]; then
+        export SV0B_COVERAGE_MAX_COUNTERS="${_vm_limits%% *}" SV0B_COVERAGE_MAX_BYTES="${_vm_limits##* }"
+      fi
+      sml < scripts/run_sv0b.sml
+    )
     ;;
   repl)
     run_repl

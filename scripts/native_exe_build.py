@@ -197,7 +197,8 @@ def build_native_executable(
         if coverage_runtime is not None:
             # The runtime is C11 (stdatomic); the program C stays gnu99, so it
             # is compiled on its own and linked as an object.
-            link_inputs.append(compile_coverage_runtime(cc_path, coverage_runtime, scratch.path, env))
+            link_inputs.append(compile_coverage_runtime(cc_path, coverage_runtime, scratch.path, env,
+                                                        coverage.tier))
         argv = build_argv(cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=link_inputs or None)
         run_host_compile(argv, env, tmp_output_path)
 

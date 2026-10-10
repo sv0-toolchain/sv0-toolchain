@@ -54,14 +54,17 @@ class ParsedArgs:
     build_record_path: str | None = None  # explicit path from --build-record=<path>, else None
     coverage_mode: str = "off"  # --coverage=off|map|instrument (sv0cov SPEC 13.3, CV-106)
     coverage_map_path: str | None = None  # --coverage-map <path>; None = derived from the output path
+    coverage_tier: str | None = None  # --coverage-tier=standard|large|custom (sv0cov CV-211)
+    coverage_max_counters: str | None = None  # --coverage-max-counters <n> (custom tier)
+    coverage_max_bytes: str | None = None  # --coverage-max-bytes <n> (custom tier)
     trailing: list[str] = field(default_factory=list)  # tokens after `--`
 
 
 # Options that take exactly one value and may appear at most once (CLI-003:
 # "repeated scalar options are usage errors unless the option explicitly
 # documents repetition" — none of these document repetition).
-_SCALAR_VALUE_OPTIONS = {"-o", "--project", "--cc", "--coverage-map"}
-_SCALAR_EQUALS_OPTIONS = {"--profile", "--contract-mode", "--emit", "--message-format", "--coverage"}
+_SCALAR_VALUE_OPTIONS = {"-o", "--project", "--cc", "--coverage-map", "--coverage-max-counters", "--coverage-max-bytes"}
+_SCALAR_EQUALS_OPTIONS = {"--profile", "--contract-mode", "--emit", "--message-format", "--coverage", "--coverage-tier"}
 COVERAGE_MODES = ("off", "map", "instrument")
 # CLI-014/016: options valid either bare (a documented default applies) or
 # with an explicit `=<path>` value -- distinct from _SCALAR_EQUALS_OPTIONS,
@@ -92,6 +95,9 @@ def parse_args(argv: list[str]) -> ParsedArgs:
     build_record_seen = False
     build_record_path: str | None = None
     coverage_mode = "off"
+    coverage_tier: str | None = None
+    coverage_max_counters: str | None = None
+    coverage_max_bytes: str | None = None
     coverage_map_path: str | None = None
     project_dir: str | None = None
     positional: list[str] = []
@@ -142,6 +148,10 @@ def parse_args(argv: list[str]) -> ParsedArgs:
                 if value == "-":
                     raise UsageError("--coverage-map - is invalid: the coverage map is written to a file")
                 coverage_map_path = value
+            elif arg == "--coverage-max-counters":
+                coverage_max_counters = value
+            elif arg == "--coverage-max-bytes":
+                coverage_max_bytes = value
             i += 2
             continue
 
@@ -178,6 +188,12 @@ def parse_args(argv: list[str]) -> ParsedArgs:
                             f"--coverage={value} is invalid (want 'off', 'map' or 'instrument')"
                         )
                     coverage_mode = value
+                elif opt == "--coverage-tier":
+                    if value not in ("standard", "large", "custom"):
+                        raise UsageError(
+                            f"--coverage-tier={value} is invalid (want 'standard', 'large' or 'custom')"
+                        )
+                    coverage_tier = value
                 matched_equals = True
                 break
         if matched_equals:
@@ -226,6 +242,10 @@ def parse_args(argv: list[str]) -> ParsedArgs:
 
     if coverage_map_path is not None and coverage_mode == "off":
         raise UsageError("--coverage-map requires --coverage=map or --coverage=instrument")
+    if coverage_mode == "off" and (coverage_tier is not None or coverage_max_counters is not None
+                                   or coverage_max_bytes is not None):
+        raise UsageError("--coverage-tier, --coverage-max-counters and --coverage-max-bytes require "
+                         "--coverage=map or --coverage=instrument")
 
     if emit_value == "c":
         # CLI-014/native_exe_emit_c.emit_c_only's own documented contract:
@@ -273,6 +293,9 @@ def parse_args(argv: list[str]) -> ParsedArgs:
             build_record_path=build_record_path,
             coverage_mode=coverage_mode,
             coverage_map_path=coverage_map_path,
+            coverage_tier=coverage_tier,
+            coverage_max_counters=coverage_max_counters,
+            coverage_max_bytes=coverage_max_bytes,
             trailing=trailing,
         )
 
@@ -307,6 +330,9 @@ def parse_args(argv: list[str]) -> ParsedArgs:
         build_record_path=build_record_path,
         coverage_mode=coverage_mode,
         coverage_map_path=coverage_map_path,
+        coverage_tier=coverage_tier,
+        coverage_max_counters=coverage_max_counters,
+        coverage_max_bytes=coverage_max_bytes,
         trailing=[],
     )
 
@@ -459,6 +485,16 @@ _CASES: list[tuple[str, list[str], dict | type]] = [
         {"coverage_mode": "instrument", "coverage_map_path": "out/h.sv0covmap.json"},
     ),
     (
+        "--coverage-tier=large (sv0cov CV-211)",
+        ["--coverage=instrument", "--coverage-tier=large", "hello.sv0"],
+        {"coverage_tier": "large", "coverage_max_counters": None, "coverage_max_bytes": None},
+    ),
+    (
+        "custom tier ceilings are passed through for validation",
+        ["--coverage=map", "--coverage-tier=custom", "--coverage-max-counters", "70", "--coverage-max-bytes", "4096", "hello.sv0"],
+        {"coverage_tier": "custom", "coverage_max_counters": "70", "coverage_max_bytes": "4096"},
+    ),
+    (
         "--coverage=map in project mode",
         ["--coverage=map", "--project", "calc"],
         {"input_kind": "project", "coverage_mode": "map"},
@@ -475,6 +511,19 @@ _CASES: list[tuple[str, list[str], dict | type]] = [
         (UsageError, "requires --coverage=map"),
     ),
     ("--coverage-map missing value", ["--coverage=map", "--coverage-map"], (UsageError, "requires a value")),
+    ("--coverage-tier unknown", ["--coverage=map", "--coverage-tier=huge", "hello.sv0"], (UsageError, "is invalid")),
+    ("--coverage-tier without a mode", ["--coverage-tier=large", "hello.sv0"], (UsageError, "require --coverage=map")),
+    (
+        "--coverage-max-bytes with --coverage=off",
+        ["--coverage=off", "--coverage-max-bytes", "9", "hello.sv0"],
+        (UsageError, "require --coverage=map"),
+    ),
+    (
+        "repeated --coverage-tier",
+        ["--coverage=map", "--coverage-tier=large", "--coverage-tier=standard", "hello.sv0"],
+        (UsageError, "repeated"),
+    ),
+    ("--coverage-max-counters missing value", ["--coverage=map", "--coverage-max-counters"], (UsageError, "requires a value")),
     ("--coverage-map empty", ["--coverage=map", "--coverage-map", "", "hello.sv0"], (UsageError, "non-empty path")),
     ("--coverage-map to stdout", ["--coverage=map", "--coverage-map", "-", "hello.sv0"], (UsageError, "written to a file")),
     (

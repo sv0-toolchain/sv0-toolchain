@@ -36,6 +36,16 @@ builds an unmarked, uninstrumented artifact for ``instrument``.
   artifacts can never share a cache entry, nor can builds made for
   different format versions. Off contributes nothing (existing keys keep
   their value).
+- ``Tier``/``resolve_tier`` (CV-211; SPEC 16.3.9, 16.4, 18.2): the
+  raw-profile resource tier a build is made for. ``standard`` (4,194,304
+  counters, 64 MiB) is the default, ``large`` (16,777,216 counters, 256 MiB)
+  must be named, and ``custom`` needs both explicit ceilings inside the
+  protocol maxima; the two ceilings are forbidden with the built-in tiers.
+  The tier fixes the map byte ceiling too (512 MiB standard, 2 GiB
+  otherwise). The compiler refuses to write a map over the tier's counter or
+  byte ceiling; the native runtime is compiled with the ceilings; sv0vm
+  receives them from ``sv0 vm-run``. The SV0COV_* transport never carries a
+  tier.
 - ``stale_outputs``/``remove_stale_outputs`` (CV-208): a build removes the
   coverage companions an earlier build left beside the same artifact when
   this build does not write them: the default map and VM binding after an
@@ -52,6 +62,10 @@ builds an unmarked, uninstrumented artifact for ``instrument``.
     python3 scripts/native_exe_coverage.py resolve --mode M [--map P] --artifact A
         (prints the SV0_COVERAGE_REQUEST value, empty for off; exit 2 on a
         usage error -- used by `sv0 vm-native-compile`)
+    python3 scripts/native_exe_coverage.py tier [--tier T] [--max-counters N] [--max-bytes N]
+        (prints "<max counters> <max bytes>" for the resolved raw-profile
+        tier, nothing for the default standard tier; exit 2 on a usage
+        error -- used by `sv0 vm-run`)
     python3 scripts/native_exe_coverage.py clean-stale --mode M [--map P] --artifact A
         (removes stale companions after a successful build; prints each
         removed path)
@@ -88,12 +102,69 @@ class CoverageUsageError(Exception):
 
 
 @dataclass(frozen=True)
+class Tier:
+    """A raw-profile resource tier (SPEC 16.4) and its map ceiling (16.3.9)."""
+
+    name: str  # "standard" | "large" | "custom"
+    max_counters: int
+    max_bytes: int
+
+    @property
+    def map_max_bytes(self) -> int:
+        return 536870912 if self.name == "standard" else 2147483648
+
+    def record(self) -> dict:
+        return {"name": self.name, "max_counters": self.max_counters, "max_bytes": self.max_bytes,
+                "map_max_bytes": self.map_max_bytes}
+
+
+STANDARD_TIER = Tier("standard", 4194304, 67108864)
+LARGE_TIER = Tier("large", 16777216, 268435456)
+PROTOCOL_MAX_COUNTERS = 4294967295
+PROTOCOL_MAX_BYTES = 68719476736
+TIER_NAMES = ("standard", "large", "custom")
+
+
+def _ceiling(option: str, value: str | int, top: int) -> int:
+    text = str(value)
+    if not text.isascii() or not text.isdigit() or (len(text) > 1 and text[0] == "0"):
+        raise CoverageUsageError(f"{option} {text} is invalid (want a positive integer)")
+    n = int(text)
+    if n < 1 or n > top:
+        raise CoverageUsageError(f"{option} {text} is out of range (1 through {top})")
+    return n
+
+
+def resolve_tier(name: str | None, max_counters: str | int | None, max_bytes: str | int | None,
+                 prefix: str = "--coverage") -> Tier:
+    """The tier named on a command line (AC-056): `standard` when nothing is
+    given; `custom` needs both ceilings; the built-in tiers take neither."""
+    tier_opt, c_opt, b_opt = f"{prefix}-tier", f"{prefix}-max-counters", f"{prefix}-max-bytes"
+    if name is None:
+        name = "standard"
+        if max_counters is not None or max_bytes is not None:
+            raise CoverageUsageError(f"{c_opt} and {b_opt} need {tier_opt}=custom")
+    if name not in TIER_NAMES:
+        raise CoverageUsageError(f"{tier_opt}={name} is invalid (want 'standard', 'large' or 'custom')")
+    if name != "custom":
+        if max_counters is not None or max_bytes is not None:
+            raise CoverageUsageError(f"{c_opt} and {b_opt} are only for {tier_opt}=custom "
+                                     f"(the {name} tier has fixed ceilings)")
+        return STANDARD_TIER if name == "standard" else LARGE_TIER
+    if max_counters is None or max_bytes is None:
+        raise CoverageUsageError(f"{tier_opt}=custom requires both {c_opt} and {b_opt}")
+    return Tier("custom", _ceiling(c_opt, max_counters, PROTOCOL_MAX_COUNTERS),
+                _ceiling(b_opt, max_bytes, PROTOCOL_MAX_BYTES))
+
+
+@dataclass(frozen=True)
 class CoverageRequest:
     mode: str  # "off" | "map" | "instrument"
     map_path: str | None  # absolute; None exactly when mode is "off"
     target: str = ""  # the map's target name: the artifact's stem
     identity: str = ""  # the map's compiler identity: sv0c+<sv0c revision>
     binding_path: str | None = None  # VM instrument only: the .sv0covbind.json companion
+    tier: Tier = STANDARD_TIER  # the raw-profile tier this build is made for (CV-211)
 
 
 def target_name(artifact_path: str) -> str:
@@ -128,7 +199,8 @@ def default_map_path(artifact_path: str) -> str:
 
 
 def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
-            other_outputs: tuple[str, ...] = ()) -> CoverageRequest:
+            other_outputs: tuple[str, ...] = (), tier: str | None = None,
+            max_counters: str | int | None = None, max_bytes: str | int | None = None) -> CoverageRequest:
     """Validate and resolve one build's coverage request.
 
     `artifact_path` is the final artifact (executable, emitted C, or
@@ -140,7 +212,11 @@ def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
     if mode == "off":
         if map_path is not None:
             raise CoverageUsageError("--coverage-map requires --coverage=map or --coverage=instrument")
+        if tier is not None or max_counters is not None or max_bytes is not None:
+            raise CoverageUsageError("--coverage-tier, --coverage-max-counters and --coverage-max-bytes "
+                                     "require --coverage=map or --coverage=instrument")
         return CoverageRequest("off", None)
+    resolved_tier = resolve_tier(tier, max_counters, max_bytes)
     if map_path is not None and map_path in ("", "-"):
         raise CoverageUsageError("--coverage-map requires a non-empty file path")
 
@@ -167,7 +243,7 @@ def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
                                          "choose a different --coverage-map or output path")
         if os.path.isdir(binding):
             raise CoverageUsageError(f"the coverage binding path {binding} is a directory")
-    return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity(), binding)
+    return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity(), binding, resolved_tier)
 
 
 def formats_key() -> str:
@@ -235,13 +311,21 @@ def coverage_runtime_source(toolchain_root: str | None = None) -> str:
     return path
 
 
-def compile_coverage_runtime(cc_path: str, source: str, scratch_dir: str, env: dict[str, str]) -> str:
-    """Compile the runtime to <scratch>/sv0cov_rt.o and return that path."""
+def tier_defines(tier: Tier) -> list[str]:
+    """The -D flags that compile the native runtime for `tier` (none for standard)."""
+    if tier == STANDARD_TIER:
+        return []
+    return [f"-DSV0COV_TIER_MAX_COUNTERS={tier.max_counters}", f"-DSV0COV_TIER_MAX_BYTES={tier.max_bytes}"]
+
+
+def compile_coverage_runtime(cc_path: str, source: str, scratch_dir: str, env: dict[str, str],
+                             tier: Tier = STANDARD_TIER) -> str:
+    """Compile the runtime, for `tier`, to <scratch>/sv0cov_rt.o and return that path."""
     from native_exe_errors import BuildError, DiagnosticPhase
     from native_exe_subprocess import SubprocessError, run_argv
 
     obj = os.path.join(scratch_dir, "sv0cov_rt.o")
-    argv = [cc_path, "-std=c11", "-O2", "-c", source, "-o", obj]
+    argv = [cc_path, "-std=c11", "-O2", *tier_defines(tier), "-c", source, "-o", obj]
     try:
         result = run_argv(argv, env=dict(env))
     except SubprocessError as exc:
@@ -259,6 +343,15 @@ def request_value(req: CoverageRequest) -> str | None:
     value = f"{req.mode}\n{req.map_path}\n{req.target}\n{req.identity}"
     if req.binding_path is not None:
         value += f"\n{req.binding_path}"
+    if req.tier != STANDARD_TIER:
+        # Line 5 is the binding path (empty for none); line 6 carries the
+        # tier's counter ceiling and map byte ceiling for the compiler, which
+        # works in signed 32 bits: larger ceilings are passed as its maximum
+        # (it can never plan or write more than that).
+        if req.binding_path is None:
+            value += "\n"
+        i32 = 2147483647
+        value += f"\n{min(req.tier.max_counters, i32)} {min(req.tier.map_max_bytes, i32)}"
     return value
 
 
@@ -368,6 +461,50 @@ def _selftest() -> int:
         inst = resolve("instrument", None, art, td)
         check("an instrument build keeps its own outputs", remove_stale_outputs(inst, art, td) == [] and os.path.exists(kept))
 
+    # CV-211: raw-profile tiers (SPEC 16.4, 18.2; AC-056).
+    check("tier defaults to standard", resolve_tier(None, None, None) == STANDARD_TIER == Tier("standard", 4194304, 67108864))
+    check("large is explicit", resolve_tier("large", None, None) == Tier("large", 16777216, 268435456))
+    check("custom takes both ceilings", resolve_tier("custom", "70", "4096") == Tier("custom", 70, 4096))
+    check("protocol maxima are accepted",
+          resolve_tier("custom", "4294967295", "68719476736") == Tier("custom", 4294967295, 68719476736))
+    check("map ceilings", (STANDARD_TIER.map_max_bytes, LARGE_TIER.map_max_bytes, Tier("custom", 1, 1).map_max_bytes)
+          == (536870912, 2147483648, 2147483648))
+
+    def bad_tier(name: str, needle: str, *args) -> None:
+        try:
+            resolve_tier(*args)
+            failures.append(f"{name}: accepted")
+        except CoverageUsageError as exc:
+            if needle not in str(exc):
+                failures.append(f"{name}: message {exc}")
+
+    bad_tier("unknown tier", "want 'standard'", "huge", None, None)
+    bad_tier("custom without ceilings", "requires both", "custom", None, None)
+    bad_tier("custom without bytes", "requires both", "custom", "70", None)
+    bad_tier("custom without counters", "requires both", "custom", None, "4096")
+    bad_tier("ceilings with standard", "only for", "standard", "70", "4096")
+    bad_tier("ceilings with large", "only for", "large", None, "4096")
+    bad_tier("ceilings with no tier", "need --coverage-tier=custom", None, "70", "4096")
+    bad_tier("zero counters", "out of range", "custom", "0", "4096")
+    bad_tier("counters over the protocol", "out of range", "custom", "4294967296", "4096")
+    bad_tier("zero bytes", "out of range", "custom", "70", "0")
+    bad_tier("bytes over the protocol", "out of range", "custom", "70", "68719476737")
+    bad_tier("negative", "positive integer", "custom", "-1", "4096")
+    bad_tier("not a number", "positive integer", "custom", "many", "4096")
+    bad_tier("leading zero", "positive integer", "custom", "070", "4096")
+    bad_tier("fraction", "positive integer", "custom", "70", "4096.0")
+    rejects("tier with coverage off", "require --coverage=map", "off", None, "a", "/w", tier="large")
+    lt = resolve("instrument", None, "dist/hello", "/w", tier="large")
+    check("standard request is unchanged", "\n" not in request_value(m).split(ident, 1)[1])
+    check("large native request carries the limits",
+          request_value(lt) == f"instrument\n/w/dist/hello.sv0covmap.json\nhello\n{ident}\n\n16777216 2147483647")
+    ct = resolve("instrument", None, "out/prog.sv0b", "/w", tier="custom", max_counters="9", max_bytes="212")
+    check("custom VM request keeps the binding line",
+          request_value(ct).endswith(f"{ident}\n/w/out/prog.sv0covbind.json\n9 2147483647"))
+    check("tier defines", tier_defines(STANDARD_TIER) == [] and tier_defines(ct.tier)
+          == ["-DSV0COV_TIER_MAX_COUNTERS=9", "-DSV0COV_TIER_MAX_BYTES=212"])
+    check("a tier changes the cache key", cache_key_part(request_value(lt)) != cache_key_part(request_value(i)))
+
     check("runtime source", coverage_runtime_source().endswith(RUNTIME_RELPATH))
     try:
         coverage_runtime_source("/nonexistent-toolchain")
@@ -391,13 +528,35 @@ def _resolve_cli(argv: list[str]) -> int:
     ap.add_argument("--mode", required=True)
     ap.add_argument("--map")
     ap.add_argument("--artifact", required=True)
+    ap.add_argument("--tier")
+    ap.add_argument("--max-counters")
+    ap.add_argument("--max-bytes")
     args = ap.parse_args(argv)
     try:
-        req = resolve(args.mode, args.map, args.artifact, os.getcwd())
+        req = resolve(args.mode, args.map, args.artifact, os.getcwd(), tier=args.tier,
+                      max_counters=args.max_counters, max_bytes=args.max_bytes)
     except CoverageUsageError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     sys.stdout.write(request_value(req) or "")
+    return 0
+
+
+def _tier_cli(argv: list[str]) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="native_exe_coverage.py tier")
+    ap.add_argument("--tier")
+    ap.add_argument("--max-counters")
+    ap.add_argument("--max-bytes")
+    args = ap.parse_args(argv)
+    try:
+        tier = resolve_tier(args.tier, args.max_counters, args.max_bytes, prefix="--raw-profile")
+    except CoverageUsageError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    if tier != STANDARD_TIER:
+        sys.stdout.write(f"{tier.max_counters} {tier.max_bytes}")
     return 0
 
 
@@ -408,9 +567,13 @@ def _clean_stale_cli(argv: list[str]) -> int:
     ap.add_argument("--mode", required=True)
     ap.add_argument("--map")
     ap.add_argument("--artifact", required=True)
+    ap.add_argument("--tier")
+    ap.add_argument("--max-counters")
+    ap.add_argument("--max-bytes")
     args = ap.parse_args(argv)
     try:
-        req = resolve(args.mode, args.map, args.artifact, os.getcwd())
+        req = resolve(args.mode, args.map, args.artifact, os.getcwd(), tier=args.tier,
+                      max_counters=args.max_counters, max_bytes=args.max_bytes)
     except CoverageUsageError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -424,6 +587,8 @@ if __name__ == "__main__":
         raise SystemExit(_selftest())
     if len(sys.argv) > 1 and sys.argv[1] == "resolve":
         raise SystemExit(_resolve_cli(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "tier":
+        raise SystemExit(_tier_cli(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "clean-stale":
         raise SystemExit(_clean_stale_cli(sys.argv[2:]))
     print(__doc__, file=sys.stderr)
