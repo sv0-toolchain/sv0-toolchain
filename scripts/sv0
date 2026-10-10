@@ -947,6 +947,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/zero/run_zero.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage ownership (CV-209 — tests/examples/vendor/... layout stays fully in scope; ownership from the build graph, not path spelling; native + VM)"
+  if ! python3 "$ROOT/sv0c/test/coverage/ownership/run_ownership.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
   if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
     ec=1
