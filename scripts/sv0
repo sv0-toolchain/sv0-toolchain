@@ -1175,6 +1175,10 @@ _sha256() {
 }
 _run_cache_dir() { printf '%s' "${SV0_RUN_CACHE_DIR:-$ROOT/build/run-cache}"; }
 _run_cache_on() { [[ -z "${SV0_NO_RUN_CACHE:-}" && -z "${CI:-}" ]]; }
+# sv0cov CV-208: a program that registers with the coverage runtime has a side
+# effect (it publishes a profile) that replaying a cached exit status and
+# stdout would skip, so instrumented C is never looked up or stored.
+_run_cache_ok_for() { _run_cache_on && ! grep -q '__sv0cov_start' "$1" 2>/dev/null; }
 # Everything besides the C text that determines a compiled program's behaviour.
 # Computed once (parent exports it; workers reuse it) -- cc --version + runtime hash.
 _run_cache_envkey_init() {
@@ -1192,7 +1196,7 @@ _cc_run_cached() {
   local cfile="$1" bin="$2" out="$3" dir key clog tmp
   RUN_EXIT=0
   dir="$(_run_cache_dir)"
-  if _run_cache_on; then
+  if _run_cache_ok_for "$cfile"; then
     _run_cache_envkey_init
     key="$( { printf '%s\n' "$SV0_RUN_CACHE_ENVKEY"; cat "$cfile"; } | _sha256 | cut -d' ' -f1)"
     if [[ -f "$dir/$key.rc" && -f "$dir/$key.out" ]]; then
@@ -1212,7 +1216,7 @@ _cc_run_cached() {
   rm -f "$clog"
   "$bin" >"$out" 2>/dev/null || RUN_EXIT=$?
   rm -f "$bin"
-  if _run_cache_on; then
+  if _run_cache_ok_for "$cfile"; then
     mkdir -p "$dir"
     tmp="$dir/.tmp.$$.$RANDOM"
     { cp "$out" "$tmp.out" && printf '%s' "$RUN_EXIT" >"$tmp.rc" \
@@ -1277,6 +1281,14 @@ run_cache_selftest() {
   _cc_run_cached "$b" "$td/bin" "$td/out"
   check "SV0_NO_RUN_CACHE=1 stores nothing" '[[ $(entries) -eq $n ]]'
   unset SV0_NO_RUN_CACHE
+  local cov="$td/cov.c"
+  printf 'static void __sv0cov_start(void){}\nint main(void){__sv0cov_start();return 5;}\n' >"$cov"
+  n="$(entries)"
+  _cc_run_cached "$cov" "$td/bin" "$td/out"; check "instrumented C runs (exit 5)" '[[ $RUN_EXIT -eq 5 ]]'
+  check "instrumented C is never stored" '[[ $(entries) -eq $n ]]'
+  SHL_CC=/nonexistent-cc; rc=0; _cc_run_cached "$cov" "$td/bin" "$td/out" 2>/dev/null || rc=$?
+  check "instrumented C is never replayed (cc invoked)" '[[ $rc -eq 2 ]]'
+  SHL_CC="$realcc"
   CI=true; SHL_CC=/nonexistent-cc; rc=0
   _cc_run_cached "$a" "$td/bin" "$td/out" 2>/dev/null || rc=$?
   check "CI=true bypasses the cache" '[[ $rc -eq 2 ]]'
@@ -1303,7 +1315,7 @@ run_cache_selftest() {
 
   rm -rf "$td"
   if ((bad)); then return 1; fi
-  echo "run-cache: selftest OK (19 checks: cache + artifact staleness)"
+  echo "run-cache: selftest OK (22 checks: cache + artifact staleness)"
 }
 
 # Shared by the parent (run_self_host_sv0_loop) and each parallel per-file
@@ -2317,6 +2329,9 @@ case "$cmd" in
     fi
     if ((_vm_rc != 0)); then rm -f "$_vm_tmp"; exit "$_vm_rc"; fi
     mv -f "$_vm_tmp" "$_out"
+    # sv0cov CV-208: drop a coverage map or binding an earlier build left
+    # beside this .sv0b that this build did not write.
+    python3 "$ROOT/scripts/native_exe_coverage.py" clean-stale "${_cov_args[@]}" >/dev/null || true
     echo "sv0: vm-native-compile: wrote $_out" >&2
     ;;
   vm-run)

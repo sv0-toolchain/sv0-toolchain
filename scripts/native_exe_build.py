@@ -33,7 +33,13 @@ from native_exe_argv_builder import build_dev_profile_argv, build_release_profil
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_core_compiler import CoreCompilerClient, CoreCompilerRequest
-from native_exe_coverage import CoverageRequest, child_env, compile_coverage_runtime, coverage_runtime_source
+from native_exe_coverage import (
+    CoverageRequest,
+    child_env,
+    compile_coverage_runtime,
+    coverage_runtime_source,
+    remove_stale_outputs,
+)
 
 COVERAGE_OFF = CoverageRequest("off", None)
 from native_exe_emit import classify_emission
@@ -197,6 +203,11 @@ def build_native_executable(
 
         # 8. Atomic publication (NEX-007).
         publish_atomically(tmp_output_path, final_output)
+
+    # 8b. sv0cov CV-208: drop coverage companions an earlier build left
+    # beside this artifact that this build did not write (a stale map next to
+    # an uninstrumented executable would describe a different build).
+    remove_stale_outputs(coverage or COVERAGE_OFF, final_output, invocation_cwd)
 
     # 9. Human success output (NEX-027).
     message = None if quiet else format_success_message(final_output, "c", profile, contract_mode)

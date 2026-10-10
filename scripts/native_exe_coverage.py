@@ -30,6 +30,20 @@ companion ``<stem>.sv0covbind.json`` (CV-118); a VM runs it only with that
 binding (sv0vm support: CV-119, CV-120). Neither backend ever
 builds an unmarked, uninstrumented artifact for ``instrument``.
 
+- ``FORMAT_VERSIONS``/``cache_key_part`` (CV-208, COV-INS-004): the
+  coverage mode and the versions of every coverage format a build writes
+  take part in cache keys, so instrumented, map-mode, and uninstrumented
+  artifacts can never share a cache entry, nor can builds made for
+  different format versions. Off contributes nothing (existing keys keep
+  their value).
+- ``stale_outputs``/``remove_stale_outputs`` (CV-208): a build removes the
+  coverage companions an earlier build left beside the same artifact when
+  this build does not write them: the default map and VM binding after an
+  off build, the binding after a map build, the default map when
+  ``--coverage-map`` names another file. Otherwise an uninstrumented
+  artifact would sit next to a map that describes a different build. Only
+  files that really are sv0cov maps or bindings are removed.
+
 - ``coverage_runtime_source``/``compile_coverage_runtime``: locate the
   runtime in the toolchain checkout and compile it (C11) to an object in the
   build's scratch directory.
@@ -38,6 +52,9 @@ builds an unmarked, uninstrumented artifact for ``instrument``.
     python3 scripts/native_exe_coverage.py resolve --mode M [--map P] --artifact A
         (prints the SV0_COVERAGE_REQUEST value, empty for off; exit 2 on a
         usage error -- used by `sv0 vm-native-compile`)
+    python3 scripts/native_exe_coverage.py clean-stale --mode M [--map P] --artifact A
+        (removes stale companions after a successful build; prints each
+        removed path)
 """
 
 from __future__ import annotations
@@ -51,6 +68,19 @@ MODES = ("off", "map", "instrument")
 MAP_SUFFIX = ".sv0covmap.json"
 BINDING_SUFFIX = ".sv0covbind.json"
 _ARTIFACT_SUFFIXES = (".sv0b", ".c")
+# Every coverage format a non-off build writes or binds to (sv0cov SPEC
+# 16.3, 16.4, 14.1, 15; sv0doc bytecode/coverage.md). A change to any of
+# them changes what a build produces, so they are part of cache keys and of
+# the build record.
+FORMAT_VERSIONS = {
+    "generated_c_protocol": "1",
+    "map": "1.0",
+    "point_identity": "1.0",
+    "raw_profile": "1.0",
+    "vm_binding": "1.0",
+    "vm_profile": "sv0vm-v1-coverage",
+}
+_STALE_MARKERS = {MAP_SUFFIX: b'"schema":"sv0cov.map"', BINDING_SUFFIX: b'"schema":"sv0cov.vm-binding"'}
 
 
 class CoverageUsageError(Exception):
@@ -138,6 +168,55 @@ def resolve(mode: str, map_path: str | None, artifact_path: str, cwd: str,
         if os.path.isdir(binding):
             raise CoverageUsageError(f"the coverage binding path {binding} is a directory")
     return CoverageRequest(mode, resolved, target_name(artifact), compiler_identity(), binding)
+
+
+def formats_key() -> str:
+    """The format versions as one canonical string (sorted `name=version`)."""
+    return ";".join(f"{k}={FORMAT_VERSIONS[k]}" for k in sorted(FORMAT_VERSIONS))
+
+
+def cache_key_part(request: str | None) -> bytes:
+    """What a coverage request adds to a build cache key (COV-INS-004).
+
+    `request` is the SV0_COVERAGE_REQUEST value (None or empty for off).
+    Off adds nothing; any other request adds its mode, the rest of the
+    request (map path, target, identity: they shape the artifact and its
+    map), and the format versions.
+    """
+    if not request:
+        return b""
+    return b"coverage\0" + request.encode("utf-8", "surrogateescape") + b"\0" + formats_key().encode() + b"\n"
+
+
+def stale_outputs(req: CoverageRequest, artifact_path: str, cwd: str) -> list[str]:
+    """Coverage companions beside `artifact_path` that this build does not write."""
+    artifact = os.path.normpath(artifact_path if os.path.isabs(artifact_path) else os.path.join(cwd, artifact_path))
+    default_map = default_map_path(artifact)
+    out = []
+    if req.map_path is None or os.path.realpath(req.map_path) != os.path.realpath(default_map):
+        out.append(default_map)
+    if artifact.endswith(".sv0b") and len(artifact) > len(".sv0b") and req.binding_path is None:
+        out.append(artifact[: -len(".sv0b")] + BINDING_SUFFIX)
+    return out
+
+
+def remove_stale_outputs(req: CoverageRequest, artifact_path: str, cwd: str) -> list[str]:
+    """Remove `stale_outputs` that are regular sv0cov map/binding files;
+    return the removed paths. Anything else at those names is left alone."""
+    removed = []
+    for path in stale_outputs(req, artifact_path, cwd):
+        marker = next(m for suffix, m in _STALE_MARKERS.items() if path.endswith(suffix))
+        try:
+            if os.path.islink(path) or not os.path.isfile(path):
+                continue
+            with open(path, "rb") as f:
+                if marker not in f.read():
+                    continue
+            os.unlink(path)
+        except OSError:
+            continue
+        removed.append(path)
+    return removed
 
 
 RUNTIME_RELPATH = os.path.join("sv0cov", "runtime", "c", "sv0cov_rt.c")
@@ -245,6 +324,50 @@ def _selftest() -> int:
     check("no binding for native", resolve("instrument", None, "dist/hello", "/w").binding_path is None)
     rejects("map is the binding", "would overwrite", "instrument", "out/prog.sv0covbind.json", "out/prog.sv0b", "/w")
 
+    # CV-208: cache-key participation.
+    check("off adds nothing to a key", cache_key_part(None) == b"" and cache_key_part("") == b"")
+    km, ki = cache_key_part(request_value(m)), cache_key_part(request_value(i))
+    check("mode is in the key", km != ki and km.startswith(b"coverage\0map\n") and ki.startswith(b"coverage\0instrument\n"))
+    check("format versions are in the key", formats_key().encode() in km
+          and formats_key() == "generated_c_protocol=1;map=1.0;point_identity=1.0;raw_profile=1.0;"
+                               "vm_binding=1.0;vm_profile=sv0vm-v1-coverage")
+    saved = FORMAT_VERSIONS["map"]
+    FORMAT_VERSIONS["map"] = "1.1"
+    check("a format version change changes the key", cache_key_part(request_value(m)) != km)
+    FORMAT_VERSIONS["map"] = saved
+
+    # CV-208: stale companions.
+    check("off: map and binding are stale", stale_outputs(off, "out/prog.sv0b", "/w")
+          == ["/w/out/prog.sv0covmap.json", "/w/out/prog.sv0covbind.json"])
+    check("off native: only the map", stale_outputs(off, "dist/hello", "/w") == ["/w/dist/hello.sv0covmap.json"])
+    check("map mode: the binding is stale", stale_outputs(resolve("map", None, "out/prog.sv0b", "/w"), "out/prog.sv0b", "/w")
+          == ["/w/out/prog.sv0covbind.json"])
+    check("vm instrument: nothing stale", stale_outputs(vi, "out/prog.sv0b", "/w") == [])
+    check("explicit map: the default map is stale", stale_outputs(i, "dist/hello", "/w") == ["/w/dist/hello.sv0covmap.json"])
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        def put(name: str, data: bytes) -> str:
+            path = os.path.join(td, name)
+            with open(path, "wb") as f:
+                f.write(data)
+            return path
+        art = put("prog.sv0b", b"bytecode")
+        smap = put("prog.sv0covmap.json", b'{"schema":"sv0cov.map","version":"1.0"}\n')
+        sbind = put("prog.sv0covbind.json", b'{"schema":"sv0cov.vm-binding"}\n')
+        check("removes a stale map and binding", sorted(remove_stale_outputs(off, art, td)) == sorted([smap, sbind])
+              and not os.path.exists(smap) and not os.path.exists(sbind) and os.path.exists(art))
+        check("nothing to remove is fine", remove_stale_outputs(off, art, td) == [])
+        other = put("prog.sv0covmap.json", b"my notes, not a map\n")
+        check("a file that is not a map is kept", remove_stale_outputs(off, art, td) == [] and os.path.exists(other))
+        os.unlink(other)
+        target = put("elsewhere.json", b'{"schema":"sv0cov.map"}\n')
+        os.symlink(target, os.path.join(td, "prog.sv0covmap.json"))
+        check("a symlink is kept", remove_stale_outputs(off, art, td) == [] and os.path.exists(target))
+        os.unlink(os.path.join(td, "prog.sv0covmap.json"))
+        kept = put("prog.sv0covmap.json", b'{"schema":"sv0cov.map"}\n')
+        inst = resolve("instrument", None, art, td)
+        check("an instrument build keeps its own outputs", remove_stale_outputs(inst, art, td) == [] and os.path.exists(kept))
+
     check("runtime source", coverage_runtime_source().endswith(RUNTIME_RELPATH))
     try:
         coverage_runtime_source("/nonexistent-toolchain")
@@ -278,10 +401,30 @@ def _resolve_cli(argv: list[str]) -> int:
     return 0
 
 
+def _clean_stale_cli(argv: list[str]) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(prog="native_exe_coverage.py clean-stale")
+    ap.add_argument("--mode", required=True)
+    ap.add_argument("--map")
+    ap.add_argument("--artifact", required=True)
+    args = ap.parse_args(argv)
+    try:
+        req = resolve(args.mode, args.map, args.artifact, os.getcwd())
+    except CoverageUsageError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    for path in remove_stale_outputs(req, args.artifact, os.getcwd()):
+        print(path)
+    return 0
+
+
 if __name__ == "__main__":
     if "--selftest" in sys.argv:
         raise SystemExit(_selftest())
     if len(sys.argv) > 1 and sys.argv[1] == "resolve":
         raise SystemExit(_resolve_cli(sys.argv[2:]))
+    if len(sys.argv) > 1 and sys.argv[1] == "clean-stale":
+        raise SystemExit(_clean_stale_cli(sys.argv[2:]))
     print(__doc__, file=sys.stderr)
     raise SystemExit(2)

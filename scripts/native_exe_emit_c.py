@@ -32,7 +32,7 @@ from native_exe_input_validation import validate_file_input_shape
 from native_exe_output_path import ensure_output_parent_dir, validate_output_path
 from native_exe_staging import validate_staging_c, write_text_atomically
 from native_exe_build import COVERAGE_OFF, DEFAULT_COMPILER_PATH
-from native_exe_coverage import CoverageRequest, child_env
+from native_exe_coverage import CoverageRequest, child_env, remove_stale_outputs
 
 
 def emit_c_only(
@@ -75,6 +75,8 @@ def emit_c_only(
     validate_staging_c(emission.c_source)
 
     write_text_atomically(emission.c_source, output_path)
+    # sv0cov CV-208: no stale coverage map beside C this build did not map.
+    remove_stale_outputs(coverage or COVERAGE_OFF, output_path, invocation_cwd)
     return output_path
 
 

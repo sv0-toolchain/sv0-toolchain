@@ -30,6 +30,9 @@ import os
 import sys
 import tempfile
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from native_exe_coverage import FORMAT_VERSIONS, cache_key_part  # noqa: E402
+
 WS = " \t\n\v\f"
 
 
@@ -78,10 +81,10 @@ def cache_key(root: str, entry: str, envkey: str, coverage_request: str = "") ->
     h.update(_sha(open(tu_c, "rb").read()).encode() + b"\n")
     h.update(_sha(open(wrapper, "rb").read()).encode() + b"\n")
     h.update(os.path.abspath(entry).encode("utf-8", "surrogateescape") + b"\n")
-    # sv0cov CV-106 / COV-INS-004: a non-off coverage request changes the
-    # emitted artifact; off (empty) keeps every existing key unchanged.
-    if coverage_request:
-        h.update(b"coverage\0" + coverage_request.encode("utf-8", "surrogateescape") + b"\n")
+    # sv0cov CV-106/CV-208, COV-INS-004: a non-off coverage request (mode,
+    # map path, target, identity) and the coverage format versions change
+    # the emitted artifact; off (empty) keeps every existing key unchanged.
+    h.update(cache_key_part(coverage_request))
     for f in include_closure(entry):
         try:
             data = _sha(open(f, "rb").read())
@@ -136,6 +139,25 @@ def _selftest() -> int:
         cov_map = cache_key(td, entry, "ENV", "map\n/m.json")
         check("coverage request invalidates", cov_map not in (None, base))
         check("coverage mode is part of the key", cache_key(td, entry, "ENV", "instrument\n/m.json") != cov_map)
+        saved = FORMAT_VERSIONS["raw_profile"]
+        FORMAT_VERSIONS["raw_profile"] = "1.1"
+        check("a coverage format version is part of the key", cache_key(td, entry, "ENV", "map\n/m.json") != cov_map)
+        check("format versions do not touch an off key", k() == base)
+        FORMAT_VERSIONS["raw_profile"] = saved
+        check("the key returns with the format version", cache_key(td, entry, "ENV", "map\n/m.json") == cov_map)
+        env_saved = os.environ.get("SV0_COVERAGE_REQUEST")
+        os.environ["SV0_COVERAGE_REQUEST"] = "map\n/m.json"
+        key_saved = os.environ.get("SV0_RUN_CACHE_ENVKEY")
+        os.environ["SV0_RUN_CACHE_ENVKEY"] = "ENV"
+        check("a coverage build is not emit-cacheable", main(["key", "--root", td, entry]) == 3)
+        if key_saved is None:
+            del os.environ["SV0_RUN_CACHE_ENVKEY"]
+        else:
+            os.environ["SV0_RUN_CACHE_ENVKEY"] = key_saved
+        if env_saved is None:
+            del os.environ["SV0_COVERAGE_REQUEST"]
+        else:
+            os.environ["SV0_COVERAGE_REQUEST"] = env_saved
         check("empty environment key is not cacheable", k("") is None)
         w("build/megaTU-native.c", "int compiler(void){return 2;}\n")
         os.utime(os.path.join(td, "build", "sv0-megatu-native"), (now + 9, now + 9))
@@ -145,7 +167,7 @@ def _selftest() -> int:
 
     if bad:
         return 1
-    print("emit_cache_key: selftest OK (13 checks)")
+    print("emit_cache_key: selftest OK (17 checks)")
     return 0
 
 
@@ -153,8 +175,12 @@ def main(argv: list[str]) -> int:
     if "--selftest" in argv:
         return _selftest()
     if len(argv) >= 4 and argv[0] == "key" and argv[1] == "--root":
-        key = cache_key(argv[2], argv[3], os.environ.get("SV0_RUN_CACHE_ENVKEY", ""),
-                        os.environ.get("SV0_COVERAGE_REQUEST", ""))
+        # CV-208: this cache stores only the emitted C. A coverage build also
+        # writes a map, which a cache hit would not reproduce, so it is not
+        # cacheable here (its key still differs from every off key).
+        if os.environ.get("SV0_COVERAGE_REQUEST", ""):
+            return 3
+        key = cache_key(argv[2], argv[3], os.environ.get("SV0_RUN_CACHE_ENVKEY", ""))
         if key is None:
             return 3
         print(key)

@@ -28,6 +28,7 @@ import hashlib
 import json
 import os
 
+from native_exe_coverage import FORMAT_VERSIONS
 from native_exe_staging import write_text_atomically
 
 SCHEMA_VERSION = 1
@@ -79,7 +80,8 @@ def build_record(
     semantic-only reproducibility rather than conflating the two.
 
     `coverage` (sv0cov SPEC 13.3, CV-106) always states the mode, `off`
-    included, plus the map path for `map`/`instrument`.
+    included, plus the map path for `map`/`instrument` and (CV-208) the
+    versions of the coverage formats that build wrote (`null` for `off`).
     """
     artifact_bytes_sha256 = _sha256_file(artifact_path)
     artifact_size = os.path.getsize(artifact_path)
@@ -126,7 +128,11 @@ def build_record(
         "hermetic": hermetic,
         "config": config,
         "reproducibility": reproducibility,
-        "coverage": {"mode": coverage_mode, "map_path": coverage_map_path},
+        "coverage": {
+            "mode": coverage_mode,
+            "map_path": coverage_map_path,
+            "formats": dict(FORMAT_VERSIONS) if coverage_mode != "off" else None,
+        },
     }
 
 
