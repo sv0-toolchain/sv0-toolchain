@@ -87,7 +87,14 @@ def run_sanitized_corpus(root: Path, rows: list[tuple[str, int]] | None = None) 
                     file=sys.stderr,
                 )
                 return 1
-            stderr = proc.stderr.strip()
+            # A defined sv0 failure writes one line of its own to stderr before
+            # exiting 1 (a runtime panic such as `division by zero`, or a
+            # contract violation). That is the program's orderly output, not a
+            # sanitizer finding; everything else on stderr is.
+            stderr = "\n".join(
+                line for line in proc.stderr.splitlines()
+                if not line.startswith(("sv0 panic: ", "sv0 contract violation: "))
+            ).strip()
             if stderr:
                 expected_substring = KNOWN_SANITIZER_FINDINGS.get(rel)
                 if expected_substring is None or expected_substring not in stderr:

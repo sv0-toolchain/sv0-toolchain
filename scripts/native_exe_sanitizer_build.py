@@ -120,7 +120,12 @@ def _selftest() -> int:
         has_sanitizer_name = (
             "undefinedbehaviorsanitizer" in ub_stderr_lower or "addresssanitizer" in ub_stderr_lower
         )
-        if "runtime error" not in ub_stderr_lower or not has_sanitizer_name:
+        # GCC's UBSan in its default print-and-continue mode writes only the
+        # `runtime error:` line for a negation overflow, with no summary
+        # naming a sanitizer (found in CI when this fixture replaced the
+        # trapping INT32_MIN / -1). The diagnostic line is the proof.
+        del has_sanitizer_name
+        if "runtime error" not in ub_stderr_lower:
             failures.append(
                 f"UB fixture's sanitizer stderr didn't contain the expected UBSan diagnostic: {proc_ub.stderr!r}"
             )
