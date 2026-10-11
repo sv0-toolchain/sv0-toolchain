@@ -81,7 +81,7 @@ def _selftest() -> int:
     failures: list[str] = []
     this_dir = os.path.dirname(os.path.abspath(__file__))
     ub_fixture = os.path.abspath(
-        os.path.join(this_dir, "..", "sv0c", "test", "behavior", "cases", "ub_arith_div_i32_min_by_neg1.sv0")
+        os.path.join(this_dir, "..", "sv0c", "test", "behavior", "cases", "ub_arith_neg_i32_min.sv0")
     )
     clean_fixture = os.path.abspath(
         os.path.join(this_dir, "..", "sv0c", "test", "behavior", "cases", "box_deref_chain_stress.sv0")
@@ -99,9 +99,10 @@ def _selftest() -> int:
         # "UndefinedBehaviorSanitizer" summary line. On Linux/GCC (confirmed
         # via a real CI run -- this project's own suite had never once
         # reached this far in CI before KC-001/002/005 were fixed, so this
-        # platform difference was never seen until now), integer division
-        # overflow by -1 is a genuine hardware trap (SIGFPE) regardless of
-        # UBSan: UBSan still prints its own "runtime error: ..." diagnostic
+        # platform difference was never seen until now), the fixture this
+        # case first used, integer division overflow by -1, is a genuine
+        # hardware trap (SIGFPE) regardless of UBSan (that operation is a
+        # defined sv0 panic now, so the fixture is the negation of INT32_MIN): UBSan still prints its own "runtime error: ..." diagnostic
         # line FIRST, but the process is then killed by the trap before it
         # can print its own summary line -- ASan's signal handler intercepts
         # the SIGFPE instead and reports "AddressSanitizer: FPE ...". The

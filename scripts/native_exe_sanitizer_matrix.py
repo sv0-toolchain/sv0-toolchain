@@ -31,10 +31,11 @@ from native_exe_build import build_native_executable
 from native_exe_sanitizer_build import SANITIZE_FLAGS, sanitizer_env
 
 _SAFE_FIXTURES = [("box_deref_chain_stress.sv0", 210), ("vec_growth_stress.sv0", 188)]
+# INT32_MIN / -1 and % -1 were UB fixtures here until sv0 defined them as
+# `division overflow` panics (sv0doc type-system/rules.md 1.5); they are now
+# ordinary behavior cases (div_i32_min_by_neg1_panics, mod_i32_min_by_neg1_panics).
 _UB_FIXTURES = [
     "ub_arith_neg_i32_min.sv0",
-    "ub_arith_div_i32_min_by_neg1.sv0",
-    "ub_arith_mod_i32_min_by_neg1.sv0",
 ]
 _OPT_LEVELS = ["-O0", "-O2"]
 
