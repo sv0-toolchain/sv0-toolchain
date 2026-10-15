@@ -59,12 +59,23 @@ cd sv0-toolchain
 ./scripts/sv0 vm-run build/vm/01_hello.sv0b                 # run it on sv0vm
 ./scripts/sv0 emit-c <path-relative-to-sv0c/>              # see the C a file compiles to
 ./scripts/sv0 repl                 # line-at-a-time evaluation
+./scripts/sv0 coverage version     # sv0cov through its pinned launcher, after the compatibility check
 ```
 
 `./scripts/sv0` is the single driver for the whole workspace; run it with no
 arguments for the full command list. See **[CONTRIBUTING.md](CONTRIBUTING.md)**
 for the developer workflow, git hooks, the agent task system, and maintainer
 notes.
+
+`./scripts/sv0 coverage <run|merge|report|check|clean|doctor|version>` runs
+the pinned `sv0cov/scripts/sv0cov` and nothing else. Every subcommand except
+`doctor` first compares `compatibility/sv0cov.json`, the `sv0cov` gitlink, and
+the launcher's `version --json` (on failure: `COV5002`, exit 7, nothing run).
+Arguments, working directory, streams, and exit status pass through untouched;
+`doctor` gets `--toolchain-root` set to this checkout. The launcher picks its
+Python from your `PATH`: the first `python3.14`, else `python3.13`, and it
+refuses version-manager shims (pyenv), so put a real interpreter's directory
+first if it reports `COV6002`.
 
 ## status
 

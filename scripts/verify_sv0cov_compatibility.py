@@ -115,8 +115,8 @@ def pinned(root: Path, revision: str) -> dict:
             "launcher_mode": launcher[0] if launcher else None}
 
 
-def read_policy_bytes(root: Path) -> bytes:
-    """The working-tree policy: exact path, no symlink on the way, regular, bounded, equal to the staged bytes."""
+def policy_file_bytes(root: Path) -> bytes:
+    """The working-tree policy bytes: exact path, no symlink on the way, a regular file, bounded before it is read."""
     path = root
     for part in POLICY.split("/"):
         path = path / part
@@ -130,7 +130,16 @@ def read_policy_bytes(root: Path) -> bytes:
         raise GuardError(f"{POLICY} is not a regular file")
     if st.st_size > MAX_BYTES:
         raise GuardError(f"{POLICY} exceeds {MAX_BYTES} bytes")
-    data = path.read_bytes()
+    with open(path, "rb") as f:
+        data = f.read(MAX_BYTES + 1)
+    if len(data) > MAX_BYTES:
+        raise GuardError(f"{POLICY} exceeds {MAX_BYTES} bytes")
+    return data
+
+
+def read_policy_bytes(root: Path) -> bytes:
+    """The working-tree policy, which must also equal the staged bytes."""
+    data = policy_file_bytes(root)
     entry = staged_entry(root, POLICY)
     if entry is None:
         raise GuardError(f"{POLICY} is not tracked (git add {POLICY})")
