@@ -57,6 +57,15 @@ When you bump a submodule, update the pinned SHA in the [README](README.md)
 `scripts/verify_readme_sv0c_gitlink.py`. Confirm the staged gitlink with
 `git ls-files -s sv0c`.
 
+An **sv0cov** bump also reseals `compatibility/sv0cov.json` (sv0cov SPEC
+20.6.1): the policy names the pinned commit, its product version, and its
+diagnostic registry, and must change in the same commit as the gitlink.
+After `git add sv0cov`, run
+`python3 scripts/verify_sv0cov_compatibility.py --write` and stage the policy;
+`./scripts/sv0 test-guards` fails while the two disagree. Required capability
+sets are kept as they are; change them by hand (then `--write` reseals) only
+when the pinned release advertises more.
+
 If `git push` over SSH port 22 times out, use
 `./scripts/with-github-ssh443.sh git push …` (SSH over 443).
 

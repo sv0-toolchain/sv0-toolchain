@@ -14,7 +14,7 @@ VM, numeric and strings libraries, a coverage tool, and developer tooling.
 | [**sv0vm**](sv0vm/) | the **bytecode VM** that runs sv0c's `--target=vm` output | SML/NJ | M2 complete |
 | [**sv0-mathlib**](sv0-mathlib/) | a contract-first **numeric library** (arith, modular, trig, polar, complex) written in pure sv0 — also a cross-backend conformance load for the compiler | sv0 | `v0.1.0` — SPEC R1 gate closed |
 | [**sv0-strings**](sv0-strings/) | a safe **strings library** — sv0-native bytes / UTF-8 / `CStr` plus C23 & POSIX.1-2024 `<string.h>`/`<strings.h>` compatibility façades, built spec-first | sv0 | `v1.1.0` — R1 shipped; SPEC `v0.4.0-draft` |
-| [**sv0cov**](sv0cov/) | **source-based code coverage**: one coverage truth for `.sv0` source across generated-C and `.sv0b`/sv0vm execution; merge, reports, and policy CLI | Python (sv0 rewrite after R1) | F0 in progress; SPEC `0.1.73-draft` |
+| [**sv0cov**](sv0cov/) | **source-based code coverage**: one coverage truth for `.sv0` source across generated-C and `.sv0b`/sv0vm execution; merge, reports, and policy CLI | Python (sv0 rewrite after R1) | F0 closed; R0 in progress; SPEC `0.1.73-draft` |
 | [**sv0-mcp**](sv0-mcp/) | Neo4j knowledge graph + MCP servers for AI-assisted development | Python | M0 complete |
 
 **Dependency flow:** sv0doc (spec) → sv0c (compiler) → C backend + VM backend →

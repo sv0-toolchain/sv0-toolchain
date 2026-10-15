@@ -55,6 +55,11 @@ jobs:
       - name: Tier-2 VM parity policy subset (M3-S-045, no SML)
         run: python3 scripts/verify_vm_parity_tier2_policy.py --root .
 
+      # CV-240 (sv0cov SPEC 20.6.1): the policy and the sv0cov gitlink agree,
+      # and the recursive checkout is exactly the pinned, clean commit.
+      - name: sv0cov compatibility policy vs pinned clean submodule (CV-240)
+        run: python3 scripts/verify_sv0cov_compatibility.py --root . --require-clean
+
       - name: Cache SML/NJ install
         uses: actions/cache@v4
         id: smlnj-cache
