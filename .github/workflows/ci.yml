@@ -41,10 +41,13 @@ jobs:
       # for sv0.toml discovery (NEX-043/062). Never caught before because
       # ./scripts/sv0 test had never once reached this far in CI (KC-001/
       # KC-002/KC-005 always aborted the run earlier).
-      - name: Set up Python 3.11+ (native_exe_config.py needs stdlib tomllib)
+      # 3.13 rather than any 3.11+: sv0cov's launcher (`./scripts/sv0 coverage`,
+      # the CV-242 toolchain doctor guard) only runs on a python3.13 or
+      # python3.14 found on PATH (sv0cov SPEC 20.6.4).
+      - name: Set up Python 3.13 (stdlib tomllib; sv0cov's supported CPython)
         uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: "3.13"
 
       - name: Milestone orientation + workspace index consistency (no SML)
         run: |

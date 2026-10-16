@@ -111,6 +111,7 @@ def capability_manifest(exe: Path, env: dict) -> bytes:
 def preflight(root: Path, exe: Path, env: dict) -> None:
     """The nine rules of SPEC 20.6.2, in order."""
     import verify_sv0cov_compatibility as guard
+    from sv0cov.formats import compatibility
     from sv0cov.formats.compatibility import PolicyError, validate_policy
     from sv0cov.formats.version_manifest import ManifestError, validate_manifest
 
@@ -136,41 +137,13 @@ def preflight(root: Path, exe: Path, env: dict) -> None:
         manifest = validate_manifest(capability_manifest(exe, env))
     except ManifestError as exc:
         raise Incompatible(f"sv0cov version --json: {exc}") from None
-    if manifest["version"] != policy["version_manifest_version"]:
-        raise Incompatible(f"manifest version {manifest['version']} != {policy['version_manifest_version']}")
-    # 4. identity
-    tool, impl = manifest["tool"], manifest["implementation"]
-    if tool != policy["expected_tool"]:
-        raise Incompatible(f"sv0cov reports {tool['name']} {tool['version']}, the policy expects "
-                           f"{policy['expected_tool']['name']} {policy['expected_tool']['version']}")
-    if impl["revision"] != policy["expected_revision"]:
-        raise Incompatible(f"sv0cov reports revision {impl['revision']}, the policy expects {policy['expected_revision']}")
-    # 5. implementation language
-    if impl["language"] not in policy["allowed_implementation_languages"] or impl["language"] != policy["default_implementation_language"]:
-        raise Incompatible(f"sv0cov reports implementation {impl['language']}, the policy selects {policy['default_implementation_language']}")
-    # 6. host
+    # 3 to 9: sv0cov's own comparison (SPEC 20.6.1: sv0cov owns the semantics), against
+    # the host observed here and the registry the pinned commit carries
     system, machine = observed_host()
-    if manifest["host"] != {"architecture": machine, "operating_system": system}:
-        raise Incompatible(f"sv0cov reports host {manifest['host']['operating_system']}-{manifest['host']['architecture']}, "
-                           f"this is {system}-{machine}")
-    host = f"{system}-{machine}"
-    if host not in policy["required_hosts"] or host not in manifest["supported_hosts"]:
-        raise Incompatible(f"host {host} is not both required by the policy and supported by sv0cov")
-    # 7. required capability sets
-    for name in ("commands", "backends", "bytecode_profiles", "features"):
-        missing = [v for v in policy[f"required_{name}"] if v not in manifest[name]]
-        if missing:
-            raise Incompatible(f"sv0cov does not advertise required {name.replace('_', ' ')}: {', '.join(missing)}")
-    # 8. artifact versions
-    for family, versions in policy["expected_artifact_versions"].items():
-        missing = [v for v in versions if v not in manifest["artifact_versions"].get(family, [])]
-        if missing:
-            raise Incompatible(f"sv0cov does not read or write {family} {', '.join(missing)}")
-    # 9. diagnostic registry: revision and digest, allowed and the one the pinned commit carries
-    registry = manifest["diagnostic_registry"]
-    if registry not in policy["allowed_diagnostic_registries"] or registry != pinned["registry"]:
-        raise Incompatible(f"sv0cov reports diagnostic registry revision {registry['revision']} ({registry['sha256'][:12]}), "
-                           f"which is not the allowed, pinned registry")
+    try:
+        compatibility.evaluate(policy, manifest, {"architecture": machine, "operating_system": system}, pinned["registry"])
+    except compatibility.Incompatible as exc:
+        raise Incompatible(str(exc)) from None
 
 
 def dispatch(argv: list[str]) -> int:

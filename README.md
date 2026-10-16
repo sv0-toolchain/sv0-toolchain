@@ -72,7 +72,7 @@ the pinned `sv0cov/scripts/sv0cov` and nothing else. Every subcommand except
 `doctor` first compares `compatibility/sv0cov.json`, the `sv0cov` gitlink, and
 the launcher's `version --json` (on failure: `COV5002`, exit 7, nothing run).
 Arguments, working directory, streams, and exit status pass through untouched;
-`doctor` gets `--toolchain-root` set to this checkout. The launcher picks its
+`doctor` gets `--toolchain-root` set to this checkout and, besides checking sv0cov itself, checks the policy, the submodule, and a small program mapped, built and run through this checkout on generated C and the VM (probes D009 to D018). The launcher picks its
 Python from your `PATH`: the first `python3.14`, else `python3.13`, and it
 refuses version-manager shims (pyenv), so put a real interpreter's directory
 first if it reports `COV6002`.
