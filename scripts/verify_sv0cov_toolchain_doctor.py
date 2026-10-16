@@ -18,9 +18,9 @@ SML/NJ must be available, as for ``./scripts/sv0 test``. D010 needs the
 ``sv0cov`` submodule at its gitlink with no change; with a dirty submodule
 (sv0cov work in progress) the check reports that and fails.
 
-The launcher resolves its Python from ``PATH`` (SPEC 20.6.4): the first
-``python3.14`` or ``python3.13`` that is a real interpreter, never a shim.
-This script builds that ``PATH`` from the first such interpreter it finds.
+The launcher resolves its Python from ``PATH`` (SPEC 20.6.4) and refuses a
+shim, so this script runs it with the caller's ``PATH`` reordered: the first
+real interpreter's directory first, shim directories left out.
 """
 
 from __future__ import annotations
@@ -38,26 +38,37 @@ from sv0cov.formats.canonical_json import decode_canonical  # noqa: E402
 from sv0cov.formats.doctor import validate  # noqa: E402
 
 
-def interpreter_dir() -> str | None:
-    """The first PATH directory holding a real ``python3.14`` (else ``python3.13``), not a script."""
-    for name in ("python3.14", "python3.13"):
-        for entry in os.environ.get("PATH", "").split(os.pathsep):
-            candidate = Path(entry) / name
-            try:
-                with open(candidate, "rb") as f:
-                    if f.read(2) != b"#!" and os.access(candidate, os.X_OK):
-                        return entry
-            except OSError:
-                continue
-    return None
+NAMES = ("python3.14", "python3.13")
+
+
+def real(candidate: Path) -> bool | None:
+    """True for an executable interpreter, False for a script (a shim), None when absent."""
+    try:
+        with open(candidate, "rb") as f:
+            return f.read(2) != b"#!" and os.access(candidate, os.X_OK)
+    except OSError:
+        return None
+
+
+def launcher_path() -> str | None:
+    """The caller's PATH with the first real ``python3.14`` (else ``python3.13``) directory first and
+    every directory holding a shim of either name left out, so the launcher's own search (3.14 before
+    3.13, the first one found is authoritative) lands on a real interpreter. Everything else the smoke
+    probes need from PATH (SML/NJ for vm-run, the C compiler) stays."""
+    entries = [e for e in os.environ.get("PATH", "").split(os.pathsep) if e]
+    found = next((e for name in NAMES for e in entries if real(Path(e) / name)), None)
+    if found is None:
+        return None
+    kept = [e for e in entries if e != found and not any(real(Path(e) / name) is False for name in NAMES)]
+    return os.pathsep.join([found, *kept])
 
 
 def main() -> int:
-    where = interpreter_dir()
-    if where is None:
+    path = launcher_path()
+    if path is None:
         print("verify_sv0cov_toolchain_doctor: no real python3.14 or python3.13 on PATH (sv0cov needs one)", file=sys.stderr)
         return 1
-    env = {**os.environ, "PATH": os.pathsep.join([where, "/usr/bin", "/bin"])}
+    env = {**os.environ, "PATH": path}
     # Build the fixture once on both backends first: a cold compiler build is not the doctor's to time,
     # and the doctor keeps no child output, so a failure here is the place to see why.
     fixture = ROOT / "sv0cov" / "resources" / "doctor" / "doctor-r1-smoke.sv0"
