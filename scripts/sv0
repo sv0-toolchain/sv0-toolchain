@@ -206,6 +206,24 @@ ensure_sv0_megatu_verify() {
   [[ -f /tmp/.sv0_verify_path ]] || printf '' > /tmp/.sv0_verify_path
 }
 
+# sv0cov CV-242: the toolchain doctor guard (scripts/verify_sv0cov_toolchain_doctor.py)
+# builds its smoke fixture with `vm-native-compile`; build the native VM emitter
+# first, as for the native compiler, so the doctor's 60 s child limit never
+# covers a cold emitter build racing the other guards. Not for --fast, which
+# skips that guard.
+ensure_sv0_megatu_vm_native() {
+  [[ -z "${SV0_GUARDS_FAST:-}" ]] || return 0
+  local out="$ROOT/build/sv0-megatu-vm-native"
+  if [[ ! -x "$out" ]] || _artifact_stale "$out" \
+       "$ROOT/scripts/build-sv0-megatu-vm-native.sh" "$ROOT/scripts/assemble-sv0-megaTU.py"; then
+    echo "ensure_sv0_megatu_vm_native: building (missing or older than the compiler sources)" >&2
+    bash "$ROOT/scripts/build-sv0-megatu-vm-native.sh" >&2
+  fi
+  if [[ ! -x "$out" ]]; then
+    sv0_fail "ensure_sv0_megatu_vm_native: missing executable $out (build-sv0-megatu-vm-native.sh failed)"
+  fi
+}
+
 # M4-S-020/021: `sv0 verify <file>` — driver-orchestrated static contract
 # verification with a per-contract report (sv0doc/contracts/semantics.md §3.2).
 # The native verify binary emits one record per contract clause
@@ -782,6 +800,7 @@ run_test_guards() {
   # (built by build-sv0-megatu-verify-native.sh) for the same reason.
   ensure_sv0_megatu_native
   ensure_sv0_megatu_verify
+  ensure_sv0_megatu_vm_native
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
@@ -802,6 +821,7 @@ run_test_light() {
   done
   ensure_sv0_megatu_native
   ensure_sv0_megatu_verify
+  ensure_sv0_megatu_vm_native
   if ! run_python_guards "sv0 test-light"; then
     ec=1
   fi
@@ -842,6 +862,7 @@ run_test() {
   # checkout.
   ensure_sv0_megatu_native
   ensure_sv0_megatu_verify
+  ensure_sv0_megatu_vm_native
   # PC-6c (native-default promotion): do NOT force the SML delegate as the default
   # here. Leaving SV0_SELF_HOST_COMPILER unset lets run_self_host_sv0_loop flip to
   # the native mega-TU binary (behavioral acceptance) as the promoted default, while

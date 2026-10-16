@@ -28,6 +28,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +58,17 @@ def main() -> int:
         print("verify_sv0cov_toolchain_doctor: no real python3.14 or python3.13 on PATH (sv0cov needs one)", file=sys.stderr)
         return 1
     env = {**os.environ, "PATH": os.pathsep.join([where, "/usr/bin", "/bin"])}
+    # Build the fixture once on both backends first: a cold compiler build is not the doctor's to time,
+    # and the doctor keeps no child output, so a failure here is the place to see why.
+    fixture = ROOT / "sv0cov" / "resources" / "doctor" / "doctor-r1-smoke.sv0"
+    with tempfile.TemporaryDirectory() as tmp:
+        for args in (["native-compile", "--coverage=instrument", "-o", f"{tmp}/native", str(fixture)],
+                     ["vm-native-compile", "--coverage=instrument", str(fixture), f"{tmp}/vm.sv0b"]):
+            r = subprocess.run([str(ROOT / "scripts" / "sv0"), *args], cwd=tmp, stdin=subprocess.DEVNULL, capture_output=True, timeout=900)
+            if r.returncode != 0:
+                print(f"verify_sv0cov_toolchain_doctor: sv0 {args[0]} of the smoke fixture failed (exit {r.returncode}):\n"
+                      f"{r.stdout.decode('utf-8', 'replace')}{r.stderr.decode('utf-8', 'replace')}", file=sys.stderr)
+                return 1
     runs = []
     for _ in range(2):
         r = subprocess.run([str(ROOT / "scripts" / "sv0"), "coverage", "doctor", "--json"], cwd=ROOT, env=env,
