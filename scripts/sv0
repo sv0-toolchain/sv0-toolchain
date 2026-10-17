@@ -970,6 +970,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/source/run_source_table.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: attributes (CV-302 — table snapshot, placement, coverage attribute validation on both binaries; C and bytecode unchanged)"
+  if ! python3 "$ROOT/sv0c/test/attributes/run_attributes.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage planner (CV-107 — sources, function entities, function_entry points vs the sv0cov semantic fixtures; native = VM emitter)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_plan.py"; then
     ec=1
