@@ -24,6 +24,8 @@ REQUIRED_FILES: tuple[str, ...] = (
     "sv0doc/keywords/reference.md",
     "sv0doc/bytecode/format.md",
     "sv0doc/bytecode/instructions.md",
+    "sv0doc/attributes/coverage.md",
+    "sv0doc/attributes/coverage-attribute.json",
 )
 
 
