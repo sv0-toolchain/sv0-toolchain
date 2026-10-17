@@ -35,6 +35,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          # Full history: the sv0cov rollback drill (CV-244) rolls the pin back
+          # to the previous qualified sv0cov commit and its committed policy.
+          fetch-depth: 0
 
       # ubuntu-22.04's default python3 is 3.10, which predates the stdlib
       # `tomllib` module (added in 3.11) that native_exe_config.py imports

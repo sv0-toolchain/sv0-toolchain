@@ -106,6 +106,9 @@ def main() -> int:
     before = (git(ROOT, "rev-parse", "HEAD"), git(ROOT, "ls-files", "-s", "--", "sv0cov", POLICY), (ROOT / POLICY).read_bytes())
     current = git(ROOT, "rev-parse", "HEAD:sv0cov")
     try:
+        for repo in (ROOT, ROOT / "sv0cov"):
+            if git(repo, "rev-parse", "--is-shallow-repository") == "true":
+                raise DrillFailure(f"{repo.name} is a shallow clone; the drill needs the history of earlier pins (CI: fetch-depth: 0)")
         root_commit, previous, qualified = previous_pin(current)
         with tempfile.TemporaryDirectory(prefix="sv0cov-rollback-") as tmp:
             copy = Path(tmp) / "root"
