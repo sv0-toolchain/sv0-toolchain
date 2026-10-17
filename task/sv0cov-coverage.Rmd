@@ -93,6 +93,7 @@ a decision are marked **blocked (D-n)** in the checklist.
 | D-10 | CV-232, CV-234 | **Open (raised 2026-10-11 by CV-231).** SPEC 20.1 writes the operand of `check` as `<indexed-profile-or-native-report>`, while SPEC 16.5 says `sv0cov.indexed` 1.0 is "the only accepted R1 input to standalone `report` and `check`". The two cannot both hold, and the SPEC does not say what checking a native report would mean: re-reading its recorded verdict, or re-evaluating it under the invoking configuration (a report carries its own resolved configuration and no bindings). Until decided, `sv0cov check` accepts only an indexed profile and refuses a native report with `COV5001`, exit 7. Options: (a) amend 20.1 to `<indexed-profile>`; (b) amend 16.5 and define native-report checking as validating the report and returning its recorded verdict, with a configuration conflict when the invoking policy differs; (c) as (b) but re-evaluate under the invoking configuration. Recommended: (a) for R1. |
 | ~~D-11~~ | CV-233 | **Resolved 2026-10-13 (owner).** The SPEC says `run` builds "through the canonical toolchain driver" and then runs the test command, but not what is built or how the command finds the instrumented program. Decision: `run` builds the project in the working directory (`scripts/sv0 native-compile --coverage=instrument --project .`) into `<run_dir>/bin/<name>` (name = the directory's name) and puts that directory first on the child's `PATH`; no variable beyond the four transport names is set. Native backend only in CV-233; VM support in `run` is a follow-up. Rejected: a fifth variable naming the build, and having the test command build through a driver that reads a variable (both SPEC amendments). |
 | ~~D-12~~ | CV-242 | **Resolved 2026-10-16 (owner): transport-free projection; SPEC amendment owed.** SPEC 20.7 requires the doctor result to be byte-identical for the same product, host, mode, toolchain state and smoke inputs, and D018 publishes `native_report_sha256` of the smoke report. But SPEC 16.4 requires every raw profile to carry a profile ID from the secure random source, and the native report records each input's profile ID and artifact digest and the indexed-input digest, so a fresh smoke report's bytes differ on every run. Decision: D018 still builds, reads back and checks the real report, and publishes the SHA-256 of its canonical *transport-free projection*: each input record without `artifact_sha256`, `name`, `profile_id` and `run_id`, the records ordered by their canonical bytes, and `provenance` without `indexed_input_sha256` and `run_ids` (`sv0cov.toolchain.report_projection`). Owed: a SPEC 20.7 note defining that projection for `native_report_sha256`. | Was: digest of the real bytes (aggregate no longer deterministic), or a report from a bundled indexed input (deterministic but not about the fresh run). |
+| ~~D-13~~ | CV-244 | **Resolved 2026-10-17 (owner): close R0, defer to R1; SPEC note owed.** R0-G8 asks that, without public publication, the SPDX closure, the protected independent approval and the immutable-release staging and verification pass. They exist only with the R1 release workflow (CV-411 SBOM and license closure, CV-413 attestations, `release` environment, immutable release), and the last two need repository settings only the owner can change. Decision: R0 closes with those three items deferred to CV-411/CV-413; everything else in R0-G8 passes (see the R0 gate review). Owed: a SPEC §31.2 note moving them from R0-G8 to R1-G12/R1-G15. | Was: keep R0 open until a release workflow can be exercised in a dry-run mode, or count the frozen procedures as passing with no deferral recorded. |
 | D-5 | CV-233 | Which toolchain entry point does `sv0cov run` use to build? | Default: `./scripts/sv0 native-compile` / `vm-native-compile` with the new `--coverage=instrument` flag. This is non-normative; recorded rather than asked. |
 
 ## cross-spec conflicts with the installed-toolchain spec (2026-09-27)
@@ -114,7 +115,7 @@ build entry point (D-5) each needed an owner decision. **All three were resolved
 | Stage | Exit boundary | Checklist band |
 |---|---|---|
 | **F0** feasibility (**closed 2026-10-08**, see the F0 gate review) | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
-| **R0** developer preview | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
+| **R0** developer preview (**closed 2026-10-17**, see the R0 gate review) | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
 | **R0.1** policy preview | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
 | **R1** stable contract (`1.0.0`) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
 | **Post-R1** | sv0 rewrite against the Python oracle; continuous counters. | `CV-9xx` (coarse; re-slice when reached) |
@@ -179,6 +180,37 @@ VM parity tier-2, sv0cov's 8-cell CI, sv0vm `make test`).
 | DV-8 | G6: sv0vm has no general bytecode verifier. `COVER_HIT` operands are checked at load, and stack neutrality is shown by execution tests. | sv0vm `test/coverage_test.sml` |
 | DV-9 | The profile filename is `<run_id>-<profile_id>.sv0profraw`. The SPEC fixes only that both IDs appear. | generated-c-protocol.md; sv0doc |
 | DV-10 | VM collection needs an explicitly named binding (`SV0B_COVERAGE_BINDING`, `sv0 vm-run --coverage-binding`), not an `SV0COV_*` name, because the runtime rejects unknown transport names. | sv0doc `bytecode/coverage.md` |
+
+## R0 gate review (CV-244, SPEC §31.2)
+
+**R0 is closed (2026-10-17): R0-G1..G7 pass; R0-G8 passes except three items
+deferred to R1 by decision D-13.** Reviewed against the meta commit that records this review (CV-244) with sv0cov
+`2ceed16` (the other submodules as pinned there). Every cited suite was green at
+that commit, locally and in GitHub CI (`./scripts/sv0 test` with test-guards,
+VM parity tier-2, sv0cov's 8-cell CI with the release-agreement job).
+
+| Gate | Status | Evidence |
+|---|---|---|
+| R0-G1 SSH `.gitmodules` entry, mode-160000 gitlink, policy in the same commit | pass | CV-002 guard; CV-240 `compatibility/sv0cov.json` + `verify_sv0cov_compatibility.py` (test-guards, CI `--require-clean`). |
+| R0-G2 closed map, raw, run-set, registry, policy, indexed, indexed-semantic schemas; append-only registry; self-contained replay; canonical projection; cross-reader | pass, with a note | CV-014/015 map, CV-024/025 raw, CV-019 run set, CV-009 + revision-2 append-only check (CV-234), CV-020/240 policy, CV-220/222 indexed and semantic, CV-229/231 (report and check from the indexed profile alone), CV-222/223 projections (native = VM projection on real runs, sv0c gate). Cross-reader: sv0vm's SML writer and reader and sv0c's maps are read by Python on real runs; there is no sv0-language reader before the post-R1 rewrite (§31.6), as at F0. |
+| R0-G3 `run`, `merge`, `report`, `check` lifecycle | pass | CV-227 merge, CV-232 report and clean, CV-231 check, CV-233/234 run (secure run IDs, explicit-list selection, transport isolation, exit matrix), CV-223 single/multi-run selection, CV-029/224 closed configuration, CV-225 CLI, CV-226 publication (stdout isolation, collision refusal, deterministic destinations). |
+| R0-G4 terminal/native outputs, basic fixed thresholds | pass | CV-229 native report, CV-230 terminal, CV-231 thresholds and exit statuses. |
+| R0-G5 no network, traversal, injection, environment poisoning, corruption, resource bounds | pass | CV-237 security suite (no-network audit hook + Linux network namespace in CI), CV-236 fuzzing and resource limits, CV-025 negative corpus. |
+| R0-G6 deterministic clean build and merge | pass | CV-111 map determinism; CV-223 permutation and fresh-run projection tests; CV-243 two byte-identical builds per cell and the same `SHA256SUMS` on all eight cells. |
+| R0-G7 `large` and `custom` tiers | pass | CV-211 (sv0c `run_tiers.py`: exact limits on both producers, `large` = `standard` counts, larger-tier profiles readable), CV-224 tier configuration, CV-223/227 consumer refusal over the tier. |
+| R0-G8 release controls without publication | pass, except three items deferred (D-13) | Distribution policy and channel lint (CV-034, CV-243 COV-PKG-007 lint); exact root policy and same-commit update (CV-240); release-manifest schema and `SHA256SUMS` (CV-034); build-once workflow and checksum/manifest closure (CV-243 `tools/release.py`); per-asset attestation policy frozen in every manifest (CV-034, CV-243); evidence copy (the root's resealed policy is byte-identical to the release's proposed policy, CV-243); rollback dry run (CV-244 `verify_sv0cov_rollback_drill.py`, test-guards); retention and withdrawal procedures (`docs/release-policy.md`). **Deferred to R1 (D-13):** SPDX closure (CV-411), protected independent approval and immutable-release staging and verification (CV-413). |
+
+**Advertised capabilities after R0** (owner, 2026-10-17): every command;
+backends `native` and `vm-v1`; profile `sv0vm-v1-coverage`; features
+`native-json-report`, `run-sets`, `saturation-lower-bounds`,
+`self-contained-indexed`, `source-integrity`. The root policy requires
+exactly that set. No VM-v2 (COV-VM-027 still holds), and no R0.1/R1 feature.
+
+**F0 deviations revisited.** DV-6 is resolved: the semantic model keeps
+per-context counts (CV-221). DV-5 stays R1. The others are unchanged.
+
+**Owed by the owner:** SPEC notes for D-12 (D018 report projection) and D-13
+(the three deferred R0-G8 items), the `COV2130` amendment, and decision D-10.
 
 ## tracks
 
