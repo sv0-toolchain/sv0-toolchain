@@ -1000,6 +1000,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/exclusions/run_exclusions.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: contract coverage (CV-306 — requires/ensures/loop_invariant/assert enforced on native + VM; contract plan, dispositions, AC-010/043/106)"
+  if ! python3 "$ROOT/sv0c/test/coverage/contracts/run_contracts.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1
