@@ -529,6 +529,7 @@ run_python_guards() {
     'CV-102 coverage identifier registry guard selftest'
     'CV-102 sv0doc/sv0c/sv0vm/sv0cov agree with the coverage identifier registry (opcode 119 = COVER_HIT)'
     'CV-301 sv0doc coverage attribute registry + generated tables current (attributes/coverage.md)'
+    'CV-303 fmt_sv0 attribute layout selftest (cases, fixture goldens, sv0c/ + sv0vm/ formatted, CLI)'
     'CV-106 --coverage mode/map-path rules selftest (scripts/native_exe_coverage.py)'
     'vm-parity manifest ⊆ sv0c/lib/bootstrap-sources.list'
     'task/milestone-orientation.json (schema + primary_tasks exist)'
@@ -636,6 +637,7 @@ run_python_guards() {
     'python3 "$ROOT/scripts/verify_coverage_identifier_registry.py" --selftest'
     'python3 "$ROOT/scripts/verify_coverage_identifier_registry.py" --root "$ROOT"'
     'python3 "$ROOT/sv0doc/scripts/gen_coverage_attribute.py"'
+    'python3 "$ROOT/scripts/verify_fmt_sv0.py"'
     'python3 "$ROOT/scripts/native_exe_coverage.py" --selftest'
     'python3 "$ROOT/scripts/verify_vm_parity_manifest_bootstrap.py" --root "$ROOT"'
     'python3 "$ROOT/scripts/verify_milestone_orientation.py" --root "$ROOT"'
@@ -808,7 +810,7 @@ run_test_guards() {
   if ! run_python_guards "sv0 test-guards"; then
     sv0_fail "sv0 test-guards: one or more Python checks failed"
   fi
-  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + CV-002 sv0cov submodule pin + CV-240 sv0cov compatibility policy + CV-241 sv0 coverage namespace + CV-242 toolchain doctor + CV-244 rollback drill + CV-104 sha256 generator + CV-102 coverage identifier registry + CV-301 coverage attribute registry + CV-106 coverage mode rules + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-055c no-new-legacy-control-file guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + VM-compose phase-6 patch resilience selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
+  sv0_ok "sv0 test-guards: block-comment + sv0doc baseline + task YAML + task sv0-track + README sv0c gitlink + CV-002 sv0cov submodule pin + CV-240 sv0cov compatibility policy + CV-241 sv0 coverage namespace + CV-242 toolchain doctor + CV-244 rollback drill + CV-104 sha256 generator + CV-102 coverage identifier registry + CV-301 coverage attribute registry + CV-303 fmt_sv0 attribute layout + CV-106 coverage mode rules + vm-parity manifest ⊆ bootstrap + milestone-orientation + workspace milestone table + compiler sv0 no-raise + commit-msg AI-signoff selftest + M3 G1 slice path audit + M3 G6 pipeline contract + M3 G6 link merge contract + M3 G6 staging driver contract + M3 G7 diagnostics corpus layout + M3 G7 tier-2 VM parity policy + M3 G8 native recipe paths + M3 G9 retirement docs + M3 GX bootstrap policy docs + NEX-001 native-exe traceability + NEX-002 native-exe CLI parser selftest + NEX-003 native-exe phase-machine + request normalization selftests + NEX-004 fake emitter selftest + NEX-005 fake C compiler selftest + NEX-006 error phase mapping selftest + NEX-007/052b atomic publication + output lock + same-output stress selftest + NEX-008 scratch-dir lifecycle selftest + NEX-009/034 argv-only + cancellable subprocess selftest + NEX-011/055c core-compiler reentrant-request selftest + NEX-012 emission protocol selftest + NEX-013/014 entry existence+uniqueness scan selftest + NEX-015 entry signature selftest + NEX-017 reserved-symbol collision selftest + NEX-018/039 staging-C + emit-c selftest + NEX-040 keep-c retention selftest + NEX-041 JSON event encoder selftest + NEX-042 build-record selftest + NEX-043 sv0.toml config selftest + NEX-045 runtime bundle selftest + NEX-046 installed-layout E2E selftest + NEX-047 benchmark harness selftest + NEX-055a perf regression selftest + NEX-055b concurrent-perf selftest + NEX-056a release-evidence selftest + NEX-058 canonical-compile + no-duplicate-recipe guard selftest + NEX-055c no-new-legacy-control-file guard selftest + NEX-049a/b/c warning policy selftest + NEX-050a/b sanitizer build+matrix selftest + VM-compose phase-6 patch resilience selftest + NEX-050c full-corpus sanitizer sweep selftest + NEX-051b release parity selftest + NEX-053a reproducibility harness selftest + NEX-019 runtime resolver selftest + NEX-020 runtime manifest selftest + NEX-054a/b entry ABI manifest + compat + install-mismatch selftest + NEX-021 cc-selection selftest + NEX-022/044 cc-probe + cached-probe selftest + NEX-023/051a argv builder selftest + NEX-024 sanitized env selftest + NEX-025 host-compile diagnostics selftest + NEX-026 output-path rules selftest + NEX-027 human output selftest + NEX-028/051c build assembly + profile selection + behavior corpus smoke + NEX-029 runtime-feature coverage + NEX-030 project-mode build + NEX-031 contract-mode matrix + NEX-032 preservation across failure phases + NEX-033 symlink/scratch hardening + NEX-035 parallel builds + NEX-036 hostile paths"
 }
 
 # Reduced suite for pushes whose changed paths cannot affect the compiler, VM or
@@ -972,6 +974,10 @@ run_test() {
   fi
   sv0_info "sv0 test: attributes (CV-302 — table snapshot, placement, coverage attribute validation on both binaries; C and bytecode unchanged)"
   if ! python3 "$ROOT/sv0c/test/attributes/run_attributes.py"; then
+    ec=1
+  fi
+  sv0_info "sv0 test: formatter keeps attributes (CV-303 — fmt_sv0.py format/reparse: same attribute table on both binaries, same C and bytecode)"
+  if ! python3 "$ROOT/scripts/verify_fmt_sv0.py" --reparse; then
     ec=1
   fi
   sv0_info "sv0 test: coverage planner (CV-107 — sources, function entities, function_entry points vs the sv0cov semantic fixtures; native = VM emitter)"
@@ -1977,7 +1983,7 @@ run_doc() {
 run_fmt_sv0() {
   sv0_require_cmd python3
   python3 "$ROOT/scripts/fmt_sv0.py" "$SV0C" "$SV0VM"
-  sv0_ok "fmt: .sv0 whitespace normalization under sv0c/ and sv0vm/"
+  sv0_ok "fmt: .sv0 attribute layout + whitespace normalization under sv0c/ and sv0vm/"
 }
 
 run_fmt() {

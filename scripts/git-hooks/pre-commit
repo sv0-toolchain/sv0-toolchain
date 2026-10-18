@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # sv0-toolchain pre-commit hook — FAST checks only (seconds), no SML.
-#   * .sv0 whitespace formatting (staged files)
+#   * .sv0 formatting: attribute layout + whitespace (staged files)
 #   * shell syntax (staged *.sh) + Python syntax/lint (staged *.py)
 #   * documentation pins + fast guards (parent repo: ./scripts/sv0 test-guards;
 #     sv0c submodule: .sv0 block-comment nesting guard)
@@ -48,7 +48,7 @@ for f in "${staged[@]}"; do
   esac
 done
 
-# 1. .sv0 whitespace formatting (trailing ws / final newline).
+# 1. .sv0 formatting (attribute layout, trailing ws, final newline).
 if ((${#sv0_files[@]} > 0)); then
   if ! python3 "$toolchain_root/scripts/fmt_sv0.py" --check "${sv0_files[@]}"; then
     fail "unformatted .sv0 file(s). Run: ./scripts/sv0 fmt"
