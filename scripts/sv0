@@ -996,6 +996,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/loops/run_loops.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: coverage exclusions (CV-305 — attributes + directives resolved on both backends; C map = VM map; ordinary counts unchanged; support points; policy matrix)"
+  if ! python3 "$ROOT/sv0c/test/coverage/exclusions/run_exclusions.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1
