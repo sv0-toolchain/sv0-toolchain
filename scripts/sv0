@@ -976,6 +976,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/attributes/run_attributes.py"; then
     ec=1
   fi
+  sv0_info "sv0 test: comment directives (CV-304 — pre-lex scan: table snapshot, hostile text, 35 negative cases on both binaries, one unit per project file; C and bytecode unchanged)"
+  if ! python3 "$ROOT/sv0c/test/directives/run_directives.py"; then
+    ec=1
+  fi
   sv0_info "sv0 test: formatter keeps attributes (CV-303 — fmt_sv0.py format/reparse: same attribute table on both binaries, same C and bytecode)"
   if ! python3 "$ROOT/scripts/verify_fmt_sv0.py" --reparse; then
     ec=1

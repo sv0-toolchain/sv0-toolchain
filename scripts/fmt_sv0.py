@@ -79,8 +79,15 @@ def scan(text: str) -> list[Piece]:
             p = e
             continue
         if text.startswith("/*", p):
-            e = text.find("*/", p + 2)
-            e = n if e < 0 else e + 2
+            # block comments nest, as in sv0c's lexer (skip_block_comment)
+            depth, e = 1, p + 2
+            while e < n and depth:
+                if text.startswith("/*", e):
+                    depth, e = depth + 1, e + 2
+                elif text.startswith("*/", e):
+                    depth, e = depth - 1, e + 2
+                else:
+                    e += 1
             pieces.append(Piece("comment", p, e))
             p = e
             continue

@@ -100,6 +100,15 @@ src, n = re.subn(r'let _cov_mode: i32 = 0;\n    let _cov_root: string = "";\n   
                  lambda _m: cov_read, src, count=1)
 assert n == 1, "compose main shape changed: missing the committed _cov_* defaults"
 
+# sv0cov CV-304: a project build scans every project file for comment
+# directives (lib/directives.sv0); file mode scans `source` (empty units).
+units_read = (
+    'let mut _cov_units: string = "";\n'
+    '    if _is_proj { if string_len(_cov_listing) > 0 { _cov_units = _cov_listing; } else { _cov_units = megatu_dir_units(_cov_root); } }'
+)
+src, n = re.subn(r'let _cov_units: string = "";', lambda _m: units_read, src, count=1)
+assert n == 1, "compose main shape changed: missing the committed _cov_units default"
+
 # 2. Replace phase 6 (C emit call + gate) with the VM tail. Falls through to the
 #    existing `return 0;` at end of main (no return here). `td` from lower is unused
 #    in the VM path but kept (lower fills out_blocks). The substitution itself

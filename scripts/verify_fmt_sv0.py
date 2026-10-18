@@ -59,6 +59,7 @@ CASES = [
     ("other attributes too", "#[extern_c] fn abs(x: i32) -> i32;\n", "#[extern_c]\nfn abs(x: i32) -> i32;\n"),
     ("in a string", 'fn f() {\n    let s: string = "a; #[x] b";\n}\n', None),
     ("in comments", f"// {A} fn\n/* {A} let */\nfn f() {{}}\n", None),
+    ("in a nested block comment", f"/* a /* b */ {A} fn */\nfn f() {{}}\n", None),
     ("char literals", "fn f() {\n    let c: char = '#'; let d: char = '['; let e: char = '\\'';\n}\n", None),
     ("run at the end of the file", f"fn f() {{}}\n{A}  {B}\n", f"fn f() {{}}\n{A}  {B}\n"),
     ("unterminated attribute", "fn f() {}\n#[coverage(off\n", None),
