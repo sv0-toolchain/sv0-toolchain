@@ -1026,6 +1026,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/shortcircuit/run_shortcircuit.py"; then
     ec=1; sv0_stage_failed "$LINENO"
   fi
+  sv0_info "sv0 test: coverage contexts (CV-308 — absent / empty / Unicode / 256-byte SV0COV_CONTEXT exact in the raw header (AC-058), merged report by_context, context_view = per-context merge, COV-CTX-001; native + VM)"
+  if ! python3 "$ROOT/sv0c/test/coverage/contexts/run_contexts.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1; sv0_stage_failed "$LINENO"
