@@ -132,7 +132,7 @@ vm_tail = r'''    /* sv0cov CV-118: refuse an instrument build that cannot write
     let vm_ffi_diag: Vec<i32> = vec_new();
     if program_uses_ffi_features(it, ptt, bet) {
         vec_push(vm_ffi_diag, 553);
-        vec_push(vm_ffi_diag, 0 - 1);
+        vec_push(vm_ffi_diag, megatu_ffi_feature_tok(tags, source, starts, ends));
         megatu_emit_diagnostics(vm_ffi_diag, source, starts);
         return 7;
     }

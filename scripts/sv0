@@ -859,8 +859,22 @@ run_test_light() {
   sv0_ok "sv0 test-light: guards + doctests (mathlib=$want_mathlib strings=$want_strings)"
 }
 
+# Orphaned SML runtimes (parent pid 1): a harness that times out and kills
+# a wrapper used to leave the interpreter busy-looping for days.
+sv0_orphan_sml_pids() {
+  ps -eo pid=,ppid=,command= 2>/dev/null | awk '$2 == 1 && /run\.[a-z0-9_-]+-[a-z]+ @SMLcmdname/ {print $1}' | sort
+}
+
+# A failed `sv0 test` stage names itself even when its command printed
+# nothing (the final [FAIL] line alone did not say which stage it was).
+sv0_stage_failed() {
+  echo "sv0 test: stage failed (scripts/sv0 line $1)" >&2
+}
+
 run_test() {
   local ec=0
+  local _orphans_before
+  _orphans_before="$(sv0_orphan_sml_pids)"
   ensure_sv0_self_host_compiler
   # See run_test_guards's own comment: several native_exe_*.py selftests
   # inside run_python_guards need build/sv0-megatu-native (and NEX-031's own
@@ -877,16 +891,16 @@ run_test() {
   # delegate is built above (ensure_sv0_self_host_compiler) for the SML byte-guards.
   (cd "$SV0C" && make test) || ec=1
   if ! run_python_guards "sv0 test"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   require_sml
   sv0_info "sv0 test: diagnostics corpus behavioral (SML vs manifest needles)"
   if ! python3 "$ROOT/scripts/verify_diagnostics_corpus_behavior.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: diagnostics corpus behavioral (native mega-TU vs manifest needles; BH-8)"
   if ! python3 "$ROOT/scripts/verify_diagnostics_corpus_behavior_native.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   # (verify_behavior_corpus_native.py -- the hand-rolled emit+cc+run recipe over the
   # same manifest, asserting the same exit codes -- is no longer run here: the
@@ -895,182 +909,193 @@ run_test() {
   # cost. The script stays as a standalone tool.)
   sv0_info "sv0 test: behavioral PASS corpus via native_exe_build (NEX-028; TEST-004)"
   if ! python3 "$ROOT/scripts/native_exe_behavior_corpus.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: behavioral PASS corpus — VM leg (SML --target=vm + sv0vm vs expected exit)"
   if ! python3 "$ROOT/scripts/verify_behavior_corpus_vm.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: owned-string allocation fault injection (SS-U02d; UP-007)"
   if ! python3 "$ROOT/scripts/verify_string_alloc_failure.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: z3 driver (M4-S-011; verifies scripts/sv0-z3.sh, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_z3_driver.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: sv0 verify e2e (M4-S-020; parse→VC→z3 on test/verify/basic.sv0, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_sv0_verify_e2e.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: verify corpus (M4-S-040; expected status per contract in test/verify/corpus, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_corpus.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: verify determinism (M4-S-014; identical statuses across repeated runs, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_determinism.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: verified contract-mode (M4-S-023/024; proven ensures stripped in lowering, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_contract_mode.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: sv0.toml contract-mode (M4-S-025; [build] contract-mode + flag override, skips if z3 absent)"
   if ! python3 "$ROOT/scripts/verify_contract_toml.py" --root "$ROOT"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   if ! (cd "$SV0VM" && echo 'use "src/main.sml"; use "test/bytecode_test.sml"; OS.Process.exit OS.Process.success;' | sml >/dev/null); then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: C backend integration (sv0c)"
   if ! bash "$ROOT/task/sv0c-milestone-1/02-integration-test.sh"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: VM pipeline integration"
   if ! bash "$ROOT/task/sv0vm-milestone-2/02-integration-test.sh"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: bootstrap-in-sv0 programs on VM"
   if ! run_bootstrap_build; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: VM parity (SML bytecode vs golden/sml)"
   if ! run_vm_parity_sml_goldens; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: VM parity tier-2 (optional emitter vs golden/sml)"
   if ! run_vm_parity_tier2_emit_compare; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: VM behavioral parity (f64/i64: native emit-c vs VM-emit->sv0vm)"
   if ! python3 "$ROOT/scripts/vm_behavioral_parity.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: VM FFI gate (FFI-014 — raw-pointer/unsafe/extern_c programs rejected on VM, E0553)"
   if ! python3 "$ROOT/scripts/verify_vm_ffi_gate.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: FFI regression corpus (FFI-015 — E0550/E0551/E0552/E0553 never fire on safe code)"
   if ! python3 "$ROOT/scripts/verify_ffi_regression_corpus.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: SHA-256 KATs (CV-104 — NIST + boundary vectors on native and VM, 200-message differential vs hashlib)"
   if ! python3 "$ROOT/sv0c/test/crypto/sha256/run_kat.py" --differential; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage source-unit table (CV-105 — logical paths, digests, concat offsets, scalar columns; native + VM)"
   if ! python3 "$ROOT/sv0c/test/coverage/source/run_source_table.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: attributes (CV-302 — table snapshot, placement, coverage attribute validation on both binaries; C and bytecode unchanged)"
   if ! python3 "$ROOT/sv0c/test/attributes/run_attributes.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: comment directives (CV-304 — pre-lex scan: table snapshot, hostile text, 35 negative cases on both binaries, one unit per project file; C and bytecode unchanged)"
   if ! python3 "$ROOT/sv0c/test/directives/run_directives.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: formatter keeps attributes (CV-303 — fmt_sv0.py format/reparse: same attribute table on both binaries, same C and bytecode)"
   if ! python3 "$ROOT/scripts/verify_fmt_sv0.py" --reparse; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage planner (CV-107 — sources, function entities, function_entry points vs the sv0cov semantic fixtures; native = VM emitter)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_plan.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage regions (CV-201 — dead code statically_unreachable, unsafe blocks, match scrutinees, desugaring; ? refused; 195-program sweep sv0cov-validated)"
   if ! python3 "$ROOT/sv0c/test/coverage/regions/run_regions.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage loops (CV-203 — loop outcomes vs hand-derived counts; unreachable loop/while-true exits; probe region counts = entry counts; native + VM)"
   if ! python3 "$ROOT/sv0c/test/coverage/loops/run_loops.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage exclusions (CV-305 — attributes + directives resolved on both backends; C map = VM map; ordinary counts unchanged; support points; policy matrix)"
   if ! python3 "$ROOT/sv0c/test/coverage/exclusions/run_exclusions.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
+  sv0_info "sv0 test: diagnostic spans (E0408/E0400 at the function, E0553 at the construct; were 1:1)"
+  if ! python3 "$ROOT/sv0c/test/diagnostics/run_spans.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: contract coverage (CV-306 — requires/ensures/loop_invariant/assert enforced on native + VM; contract plan, dispositions, AC-010/043/106)"
   if ! python3 "$ROOT/sv0c/test/coverage/contracts/run_contracts.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage zero-counter programs (CV-207 — declarations-only map + binding; stand-in fully excluded program publishes one empty profile on C + VM; count/hit mismatches rejected)"
   if ! python3 "$ROOT/sv0c/test/coverage/zero/run_zero.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage ownership (CV-209 — tests/examples/vendor/... layout stays fully in scope; ownership from the build graph, not path spelling; native + VM)"
   if ! python3 "$ROOT/sv0c/test/coverage/ownership/run_ownership.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage producer tiers (CV-211 — compilers, native runtime and sv0vm refuse over-tier maps/profiles at the exact limits; large and custom tiers; usage errors)"
   if ! python3 "$ROOT/sv0c/test/coverage/tiers/run_tiers.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage lifecycle (CV-212 — native = sv0vm on exit status, contract failures, runtime panics, required mode, publication failure, hard termination; capability rejection)"
   if ! python3 "$ROOT/sv0c/test/coverage/lifecycle/run_lifecycle.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
   if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage map determinism + map-mode no-op (CV-111 — repeated builds byte-identical; map-mode C/.sv0b identical to off)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_determinism.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage hit placement (CV-112 — every counter placed exactly once; drop/dup/orphan faults fail with COV1020)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_hits.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage generated-C emission (CV-113 — registration prelude = map, one hit per counter, C minus coverage = off, stub-runtime counts = expected counts, f0 golden)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_emit_c.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage VM emission (CV-117 — COVER_HIT per counter, jumps on boundaries, hit-stripped bytecode runs like off on sv0vm, disassembly golden)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_emit_vm.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: coverage VM raw profiles (CV-121 — one valid vm-v1 profile per run, counts = native runtime = expected; contract failure publishes, crash and transport failures do not)"
   if ! python3 "$ROOT/sv0c/test/coverage/plan/run_vm_profile.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: --coverage modes (CV-106..CV-117 — off byte-identical on native + VM, map writes the map, instrument on C and VM, usage errors)"
   if ! python3 "$ROOT/scripts/verify_coverage_modes.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: fill_explicit DCE-stress (SS-U11/NEW-003 — naive fill elided, sv0_fill_explicit is not)"
   if ! python3 "$ROOT/scripts/verify_fill_explicit_dce.py"; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: stage0 C vs lib/golden/stage0 (when present)"
   if ! run_self_host_stage0_golden; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: self-host sv0 loop (SML→C→native + emit diff)"
   if ! run_self_host_sv0_loop; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: native --project acceptance (PC-3b.6 — cross-module enum+struct → exit 42)"
   if ! run_native_project_acceptance; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   sv0_info "sv0 test: Markdown doctests"
   if ! run_doctests; then
-    ec=1
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
+  local _orphans_new
+  _orphans_new="$(comm -13 <(printf '%s\n' "$_orphans_before") <(sv0_orphan_sml_pids) | sed '/^$/d')"
+  if [[ -n "$_orphans_new" ]]; then
+    echo "sv0 test: this run left orphaned SML processes (killed): $(echo $_orphans_new)" >&2
+    echo "$_orphans_new" | xargs kill -9 2>/dev/null || true
+    ec=1; sv0_stage_failed "$LINENO"
   fi
   if [[ "$ec" -ne 0 ]]; then
     sv0_fail "sv0 test: one or more stages failed (exit $ec)"
@@ -2492,16 +2517,17 @@ case "$cmd" in
         sv0b="$ROOT/$sv0b"
       fi
     fi
-    (
-      cd "$SV0VM"
-      export SV0B="$sv0b"
-      unset SV0B_COVERAGE_BINDING SV0B_COVERAGE_MAX_COUNTERS SV0B_COVERAGE_MAX_BYTES
-      [[ -z "$_vm_binding" ]] || export SV0B_COVERAGE_BINDING="$_vm_binding"
-      if [[ -n "$_vm_limits" ]]; then
-        export SV0B_COVERAGE_MAX_COUNTERS="${_vm_limits%% *}" SV0B_COVERAGE_MAX_BYTES="${_vm_limits##* }"
-      fi
-      sml < scripts/run_sv0b.sml
-    )
+    # exec, not a subshell: the caller's process becomes the SML runtime (the
+    # sml launchers exec too), so a caller that times out and kills it kills
+    # the interpreter itself instead of orphaning a busy-looping sml.
+    cd "$SV0VM"
+    export SV0B="$sv0b"
+    unset SV0B_COVERAGE_BINDING SV0B_COVERAGE_MAX_COUNTERS SV0B_COVERAGE_MAX_BYTES
+    [[ -z "$_vm_binding" ]] || export SV0B_COVERAGE_BINDING="$_vm_binding"
+    if [[ -n "$_vm_limits" ]]; then
+      export SV0B_COVERAGE_MAX_COUNTERS="${_vm_limits%% *}" SV0B_COVERAGE_MAX_BYTES="${_vm_limits##* }"
+    fi
+    exec sml < scripts/run_sv0b.sml
     ;;
   repl)
     run_repl
