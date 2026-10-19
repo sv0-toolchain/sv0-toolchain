@@ -1022,6 +1022,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/contracts/run_contracts.py"; then
     ec=1; sv0_stage_failed "$LINENO"
   fi
+  sv0_info "sv0 test: short-circuit coverage (CV-307 — && / || branches evaluated/skipped vs hand-derived counts, right-operand regions, contract clauses plan none, partial line, exclusions / AC-042; native + VM)"
+  if ! python3 "$ROOT/sv0c/test/coverage/shortcircuit/run_shortcircuit.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1; sv0_stage_failed "$LINENO"
