@@ -1030,6 +1030,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/contexts/run_contexts.py"; then
     ec=1; sv0_stage_failed "$LINENO"
   fi
+  sv0_info "sv0 test: changed-region coverage (CV-312 — sv0cov run with a diff policy in a real Git repository: base recorded, diff line 1/2 vs oracle, threshold boundary, dirty edit, AC-045/048/049 refusals)"
+  if ! python3 "$ROOT/sv0c/test/coverage/changed/run_changed.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1; sv0_stage_failed "$LINENO"
