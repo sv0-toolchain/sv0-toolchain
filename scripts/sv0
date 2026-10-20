@@ -1034,6 +1034,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/changed/run_changed.py"; then
     ec=1; sv0_stage_failed "$LINENO"
   fi
+  sv0_info "sv0 test: ratchets (CV-313 — sv0cov run + baseline in a real Git repository: missing baseline, pinned baseline at HEAD, AC-017 exclusion growth refused despite a better percentage, numerator regression at the exact tolerance boundary, stale baseline)"
+  if ! python3 "$ROOT/sv0c/test/coverage/ratchet/run_ratchet.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1; sv0_stage_failed "$LINENO"

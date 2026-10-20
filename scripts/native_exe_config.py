@@ -62,7 +62,8 @@ def discover_config(start_dir: str) -> str | None:
 def load_config(path: str) -> dict:
     """Parse and validate `sv0.toml`'s `[build]` table.
 
-    Raises `ConfigError` for a missing `[build]` table, an unrecognized
+    A missing `[build]` table yields `{}` (no overrides). Raises
+    `ConfigError` for a non-table `[build]`, an unrecognized
     key, or a recognized key holding the wrong type -- never silently
     drops or coerces, per §17.2.
     """
@@ -74,7 +75,9 @@ def load_config(path: str) -> dict:
 
     build = data.get("build")
     if build is None:
-        raise ConfigError(f"{path}: missing required [build] table")
+        # §17.2: [build] is optional; absent means "no overrides". Other
+        # top-level tables (e.g. [tool.sv0cov]) belong to other tools.
+        return {}
     if not isinstance(build, dict):
         raise ConfigError(f"{path}: [build] must be a table")
 
@@ -154,14 +157,58 @@ def _selftest() -> int:
         except ConfigError:
             pass
 
-    # Case 4b: a missing [build] table is rejected too.
+    # Case 4b: a missing [build] table means "no overrides" (defaults).
     with tempfile.TemporaryDirectory() as td:
         cfg_path = os.path.join(td, "sv0.toml")
         with open(cfg_path, "w", encoding="utf-8") as f:
             f.write('[not_build]\nfoo = "bar"\n')
         try:
+            if load_config(cfg_path) != {}:
+                failures.append("case4b: expected empty overrides for a missing [build] table")
+        except ConfigError as exc:
+            failures.append(f"case4b: missing [build] must be accepted: {exc}")
+
+    # Case 4c: only other tools' tables ([tool.sv0cov], subtable, array table,
+    # array value, integer) -> accepted with no overrides; [build] beside them
+    # is still validated.
+    with tempfile.TemporaryDirectory() as td:
+        cfg_path = os.path.join(td, "sv0.toml")
+        tool = (
+            '[tool.sv0cov]\nschema = "1.0"\n'
+            '[tool.sv0cov.ratchet]\nmetrics = ["function", "region"]\n'
+            'tolerance_basis_points = 0\nbaseline = "x.json"\n'
+            '[[tool.sv0cov.scopes]]\nname = "a"\n[[tool.sv0cov.scopes]]\nname = "b"\n'
+        )
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write(tool)
+        try:
+            if load_config(cfg_path) != {}:
+                failures.append("case4c: expected empty overrides with only [tool.sv0cov]")
+        except ConfigError as exc:
+            failures.append(f"case4c: [tool.sv0cov]-only config rejected: {exc}")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write(tool + '[build]\nkeep-c = true\n')
+        try:
+            if load_config(cfg_path) != {"keep-c": True}:
+                failures.append("case4c: [build] mis-parsed beside [tool.sv0cov]")
+        except ConfigError as exc:
+            failures.append(f"case4c: [build]+[tool.sv0cov] rejected: {exc}")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write(tool + '[build]\nbogus = 1\n')
+        try:
             load_config(cfg_path)
-            failures.append("case4b: expected ConfigError for a missing [build] table, none raised")
+            failures.append("case4c: unknown [build] key not rejected beside [tool.sv0cov]")
+        except ConfigError:
+            pass
+
+    # Case 4d: [build] that is not a table is still rejected.
+    with tempfile.TemporaryDirectory() as td:
+        cfg_path = os.path.join(td, "sv0.toml")
+        with open(cfg_path, "w", encoding="utf-8") as f:
+            f.write('build = "x"\n')
+        try:
+            load_config(cfg_path)
+            failures.append("case4d: expected ConfigError for non-table build")
         except ConfigError:
             pass
 
@@ -183,7 +230,7 @@ def _selftest() -> int:
             print(f"native_exe_config selftest FAIL: {f}")
         return 1
 
-    print("native_exe_config: selftest OK (6 cases)")
+    print("native_exe_config: selftest OK (9 cases)")
     return 0
 
 
