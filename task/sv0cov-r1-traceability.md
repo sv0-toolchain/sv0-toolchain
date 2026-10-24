@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 35 met, 3 mismatch, 66 owned, 32 partly met
-- **acceptance criteria:** 1 conditional, 89 met, 2 mismatch, 27 owned, 15 partly met, 1 post-R1
+- **requirements:** 2 conditional, 38 met, 3 mismatch, 64 owned, 31 partly met
+- **acceptance criteria:** 1 conditional, 92 met, 2 mismatch, 25 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -75,7 +75,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-VM-026 | VM host-process operations SHALL expose the same fresh-image and managed spawn-and-exec coverage boundary a... | owned |  | CV-405 |  |
 | COV-FMT-012 | The R1 runtime SHALL perform neither periodic profile checkpoints nor memory-mapped continuous counter writes. | owned |  | CV-406 |  |
 | COV-FMT-024 | Diagnostic provenance and release evidence SHALL record the resolved tier and numeric ceilings. | partly met | CV-224, CV-228 (resolved tier in the report) | CV-415 | release evidence |
-| COV-FMT-037 | `sv0cov.export-manifest` version `1.0` SHALL use the exact closed fourteen-property canonical JSON schema,... | owned |  | CV-403 |  |
+| COV-FMT-037 | `sv0cov.export-manifest` version `1.0` SHALL use the exact closed fourteen-property canonical JSON schema,... | partly met | CV-403 (schema, goldens, negatives, mutation) | CV-412 | cross-language reader parity |
 | COV-MRG-006 | Source-version conflicts SHALL block passing policy. | met | CV-223 |  |  |
 | COV-MRG-007 | Rejected inputs SHALL remain in the result inventory. | met | CV-223 |  |  |
 | COV-CTX-004 | Context filtering SHALL not mutate aggregate counts. | met | CV-308 |  |  |
@@ -96,8 +96,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-CLI-012 | The root driver SHALL expose only `./scripts/sv0 coverage <run\\|merge\\|report\\|check\\|clean\\|doctor\\|... | partly met | CV-241 | CV-421, CV-430 | M6 |
 | COV-CLI-013 | Root coverage dispatch SHALL invoke only exact tracked mode-`100755` path `sv0cov/scripts/sv0cov` beneath t... | partly met | CV-241 | CV-430 |  |
 | COV-CFG-007 | Native reports SHALL encode effective configuration as exact closed `sv0cov.resolved-configuration` 1.0 usi... | met | CV-228 |  |  |
-| COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | partly met | CV-401 (functions, lines, branches) | CV-403 | information-loss manifest |
-| COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | partly met | CV-402 (pinned-DTD validation; docs/cobertura.md) | CV-403 | loss manifest |
+| COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | met | CV-401 (functions, lines, branches), CV-403 (loss manifest) |  |  |
+| COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | met | CV-402 (pinned-DTD validation; docs/cobertura.md), CV-403 (loss manifest) |  |  |
 | COV-REP-006 | Every report format SHALL be byte-identical across repeated renders of the exact same indexed input under S... | owned |  | CV-424 |  |
 | COV-REP-007 | HTML fixture reports SHALL meet WCAG 2.2 AA release checks. | partly met | CV-309 | CV-408 |  |
 | COV-REP-008 | LCOV export SHALL implement only `sv0cov-lcov-r1-core` and its exact Section 21.4 record inventory. | met | CV-401 |  |  |
@@ -106,7 +106,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-REP-011 | Cobertura export SHALL implement only `sv0cov-cobertura-r1-core` and validate offline against the exact pin... | met | CV-402 (vendored digest-pinned DTD, offline stdlib validator) |  |  |
 | COV-REP-012 | Cobertura output SHALL omit `DOCTYPE`, external entities, processing instructions, extensions, and absolute... | met | CV-402 (writer never emits them; reader refuses them) |  |  |
 | COV-REP-013 | A GitLab coverage-visualization smoke fixture SHALL resolve normalized logical paths and preserve the decla... | owned |  | CV-419 |  |
-| COV-REP-014 | Every standard export SHALL have associated native JSON and an exact `sv0cov.export-manifest` 1.0 commit re... | owned |  | CV-403 |  |
+| COV-REP-014 | Every standard export SHALL have associated native JSON and an exact `sv0cov.export-manifest` 1.0 commit re... | met | CV-403 |  |  |
 | COV-REP-017 | `sv0cov.report` version `1.0` SHALL use the exact closed twenty-two-property top-level schema and every nes... | mismatch | CV-228, CV-312, CV-313 | owner | M1 |
 | COV-REP-018 | Native-report summaries, contexts, inputs, exclusions, policy, saturation, provenance, configuration, compl... | met | CV-229 |  |  |
 | COV-REP-019 | Every native contract record SHALL preserve its exact nullable nearest-function reference, and every entity... | met | CV-229 |  |  |
@@ -235,8 +235,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-049 | source mutation makes the run stale | met | CV-311, CV-312 |  |  |
 | AC-050 | LCOV core works across the pinned consumer range | owned |  | CV-418 |  |
 | AC-051 | Cobertura core is deterministic and offline-safe | partly met | CV-402 (determinism, timestamp 0, offline DTD, no DOCTYPE/PI/extension/host path) | CV-419 | GitLab smoke |
-| AC-052 | standard export loss is explicit | owned |  | CV-403 |  |
-| AC-053 | extended export profiles remain unavailable through R1 | partly met | CV-401, CV-402 (core profiles only) | CV-403 | profile selection at the CLI |
+| AC-052 | standard export loss is explicit | met | CV-403 |  |  |
+| AC-053 | extended export profiles remain unavailable through R1 | met | CV-401, CV-402 (core profiles only), CV-403 (extended profile names refused before reading, pointing to native JSON) |  |  |
 | AC-054 | standard raw-profile limits apply by default | met | CV-025 |  |  |
 | AC-055 | the large tier is explicit | met | CV-211, CV-224 |  |  |
 | AC-056 | custom limits require both ceilings | met | CV-211 |  |  |
@@ -287,7 +287,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-101 | coverage configuration schema 1.0 is closed | met | CV-029 |  |  |
 | AC-102 | threshold syntax and CLI mapping are exact | met | CV-029 |  |  |
 | AC-103 | report selection and output publication are unambiguous | met | CV-309 |  |  |
-| AC-104 | export commit manifests bind complete standard-export evidence | owned |  | CV-403 |  |
+| AC-104 | export commit manifests bind complete standard-export evidence | met | CV-403 |  |  |
 | AC-105 | native JSON report 1.0 is closed and self-consistent | met | CV-229 |  |  |
 | AC-106 | contract coverage measures clause reachability | met | CV-306 |  |  |
 | AC-107 | entity metrics use semantic nearest-function ownership | met | CV-306, CV-310 |  |  |
