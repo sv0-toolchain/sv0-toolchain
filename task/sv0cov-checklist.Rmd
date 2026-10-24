@@ -274,30 +274,109 @@ encoders, validators, and golden bytes that every upstream slice tests against.
 | CV-315 | **Dedicated-host plan (R01-G6).** | R01-G6 | root | CV-037 | done | Accountable path recorded. | **Done 2026-10-24:** plan recorded in the hub (`## R01-G6 performance-host plan`). **Owner decision:** all four classes (macOS arm64/x86-64, Linux arm64/x86-64) produce R1 performance evidence as `managed-ci-recorded` campaigns under the DEC-087 exception, the sole maintainer accountable; no dedicated host procured (the owned M3 Mac has 8 GiB < 32 GiB floor, stage `local-development` only; the managed runners are shared 3-4 vCPU / 7-16 GiB VMs). The plan records the observed hardware per class (2026-10-19 provisional run), the descriptor fields that stay `unknown` and go into each exception record, the no-pooling rule (series keyed by observed CPU), what CV-410 must build (`managed-ci-recorded` stage, exception-record schema, budget evaluator, full-corpus recorded campaigns, pending `region-large`), the three-campaign overlap transition if dedicated hardware appears, and accepted risks with triggers (Intel macOS runner retirement, small shared runners, the schedule's first post-B9 run). **Found along the way (fixed, sv0cov `8a5a9b2`):** the provisional bundles recorded three observable fields as `unknown` (the toolchain revision was never passed by the workflow; the Linux arm64 CPU model; the filesystem); they are now observed. |
 | CV-316 | **R0.1 gate review.** | §31.3 | root | all R0.1 | done | Gate table filled. | **Done 2026-10-24: R0.1 closed.** Gate table in the hub (`## R0.1 gate review`): R01-G1..G6 pass (G3 with a note: sv0 has no nested functions). **Owner decisions:** advertise `branch-outcomes`, `changed-region`, `contexts`, `contract-coverage`, `cumulative-scopes`, `exclusion-audit`, `gitignore-scopes`, `html-report` in addition to the R0 five (sv0cov `capabilities.ADVERTISED`; root policy `required_features` exactly that set); `ratchets` held until the SPEC admits `sv0cov baseline`; D-10 resolved as "implement in R1" (new slice CV-416), with a SPEC 16.5 amendment owed. The hub lists every SPEC amendment owed by the owner. Also: the 2026-10-24 provisional run confirmed the CV-315 descriptor fixes on the runners (Linux x86-64 now AMD EPYC 9V74, Linux arm64 Arm Neoverse-N2, filesystems ext4/apfs, toolchain revision recorded). |
 
-## R1 — stable contract (`4xx`, coarse; re-slice at R0.1 close)
+## R1 — stable contract (`4xx`, re-sliced 2026-10-24 at R0.1 close)
+
+Re-sliced after the R0.1 gate review (CV-316). IDs that existed keep their
+meaning (COV-GOV-008); a coarse slice that was split keeps its ID for its
+first part and the rest take new IDs from CV-417. Tracks can proceed in
+parallel unless a dependency says otherwise; the VM-v2 track is blocked on
+the sv0vm expansion. Gate references are SPEC §31.4.
+
+### R1-0: orientation
 
 | ID | slice | refs | repo | deps | status | done when |
 |----|-------|------|------|------|--------|-----------|
-| CV-401 | LCOV `sv0cov-lcov-r1-core` + pinned LCOV 1.16/2.5 consumer tests. | BL-053, BL-078, COV-REP-004/008/009/010 | cov | CV-229 | todo | AC-050. |
-| CV-402 | Cobertura `sv0cov-cobertura-r1-core` + pinned DTD + GitLab smoke. | BL-054, BL-079, COV-REP-005/011/012/013 | cov | CV-229 | todo | AC-051. |
-| CV-403 | Export commit manifests. | BL-035, BL-080, COV-FMT-037, COV-REP-014 | cov | CV-401, CV-402 | todo | AC-052, AC-104. |
-| CV-404 | Saturation policy `allow-ordinary` + granular eligibility. | BL-071, COV-POL-007..011/027, COV-INS-013 | cov | CV-229 | todo | AC-037, AC-038. |
-| CV-405 | Process lifecycle per **D-4** (fork guards, unresolved parent, VM rejection). | BL-015, BL-025, COV-INS-016, COV-C-007, COV-VM-026 | cov, vm | CV-210 | todo | AC-096. |
-| CV-406 | Orderly-flush-only proof (no checkpoint/mmap writes). | BL-068, COV-FMT-011/012, AC-032 | cov, vm | CV-115, CV-121 | todo | I/O trace tests. |
+| CV-417 | **R1 traceability audit.** Map each of the 138 R1 requirements and every R1 acceptance criterion to existing evidence or an owning slice below; list each SPEC/implementation mismatch for an owner amendment (e.g. COV-REP-017 still says twenty-two report members, now 24; COV-SCP-009 names an sv0 matcher; the seven-command inventory versus `sv0cov baseline`). | COV-GOV-007/008, COV-REL-003 | root | CV-316 | todo | Traceability table in the hub; no R1 requirement without evidence or an owner. |
+
+### R1-A: standard exports (R1-G4)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-401 | **LCOV `sv0cov-lcov-r1-core` writer.** Exact §21.4 record inventory, binary line projection (partial is not covered), information-loss content; `report --format lcov`. | BL-053, BL-078, COV-REP-004/008/010 | cov | CV-229 | todo | Goldens for every semantic fixture; byte-identical repeated renders. |
+| CV-418 | **LCOV consumer conformance.** Checksum-pinned LCOV 1.16 and 2.5 `lcov` and `genhtml` accept every golden with no ignored structural error, offline (pinned install in CI). | COV-REP-009, BL-078 | cov | CV-401 | todo | AC-050. |
+| CV-402 | **Cobertura `sv0cov-cobertura-r1-core` writer.** Offline validation against the pinned 0.4 DTD; no `DOCTYPE`, external entity, processing instruction, extension or absolute path; documented lossy mappings. | BL-054, BL-079, COV-REP-005/011/012 | cov | CV-229 | todo | Goldens validate against the pinned DTD. |
+| CV-419 | **Cobertura GitLab smoke.** A visualization fixture resolves logical paths and keeps the line/branch projection. | COV-REP-013 | cov | CV-402 | todo | AC-051. |
+| CV-403 | **Export commit manifests.** Closed `sv0cov.export-manifest` 1.0 (schema, validator, mutation corpus); every standard export published with native JSON and a manifest binding artifacts and inputs; `run` and `report` bundles. | BL-035, BL-080, COV-FMT-037, COV-REP-014 | cov | CV-401, CV-402 | todo | AC-052, AC-104. |
+| CV-420 | **Saturated standard exports.** Refused unless `--allow-lossy-saturated-export` is explicit and manifested; diagnostic-only eligibility. | COV-POL-011 | cov | CV-403, CV-404 | todo | Lossy-export matrix. |
+
+### R1-P: policy and reports
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-404 | **Saturation policy `allow-ordinary` + granular eligibility.** Only proven-positive lower bounds count; contract outcome, exact context, exact-count and incompatible ratchet uses fail; policy recorded everywhere. | BL-071, COV-POL-007..010/027, COV-INS-013, COV-MET-017 | cov | CV-229 | todo | AC-037, AC-038. |
+| CV-416 | **`check` accepts a native report** (D-10): re-evaluate its detail under the current configuration and check its sources through the cross-validating reader. | D-10, SPEC 20.1, 16.5 (amendment owed) | cov | CV-231 | todo | A native-report operand gives exactly the indexed path's evaluations. |
+| CV-421 | **Advertise `ratchets` and admit `sv0cov baseline`** into the command inventory and, if the owner so decides, the root `coverage` namespace. | SPEC 20.1/20.1.1 (amendment owed), CV-313 | cov, root | owner amendment | blocked (owner) | Version manifest, root policy and dispatcher updated. |
+| CV-408 | **HTML WCAG 2.2 AA.** Automated checks on representative reports plus a documented manual keyboard and screen-reader review. | BL-047, COV-REP-007 | cov | CV-309 | todo | R1-G8; AC-020 + audit record. |
+| CV-424 | **Privacy and determinism of every output.** No absolute host path or host/user/process metadata in public artifacts by default; byte-identical repeated renders for every format, exports included. | COV-MAP-011, COV-SEC-005, COV-REP-006 | cov | CV-403 | todo | Privacy scan and repeat-render suites. |
+
+### R1-R: runtime and reliability (R1-G6)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-422 | **Native concurrency.** Shared C11 atomic counters under 1/2/4/8 threads (shared and disjoint counters, C harness), recorded lock-free probe, atomic overflow flags naming every saturated counter, quiescence before the final flush. | BL-070, COV-INS-006/009/010/012 | cov | CV-115 | todo | Concurrency and saturation suites on all four hosts. |
+| CV-405 | **Process lifecycle per D-4.** Fork child never publishes inherited counters, unresolved parent state for an unmanaged fork, managed spawn-and-exec, VM rejection of post-fork collection. | BL-015, BL-025, COV-INS-016, COV-C-007, COV-VM-026 | cov, vm | CV-210 | todo | AC-096. |
+| CV-406 | **Orderly-flush-only proof.** No periodic checkpoint and no memory-mapped counter writes, by I/O trace. | BL-068, COV-FMT-011/012 | cov, vm | CV-115, CV-121 | todo | AC-032; I/O trace tests. |
+| CV-423 | **Reliability closure.** Crash, incomplete profile, joined/unjoined flush boundaries, multi-module registration, parallel shards: gaps found by CV-417 filled, one suite per R1-G6 item. | R1-G6, COV-INS-007/008, COV-C-004 | cov, c | CV-405, CV-406, CV-422 | todo | R1-G6. |
+
+### R1-V: VM v2 (blocked on the sv0vm expansion)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
 | CV-460 | **v2 container available.** Wait for, or contribute to, the sv0vm expansion's typed v2 (R0.6 there). | G-1, DEC-018, DEC-086 | c, vm | — | blocked (sv0vm expansion) | sv0c emits and sv0vm loads uncovered v2. |
 | CV-461 | **sv0doc v2 `COVR` section.** Tag, ordering, unknown-section rule, downgrade rejection. | COV-VM-019, COV-VM-023, §15.4 | doc | CV-460 | todo | Page merged. |
 | CV-462 | **sv0c v2 emission with inline COVR.** Two-pass zero-slot digest; must equal the CV-026 goldens. | COV-VM-012, COV-VM-022, BL-064, BL-098, BL-099 | c | CV-461 | todo | COVR golden matches CV-026. |
 | CV-463 | **sv0vm v2 COVR validation + execution + v2 manifest/doctor inventory.** Digest validated before function decode; `BACKEND_VM_V2`; D016 applies; product advertises `vm-v2`. | COV-VM-013, COV-VM-022, AC-028, AC-092 | vm, cov | CV-462 | todo | Mutation/transplant fixtures rejected early; three-path parity for CV-027. |
-| CV-407 | Full semantic parity suite across backends incl. v2 (R1-G1). | COV-VM-005, COV-VM-014, COV-MET-014, COV-REL-002 | cov | CV-171, CV-463, CV-3xx | todo | Every §28.2 fixture has three-path parity. |
-| CV-408 | HTML WCAG 2.2 AA (automated + manual). | BL-047, COV-REP-007 | cov | CV-309 | todo | AC-020 + audit record. |
-| CV-409 | Four-host × two-Python portability matrix. | BL-057, BL-062, COV-PORT-001..007 | cov | CV-234 | todo | Eight cells green end to end. |
-| CV-410 | Performance on dedicated hosts + budget evaluator. | BL-058, BL-083, BL-088, BL-093, COV-PERF-* | cov | CV-037 | todo | R1-G9. |
-| CV-411 | Supply-chain closure: SBOM, licenses, provenance. | BL-059, BL-090, COV-LIC-008..010 | cov | CV-243 | todo | R1-G12. |
-| CV-412 | Freeze R1 schemas + generated validators + compatibility corpus. | BL-060 | cov | all formats | todo | R1-G3. |
-| CV-413 | Release pipeline: attestations, protected approval, immutable release. | BL-091, COV-PKG-002..004/023..027 | cov | CV-411 | todo | R1-G15. |
-| CV-414 | Ordered toolchain pin + rollback drill. | BL-092, COV-PKG-011 | root | CV-413 | todo | R1-G13. |
-| CV-416 | `check` accepts a native report (D-10): re-evaluate the report's detail under the current configuration and check its sources, through the cross-validating reader. | D-10, SPEC 20.1, 16.5 (amendment owed) | cov | CV-231 | todo | Native-report operand matches the indexed path's evaluations. |
-| CV-415 | Evidence manifest + R1 gate review → `1.0.0`. | BL-061, COV-GOV-007 | root | all R1 | todo | R1-G14; §39 definition of done. |
+| CV-407 | **Full semantic parity across backends incl. v2.** | COV-VM-005, COV-VM-014, COV-MET-014, COV-REL-002 | cov | CV-171, CV-463, CV-3xx | todo | R1-G1: every §28.2 fixture has three-path parity. |
+
+### R1-X: portability and installation (R1-G10)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-409 | **Four-host × two-Python matrix, end to end.** Generated-C and sv0vm workflows on every cell, exact ordered launcher resolution, empty-site and poisoned-site runs, unsupported Python failing early, Windows refused, cross-host canonical output comparison. | BL-057, BL-062, COV-PORT-001..007 | cov | CV-234 | todo | Eight cells green end to end. |
+| CV-426 | **Install and uninstall on eight cells.** From a locally verified `py3-none-any` wheel with every required resource, zero runtime dependencies, no implicit download. | COV-REL-004, COV-PKG-005/006/008/010/016 | cov | CV-409 | todo | R1-G10 installation items. |
+
+### R1-F: performance (R1-G9, DEC-087 plan in the hub)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-410 | **Recorded stage and budget evaluator.** `managed-ci-recorded` harness stage, the exception-record schema, and a budget evaluator that refuses a gate without its record; per-fixture, category and host results always visible; equal category weights. | BL-058, BL-093, COV-PERF-008/009/023/024/035/036 | cov | CV-037, CV-315 | todo | Evaluator suite; a gate without an exception record fails. |
+| CV-427 | **Corpus completion.** `region-large` (native compiler Vec-handle limit), native contention 1/2/4/8 threads, v1 dispatch (v2 joins after CV-463), content-addressed offline real projects, 250k-point and 1M-pair scale, semantic validation before timing. | BL-085, COV-PERF-013/015/016/017/018/020 | cov, c | CV-410, CV-422 | todo | Every corpus fixture runnable; none `pending` except v2 dispatch until CV-463. |
+| CV-428 | **Recorded campaigns and R1-G9.** At least three complete `managed-ci-recorded` campaigns per class, exception records per gate, every §24 budget evaluated per class with no pooling or compensation. | BL-088, COV-PERF-002..006/010/027..034 | cov | CV-427 | todo | R1-G9, or an evidence-backed SPEC change (COV-PERF-035). |
+
+### R1-S: security, documentation, formats (R1-G3, G7, G11)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-425 | **Security closure.** Fuzz harnesses for every R0.1/R1 format (baseline, export manifest, new report members), public-artifact privacy scans, doctor path/process/resource/credential-canary/network-denied checks, trust-compromise and withdrawal handling. | R1-G7, COV-SEC-008 | cov | CV-403, CV-424 | todo | R1-G7. |
+| CV-429 | **Documentation closure.** Command, configuration, protocol, schema profile, exclusion, CI, troubleshooting, launcher, doctor and compatibility docs complete and tested. | R1-G11 | cov | CV-412 | todo | R1-G11. |
+| CV-412 | **Freeze R1 schemas, generated validators and compatibility corpus** (including `sv0cov.baseline` and `sv0cov.export-manifest`), with cross-reader parity. | BL-060 | cov | CV-403, CV-417 | todo | R1-G3. |
+
+### R1-Z: supply chain, release and gate (R1-G12..G15)
+
+| ID | slice | refs | repo | deps | status | done when |
+|----|-------|------|------|------|--------|-----------|
+| CV-411 | **Supply-chain closure:** SPDX SBOM, license inventory and notices, provenance, third-party records. | BL-059, BL-090, COV-LIC-008..010 | cov | CV-243 | todo | R1-G12. |
+| CV-413 | **Release pipeline:** signed-tag build-once assets, attestations, single-maintainer approval under DEC-087 controls, immutable release. | BL-091, COV-PKG-002..004/023..027 | cov | CV-411 | todo | R1-G15. |
+| CV-430 | **Workspace integration from a clean recursive clone.** SSH transport, exact policy, gitlink without `--remote`, fixed launcher, all root coverage subcommands, eighteen doctor probes offline. | COV-PKG-009/013/014, COV-CLI-012/013, R1-G13 | root | CV-412 | todo | R1-G13 clean-clone suite. |
+| CV-414 | **Ordered toolchain pin + rollback drill.** | BL-092, COV-PKG-011 | root | CV-413, CV-430 | todo | R1-G13 pin and rollback. |
+| CV-415 | **Evidence manifest + R1 gate review → `1.0.0`.** | BL-061, COV-GOV-007, R1-G14 | root | all R1 | todo | R1-G14; §39 definition of done. |
+
+### Suggested order
+
+1. CV-417 (audit; it may add or reshape slices).
+2. In parallel, no toolchain change needed: CV-401 → CV-418, CV-402 → CV-419,
+   then CV-403 → CV-420; CV-404; CV-416; CV-408; CV-424.
+3. Runtime: CV-422 → CV-405, CV-406 → CV-423.
+4. Performance: CV-410 → CV-427 → CV-428 (campaigns take weeks of
+   wall-clock time; start early).
+5. Portability: CV-409 → CV-426.
+6. Release: CV-411 → CV-412 → CV-425, CV-429 → CV-413 → CV-430 → CV-414
+   → CV-415.
+7. VM v2 (CV-460..463, CV-407) whenever the sv0vm expansion delivers v2;
+   R1 cannot exit without it (SPEC 15.6).
+
+Owner-blocked: CV-421 (SPEC amendment for `sv0cov baseline`), and the
+amendments listed in the hub's R0.1 gate review.
 
 ## post-R1 (`9xx`, direction only)
 
@@ -310,7 +389,6 @@ encoders, validators, and golden bytes that every upstream slice tests against.
 
 ## next up
 
-Start with the sv0cov-repo slices that need no toolchain change: **CV-001**
-(needs the GitHub repo created), then **CV-007 → CV-008 → CV-023 → CV-024**.
-Upstream work can begin in parallel with **CV-101** (sv0doc) and **CV-103**
-(SHA-256 red vectors). CV-104 waits on **D-2**.
+R0.1 is closed (CV-316). Next is **CV-417**, the R1 traceability audit, then
+the parallel R1-A/P tracks above (see "Suggested order").
+
