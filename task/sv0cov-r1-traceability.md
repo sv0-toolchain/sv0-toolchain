@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 32 met, 3 mismatch, 69 owned, 32 partly met
-- **acceptance criteria:** 1 conditional, 89 met, 2 mismatch, 28 owned, 14 partly met, 1 post-R1
+- **requirements:** 2 conditional, 35 met, 3 mismatch, 66 owned, 32 partly met
+- **acceptance criteria:** 1 conditional, 89 met, 2 mismatch, 27 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -35,6 +35,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 - **M5.** AC-133 requires a distinct human approver; DEC-087 admits single-maintainer approval under compensating controls (COV-PKG-025).
 - **M6.** §20.1 lists seven commands and §20.1.1 exactly seven root subcommands; `sv0cov baseline` (CV-313) exists unadvertised (CV-421).
 - **M7.** §20.1 lets `check` take a native report; §16.5 says the indexed profile is the only `check` input. D-10 chose native reports in R1 (CV-416).
+- **M8.** §21.5 requires a reserved root-package spelling for sources without a package but does not give it; CV-402 uses `(root)` (owner decision).
 
 ## Requirements (phase R1)
 
@@ -96,14 +97,14 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-CLI-013 | Root coverage dispatch SHALL invoke only exact tracked mode-`100755` path `sv0cov/scripts/sv0cov` beneath t... | partly met | CV-241 | CV-430 |  |
 | COV-CFG-007 | Native reports SHALL encode effective configuration as exact closed `sv0cov.resolved-configuration` 1.0 usi... | met | CV-228 |  |  |
 | COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | partly met | CV-401 (functions, lines, branches) | CV-403 | information-loss manifest |
-| COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | owned |  | CV-402 |  |
+| COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | partly met | CV-402 (pinned-DTD validation; docs/cobertura.md) | CV-403 | loss manifest |
 | COV-REP-006 | Every report format SHALL be byte-identical across repeated renders of the exact same indexed input under S... | owned |  | CV-424 |  |
 | COV-REP-007 | HTML fixture reports SHALL meet WCAG 2.2 AA release checks. | partly met | CV-309 | CV-408 |  |
 | COV-REP-008 | LCOV export SHALL implement only `sv0cov-lcov-r1-core` and its exact Section 21.4 record inventory. | met | CV-401 |  |  |
 | COV-REP-009 | The LCOV core profile SHALL be accepted by checksum-pinned LCOV 1.16 and 2.5 `lcov` and `genhtml` consumers... | owned |  | CV-418 |  |
-| COV-REP-010 | LCOV and Cobertura line hits SHALL use the specified binary projection in which partial is not covered. | partly met | CV-401 (LCOV) | CV-402 | Cobertura |
-| COV-REP-011 | Cobertura export SHALL implement only `sv0cov-cobertura-r1-core` and validate offline against the exact pin... | owned |  | CV-402 |  |
-| COV-REP-012 | Cobertura output SHALL omit `DOCTYPE`, external entities, processing instructions, extensions, and absolute... | owned |  | CV-402 |  |
+| COV-REP-010 | LCOV and Cobertura line hits SHALL use the specified binary projection in which partial is not covered. | met | CV-401 (LCOV), CV-402 (Cobertura) |  |  |
+| COV-REP-011 | Cobertura export SHALL implement only `sv0cov-cobertura-r1-core` and validate offline against the exact pin... | met | CV-402 (vendored digest-pinned DTD, offline stdlib validator) |  |  |
+| COV-REP-012 | Cobertura output SHALL omit `DOCTYPE`, external entities, processing instructions, extensions, and absolute... | met | CV-402 (writer never emits them; reader refuses them) |  |  |
 | COV-REP-013 | A GitLab coverage-visualization smoke fixture SHALL resolve normalized logical paths and preserve the decla... | owned |  | CV-419 |  |
 | COV-REP-014 | Every standard export SHALL have associated native JSON and an exact `sv0cov.export-manifest` 1.0 commit re... | owned |  | CV-403 |  |
 | COV-REP-017 | `sv0cov.report` version `1.0` SHALL use the exact closed twenty-two-property top-level schema and every nes... | mismatch | CV-228, CV-312, CV-313 | owner | M1 |
@@ -233,9 +234,9 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-048 | compiled untracked source blocks changed coverage | met | CV-311, CV-312 |  |  |
 | AC-049 | source mutation makes the run stale | met | CV-311, CV-312 |  |  |
 | AC-050 | LCOV core works across the pinned consumer range | owned |  | CV-418 |  |
-| AC-051 | Cobertura core is deterministic and offline-safe | owned |  | CV-419 |  |
+| AC-051 | Cobertura core is deterministic and offline-safe | partly met | CV-402 (determinism, timestamp 0, offline DTD, no DOCTYPE/PI/extension/host path) | CV-419 | GitLab smoke |
 | AC-052 | standard export loss is explicit | owned |  | CV-403 |  |
-| AC-053 | extended export profiles remain unavailable through R1 | partly met | CV-401 (LCOV core only) | CV-402 | Cobertura |
+| AC-053 | extended export profiles remain unavailable through R1 | partly met | CV-401, CV-402 (core profiles only) | CV-403 | profile selection at the CLI |
 | AC-054 | standard raw-profile limits apply by default | met | CV-025 |  |  |
 | AC-055 | the large tier is explicit | met | CV-211, CV-224 |  |  |
 | AC-056 | custom limits require both ceilings | met | CV-211 |  |  |
