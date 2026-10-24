@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-10-08T12:00:00-06:00"
+updated: "2026-10-24T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
 state: draft
@@ -40,12 +40,16 @@ Like sv0-strings, sv0cov is a SPEC-governed product rather than a toolchain
 milestone. It is therefore absent from the milestone table and
 `task/milestone-orientation.json`.
 
-## current state (2026-09-24)
+## current state (2026-10-24)
 
-- Nothing is implemented. No `sv0cov` repository or submodule exists.
-- Spec status: **Draft governing specification**. Every decision in §34/§35 is
-  `Accepted`. The spec is internally complete, but several accepted decisions
-  assume toolchain capabilities that do not exist (see **observed gaps**).
+- **F0, R0 and R0.1 are closed** (F0 2026-10-08, R0 2026-10-17, R0.1
+  2026-10-24; gate reviews below). R1 (`4xx` slices in the checklist) is
+  next.
+- sv0cov is the `sv0cov/` submodule; the root policy
+  `compatibility/sv0cov.json` pins it and requires exactly the advertised
+  capabilities recorded in the R0.1 gate review.
+- Spec status: **Draft governing specification**. SPEC amendments owed by
+  the owner are listed in the R0.1 gate review.
 
 ## ownership (SPEC §3.1)
 
@@ -90,7 +94,7 @@ a decision are marked **blocked (D-n)** in the checklist.
 | ~~D-7~~ | CV-021, CV-243 | **Resolved 2026-09-25: A.** The release pipeline adds a generated build-info resource carrying the commit, outside the reviewed tree and covered by provenance and the SBOM; source checkouts keep reading `.git`. Landed in `0.1.72-draft` as DEC-089 (§25.2.7.1, COV-PKG-028); implemented by CV-243 (2026-10-16: `tools/release.py` writes it; installed distributions read it). | Was: generated resource, product version for wheels, or keep failing. |
 | ~~D-8~~ | CV-036, CV-220, CV-229 | **Resolved 2026-09-25: A.** Coverage-map size tiers mirroring the raw-profile tiers: `standard` 512 MiB, `large` 2 GiB, `custom` (bounded); the effective ceiling is recorded and a file never raises its own limit. Landed in `0.1.72-draft` as DEC-090 (§16.3.9, COV-FMT-048); implement before CV-220 (the bench tools keep their explicit bound until then). | Was: tiers, fixed 1 GiB, or keep 64 MiB. |
 | ~~D-9~~ | CV-234 | **Resolved 2026-10-13 (owner): append a code.** SPEC 21.3.5 says a failed or signalled test command produces a failing integrity evaluation, and 21.3.6 says a failing evaluation has at least one diagnostic code; registry revision 1 had none for it. Decision: diagnostic registry **revision 2** appends `COV2130` (error, `collection` domain, title "Test command failed"); revision 1 is retained byte for byte as a test fixture and revision 2 is proven append-only against it. **SPEC amendment still to be written by the owner:** SPEC 20.5.1's table is titled "Registry revision 1" and needs a revision-2 addendum naming `COV2130`, and 21.3.5 should name the code. Rejected: reusing `COV2120`, and allowing a code-less failing evaluation. |
-| D-10 | CV-232, CV-234 | **Open (raised 2026-10-11 by CV-231).** SPEC 20.1 writes the operand of `check` as `<indexed-profile-or-native-report>`, while SPEC 16.5 says `sv0cov.indexed` 1.0 is "the only accepted R1 input to standalone `report` and `check`". The two cannot both hold, and the SPEC does not say what checking a native report would mean: re-reading its recorded verdict, or re-evaluating it under the invoking configuration (a report carries its own resolved configuration and no bindings). Until decided, `sv0cov check` accepts only an indexed profile and refuses a native report with `COV5001`, exit 7. Options: (a) amend 20.1 to `<indexed-profile>`; (b) amend 16.5 and define native-report checking as validating the report and returning its recorded verdict, with a configuration conflict when the invoking policy differs; (c) as (b) but re-evaluate under the invoking configuration. Recommended: (a) for R1. |
+| ~~D-10~~ | CV-232, CV-234, CV-416 | **Resolved 2026-10-24 (CV-316): implement in R1.** `check` will accept a native report (new slice CV-416); the SPEC 16.5 sentence must be amended to match (owed). Raised 2026-10-11 by CV-231: SPEC 20.1 writes the operand of `check` as `<indexed-profile-or-native-report>`, while SPEC 16.5 says `sv0cov.indexed` 1.0 is "the only accepted R1 input to standalone `report` and `check`". The two cannot both hold, and the SPEC does not say what checking a native report would mean: re-reading its recorded verdict, or re-evaluating it under the invoking configuration (a report carries its own resolved configuration and no bindings). Until decided, `sv0cov check` accepts only an indexed profile and refuses a native report with `COV5001`, exit 7. Options: (a) amend 20.1 to `<indexed-profile>`; (b) amend 16.5 and define native-report checking as validating the report and returning its recorded verdict, with a configuration conflict when the invoking policy differs; (c) as (b) but re-evaluate under the invoking configuration. Recommended: (a) for R1. |
 | ~~D-11~~ | CV-233 | **Resolved 2026-10-13 (owner).** The SPEC says `run` builds "through the canonical toolchain driver" and then runs the test command, but not what is built or how the command finds the instrumented program. Decision: `run` builds the project in the working directory (`scripts/sv0 native-compile --coverage=instrument --project .`) into `<run_dir>/bin/<name>` (name = the directory's name) and puts that directory first on the child's `PATH`; no variable beyond the four transport names is set. Native backend only in CV-233; VM support in `run` is a follow-up. Rejected: a fifth variable naming the build, and having the test command build through a driver that reads a variable (both SPEC amendments). |
 | ~~D-12~~ | CV-242 | **Resolved 2026-10-16 (owner): transport-free projection; SPEC amendment owed.** SPEC 20.7 requires the doctor result to be byte-identical for the same product, host, mode, toolchain state and smoke inputs, and D018 publishes `native_report_sha256` of the smoke report. But SPEC 16.4 requires every raw profile to carry a profile ID from the secure random source, and the native report records each input's profile ID and artifact digest and the indexed-input digest, so a fresh smoke report's bytes differ on every run. Decision: D018 still builds, reads back and checks the real report, and publishes the SHA-256 of its canonical *transport-free projection*: each input record without `artifact_sha256`, `name`, `profile_id` and `run_id`, the records ordered by their canonical bytes, and `provenance` without `indexed_input_sha256` and `run_ids` (`sv0cov.toolchain.report_projection`). Owed: a SPEC 20.7 note defining that projection for `native_report_sha256`. | Was: digest of the real bytes (aggregate no longer deterministic), or a report from a bundled indexed input (deterministic but not about the fresh run). |
 | ~~D-13~~ | CV-244 | **Resolved 2026-10-17 (owner): close R0, defer to R1; SPEC note owed.** R0-G8 asks that, without public publication, the SPDX closure, the protected independent approval and the immutable-release staging and verification pass. They exist only with the R1 release workflow (CV-411 SBOM and license closure, CV-413 attestations, `release` environment, immutable release), and the last two need repository settings only the owner can change. Decision: R0 closes with those three items deferred to CV-411/CV-413; everything else in R0-G8 passes (see the R0 gate review). Owed: a SPEC §31.2 note moving them from R0-G8 to R1-G12/R1-G15. | Was: keep R0 open until a release workflow can be exercised in a dry-run mode, or count the frozen procedures as passing with no deferral recorded. |
@@ -221,6 +225,48 @@ per-context counts (CV-221). DV-5 stays R1. The others are unchanged.
 
 **Owed by the owner:** SPEC notes for D-12 (D018 report projection) and D-13
 (the three deferred R0-G8 items), the `COV2130` amendment, and decision D-10.
+
+## R0.1 gate review (CV-316, SPEC §31.3)
+
+**R0.1 is closed (2026-10-24): R01-G1..G6 pass.** Reviewed against the meta
+commit that records this review (CV-316) with sv0cov `050c47e` and sv0c
+`08de598` (the other submodules as pinned there). Every cited suite was green
+at that commit, locally and in GitHub CI (`./scripts/sv0 test` with
+test-guards, VM parity tier-2, sv0cov's 8-cell CI).
+
+| Gate | Status | Evidence |
+|---|---|---|
+| R01-G1 attribute/comment exclusions: fail-closed and parity matrices | pass | CV-301 sv0doc attribute registry; CV-302 attribute pass (validated in every build, D-14); CV-303 formatter layout; CV-304 directive scan (near misses, no nesting, D-16/17/18); CV-305 exclusion policy and effect: sv0c `test/coverage/exclusions/run_exclusions.py` (every form, C and VM maps byte-identical, exclusion changes no ordinary count, the full policy-error matrix with exact codes and locations on both binaries, two-file project); CV-306 `contract_off`; CV-314 audit and caps (`run_audit.py` on real evidence; sv0cov `test_exclusion_policy.py`). |
+| R01-G2 contexts and parallel shards: deterministic aggregation | pass | CV-308: sv0c `test/coverage/contexts/run_contexts.py` (absent, empty, Unicode and 256-byte contexts exact in the raw header on C and VM; eight profiles merged; aggregate = sum of `by_context`; `context_view` = the per-context merge; COV-CTX-001 same aggregate without contexts); sv0cov `test_context.py`; run-set and shard merges deterministic under permutation (CV-223 `test_merge.py`, `test_indexed_reader.py`). |
+| R01-G3 contract and entity coverage | pass, with a note | CV-306 contract entities, dispositions, points and `contract_off` (sv0c `test/coverage/contracts/run_contracts.py`, C and VM; AC-010/043/106); CV-310 entity assertions (`test_scopes.py`: exact SPEC 22.2.1 membership, contract-owner clauses, same-line recomputation with two owners, applicability, inheritance without cascade, zero denominators under the empty policy, saturation ineligibility); `test_report.py` (clause reachability: repeated evaluation counts one unit) and `test_context.py` (contracts per context and shard). Note: nearest-function ownership of nested functions is exercised only for the forms sv0 has; sv0 plans no nested function. |
+| R01-G4 HTML: offline, navigation, injection, preliminary accessibility | pass | CV-309 sv0cov `formats/html.py` + `test_html.py`: CSP `default-src 'none'` with pinned inline style/script, fragment-only links, no external reference, injection corpus through `escape_text` + HTML escaping, next-uncovered chain and keys, landmarks, headings, labels and focus; real reports in sv0c `run_contexts.py`. The WCAG 2.2 AA audit stays R1-G8 (CV-408). |
+| R01-G5 scopes, Gitignore compatibility, inheritance, changed regions, ratchets | pass | CV-310 matcher reproducing the CV-030 corpus and a new matcher corpus from pinned Git 2.55.0 (`test_gitignore*.py`), external-ignore isolation (hostile `.gitignore`, `info/exclude`, `core.excludesFile`, `GIT_DIR`), overlapping selectors, declaration permutations, inheritance; CV-311/312 changed regions (`test_gitdiff.py`, `test_changed.py`, sv0c `run_changed.py`): staged, unstaged, compiled-untracked, unrelated-untracked, in-run source mutation, ambiguous and shallow bases; CV-313 ratchets (`test_ratchet.py`, sv0c `run_ratchet.py`, AC-017). |
+| R01-G6 accountable performance path for all four classes | pass | CV-315: `## R01-G6 performance-host plan` below (DEC-087 managed-CI exception for every class; observable descriptor fields fixed and confirmed on the runners in the 2026-10-24 provisional run). |
+
+**Advertised capabilities after R0.1** (owner, 2026-10-24): every command;
+backends `native` and `vm-v1`; profile `sv0vm-v1-coverage`; features
+`branch-outcomes`, `changed-region`, `contexts`, `contract-coverage`,
+`cumulative-scopes`, `exclusion-audit`, `gitignore-scopes`, `html-report`,
+`native-json-report`, `run-sets`, `saturation-lower-bounds`,
+`self-contained-indexed`, `source-integrity`. The root policy requires
+exactly that set. Not advertised: `ratchets` (its explicit update command,
+`sv0cov baseline`, is outside the SPEC 20.1 command inventory until the
+amendment below), and the R1-only `lcov-r1-core`, `cobertura-r1-core`,
+`process-tree-spawn` and VM-v2.
+
+**D-10 resolved (owner, 2026-10-24):** `check` will accept a native report
+in R1 (new slice CV-416). Until then it refuses one with `COV5001` (exit 7);
+that is a recorded R0.1 limitation, not a waiver.
+
+**Owed by the owner (SPEC amendments):** the `COV2130` code; D-12 (D018
+report projection); D-13 (three R0-G8 items deferred); D-14 (attribute
+validation in every build); D-16, D-17, D-18, D-21, D-22 (directive notes,
+§19.3/19.4); the §16.5 sentence that makes `sv0cov.indexed` the only
+`check` input (D-10); the report members `changes` and `ratchet` and the
+`sv0cov.baseline` 1.0 schema; the `sv0cov baseline` command in §20.1 and
+whether the root `coverage` namespace (§20.1.1) gains it; reuse of
+`COV4302` for conflicted or binary compiled sources and of `COV4101` for
+exclusion caps.
 
 ## R01-G6 performance-host plan (CV-315, SPEC §24.1, DEC-087)
 
