@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 31 met, 3 mismatch, 73 owned, 29 partly met
-- **acceptance criteria:** 1 conditional, 89 met, 2 mismatch, 29 owned, 13 partly met, 1 post-R1
+- **requirements:** 2 conditional, 32 met, 3 mismatch, 69 owned, 32 partly met
+- **acceptance criteria:** 1 conditional, 89 met, 2 mismatch, 28 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -40,7 +40,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 | requirement | text | status | evidence | owner | note |
 |---|---|---|---|---|---|
-| COV-GOV-007 | Release claims SHALL link reproducible evidence at exact revisions. | owned |  | CV-415 |  |
+| COV-GOV-007 | Release claims SHALL link reproducible evidence at exact revisions. | partly met | CV-417 | CV-415 |  |
 | COV-GOV-008 | Stable format and requirement identifiers SHALL never be silently reused. | partly met | CV-009 (append-only registry), CV-417 (IDs kept at the R1 re-slice) | CV-412 | format identifiers at the freeze |
 | COV-MAP-010 | Available report source SHALL match its compiled digest by default. | met | CV-229, CV-231 |  | COV1004 unless `--allow-source-mismatch` |
 | COV-MAP-011 | Absolute host paths SHALL be omitted from public artifacts by default. | owned |  | CV-424 |  |
@@ -95,13 +95,13 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-CLI-012 | The root driver SHALL expose only `./scripts/sv0 coverage <run\\|merge\\|report\\|check\\|clean\\|doctor\\|... | partly met | CV-241 | CV-421, CV-430 | M6 |
 | COV-CLI-013 | Root coverage dispatch SHALL invoke only exact tracked mode-`100755` path `sv0cov/scripts/sv0cov` beneath t... | partly met | CV-241 | CV-430 |  |
 | COV-CFG-007 | Native reports SHALL encode effective configuration as exact closed `sv0cov.resolved-configuration` 1.0 usi... | met | CV-228 |  |  |
-| COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | owned |  | CV-401 |  |
+| COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | partly met | CV-401 (functions, lines, branches) | CV-403 | information-loss manifest |
 | COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | owned |  | CV-402 |  |
 | COV-REP-006 | Every report format SHALL be byte-identical across repeated renders of the exact same indexed input under S... | owned |  | CV-424 |  |
 | COV-REP-007 | HTML fixture reports SHALL meet WCAG 2.2 AA release checks. | partly met | CV-309 | CV-408 |  |
-| COV-REP-008 | LCOV export SHALL implement only `sv0cov-lcov-r1-core` and its exact Section 21.4 record inventory. | owned |  | CV-401 |  |
+| COV-REP-008 | LCOV export SHALL implement only `sv0cov-lcov-r1-core` and its exact Section 21.4 record inventory. | met | CV-401 |  |  |
 | COV-REP-009 | The LCOV core profile SHALL be accepted by checksum-pinned LCOV 1.16 and 2.5 `lcov` and `genhtml` consumers... | owned |  | CV-418 |  |
-| COV-REP-010 | LCOV and Cobertura line hits SHALL use the specified binary projection in which partial is not covered. | owned |  | CV-401 |  |
+| COV-REP-010 | LCOV and Cobertura line hits SHALL use the specified binary projection in which partial is not covered. | partly met | CV-401 (LCOV) | CV-402 | Cobertura |
 | COV-REP-011 | Cobertura export SHALL implement only `sv0cov-cobertura-r1-core` and validate offline against the exact pin... | owned |  | CV-402 |  |
 | COV-REP-012 | Cobertura output SHALL omit `DOCTYPE`, external entities, processing instructions, extensions, and absolute... | owned |  | CV-402 |  |
 | COV-REP-013 | A GitLab coverage-visualization smoke fixture SHALL resolve normalized logical paths and preserve the decla... | owned |  | CV-419 |  |
@@ -235,7 +235,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-050 | LCOV core works across the pinned consumer range | owned |  | CV-418 |  |
 | AC-051 | Cobertura core is deterministic and offline-safe | owned |  | CV-419 |  |
 | AC-052 | standard export loss is explicit | owned |  | CV-403 |  |
-| AC-053 | extended export profiles remain unavailable through R1 | owned |  | CV-401, CV-402 |  |
+| AC-053 | extended export profiles remain unavailable through R1 | partly met | CV-401 (LCOV core only) | CV-402 | Cobertura |
 | AC-054 | standard raw-profile limits apply by default | met | CV-025 |  |  |
 | AC-055 | the large tier is explicit | met | CV-211, CV-224 |  |  |
 | AC-056 | custom limits require both ceilings | met | CV-211 |  |  |

@@ -245,10 +245,10 @@ test-guards, VM parity tier-2, sv0cov's 8-cell CI).
 
 `task/sv0cov-r1-traceability.md` maps every R1-phase SPEC requirement (138)
 and every acceptance criterion (135) to the done slices that meet it and the
-R1 slice that owns the rest; nothing is unmapped. Requirements: 31 met, 29
-partly met, 73 owned by an open R1 slice, 2 conditional on the
-dedicated-host path, 3 mismatches. Criteria: 89 met, 13 partly met, 29
-owned, 1 conditional, 1 post-R1, 2 mismatches. Seven SPEC mismatches (M1-M7
+R1 slice that owns the rest; nothing is unmapped. Its summary has the
+current counts (at CV-417: requirements 31 met, 29 partly met, 73 owned,
+2 conditional, 3 mismatches; criteria 89 met, 13 partly met, 29 owned, 1
+conditional, 1 post-R1, 2 mismatches). Each R1 slice refreshes it with `scripts/gen_sv0cov_r1_traceability.py`. Seven SPEC mismatches (M1-M7
 there) join the owed amendments: the report's member count (24, not 22),
 the sv0 scope matcher before the rewrite, proof provenance for
 proven-impossible outcomes (no field exists: amend, or add one before the
