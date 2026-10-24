@@ -222,6 +222,88 @@ per-context counts (CV-221). DV-5 stays R1. The others are unchanged.
 **Owed by the owner:** SPEC notes for D-12 (D018 report projection) and D-13
 (the three deferred R0-G8 items), the `COV2130` amendment, and decision D-10.
 
+## R01-G6 performance-host plan (CV-315, SPEC §24.1, DEC-087)
+
+**Accountable path (owner decision, 2026-10-24): all four R1 performance
+classes produce their R1 evidence as `managed-ci-recorded` campaigns under
+the DEC-087 managed-CI exception.** No dedicated host is procured or
+provisioned now. The accountable owner for every class is the sole
+maintainer. R1-G9 is then satisfied only together with one exception
+record per gate (COV-PERF-023/024).
+
+**Why not dedicated.** The only owned machine, an Apple M3 Mac (arm64,
+8 logical CPUs, 8 GiB, internal APFS SSD, macOS 26.6.2), meets the CPU floor
+but not the 32 GiB floor of a `reference-dedicated` host. It runs the harness
+only at stage `local-development`. The managed runners below are shared
+virtual machines below every dedicated floor, so they cannot become
+`reference-dedicated` hosts either.
+
+Observed on the provisional campaign of 2026-10-19 (sv0cov
+`perf-provisional.yml`, run 39264665243, all four green):
+
+| Class | Runner label | Observed CPU | Logical CPUs | Memory | Virtualization | Dedicated floors met |
+|---|---|---|---|---|---|---|
+| Linux x86-64 | `ubuntu-24.04` | Intel Xeon 6973P-C | 4 | 15.6 GiB | VM | no (CPUs, memory, isolation) |
+| Linux arm64 | `ubuntu-24.04-arm` | unknown at the time (probe fixed in CV-315) | 4 | 15.6 GiB | VM | no |
+| macOS x86-64 | `macos-15-intel` | Intel Core i7-8700B | 4 | 14.0 GiB | VM | no |
+| macOS arm64 | `macos-15` | Apple M1 (Virtual) | 3 | 7.0 GiB | VM | no |
+
+**Descriptor.** `bench/harness.py host` already emits every SPEC §24.1 field.
+On managed runners these stay `unknown` by nature and go into each class's
+exception record: physical CPU count (Linux), power/performance mode,
+thermal and throttling state, storage device class, non-overcommit and
+background-load ceiling, scheduler affinity. CV-315 fixed the fields that
+were observable but recorded as unknown: the toolchain revision (never
+passed by the workflow), the Linux arm64 CPU model, and the filesystem.
+
+**What each exception record names** (SPEC §24.1, DEC-087): host class,
+provider and runner label, runner image, observed hardware, every missing
+descriptor field, the measured variance of the gated fixtures, and the risk
+accepted. Budgets, correctness, per-fixture ceilings and the no-pooling and
+no-compensation rules are unchanged; a campaign's results are never labelled
+dedicated-reference evidence.
+
+**No pooling across observed hardware.** The harness series key includes the
+observed CPU model, so a runner that moves to other hardware starts a new
+series. A gate is evaluated from one series only, and a hardware change
+during a campaign invalidates that campaign for the class.
+
+**What CV-410 must build on this plan:**
+
+- a `managed-ci-recorded` harness stage (today: `managed-ci-provisional`,
+  `reference-dedicated`, `local-development`), whose bundles may feed R1-G9
+  only with their exception records;
+- the exception-record artifact and its schema, and the budget evaluator
+  that refuses a gate without one;
+- a recorded-campaign workflow over the complete frozen corpus (the
+  provisional workflow runs only the 1M-pair ingest fixture), at least three
+  complete campaigns per class for the measured variance;
+- the pending corpus fixtures (`region-large` exceeds the native compiler's
+  Vec-handle table).
+
+**Transition, if dedicated hardware appears.** A class moves to
+`reference-dedicated` only on a host meeting every floor (8 logical CPUs,
+32 GiB, local SSD, native architecture, fixed power mode, no overcommit,
+complete descriptor), after three complete overlap campaigns on the same
+toolchain, corpus, configuration and protocol (COV-PERF-025). Historical
+managed results are never converted. Replacing a dedicated host repeats the
+descriptor, overlap and four-host rebaseline (COV-PERF-026).
+
+**Risks accepted, and their triggers:**
+
+- *Runner retirement.* GitHub has been retiring Intel macOS images. If
+  `macos-15-intel` (or a successor Intel label) is unavailable before the R1
+  campaign, the macOS x86-64 class has no path. The trigger is a deprecation
+  notice for the label. The fallbacks are an owner-supplied Intel Mac that meets
+  every dedicated floor (it then follows the overlap procedure), or a SPEC
+  amendment for that class. This is decided then, not now.
+- *Small, shared runners* (3-4 vCPU, 7-16 GiB) make the concurrency and
+  memory budgets the most exposed. Their variance is measured and recorded,
+  never averaged away.
+- *Scheduled provisional runs* failed until the B9 variance-unit fix
+  (2026-10-19). The on-demand run after it passed on all four classes; the
+  next scheduled run confirms the schedule.
+
 ## tracks
 
 - **Track P: protocol freeze** (sv0cov repo, pure Python, **no toolchain
