@@ -1042,6 +1042,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/exclusions/run_audit.py"; then
     ec=1; sv0_stage_failed "$LINENO"
   fi
+  sv0_info "sv0 test: coverage privacy (CV-424 — real sv0cov run with every report from two projects at marked absolute paths under marked host/user environments: no host path or host/user fact in any map, profile, report, export, manifest, build log or stream; maps and semantic projection identical)"
+  if ! python3 "$ROOT/sv0c/test/coverage/privacy/run_privacy.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
   sv0_info "sv0 test: coverage fragments (CV-205 — one map in every link order of a 5-module project, native + VM emitter; zero-length slices; instrumented runs in two orders)"
   if ! python3 "$ROOT/sv0c/test/coverage/fragments/run_fragments.py"; then
     ec=1; sv0_stage_failed "$LINENO"

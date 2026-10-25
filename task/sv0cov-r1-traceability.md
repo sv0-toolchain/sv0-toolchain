@@ -23,7 +23,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 44 met, 3 mismatch, 57 owned, 32 partly met
+- **requirements:** 2 conditional, 47 met, 3 mismatch, 54 owned, 32 partly met
 - **acceptance criteria:** 1 conditional, 93 met, 2 mismatch, 23 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
@@ -45,7 +45,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-GOV-007 | Release claims SHALL link reproducible evidence at exact revisions. | partly met | CV-417 | CV-415 |  |
 | COV-GOV-008 | Stable format and requirement identifiers SHALL never be silently reused. | partly met | CV-009 (append-only registry), CV-417 (IDs kept at the R1 re-slice) | CV-412 | format identifiers at the freeze |
 | COV-MAP-010 | Available report source SHALL match its compiled digest by default. | met | CV-229, CV-231 |  | COV1004 unless `--allow-source-mismatch` |
-| COV-MAP-011 | Absolute host paths SHALL be omitted from public artifacts by default. | owned |  | CV-424 |  |
+| COV-MAP-011 | Absolute host paths SHALL be omitted from public artifacts by default. | met | CV-424 |  |  |
 | COV-MAP-012 | Canonical maps SHALL be byte-identical for equivalent clean builds. | met | CV-111 |  |  |
 | COV-MET-005 | Short-circuit evaluated and skipped outcomes SHALL be represented. | met | CV-307 |  |  |
 | COV-MET-006 | A no-`else` `if` SHALL retain an implicit false outcome. | met | CV-109 |  |  |
@@ -99,7 +99,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-CFG-007 | Native reports SHALL encode effective configuration as exact closed `sv0cov.resolved-configuration` 1.0 usi... | met | CV-228 |  |  |
 | COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | met | CV-401 (functions, lines, branches), CV-403 (loss manifest) |  |  |
 | COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | met | CV-402 (pinned-DTD validation; docs/cobertura.md), CV-403 (loss manifest) |  |  |
-| COV-REP-006 | Every report format SHALL be byte-identical across repeated renders of the exact same indexed input under S... | owned |  | CV-424 |  |
+| COV-REP-006 | Every report format SHALL be byte-identical across repeated renders of the exact same indexed input under S... | met | CV-424 |  |  |
 | COV-REP-007 | HTML fixture reports SHALL meet WCAG 2.2 AA release checks. | partly met | CV-309 | CV-408 |  |
 | COV-REP-008 | LCOV export SHALL implement only `sv0cov-lcov-r1-core` and its exact Section 21.4 record inventory. | met | CV-401 |  |  |
 | COV-REP-009 | The LCOV core profile SHALL be accepted by checksum-pinned LCOV 1.16 and 2.5 `lcov` and `genhtml` consumers... | owned |  | CV-418 |  |
@@ -125,7 +125,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-POL-024 | Native, terminal, and HTML reports SHALL preserve every policy assertion's selector identity, membership, e... | met | CV-229, CV-230, CV-309, CV-310 |  |  |
 | COV-POL-025 | Exclusion caps SHALL compare each metric's excluded units with its pre-exclusion total exactly, while recor... | met | CV-314 |  |  |
 | COV-POL-027 | `allow-ordinary` SHALL use only proven-positive lower bounds for coverage and SHALL permit conservative fai... | met | CV-404 |  |  |
-| COV-SEC-005 | Public artifacts SHALL omit host/user/process metadata by default. | owned |  | CV-424 |  |
+| COV-SEC-005 | Public artifacts SHALL omit host/user/process metadata by default. | met | CV-424 |  |  |
 | COV-SEC-008 | Doctor SHALL use one private bounded temporary directory, fixed child and aggregate time/output/storage lim... | owned |  | CV-425 |  |
 | COV-PORT-001 | macOS arm64, macOS x86-64, Linux arm64, and Linux x86-64 SHALL all be required host combinations. | owned |  | CV-409 |  |
 | COV-PORT-002 | Each required host SHALL execute both generated-C and sv0vm coverage workflows. | owned |  | CV-409 |  |

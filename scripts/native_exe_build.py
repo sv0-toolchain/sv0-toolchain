@@ -50,7 +50,7 @@ from native_exe_entry_signature import validate_entry_signature
 from native_exe_env import sanitized_child_env
 from native_exe_errors import BuildError, DiagnosticPhase
 from native_exe_host_compile import run_host_compile
-from native_exe_human_output import format_success_message
+from native_exe_human_output import display_path, format_success_message
 from native_exe_input_validation import validate_file_input_shape
 from native_exe_output_path import default_output_path, ensure_output_parent_dir, validate_output_path
 from native_exe_publish import publish_atomically
@@ -211,7 +211,7 @@ def build_native_executable(
     remove_stale_outputs(coverage or COVERAGE_OFF, final_output, invocation_cwd)
 
     # 9. Human success output (NEX-027).
-    message = None if quiet else format_success_message(final_output, "c", profile, contract_mode)
+    message = None if quiet else format_success_message(display_path(final_output, invocation_cwd), "c", profile, contract_mode)
     return BuildResult(output_path=final_output, message=message)
 
 

@@ -39,7 +39,7 @@ from native_exe_coverage import CoverageUsageError
 from native_exe_coverage import resolve as resolve_coverage
 from native_exe_emit_c import emit_c_only
 from native_exe_errors import BuildError
-from native_exe_human_output import format_emit_c_success_message, render_argv_for_display
+from native_exe_human_output import display_path, format_emit_c_success_message, render_argv_for_display
 from native_exe_json_output import PhaseTimer, build_event, encode_event
 from native_exe_output_path import default_output_path
 from native_exe_request import Emit, RequestError, normalize_request
@@ -190,7 +190,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
             print(f"error: {exc.message}", file=sys.stderr)
             return exc.exit_code
         if not request.quiet:
-            print(format_emit_c_success_message(result_path))
+            print(format_emit_c_success_message(display_path(result_path, request.invocation_cwd)))
             if request.verbose:
                 config_display = request.config_path if request.config_path is not None else "(none discovered)"
                 print(

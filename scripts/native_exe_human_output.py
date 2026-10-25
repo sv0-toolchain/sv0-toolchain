@@ -13,7 +13,20 @@ Run `python3 scripts/native_exe_human_output.py --selftest` for the corpus.
 
 from __future__ import annotations
 
+import os
 import shlex
+
+
+def display_path(path: str, cwd: str) -> str:
+    """How a success line names an artifact: relative to the invocation
+    directory when it lies inside it (as the spec's own examples do), else as
+    given. A build under a temporary or user directory therefore never puts
+    that absolute host path in its output (sv0cov CV-424 found it in the
+    published run build log)."""
+    real, base = os.path.realpath(path), os.path.realpath(cwd)
+    if os.path.commonpath([real, base]) == base:
+        return os.path.relpath(real, base)
+    return path
 
 
 def format_success_message(output_path: str, backend: str, profile: str, contract_mode: str) -> str:
@@ -80,6 +93,23 @@ def _selftest() -> int:
     if emit_c_msg != "sv0c: wrote C to build/native/hello.c":
         failures.append(f"emit=c success message mismatch: {emit_c_msg!r}")
 
+    # Case 4c: a path inside the invocation directory is shown relative to it,
+    # through any symlinked spelling of that directory; one outside is kept as given.
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as td:
+        os.makedirs(os.path.join(td, "proj", "build", "native"))
+        link = os.path.join(td, "alias")
+        os.symlink(os.path.join(td, "proj"), link)
+        inside = os.path.join(link, "build", "native", "hello")
+        if display_path(inside, os.path.join(td, "proj")) != os.path.join("build", "native", "hello"):
+            failures.append(f"inside path not relative: {display_path(inside, os.path.join(td, 'proj'))!r}")
+        if display_path(os.path.join(td, "proj", "x"), link) != "x":
+            failures.append("a symlinked invocation directory should still give a relative path")
+        outside = os.path.join(td, "elsewhere", "hello")
+        if display_path(outside, os.path.join(td, "proj")) != outside:
+            failures.append("a path outside the invocation directory should be kept as given")
+
     # Case 5: verbose argv rendering safely quotes hostile arguments.
     hostile = ["cc", "a name; $(touch SHOULD_NOT_EXIST)", "-o", "out"]
     rendered = render_argv_for_display(hostile)
@@ -101,7 +131,7 @@ def _selftest() -> int:
             print(f"native_exe_human_output selftest FAIL: {f}")
         return 1
 
-    print("native_exe_human_output: selftest OK (7 cases)")
+    print("native_exe_human_output: selftest OK (8 cases)")
     return 0
 
 
