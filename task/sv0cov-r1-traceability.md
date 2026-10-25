@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 47 met, 4 mismatch, 52 owned, 33 partly met
-- **acceptance criteria:** 1 conditional, 93 met, 3 mismatch, 22 owned, 15 partly met, 1 post-R1
+- **requirements:** 2 conditional, 48 met, 4 mismatch, 52 owned, 32 partly met
+- **acceptance criteria:** 1 conditional, 94 met, 3 mismatch, 22 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -102,7 +102,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-REP-004 | LCOV SHALL export functions, lines, branches, and an information-loss manifest. | met | CV-401 (functions, lines, branches), CV-403 (loss manifest) |  |  |
 | COV-REP-005 | Cobertura SHALL validate and document lossy mappings. | met | CV-402 (pinned-DTD validation; docs/cobertura.md), CV-403 (loss manifest) |  |  |
 | COV-REP-006 | Every report format SHALL be byte-identical across repeated renders of the exact same indexed input under S... | met | CV-424 |  |  |
-| COV-REP-007 | HTML fixture reports SHALL meet WCAG 2.2 AA release checks. | partly met | CV-309 | CV-408 |  |
+| COV-REP-007 | HTML fixture reports SHALL meet WCAG 2.2 AA release checks. | met | CV-309, CV-408 |  |  |
 | COV-REP-008 | LCOV export SHALL implement only `sv0cov-lcov-r1-core` and its exact Section 21.4 record inventory. | met | CV-401 |  |  |
 | COV-REP-009 | The LCOV core profile SHALL be accepted by checksum-pinned LCOV 1.16 and 2.5 `lcov` and `genhtml` consumers... | met | CV-418 |  |  |
 | COV-REP-010 | LCOV and Cobertura line hits SHALL use the specified binary projection in which partial is not covered. | mismatch | CV-401, CV-402 (Cobertura partial = 0) | owner | M10: LCOV DA marks executed lines since CV-418 |
@@ -206,7 +206,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-017 | ratchet exclusion growth | met | CV-313 |  |  |
 | AC-018 | direct command execution | met | CV-233 |  |  |
 | AC-019 | inaccessible VM capability | met | CV-122 |  |  |
-| AC-020 | offline HTML | partly met | CV-309 | CV-408 |  |
+| AC-020 | offline HTML | met | CV-309, CV-408 |  |  |
 | AC-021 | hostile source text | met | CV-309 |  |  |
 | AC-022 | test command failure | met | CV-234 |  |  |
 | AC-023 | zero-overhead off mode | met | CV-111 |  |  |
