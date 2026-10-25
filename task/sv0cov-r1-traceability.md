@@ -23,7 +23,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 47 met, 4 mismatch, 53 owned, 32 partly met
+- **requirements:** 2 conditional, 47 met, 4 mismatch, 52 owned, 33 partly met
 - **acceptance criteria:** 1 conditional, 93 met, 3 mismatch, 22 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
@@ -38,6 +38,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 - **M8.** §21.5 requires a reserved root-package spelling for sources without a package but does not give it; CV-402 uses `(root)` (owner decision).
 - **M9.** §14.2.1's table lets `allow-ordinary` fail only incompatible ratchets; §11.1 and §21.3.8 make every ratchet an exact-count use. CV-404 made ratchets ineligible under any saturation (owner decision).
 - **M10.** §21.4, §16.6, COV-REP-010 and AC-050 write a partial line as LCOV DA 0 and FN at the function start line, but LCOV 2.5 refuses DA 0 on a line with a taken branch and places FN/BRDA only on DA lines. CV-418 (owner decisions): DA 1 for executed lines, FN/BRDA on the first executable line; manifest projections `line_status_binary_executed`, `unit_lines_as_first_executable_line`.
+- **M11.** §21.5 asks the GitLab smoke to show branch annotations, but GitLab's Cobertura parser reads no branch or condition data; and with the mandated `<source>.</source>` GitLab resolves classes only when the sv0 project is the repository root (CV-419).
 
 ## Requirements (phase R1)
 
@@ -107,7 +108,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-REP-010 | LCOV and Cobertura line hits SHALL use the specified binary projection in which partial is not covered. | mismatch | CV-401, CV-402 (Cobertura partial = 0) | owner | M10: LCOV DA marks executed lines since CV-418 |
 | COV-REP-011 | Cobertura export SHALL implement only `sv0cov-cobertura-r1-core` and validate offline against the exact pin... | met | CV-402 (vendored digest-pinned DTD, offline stdlib validator) |  |  |
 | COV-REP-012 | Cobertura output SHALL omit `DOCTYPE`, external entities, processing instructions, extensions, and absolute... | met | CV-402 (writer never emits them; reader refuses them) |  |  |
-| COV-REP-013 | A GitLab coverage-visualization smoke fixture SHALL resolve normalized logical paths and preserve the decla... | owned |  | CV-419 |  |
+| COV-REP-013 | A GitLab coverage-visualization smoke fixture SHALL resolve normalized logical paths and preserve the decla... | partly met | CV-419 (offline GitLab parser oracle; smoke kit) | CV-415 | real GitLab observation; M11 |
 | COV-REP-014 | Every standard export SHALL have associated native JSON and an exact `sv0cov.export-manifest` 1.0 commit re... | met | CV-403 |  |  |
 | COV-REP-017 | `sv0cov.report` version `1.0` SHALL use the exact closed twenty-two-property top-level schema and every nes... | mismatch | CV-228, CV-312, CV-313 | owner | M1 |
 | COV-REP-018 | Native-report summaries, contexts, inputs, exclusions, policy, saturation, provenance, configuration, compl... | met | CV-229 |  |  |
@@ -236,7 +237,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-048 | compiled untracked source blocks changed coverage | met | CV-311, CV-312 |  |  |
 | AC-049 | source mutation makes the run stale | met | CV-311, CV-312 |  |  |
 | AC-050 | LCOV core works across the pinned consumer range | mismatch | CV-401, CV-418 (both LCOV versions accept every golden) | owner | M10: the partial line is DA 1 |
-| AC-051 | Cobertura core is deterministic and offline-safe | partly met | CV-402 (determinism, timestamp 0, offline DTD, no DOCTYPE/PI/extension/host path) | CV-419 | GitLab smoke |
+| AC-051 | Cobertura core is deterministic and offline-safe | partly met | CV-402, CV-419 (offline GitLab parser oracle; smoke kit) | CV-415 | real GitLab observation; M11 |
 | AC-052 | standard export loss is explicit | met | CV-403 |  |  |
 | AC-053 | extended export profiles remain unavailable through R1 | met | CV-401, CV-402 (core profiles only), CV-403 (extended profile names refused before reading, pointing to native JSON) |  |  |
 | AC-054 | standard raw-profile limits apply by default | met | CV-025 |  |  |
