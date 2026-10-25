@@ -23,7 +23,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 43 met, 3 mismatch, 58 owned, 32 partly met
+- **requirements:** 2 conditional, 44 met, 3 mismatch, 57 owned, 32 partly met
 - **acceptance criteria:** 1 conditional, 93 met, 2 mismatch, 23 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
@@ -118,7 +118,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-POL-008 | `allow-ordinary` SHALL authorize only function, region, line, and branch zero/nonzero checks. | met | CV-404 |  |  |
 | COV-POL-009 | Contract outcome counts, exact context counts, exact-count assertions, and incompatible ratchets SHALL fail... | met | CV-229, CV-404 (ratchets an exact-count use under either policy) |  | R1 has no exact-count assertion; M9 |
 | COV-POL-010 | Saturation policy SHALL be recorded in resolved configuration, native reports, baselines, and evidence mani... | partly met | CV-224, CV-229, CV-313, CV-404 (resolved configuration, report, baseline) | CV-415 | evidence manifest |
-| COV-POL-011 | Standard exports with saturation SHALL fail unless diagnostic-only lossy export is explicit and manifested. | owned |  | CV-420 |  |
+| COV-POL-011 | Standard exports with saturation SHALL fail unless diagnostic-only lossy export is explicit and manifested. | met | CV-420 |  |  |
 | COV-POL-015 | Reports SHALL record supplied base spelling, resolved reference commit, current `HEAD`, and merge-base commit. | met | CV-311, CV-312 |  |  |
 | COV-POL-019 | Dirty changed-region evidence SHALL record `HEAD`, relevant path states, source digests, the canonical diff... | met | CV-311, CV-312 |  |  |
 | COV-POL-021 | A dirty result SHALL NOT be represented as reproducible from `HEAD` alone. | met | CV-312 |  | `clean`; terminal/HTML say dirty is not reproducible from HEAD |
