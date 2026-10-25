@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 38 met, 3 mismatch, 64 owned, 31 partly met
-- **acceptance criteria:** 1 conditional, 92 met, 2 mismatch, 25 owned, 14 partly met, 1 post-R1
+- **requirements:** 2 conditional, 43 met, 3 mismatch, 58 owned, 32 partly met
+- **acceptance criteria:** 1 conditional, 93 met, 2 mismatch, 23 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -36,6 +36,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 - **M6.** §20.1 lists seven commands and §20.1.1 exactly seven root subcommands; `sv0cov baseline` (CV-313) exists unadvertised (CV-421).
 - **M7.** §20.1 lets `check` take a native report; §16.5 says the indexed profile is the only `check` input. D-10 chose native reports in R1 (CV-416).
 - **M8.** §21.5 requires a reserved root-package spelling for sources without a package but does not give it; CV-402 uses `(root)` (owner decision).
+- **M9.** §14.2.1's table lets `allow-ordinary` fail only incompatible ratchets; §11.1 and §21.3.8 make every ratchet an exact-count use. CV-404 made ratchets ineligible under any saturation (owner decision).
 
 ## Requirements (phase R1)
 
@@ -53,7 +54,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-MET-012 | Policy decisions SHALL use integer numerator/denominator arithmetic. | met | CV-229, CV-231 |  |  |
 | COV-MET-013 | Condition coverage and MC/DC SHALL not be claimed by R1 outputs. | met | CV-228 (closed schemas: five metrics only) |  | by construction |
 | COV-MET-014 | Metric classification SHALL be backend-independent. | owned |  | CV-407 |  |
-| COV-MET-017 | Derived region counts SHALL use per-context interval lower bounds, retain inexact zero, aggregate those con... | partly met | CV-204, CV-221 | CV-404 |  |
+| COV-MET-017 | Derived region counts SHALL use per-context interval lower bounds, retain inexact zero, aggregate those con... | partly met | CV-204, CV-221, CV-404 (no-false-pass property and exact/saturated pairs) | CV-412 | cross-language arithmetic |
 | COV-INS-006 | Generated-C counter collection SHALL use shared C11 atomic `u64` storage and relaxed saturating compare-and... | partly met | CV-210 | CV-422 |  |
 | COV-INS-007 | Normal exit and defined contract failure SHALL flush a complete profile. | partly met | CV-115 | CV-423 |  |
 | COV-INS-008 | Interrupted/incomplete runs SHALL not be reported as zero coverage. | partly met | CV-234 | CV-423 |  |
@@ -61,7 +62,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-INS-010 | Implementations SHALL NOT assume `u64` atomics are lock-free without a recorded host probe. | partly met | CV-210 | CV-422 |  |
 | COV-INS-011 | VMs with serialized execution MAY use non-atomic internal storage only when externally observable saturatio... | partly met | CV-207, CV-171 (VM counts and saturation equal C) | CV-407 |  |
 | COV-INS-012 | Complete orderly multithreaded profiles SHALL require coverage-producing threads to be quiescent before fin... | partly met | CV-210 | CV-422 |  |
-| COV-INS-013 | Saturated values SHALL be represented as lower bounds with explicit saturation metadata. | owned |  | CV-404 |  |
+| COV-INS-013 | Saturated values SHALL be represented as lower bounds with explicit saturation metadata. | met | CV-404 |  |  |
 | COV-INS-016 | Only independently entered process images and toolchain-managed spawn-and-exec descendants SHALL be eligibl... | owned |  | CV-405 |  |
 | COV-C-004 | Multiple instrumented modules SHALL register without counter collision. | partly met | CV-206 | CV-423 |  |
 | COV-C-007 | The native runtime SHALL prevent a fork child from publishing inherited counters, retain an unresolved pare... | owned |  | CV-405 |  |
@@ -113,17 +114,17 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-REP-020 | Count records and the saturation inventory SHALL distinguish exact zero from an inexact zero lower bound an... | met | CV-229 |  |  |
 | COV-REP-021 | Native report detail SHALL preserve compiler and target map identity, point identity discriminators and out... | met | CV-229 |  |  |
 | COV-POL-006 | Incomplete, stale, incompatible, or rejected evidence SHALL block a passing check. | met | CV-231 |  |  |
-| COV-POL-007 | Saturation policy SHALL default to `fail` and MAY be set only explicitly to `allow-ordinary`. | owned |  | CV-404 |  |
-| COV-POL-008 | `allow-ordinary` SHALL authorize only function, region, line, and branch zero/nonzero checks. | owned |  | CV-404 |  |
-| COV-POL-009 | Contract outcome counts, exact context counts, exact-count assertions, and incompatible ratchets SHALL fail... | owned |  | CV-404 |  |
-| COV-POL-010 | Saturation policy SHALL be recorded in resolved configuration, native reports, baselines, and evidence mani... | owned |  | CV-404 |  |
+| COV-POL-007 | Saturation policy SHALL default to `fail` and MAY be set only explicitly to `allow-ordinary`. | met | CV-404 |  |  |
+| COV-POL-008 | `allow-ordinary` SHALL authorize only function, region, line, and branch zero/nonzero checks. | met | CV-404 |  |  |
+| COV-POL-009 | Contract outcome counts, exact context counts, exact-count assertions, and incompatible ratchets SHALL fail... | met | CV-229, CV-404 (ratchets an exact-count use under either policy) |  | R1 has no exact-count assertion; M9 |
+| COV-POL-010 | Saturation policy SHALL be recorded in resolved configuration, native reports, baselines, and evidence mani... | partly met | CV-224, CV-229, CV-313, CV-404 (resolved configuration, report, baseline) | CV-415 | evidence manifest |
 | COV-POL-011 | Standard exports with saturation SHALL fail unless diagnostic-only lossy export is explicit and manifested. | owned |  | CV-420 |  |
 | COV-POL-015 | Reports SHALL record supplied base spelling, resolved reference commit, current `HEAD`, and merge-base commit. | met | CV-311, CV-312 |  |  |
 | COV-POL-019 | Dirty changed-region evidence SHALL record `HEAD`, relevant path states, source digests, the canonical diff... | met | CV-311, CV-312 |  |  |
 | COV-POL-021 | A dirty result SHALL NOT be represented as reproducible from `HEAD` alone. | met | CV-312 |  | `clean`; terminal/HTML say dirty is not reproducible from HEAD |
 | COV-POL-024 | Native, terminal, and HTML reports SHALL preserve every policy assertion's selector identity, membership, e... | met | CV-229, CV-230, CV-309, CV-310 |  |  |
 | COV-POL-025 | Exclusion caps SHALL compare each metric's excluded units with its pre-exclusion total exactly, while recor... | met | CV-314 |  |  |
-| COV-POL-027 | `allow-ordinary` SHALL use only proven-positive lower bounds for coverage and SHALL permit conservative fai... | owned |  | CV-404 |  |
+| COV-POL-027 | `allow-ordinary` SHALL use only proven-positive lower bounds for coverage and SHALL permit conservative fai... | met | CV-404 |  |  |
 | COV-SEC-005 | Public artifacts SHALL omit host/user/process metadata by default. | owned |  | CV-424 |  |
 | COV-SEC-008 | Doctor SHALL use one private bounded temporary directory, fixed child and aggregate time/output/storage lim... | owned |  | CV-425 |  |
 | COV-PORT-001 | macOS arm64, macOS x86-64, Linux arm64, and Linux x86-64 SHALL all be required host combinations. | owned |  | CV-409 |  |
@@ -220,8 +221,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-034 | CRC32C transport integrity | met | CV-023 |  |  |
 | AC-035 | contended atomic hit counting | met | CV-210 |  |  |
 | AC-036 | atomic saturation | met | CV-210 |  |  |
-| AC-037 | saturation fails by default | owned |  | CV-404 |  |
-| AC-038 | explicit ordinary-metric saturation override | owned |  | CV-404 |  |
+| AC-037 | saturation fails by default | met | CV-404 |  |  |
+| AC-038 | explicit ordinary-metric saturation override | partly met | CV-404 (eligible checks pass, exact-count uses ineligible) | CV-415 | evidence manifest |
 | AC-039 | exact native coverage namespace | met | CV-113 |  |  |
 | AC-040 | statement attribute attachment | met | CV-305 |  |  |
 | AC-041 | expression attribute is rejected | met | CV-305 |  |  |
