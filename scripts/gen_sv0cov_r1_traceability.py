@@ -75,13 +75,14 @@ def main() -> int:
      "M7": "§20.1 lets `check` take a native report; §16.5 says the indexed profile is the only `check` input. D-10 chose native reports in R1 (CV-416).",
      "M8": "§21.5 requires a reserved root-package spelling for sources without a package but does not give it; CV-402 uses `(root)` (owner decision).",
      "M9": "§14.2.1's table lets `allow-ordinary` fail only incompatible ratchets; §11.1 and §21.3.8 make every ratchet an exact-count use. CV-404 made ratchets ineligible under any saturation (owner decision).",
+     "M10": "§21.4, §16.6, COV-REP-010 and AC-050 write a partial line as LCOV DA 0 and FN at the function start line, but LCOV 2.5 refuses DA 0 on a line with a taken branch and places FN/BRDA only on DA lines. CV-418 (owner decisions): DA 1 for executed lines, FN/BRDA on the first executable line; manifest projections `line_status_binary_executed`, `unit_lines_as_first_executable_line`.",
     }
     ROVR = {  # requirement overrides: (status, evidence, owner, note)
      "COV-GOV-008": ("partly met", "CV-009 (append-only registry), CV-417 (IDs kept at the R1 re-slice)", "CV-412", "format identifiers at the freeze"),
      "COV-REL-003": ("owned", "", "CV-415", "evidence manifest"),
      "COV-SCP-004": ("met", "CV-209, CV-417 (B12: dependency units no longer reach the project)", "", ""),
      "COV-REP-004": ("met", "CV-401 (functions, lines, branches), CV-403 (loss manifest)", "", ""),
-     "COV-REP-010": ("met", "CV-401 (LCOV), CV-402 (Cobertura)", "", ""),
+     "COV-REP-010": ("mismatch", "CV-401, CV-402 (Cobertura partial = 0)", "owner", "M10: LCOV DA marks executed lines since CV-418"),
      "COV-FMT-037": ("partly met", "CV-403 (schema, goldens, negatives, mutation)", "CV-412", "cross-language reader parity"),
      "COV-MET-017": ("partly met", "CV-204, CV-221, CV-404 (no-false-pass property and exact/saturated pairs)", "CV-412", "cross-language arithmetic"),
      "COV-POL-009": ("met", "CV-229, CV-404 (ratchets an exact-count use under either policy)", "", "R1 has no exact-count assertion; M9"),
@@ -121,6 +122,7 @@ def main() -> int:
      "AC-030": ("met", "CV-102", "", ""),
      "AC-033": ("post-R1", "", "CV-904", ""),
      "AC-039": ("met", "CV-113", "", ""),
+     "AC-050": ("mismatch", "CV-401, CV-418 (both LCOV versions accept every golden)", "owner", "M10: the partial line is DA 1"),
      "AC-051": ("partly met", "CV-402 (determinism, timestamp 0, offline DTD, no DOCTYPE/PI/extension/host path)", "CV-419", "GitLab smoke"),
      "AC-038": ("partly met", "CV-404 (eligible checks pass, exact-count uses ineligible)", "CV-415", "evidence manifest"),
      "AC-053": ("met", "CV-401, CV-402 (core profiles only), CV-403 (extended profile names refused before reading, pointing to native JSON)", "", ""),
