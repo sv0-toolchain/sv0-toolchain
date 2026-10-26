@@ -1,0 +1,120 @@
+# sv0cov CV-410 (SPEC 24.1, DEC-087, COV-PERF-023/024): a managed-ci-recorded
+# performance campaign over the frozen corpus, compile and execute
+# dimensions, coverage off and on, on the managed runner of each R1 host
+# class. One dispatch is one campaign; R1-G9 needs at least three complete
+# campaigns per class, evaluated together by sv0cov/bench/evaluate.py with
+# the class's DEC-087 exception record (CV-428).
+#
+# Only Linux x86-64 can run today: building the sv0 toolchain needs SML/NJ,
+# whose CI installer supports amd64 Linux only. The other three classes join
+# once the toolchain builds on them (CV-409); until then they are listed and
+# skipped, so the matrix records what is missing.
+#
+# `fixtures` limits the campaign to some fixture ids (a smoke run of the
+# workflow itself): the evaluator then reports every gate incomplete.
+
+name: Recorded performance campaign
+
+on:
+  workflow_dispatch:
+    inputs:
+      fixtures:
+        description: "Space-separated fixture ids for a smoke run (empty = the complete runnable corpus)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  campaign:
+    name: ${{ matrix.host }} (managed-ci-recorded)
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64]
+        include:
+          - { host: linux-x86_64, runner: ubuntu-24.04, toolchain: true }
+          - { host: linux-arm64, runner: ubuntu-24.04-arm, toolchain: false }
+          - { host: macos-x86_64, runner: macos-15-intel, toolchain: false }
+          - { host: macos-arm64, runner: macos-15, toolchain: false }
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      SV0COV_RUNNER_LABEL: ${{ matrix.runner }}
+    steps:
+      - name: Toolchain not buildable on this class yet (CV-409)
+        if: ${{ !matrix.toolchain }}
+        run: |
+          echo "::notice::${{ matrix.host }}: no recorded campaign until the sv0 toolchain builds here (CV-409)"
+
+      - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
+        if: ${{ matrix.toolchain }}
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout with submodules
+        if: ${{ matrix.toolchain }}
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.13
+        if: ${{ matrix.toolchain }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Cache SML/NJ install
+        if: ${{ matrix.toolchain }}
+        uses: actions/cache@v4
+        with:
+          path: ~/smlnj-110.99.9
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-curl-v2
+
+      - name: Install SML/NJ and build the native compiler
+        if: ${{ matrix.toolchain }}
+        run: |
+          bash scripts/ci-install-smlnj.sh
+          bash scripts/build-sv0-megatu-native.sh
+
+      - name: Corpus manifest and snapshots are current
+        if: ${{ matrix.toolchain }}
+        run: python3 sv0cov/bench/corpus.py check
+
+      - name: Plan both dimensions (replay digests must match the manifest)
+        if: ${{ matrix.toolchain }}
+        env:
+          FIXTURES: ${{ inputs.fixtures }}
+        run: |
+          ids=()
+          for id in $FIXTURES; do ids+=(--id "$id"); done
+          for dim in compile execute; do
+            python3 sv0cov/bench/corpus.py plan --toolchain . --work "$RUNNER_TEMP/bench-$dim" --dimension "$dim" "${ids[@]}" > "plan-$dim.json"
+          done
+
+      - name: Campaign (frozen protocol, both arms)
+        if: ${{ matrix.toolchain }}
+        run: |
+          for dim in compile execute; do
+            python3 sv0cov/bench/harness.py run --plan "plan-$dim.json" --stage managed-ci-recorded \
+              --toolchain-revision "${{ github.sha }}" --out "results-${{ matrix.host }}-$dim.json"
+          done
+
+      - name: Evaluate this campaign alone (informational; R1-G9 needs three plus the exception record)
+        if: ${{ matrix.toolchain }}
+        run: >-
+          python3 sv0cov/bench/evaluate.py
+          --campaign "results-${{ matrix.host }}-compile.json,results-${{ matrix.host }}-execute.json"
+          --template "exception-template-${{ matrix.host }}.json" > "evaluation-${{ matrix.host }}.json" || true
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ always() && matrix.toolchain }}
+        with:
+          name: perf-recorded-${{ matrix.host }}-${{ github.run_id }}
+          path: |
+            results-${{ matrix.host }}-*.json
+            evaluation-${{ matrix.host }}.json
+            exception-template-${{ matrix.host }}.json
+          if-no-files-found: warn
+          retention-days: 90

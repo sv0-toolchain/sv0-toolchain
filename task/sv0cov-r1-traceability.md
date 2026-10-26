@@ -23,7 +23,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 48 met, 4 mismatch, 52 owned, 32 partly met
+- **requirements:** 2 conditional, 53 met, 4 mismatch, 46 owned, 33 partly met
 - **acceptance criteria:** 1 conditional, 94 met, 3 mismatch, 22 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
@@ -140,8 +140,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-003 | Each required OS/architecture combination SHALL be an independent performance reference-host class. | owned |  | CV-428 |  |
 | COV-PERF-004 | Measurements from different host classes SHALL NOT be pooled or used to compensate for another host's failure. | owned |  | CV-428 |  |
 | COV-PERF-006 | Timed execution SHALL run directly on the named architecture; virtual hosts SHALL meet the pinned non-overc... | owned |  | CV-428 |  |
-| COV-PERF-008 | Benchmark categories SHALL have equal aggregate weight, and geometric means SHALL be limited to dimensionle... | owned |  | CV-410 |  |
-| COV-PERF-009 | Every fixture, category, and host result SHALL remain visible; aggregate success SHALL NOT hide a per-fixtu... | owned |  | CV-410 |  |
+| COV-PERF-008 | Benchmark categories SHALL have equal aggregate weight, and geometric means SHALL be limited to dimensionle... | met | CV-410 |  |  |
+| COV-PERF-009 | Every fixture, category, and host result SHALL remain visible; aggregate success SHALL NOT hide a per-fixtu... | met | CV-410 |  |  |
 | COV-PERF-010 | CPython 3.13 and 3.14 SHALL retain four-host functional conformance even when only the qualified host descr... | owned |  | CV-428 |  |
 | COV-PERF-013 | Required real-project fixtures SHALL be content-addressed and runnable without network access. | partly met | CV-036 | CV-427 |  |
 | COV-PERF-015 | Every timed run SHALL validate its expected semantic result before contributing performance evidence. | owned |  | CV-427 |  |
@@ -149,8 +149,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-017 | VM dispatch evidence SHALL cover equivalent v1 and v2 programs and identify profile-local overhead. | owned |  | CV-427 |  |
 | COV-PERF-018 | Scale evidence SHALL exercise 250,000 report points and 1,000,000 point/profile pairs. | owned |  | CV-427 |  |
 | COV-PERF-020 | A corpus revision SHALL version, justify, overlap-measure, and fully rebaseline every host class. | owned |  | CV-427 |  |
-| COV-PERF-023 | Dedicated or demonstrably non-overcommitted reference hosts meeting Section 24.1 floors, or a `managed-ci-r... | owned |  | CV-410 |  |
-| COV-PERF-024 | Managed CI performance results SHALL NOT satisfy an R1 performance gate except as a `managed-ci-recorded` c... | owned |  | CV-410 |  |
+| COV-PERF-023 | Dedicated or demonstrably non-overcommitted reference hosts meeting Section 24.1 floors, or a `managed-ci-r... | met | CV-410 |  |  |
+| COV-PERF-024 | Managed CI performance results SHALL NOT satisfy an R1 performance gate except as a `managed-ci-recorded` c... | met | CV-410 |  |  |
 | COV-PERF-025 | A transition to dedicated hosts SHALL include three complete overlap campaigns per host class without conve... | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |
 | COV-PERF-026 | Dedicated-host replacement SHALL use the same descriptor, overlap, and complete four-host rebaseline proced... | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |
 | COV-PERF-027 | Instrumented compile p95 overhead SHALL be at most 20% for every applicable dedicated-host corpus result. | owned |  | CV-428 |  |
@@ -161,8 +161,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-032 | Native and terminal reporting of 250,000 points SHALL take at most 5 seconds and 768 MiB RSS. | owned |  | CV-428 |  |
 | COV-PERF-033 | HTML reporting of 250,000 points SHALL take at most 20 seconds and 1 GiB RSS. | owned |  | CV-428 |  |
 | COV-PERF-034 | Five clean deterministic executions SHALL have identical canonical maps and semantic projections, and five... | owned |  | CV-428 |  |
-| COV-PERF-035 | A missed performance target SHALL block release unless an evidence-backed specification change is accepted... | owned |  | CV-410, CV-428 |  |
-| COV-PERF-036 | Correctness or integrity SHALL NOT be weakened to meet a performance target. | owned |  | CV-410 |  |
+| COV-PERF-035 | A missed performance target SHALL block release unless an evidence-backed specification change is accepted... | partly met | CV-410 | CV-428 |  |
+| COV-PERF-036 | Correctness or integrity SHALL NOT be weakened to meet a performance target. | met | CV-410 |  |  |
 | COV-REL-002 | Both backends SHALL pass identical semantic conformance fixtures. | owned |  | CV-407 |  |
 | COV-REL-003 | Every required gate SHALL be supported by immutable evidence. | owned |  | CV-415 | evidence manifest |
 | COV-REL-004 | Installation and removal SHALL pass on every required OS/architecture combination. | owned |  | CV-426 |  |
