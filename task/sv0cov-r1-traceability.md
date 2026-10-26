@@ -23,7 +23,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 53 met, 4 mismatch, 46 owned, 33 partly met
+- **requirements:** 2 conditional, 57 met, 4 mismatch, 46 owned, 29 partly met
 - **acceptance criteria:** 1 conditional, 94 met, 3 mismatch, 22 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
@@ -57,13 +57,13 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-MET-013 | Condition coverage and MC/DC SHALL not be claimed by R1 outputs. | met | CV-228 (closed schemas: five metrics only) |  | by construction |
 | COV-MET-014 | Metric classification SHALL be backend-independent. | owned |  | CV-407 |  |
 | COV-MET-017 | Derived region counts SHALL use per-context interval lower bounds, retain inexact zero, aggregate those con... | partly met | CV-204, CV-221, CV-404 (no-false-pass property and exact/saturated pairs) | CV-412 | cross-language arithmetic |
-| COV-INS-006 | Generated-C counter collection SHALL use shared C11 atomic `u64` storage and relaxed saturating compare-and... | partly met | CV-210 | CV-422 |  |
+| COV-INS-006 | Generated-C counter collection SHALL use shared C11 atomic `u64` storage and relaxed saturating compare-and... | met | CV-210, CV-422 |  |  |
 | COV-INS-007 | Normal exit and defined contract failure SHALL flush a complete profile. | partly met | CV-115 | CV-423 |  |
 | COV-INS-008 | Interrupted/incomplete runs SHALL not be reported as zero coverage. | partly met | CV-234 | CV-423 |  |
-| COV-INS-009 | Overflow flags SHALL be updated atomically and SHALL identify every saturated counter. | partly met | CV-210 | CV-422 |  |
-| COV-INS-010 | Implementations SHALL NOT assume `u64` atomics are lock-free without a recorded host probe. | partly met | CV-210 | CV-422 |  |
+| COV-INS-009 | Overflow flags SHALL be updated atomically and SHALL identify every saturated counter. | met | CV-210, CV-422 |  |  |
+| COV-INS-010 | Implementations SHALL NOT assume `u64` atomics are lock-free without a recorded host probe. | met | CV-210, CV-422 |  |  |
 | COV-INS-011 | VMs with serialized execution MAY use non-atomic internal storage only when externally observable saturatio... | partly met | CV-207, CV-171 (VM counts and saturation equal C) | CV-407 |  |
-| COV-INS-012 | Complete orderly multithreaded profiles SHALL require coverage-producing threads to be quiescent before fin... | partly met | CV-210 | CV-422 |  |
+| COV-INS-012 | Complete orderly multithreaded profiles SHALL require coverage-producing threads to be quiescent before fin... | met | CV-210, CV-422 |  |  |
 | COV-INS-013 | Saturated values SHALL be represented as lower bounds with explicit saturation metadata. | met | CV-404 |  |  |
 | COV-INS-016 | Only independently entered process images and toolchain-managed spawn-and-exec descendants SHALL be eligibl... | owned |  | CV-405 |  |
 | COV-C-004 | Multiple instrumented modules SHALL register without counter collision. | partly met | CV-206 | CV-423 |  |
@@ -221,7 +221,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-032 | hard termination remains incomplete in R1 | owned |  | CV-406 |  |
 | AC-033 | post-R1 continuous data remains qualified | post-R1 |  | CV-904 |  |
 | AC-034 | CRC32C transport integrity | met | CV-023 |  |  |
-| AC-035 | contended atomic hit counting | met | CV-210 |  |  |
+| AC-035 | contended atomic hit counting | met | CV-210, CV-422 |  |  |
 | AC-036 | atomic saturation | met | CV-210 |  |  |
 | AC-037 | saturation fails by default | met | CV-404 |  |  |
 | AC-038 | explicit ordinary-metric saturation override | partly met | CV-404 (eligible checks pass, exact-count uses ineligible) | CV-415 | evidence manifest |
