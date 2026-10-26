@@ -77,8 +77,11 @@ def main() -> int:
      "M9": "§14.2.1's table lets `allow-ordinary` fail only incompatible ratchets; §11.1 and §21.3.8 make every ratchet an exact-count use. CV-404 made ratchets ineligible under any saturation (owner decision).",
      "M10": "§21.4, §16.6, COV-REP-010 and AC-050 write a partial line as LCOV DA 0 and FN at the function start line, but LCOV 2.5 refuses DA 0 on a line with a taken branch and places FN/BRDA only on DA lines. CV-418 (owner decisions): DA 1 for executed lines, FN/BRDA on the first executable line; manifest projections `line_status_binary_executed`, `unit_lines_as_first_executable_line`.",
      "M11": "§21.5 asks the GitLab smoke to show branch annotations, but GitLab's Cobertura parser reads no branch or condition data; and with the mandated `<source>.</source>` GitLab resolves classes only when the sv0 project is the repository root (CV-419).",
+     "M12": "§14.2.2, COV-INS-016, COV-VM-026 and AC-096 assume a toolchain-managed spawn-and-exec API that rejects in-place exec; D-4 chose none (sv0 has no process API). CV-405 holds the boundary in the runtime (fork guards, unresolved parent) and shows the supported launch with `posix_spawn` from C, since sv0 can reach a process call only through `#[extern_c]` (native) and the VM accepts no FFI.",
     }
     ROVR = {  # requirement overrides: (status, evidence, owner, note)
+     "COV-INS-016": ("mismatch", "CV-405 (fork guards; posix_spawn and raw fork/exec matrix)", "owner", "M12"),
+     "COV-VM-026": ("mismatch", "CV-405 (VM-v1 refuses FFI, E0553: no host-process operation)", "owner, CV-407", "M12; VM-v2"),
      "COV-GOV-008": ("partly met", "CV-009 (append-only registry), CV-417 (IDs kept at the R1 re-slice)", "CV-412", "format identifiers at the freeze"),
      "COV-REL-003": ("owned", "", "CV-415", "evidence manifest"),
      "COV-SCP-004": ("met", "CV-209, CV-417 (B12: dependency units no longer reach the project)", "", ""),
@@ -113,6 +116,7 @@ def main() -> int:
      "COV-SCP-009": ("mismatch", "CV-030, CV-310 (Python matcher)", "owner", "M2"),
     }
     AOVR = {
+     "AC-096": ("mismatch", "CV-405 (posix_spawn, failed spawn, fork, fork+exec, in-place exec; VM-v1 refuses FFI)", "owner, CV-407", "M12; VM-v2"),
      "AC-003": ("met", "CV-209, CV-417 (B12 fixed; `tests/test_default_scope.py`)", "", ""),
      "AC-004": ("met", "CV-113, CV-205 (maps name only sv0 sources)", "", "by construction"),
      "AC-005": ("met", "CV-229, CV-231", "", ""),

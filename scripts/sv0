@@ -1066,6 +1066,10 @@ run_test() {
   if ! python3 "$ROOT/sv0c/test/coverage/lifecycle/run_lifecycle.py"; then
     ec=1; sv0_stage_failed "$LINENO"
   fi
+  sv0_info "sv0 test: coverage process boundary (CV-405 — native unmanaged fork via #[extern_c] fails closed; VM refuses FFI)"
+  if ! python3 "$ROOT/sv0c/test/coverage/process/run_process.py"; then
+    ec=1; sv0_stage_failed "$LINENO"
+  fi
   sv0_info "sv0 test: coverage lines (CV-202 — partial-line matrix from real native + VM runs; CRLF/tabs/multibyte spelling)"
   if ! python3 "$ROOT/sv0c/test/coverage/lines/run_lines.py"; then
     ec=1; sv0_stage_failed "$LINENO"

@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 57 met, 4 mismatch, 46 owned, 29 partly met
-- **acceptance criteria:** 1 conditional, 94 met, 3 mismatch, 22 owned, 14 partly met, 1 post-R1
+- **requirements:** 2 conditional, 58 met, 6 mismatch, 43 owned, 29 partly met
+- **acceptance criteria:** 1 conditional, 94 met, 4 mismatch, 21 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -39,6 +39,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 - **M9.** §14.2.1's table lets `allow-ordinary` fail only incompatible ratchets; §11.1 and §21.3.8 make every ratchet an exact-count use. CV-404 made ratchets ineligible under any saturation (owner decision).
 - **M10.** §21.4, §16.6, COV-REP-010 and AC-050 write a partial line as LCOV DA 0 and FN at the function start line, but LCOV 2.5 refuses DA 0 on a line with a taken branch and places FN/BRDA only on DA lines. CV-418 (owner decisions): DA 1 for executed lines, FN/BRDA on the first executable line; manifest projections `line_status_binary_executed`, `unit_lines_as_first_executable_line`.
 - **M11.** §21.5 asks the GitLab smoke to show branch annotations, but GitLab's Cobertura parser reads no branch or condition data; and with the mandated `<source>.</source>` GitLab resolves classes only when the sv0 project is the repository root (CV-419).
+- **M12.** §14.2.2, COV-INS-016, COV-VM-026 and AC-096 assume a toolchain-managed spawn-and-exec API that rejects in-place exec; D-4 chose none (sv0 has no process API). CV-405 holds the boundary in the runtime (fork guards, unresolved parent) and shows the supported launch with `posix_spawn` from C, since sv0 can reach a process call only through `#[extern_c]` (native) and the VM accepts no FFI.
 
 ## Requirements (phase R1)
 
@@ -65,9 +66,9 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-INS-011 | VMs with serialized execution MAY use non-atomic internal storage only when externally observable saturatio... | partly met | CV-207, CV-171 (VM counts and saturation equal C) | CV-407 |  |
 | COV-INS-012 | Complete orderly multithreaded profiles SHALL require coverage-producing threads to be quiescent before fin... | met | CV-210, CV-422 |  |  |
 | COV-INS-013 | Saturated values SHALL be represented as lower bounds with explicit saturation metadata. | met | CV-404 |  |  |
-| COV-INS-016 | Only independently entered process images and toolchain-managed spawn-and-exec descendants SHALL be eligibl... | owned |  | CV-405 |  |
+| COV-INS-016 | Only independently entered process images and toolchain-managed spawn-and-exec descendants SHALL be eligibl... | mismatch | CV-405 (fork guards; posix_spawn and raw fork/exec matrix) | owner | M12 |
 | COV-C-004 | Multiple instrumented modules SHALL register without counter collision. | partly met | CV-206 | CV-423 |  |
-| COV-C-007 | The native runtime SHALL prevent a fork child from publishing inherited counters, retain an unresolved pare... | owned |  | CV-405 |  |
+| COV-C-007 | The native runtime SHALL prevent a fork child from publishing inherited counters, retain an unresolved pare... | met | CV-405 |  |  |
 | COV-VM-005 | v1 VM, v2 VM, and generated-C indexed counts SHALL match for deterministic conformance fixtures. | owned |  | CV-407 |  |
 | COV-VM-012 | Coverage-capable `sv0vm-v2-typed` SHALL carry equivalent coverage metadata inline. | owned |  | CV-462 |  |
 | COV-VM-013 | After physical-integrity validation, the v1 companion and v2 inline metadata SHALL resolve to the same cano... | partly met | CV-026 | CV-463 |  |
@@ -75,7 +76,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-VM-019 | The v2 coverage section SHALL use the unique ASCII tag `COVR` (`43 4f 56 52`). | partly met | CV-102 | CV-461 |  |
 | COV-VM-022 | v2 `bytecode_sha256` SHALL hash the complete canonical `.sv0b` with exactly its own 32-byte field zero-fill... | owned |  | CV-462, CV-463 |  |
 | COV-VM-023 | The v2 `COVR` 1.0 payload SHALL use the exact packed little-endian layout, constants, ASCII bounds, final d... | partly met | CV-026 | CV-461 |  |
-| COV-VM-026 | VM host-process operations SHALL expose the same fresh-image and managed spawn-and-exec coverage boundary a... | owned |  | CV-405 |  |
+| COV-VM-026 | VM host-process operations SHALL expose the same fresh-image and managed spawn-and-exec coverage boundary a... | mismatch | CV-405 (VM-v1 refuses FFI, E0553: no host-process operation) | owner, CV-407 | M12; VM-v2 |
 | COV-FMT-012 | The R1 runtime SHALL perform neither periodic profile checkpoints nor memory-mapped continuous counter writes. | owned |  | CV-406 |  |
 | COV-FMT-024 | Diagnostic provenance and release evidence SHALL record the resolved tier and numeric ceilings. | partly met | CV-224, CV-228 (resolved tier in the report) | CV-415 | release evidence |
 | COV-FMT-037 | `sv0cov.export-manifest` version `1.0` SHALL use the exact closed fourteen-property canonical JSON schema,... | partly met | CV-403 (schema, goldens, negatives, mutation) | CV-412 | cross-language reader parity |
@@ -282,7 +283,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-093 | COVR 1.0 has one exact binary representation | met | CV-024, CV-026 |  |  |
 | AC-094 | v1 binding 1.0 is closed and canonical | met | CV-026 |  |  |
 | AC-095 | zero-counter instrumentation proves orderly execution | met | CV-207 |  |  |
-| AC-096 | process creation never duplicates inherited coverage | owned |  | CV-405 |  |
+| AC-096 | process creation never duplicates inherited coverage | mismatch | CV-405 (posix_spawn, failed spawn, fork, fork+exec, in-place exec; VM-v1 refuses FFI) | owner, CV-407 | M12; VM-v2 |
 | AC-097 | cross-run aggregation requires an exact declared set | met | CV-223 |  |  |
 | AC-098 | ambient environment cannot change coverage policy | met | CV-224, CV-237 |  |  |
 | AC-099 | overlapping scopes are cumulative assertions | met | CV-310 |  |  |

@@ -178,7 +178,7 @@ VM parity tier-2, sv0cov's 8-cell CI, sv0vm `make test`).
 **Decisions D-2..D-4 as delivered.**
 - D-2 (SHA-256 in sv0 source): delivered in CV-104 and used by the map, point IDs and the VM binding. sv0vm has its own SML SHA-256 (CV-120).
 - D-3 (single maintainer + managed CI): the SPEC was amended (DEC-087); G12 and G32 rest on it.
-- D-4 (fork guards only): F0 has the flush-time guard, under which a forked process image never publishes inherited counters (`COV2120`, CV-115). The `pthread_atfork` disarm and unresolved-parent flag remain CV-405 (R1).
+- D-4 (fork guards only): F0 has the flush-time guard, under which a forked process image never publishes inherited counters (`COV2120`, CV-115). R1 (CV-405, 2026-10-26) adds the `pthread_atfork` disarm (a hit in a forked child is never counted; required mode stops the child before it) and the unresolved-parent flag (a parent that forked publishes nothing, COV2120); `posix_spawn` is the supported launch; mismatch M12 records that no managed spawn API exists.
 
 **Implementation deviations found during F0.** The owner reviewed and accepted all ten on 2026-10-08. None blocks F0; DV-5 and DV-6 are scheduled in R1 and R0.
 
