@@ -14,16 +14,14 @@ a sibling directory of verification shell scripts. Agents run a task with
 
 | task | state | what |
 |---|---|---|
-| [`sv0-toolchain-milestone-5-llvm-crypto.Rmd`](sv0-toolchain-milestone-5-llvm-crypto.Rmd) · [checklist](sv0-toolchain-milestone-5-checklist.Rmd) | active | **current milestone** — LLVM IR backend + production crypto (7 epics A–G; sub-tasks `sv0c-llvm-backend`/`-llvm-toolchain`/`-std-foundation`/`-crypto-lib`/`-bitvector-verify` + `sv0-toolchain-llvm-release`) |
+| [`sv0-toolchain-milestone-5-llvm-crypto.Rmd`](sv0-toolchain-milestone-5-llvm-crypto.Rmd) · [checklist](sv0-toolchain-milestone-5-checklist.Rmd) | active | **current milestone** (planned 2026-08-22; no `M5-S-###` slice started yet, 0/88) — LLVM IR backend + production crypto (7 epics A–G; sub-tasks `sv0c-llvm-backend`/`-llvm-toolchain`/`-std-foundation`/`-crypto-lib`/`-bitvector-verify` + `sv0-toolchain-llvm-release`) |
 | [`sv0-toolchain-milestone-6-kernel.Rmd`](sv0-toolchain-milestone-6-kernel.Rmd) | draft | `asm!`, boot/link, HAL, minimal kernel |
 | [`sv0-toolchain-milestone-cross-cutting.Rmd`](sv0-toolchain-milestone-cross-cutting.Rmd) | draft | macros, literate `.sv0.md`, `std`/concurrency, packaging |
-| [`sv0-vsc-extension-plan.Rmd`](sv0-vsc-extension-plan.Rmd) · [`…-checklist.Rmd`](sv0-vsc-extension-checklist.Rmd) | draft | VS Code extension |
-| [`sv0c-runtime-executable.Rmd`](sv0c-runtime-executable.Rmd) · [checklist](sv0c-runtime-executable-checklist.Rmd) | draft | native host executable from the C backend (`sv0c --emit=exe`); F0–R1 backlog `NEX-001…058`; not part of M5 |
-| [`sv0c-vm-float-parity.Rmd`](sv0c-vm-float-parity.Rmd) | complete | f64 + i64/u64 on the VM backend (native emitter + `sv0vm`); full `sv0-mathlib` VM-runs matching the C backend; cross-backend behavioral-parity harness gates it (COMPAT-001/002, TEST-005). `VMF-001…021` |
+| [`sv0-vsc-extension-plan.Rmd`](sv0-vsc-extension-plan.Rmd) · [`…-checklist.Rmd`](sv0-vsc-extension-checklist.Rmd) | active | VS Code extension — F0 in progress (24/209 `VSC-S-###` done, 10 wip; last work 2026-08-23); repo `sv0-toolchain/sv0-vsc-extension` |
+| [`sv0c-runtime-executable.Rmd`](sv0c-runtime-executable.Rmd) · [checklist](sv0c-runtime-executable-checklist.Rmd) | active | native host executable from the C backend (`sv0c --emit=exe`); F0–R1 closed (88/89 `NEX-###` done) except NEX-051d (macOS Apple Clang CI leg deferred); not part of M5 |
 | [`sv0-toolchain-interface-distribution.Rmd`](sv0-toolchain-interface-distribution.Rmd) · [checklist](sv0-toolchain-interface-distribution-checklist.Rmd) | draft | **installed toolchain** (orientation id `TID`): native `sv0`/`sv0c`/`sv0vm`, strict `sv0.toml` v1, relocatable BR1 archives; `TID-###`; supersedes parts of the native-exe CLI |
 | [`sv0vm-multi-implementation.Rmd`](sv0vm-multi-implementation.Rmd) · [checklist](sv0vm-multi-implementation-checklist.Rmd) | draft | **normative `.sv0b` + six conforming VMs** (orientation id `VMX`): sv0/Go/Haskell/Python/C99/TS, shared conformance, SML retired after R0.6; `VMX-###` |
-| [`sv0cov-coverage.Rmd`](sv0cov-coverage.Rmd) · [checklist](sv0cov-checklist.Rmd) | draft | sv0cov source-based coverage (SPEC `0.1.73-draft`); `CV-###` |
-| [`sv0-strings-library.Rmd`](sv0-strings-library.Rmd) · [checklist](sv0-strings-checklist.Rmd) | active | sv0-strings (released `v1.1.0`); `SS-###` |
+| [`sv0cov-coverage.Rmd`](sv0cov-coverage.Rmd) · [checklist](sv0cov-checklist.Rmd) | active | sv0cov source-based coverage (SPEC `0.1.73-draft`); F0/R0/R0.1 closed, R1 in progress (14/34 done); `CV-###` |
 | [`sv0-gui-lib.Rmd`](sv0-gui-lib.Rmd) | draft | GUI library consumer: toolchain enablement only (`GUI-U##`) |
 | [`sv0-flipper-ble-scanner.Rmd`](sv0-flipper-ble-scanner.Rmd) | draft | Flipper Zero BLE scanner consumer: freestanding/embedded toolchain enablement (`FLP-U##`) |
 
@@ -47,6 +45,15 @@ a sibling directory of verification shell scripts. Agents run a task with
 | M3 — self-hosting compiler | [`…-milestone-3-self-host.Rmd`](sv0-toolchain-milestone-3-self-host.Rmd) · [checklist](sv0-toolchain-milestone-3-checklist.Rmd) | complete |
 | M4 — advanced verification | [`…-milestone-4-verification.Rmd`](sv0-toolchain-milestone-4-verification.Rmd) · [checklist](sv0-toolchain-milestone-4-checklist.Rmd) | complete |
 | MCP-0 — dev graph | [`sv0-mcp-milestone-0.Rmd`](sv0-mcp-milestone-0.Rmd) | complete |
+
+**Completed SPEC-governed programs and sub-features** (outside the milestone numbering):
+
+| task | state | what |
+|---|---|---|
+| [`sv0-strings-library.Rmd`](sv0-strings-library.Rmd) · [checklist](sv0-strings-checklist.Rmd) | complete | sv0-strings R1 shipped (`v1.0.0`; latest `v1.1.0`); `SS-###` |
+| [`sv0c-vm-float-parity.Rmd`](sv0c-vm-float-parity.Rmd) | complete | f64 + i64/u64 on the VM backend (native emitter + `sv0vm`); `VMF-001…021` |
+| [`sv0c-ffi-raw-pointer-abi.Rmd`](sv0c-ffi-raw-pointer-abi.Rmd) | complete | raw pointers, `unsafe` blocks, FFI/exact-ABI contract (OQ-007) |
+| [`sv0c-non-eliding-write.Rmd`](sv0c-non-eliding-write.Rmd) | complete | backend-enforced non-eliding explicit write (SS-U11 / OQ-006) |
 
 ## archive/
 

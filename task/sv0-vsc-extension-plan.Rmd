@@ -1,9 +1,9 @@
 ---
 created: "2026-08-22T00:00:00-07:00"
-updated: "2026-08-22T01:00:00-07:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0-vsc-extension-plan
 key: sv0-vsc-extension-plan
-state: draft
+state: active
 tags:
   - sv0
   - vscode
@@ -18,7 +18,11 @@ type: task
 
 ## purpose
 
-Plan — **not yet implement** — an independently versioned VS Code/Cursor extension for
+**Current state (2026-10-26):** F0 in progress (24 of 209 `VSC-S-###` slices
+done, 10 wip; last work 2026-08-23, repo `sv0-toolchain/sv0-vsc-extension` at
+`e0784bc`). Nothing published yet.
+
+Plan for an independently versioned VS Code/Cursor extension for
 `sv0`, governed by the product/engineering specification at
 `~/Documents/project-specs/sv0-vsc-extension/SPEC.md` (source-audit date
 2026-08-22; audited revisions: `sv0-toolchain@8a1eeb2`, `sv0c@ac272be`,

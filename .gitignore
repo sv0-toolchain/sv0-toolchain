@@ -6,3 +6,8 @@ __pycache__/
 unknown_session_stop_tracking.sh
 unknown_session_start_tracking.sh
 unknown_session_open_cursor.sh
+
+# machine-local agent/editor config (not project work)
+.claude/settings.local.json
+.claude/memory/
+.mcp.json

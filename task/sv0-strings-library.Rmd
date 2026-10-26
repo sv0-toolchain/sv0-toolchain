@@ -1,9 +1,9 @@
 ---
 created: "2026-08-30T00:00:00-06:00"
-updated: "2026-08-30T00:00:00-06:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0-strings-library
 key: sv0-strings-library
-state: active
+state: complete
 tags:
   - sv0
   - sv0-strings
@@ -41,21 +41,21 @@ library track). Closure authority is `SPEC.md` (§24 release gates, §23
 acceptance scenarios) plus these two files; the sv0-strings repo carries its own
 `README.md` / `CHANGELOG.md` and, later, a `BUGS.md` in the sv0-mathlib style.
 
-## current state (2026-08-30)
+## current state (2026-10-26) — complete
 
-- Repo scaffolded and pinned as a submodule (this branch). Contents: `README.md`,
-  `CHANGELOG.md`, `LICENSE-APACHE`, `LICENSE-MIT`, `docs/README.md`, and 11 flat
-  `lib/strings_*.sv0` **module stubs** (doc header + `module <name>;`, no
-  behavior).
-- Implementation tier (SPEC §4.8): **Tier 0 — observed bootstrap**. Nothing in
-  `lib/` is implemented.
-- **F0 is unblocked as of 2026-09-02** — Track U is cleared to the extent it
-  gates F0: the F0-critical upstream capabilities are landed and CI-green on
-  both backends; four items are closed to a tractable arm (deeper arm deferred,
-  Decisions 2–5), three are SPEC-deferred (R0.3 / R0.4). Reviewed deviation
-  list: `sv0-strings/docs/f0-deviations.md`. Track L (R0.1 implementation)
-  proceeds on that basis. The ~20 gaps and their status are the `SS-U##` rows
-  in `task/sv0-strings-checklist.Rmd`.
+- **R1 shipped.** Every rung of the release ladder passed its gate review
+  (`sv0-strings/docs/r0.1-…r0.4-gate-review.md`, `r1-gate-review.md`); R1 was
+  approved and tagged **`v1.0.0`** (`dc03177`), and **`v1.1.0`** (`61a3b77`,
+  2026-09-19, `docs/v1.1.0-release-review.md`) is the latest release.
+- Every `SS-###` library slice and every post-R1 `SS-2##` row is done. Two
+  upstream rows stay **partial** by design: **SS-U06** (generic
+  monomorphization deferred; reviewed concrete carriers ship instead) and
+  **SS-U12** (POSIX-locale collation only; named locales and host messages
+  deferred). SS-U06 is a reviewed deviation in
+  `sv0-strings/docs/f0-deviations.md`; the locale gap is the approved PERF-007
+  exception in `sv0-strings/tools/catalogs/exceptions.tsv`.
+- History: scaffolded 2026-08-30; F0 unblocked 2026-09-02 once the
+  F0-critical Track U capabilities landed (`docs/f0-deviations.md`).
 
 ## relationship to the toolchain (SPEC §3.4)
 

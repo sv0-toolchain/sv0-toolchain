@@ -1,6 +1,6 @@
 ---
 created: "2026-08-23T00:00:00-06:00"
-updated: "2026-09-27T12:00:00-06:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0c-runtime-executable
 key: sv0c-runtime-executable
 state: active
@@ -19,7 +19,12 @@ type: task
 
 ## purpose
 
-Plan — **not yet implement** — the missing production step after the sv0 C
+**Current state (2026-10-26):** implemented. F0 through R1 are closed (88 of
+89 `NEX-###` slices done); the one open item is **NEX-051d** (partial): the
+macOS Apple Clang arm64 CI leg is deliberately deferred. The installed-toolchain
+spec (TID, below) supersedes parts of this contract.
+
+Originally a plan for the missing production step after the sv0 C
 backend: a thin host driver that turns the C translation unit `sv0c` already
 emits into a durable, runnable, host-native executable, governed by the
 specification at `~/Documents/project-specs/sv0c-runtime-executable/SPEC.md`

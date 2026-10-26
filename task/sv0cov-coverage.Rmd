@@ -1,9 +1,9 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-10-24T12:00:00-06:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
-state: draft
+state: active
 tags:
   - sv0
   - sv0cov
@@ -18,8 +18,8 @@ type: task
 
 ## purpose
 
-**sv0cov** is a new standalone product (planned repo `sv0-toolchain/sv0cov`,
-pinned as the `sv0cov/` submodule). It measures execution against original
+**sv0cov** is a standalone product (repo `sv0-toolchain/sv0cov`, pinned as
+the `sv0cov/` submodule). It measures execution against original
 `.sv0` source constructs, with one coverage truth across generated-C/native
 execution and `.sv0b` execution on `sv0vm`.
 
@@ -40,11 +40,20 @@ Like sv0-strings, sv0cov is a SPEC-governed product rather than a toolchain
 milestone. It is therefore absent from the milestone table and
 `task/milestone-orientation.json`.
 
-## current state (2026-10-24)
+## current state (2026-10-26)
 
 - **F0, R0 and R0.1 are closed** (F0 2026-10-08, R0 2026-10-17, R0.1
-  2026-10-24; gate reviews below). R1 (`4xx` slices in the checklist) is
-  next.
+  2026-10-24; gate reviews below).
+- **R1 is in progress**: of the 34 `4xx` slices in the checklist, 14 are
+  done (CV-401..405, CV-408, CV-410, CV-416..420, CV-422, CV-424), 2 are
+  blocked (CV-421 on the owner's `sv0cov baseline` SPEC amendment; CV-460 on
+  the sv0vm expansion's typed v2 container), and 18 are todo. Nothing is
+  released. The R1 traceability table (`task/sv0cov-r1-traceability.md`) and
+  the owed SPEC mismatches (M1..M7 there, M8..M12 in the R1 slice rows)
+  are current.
+- **Open finding (CV-410):** the recorded instrumentation overhead is far
+  over the SPEC §24 budgets (compile up to 4.8x, artifact +56-97%, execution
+  +17-44%), so R1-G9 is at risk until the performance work lands.
 - sv0cov is the `sv0cov/` submodule; the root policy
   `compatibility/sv0cov.json` pins it and requires exactly the advertised
   capabilities recorded in the R0.1 gate review.
@@ -130,8 +139,8 @@ build entry point (D-5) each needed an owner decision. **All three were resolved
 |---|---|---|
 | **F0** feasibility (**closed 2026-10-08**, see the F0 gate review) | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
 | **R0** developer preview (**closed 2026-10-17**, see the R0 gate review) | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
-| **R0.1** policy preview | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
-| **R1** stable contract (`1.0.0`) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
+| **R0.1** policy preview (**closed 2026-10-24**, see the R0.1 gate review) | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
+| **R1** stable contract (`1.0.0`) (**in progress**, 14/34 slices done) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
 | **Post-R1** | sv0 rewrite against the Python oracle; continuous counters. | `CV-9xx` (coarse; re-slice when reached) |
 
 ## F0 gate review (CV-172, SPEC §31.1)
@@ -241,21 +250,7 @@ test-guards, VM parity tier-2, sv0cov's 8-cell CI).
 | R01-G3 contract and entity coverage | pass, with a note | CV-306 contract entities, dispositions, points and `contract_off` (sv0c `test/coverage/contracts/run_contracts.py`, C and VM; AC-010/043/106); CV-310 entity assertions (`test_scopes.py`: exact SPEC 22.2.1 membership, contract-owner clauses, same-line recomputation with two owners, applicability, inheritance without cascade, zero denominators under the empty policy, saturation ineligibility); `test_report.py` (clause reachability: repeated evaluation counts one unit) and `test_context.py` (contracts per context and shard). Note: nearest-function ownership of nested functions is exercised only for the forms sv0 has; sv0 plans no nested function. |
 | R01-G4 HTML: offline, navigation, injection, preliminary accessibility | pass | CV-309 sv0cov `formats/html.py` + `test_html.py`: CSP `default-src 'none'` with pinned inline style/script, fragment-only links, no external reference, injection corpus through `escape_text` + HTML escaping, next-uncovered chain and keys, landmarks, headings, labels and focus; real reports in sv0c `run_contexts.py`. The WCAG 2.2 AA audit stays R1-G8 (CV-408). |
 | R01-G5 scopes, Gitignore compatibility, inheritance, changed regions, ratchets | pass | CV-310 matcher reproducing the CV-030 corpus and a new matcher corpus from pinned Git 2.55.0 (`test_gitignore*.py`), external-ignore isolation (hostile `.gitignore`, `info/exclude`, `core.excludesFile`, `GIT_DIR`), overlapping selectors, declaration permutations, inheritance; CV-311/312 changed regions (`test_gitdiff.py`, `test_changed.py`, sv0c `run_changed.py`): staged, unstaged, compiled-untracked, unrelated-untracked, in-run source mutation, ambiguous and shallow bases; CV-313 ratchets (`test_ratchet.py`, sv0c `run_ratchet.py`, AC-017). |
-| R01-G6 accountable performance path for all four classes | pass | CV-315: `## R1 traceability (CV-417)
-
-`task/sv0cov-r1-traceability.md` maps every R1-phase SPEC requirement (138)
-and every acceptance criterion (135) to the done slices that meet it and the
-R1 slice that owns the rest; nothing is unmapped. Its summary has the
-current counts (at CV-417: requirements 31 met, 29 partly met, 73 owned,
-2 conditional, 3 mismatches; criteria 89 met, 13 partly met, 29 owned, 1
-conditional, 1 post-R1, 2 mismatches). Each R1 slice refreshes it with `scripts/gen_sv0cov_r1_traceability.py`. Seven SPEC mismatches (M1-M7
-there) join the owed amendments: the report's member count (24, not 22),
-the sv0 scope matcher before the rewrite, proof provenance for
-proven-impossible outcomes (no field exists: amend, or add one before the
-CV-412 freeze), AC-073 and AC-133 against DEC-087, the command inventory
-against `sv0cov baseline`, and §16.5 against D-10.
-
-## R01-G6 performance-host plan` below (DEC-087 managed-CI exception for every class; observable descriptor fields fixed and confirmed on the runners in the 2026-10-24 provisional run). |
+| R01-G6 accountable performance path for all four classes | pass | CV-315: `## R01-G6 performance-host plan` below (DEC-087 managed-CI exception for every class; observable descriptor fields fixed and confirmed on the runners in the 2026-10-24 provisional run). |
 
 **Advertised capabilities after R0.1** (owner, 2026-10-24): every command;
 backends `native` and `vm-v1`; profile `sv0vm-v1-coverage`; features
@@ -281,6 +276,20 @@ validation in every build); D-16, D-17, D-18, D-21, D-22 (directive notes,
 whether the root `coverage` namespace (§20.1.1) gains it; reuse of
 `COV4302` for conflicted or binary compiled sources and of `COV4101` for
 exclusion caps.
+
+## R1 traceability (CV-417)
+
+`task/sv0cov-r1-traceability.md` maps every R1-phase SPEC requirement (138)
+and every acceptance criterion (135) to the done slices that meet it and the
+R1 slice that owns the rest; nothing is unmapped. Its summary has the
+current counts (at CV-417: requirements 31 met, 29 partly met, 73 owned,
+2 conditional, 3 mismatches; criteria 89 met, 13 partly met, 29 owned, 1
+conditional, 1 post-R1, 2 mismatches). Each R1 slice refreshes it with `scripts/gen_sv0cov_r1_traceability.py`. Seven SPEC mismatches (M1-M7
+there) join the owed amendments: the report's member count (24, not 22),
+the sv0 scope matcher before the rewrite, proof provenance for
+proven-impossible outcomes (no field exists: amend, or add one before the
+CV-412 freeze), AC-073 and AC-133 against DEC-087, the command inventory
+against `sv0cov baseline`, and §16.5 against D-10.
 
 ## R01-G6 performance-host plan (CV-315, SPEC §24.1, DEC-087)
 

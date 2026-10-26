@@ -1,9 +1,9 @@
 ---
 created: "2026-08-22T00:00:00-07:00"
-updated: "2026-08-22T01:00:00-07:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0-vsc-extension-checklist
 key: sv0-vsc-extension-checklist
-state: draft
+state: active
 tags:
   - sv0
   - vscode
@@ -23,7 +23,12 @@ specified at `~/Documents/project-specs/sv0-vsc-extension/SPEC.md`. The
 **definition of done**, scope decisions, phase sequencing, and release gates
 live in the hub **`task/sv0-vsc-extension-plan.Rmd`**. This file is a **living
 index** — flip status as slices land and keep it aligned with the hub's phase
-narrative. No implementation has started; every slice below is `todo`.
+narrative.
+
+**Current state (2026-10-26):** F0 in progress in `sv0-toolchain/sv0-vsc-extension`
+(last commit `e0784bc`, 2026-08-23, CI green): 24 of 209 slices **done**, 10
+**wip**, the rest `todo`. Nothing is published to the Marketplace (VSC-S-008
+trusted publishing comes first). The refinement log below has the details.
 
 ## how to use
 
@@ -92,29 +97,29 @@ Status: **todo** / **wip** / **done** / **deferred** / **blocked**.
 |----|-------|----------------|--------|-----------|
 | VSC-S-111 | Provenance manifest schema for every source-derived grammar/keyword/snippet/diagnostic fixture + generated-file headers | GOV-001 | **wip** | `schemas/provenance-manifest.json` created with entries for the grammar (`sv0doc@451fcd9`) and snippets (`sv0c@ac272be`). No automated schema-validation test yet. |
 | VSC-S-112 | Build-fails-on-drift gate: pinned `sv0doc/keywords/reference.md` keyword missing from lexical corpus | GOV-002 | **done** | `scripts/check-language-drift.mjs` extracts the 43-keyword alphabetical list from a real `sv0doc` checkout and asserts each appears in the grammar → `43/43 covered`. Confirmed in real GitHub Actions CI (run 32594557171, 2026-08-22): the workflow checks out `sv0-toolchain/sv0-toolchain` as a sibling path (with submodules) and the gate runs against the live pinned `sv0doc` revision, not a local path. |
-| VSC-S-113 | README/UI copy stating TextMate classification is not evidence of syntactic/semantic validity + negative fixture | GOV-003 | todo | not yet written |
+| VSC-S-113 | README/UI copy stating TextMate classification is not evidence of syntactic/semantic validity + negative fixture | GOV-003 | **done** | README now has an explicit "Syntax highlighting is not a correctness signal" paragraph, plus the pre-existing negative fixture test (`test/unit/grammar.test.ts`). |
 
 **TextMate grammar and language configuration**
 
 | ID | slice | requirement(s) | status | acceptance |
 |----|-------|----------------|--------|-----------|
 | VSC-S-114 | `syntaxes/sv0.tmLanguage.json` skeleton (`source.sv0` root) + repository scope taxonomy from spec §13 | §13 | **done** | Grammar authored with the exact repository scope names from spec §13 (`comment.line.documentation.sv0`, `keyword.other.contract.sv0`, `variable.language.self.sv0`, etc.). |
-| VSC-S-115 | Keyword/primitive-type/literal/comment/string/char/operator/fn/type-decl/attribute/contract-clause token coverage | LANG-001 | **wip** | All categories present in the grammar (keyword-drift-verified for keywords, VSC-S-112). No golden token-scope test harness (`vscode-textmate` tokenizer + fixture corpus) built yet — that's the real LANG-001 gate. |
-| VSC-S-116 | Comment scopes: `//`, `///`, `/* ... */`, distinct scopes, non-nesting rejection fixture | LANG-002 | **wip** | Three distinct scopes implemented (`///` ordered before `//` so it matches first). No nested-comment rejection fixture test yet. |
-| VSC-S-117 | String/char escape highlighting incl. hex + Unicode escape shapes | LANG-003 | **wip** | `\n \r \t \\ \' \" \0`, `\xHH`, `\u{...}` patterns implemented inside string/char scopes. No valid/invalid escape fixture tests yet. |
-| VSC-S-118 | Numeric highlighting: decimal/hex/octal/binary, underscores, int suffixes, float literals + suffixes, no adjacent-identifier bleed | LANG-004 | **wip** | All four bases + underscores + int/float suffixes implemented with `\b` boundaries. No boundary-oriented fixture tests yet (adjacent-identifier bleed unverified). |
-| VSC-S-119 | Operator highlighting: punctuation, comparisons, shifts, borrow, dereference, logical — no parse disambiguation asserted | LANG-005 | **wip** | Comparison/logical/shift/arithmetic/bitwise/assignment/range/`?` patterns implemented (no borrow-vs-bitwise-and or deref-vs-multiply disambiguation attempted, per spec). No ambiguous-operator fixture tests yet. |
+| VSC-S-115 | Keyword/primitive-type/literal/comment/string/char/operator/fn/type-decl/attribute/contract-clause token coverage | LANG-001 | **done** | Real golden token-scope tests added (`test/unit/grammar.test.ts` + `test/support/grammarHarness.ts`, driving the actual `vscode-textmate`/`vscode-oniguruma` tokenizer — the same engine VS Code uses). Covers keywords by category (declaration/control/contract), primitive types, `self`/`Self`, `true`/`false`. Attribute-scope coverage is N/A (sv0 has no attribute syntax in the audited grammar); fn/type-decl covered indirectly via `entity.name.function.sv0`/`entity.name.type.sv0` patterns but not yet golden-tested directly. |
+| VSC-S-116 | Comment scopes: `//`, `///`, `/* ... */`, distinct scopes, non-nesting rejection fixture | LANG-002 | **done** | Golden test confirms distinct scopes for all three, plus a real non-nesting regression test (`/* outer /* inner */` ends at the first `*/`, code after it is NOT still inside `comment.block.sv0`). |
+| VSC-S-117 | String/char escape highlighting incl. hex + Unicode escape shapes | LANG-003 | **done** | Golden test covers `\n`, `\xHH`, `\u{...}` getting the right escape scopes, plus a negative case (`\q` is not classified as a valid escape). |
+| VSC-S-118 | Numeric highlighting: decimal/hex/octal/binary, underscores, int suffixes, float literals + suffixes, no adjacent-identifier bleed | LANG-004 | **done** | Golden test covers all four bases + underscores + int/float suffixes, plus a real adjacent-identifier-bleed regression test (`1result` — the numeric token must not swallow `result`). |
+| VSC-S-119 | Operator highlighting: punctuation, comparisons, shifts, borrow, dereference, logical — no parse disambiguation asserted | LANG-005 | **done** | Golden test covers comparison/logical/shift/range operators, plus a dedicated compound-assignment regression suite (10 cases: `<<= >>= += -= *= /= %= &= \|= ^=`) that caught and pinned a real grammar bug (see refinement log 2026-08-22). |
 | VSC-S-120 | `language-configuration.json`: line/block comments, bracket pairs, auto-closing pairs, surrounding pairs, word pattern, indentation rules, folding markers | LANG-006 | **done** | All fields present per spec's own field list. |
-| VSC-S-121 | Auto-closing-pair context guards: no closing quote inserted inside comments/strings | LANG-007 | **wip** | `"notIn": ["string", "comment"]` set on quote/block-comment auto-close pairs. No extension-host typing test yet. |
-| VSC-S-122 | Provenance-backed snippet set: `fn`, `main`, `struct`, `enum`, `match`, `if`, `while`, `for`, `requires`, `ensures`, `loop_invariant` | LANG-008, LANG-009 | **wip** | All 11 required snippets present, provenance recorded in `schemas/provenance-manifest.json`. No expansion-snapshot or compiler-corpus verification tests yet. |
-| VSC-S-123 | Lexical fixture inventory: LF, CRLF, Unicode, empty-file, very-long-line, malformed/incomplete-source cases | LANG-010 | todo | not yet built |
-| VSC-S-124 | Regex ReDoS/catastrophic-backtracking fuzz + 1 MiB single-line timeout suite | PERF-002 | todo | not yet built — the grammar's char-class/alternation patterns look linear but are unverified |
+| VSC-S-121 | Auto-closing-pair context guards: no closing quote inserted inside comments/strings | LANG-007 | **wip** | `"notIn": ["string", "comment"]` set on quote/block-comment auto-close pairs. Still needs a real extension-host typing test (requires `@vscode/test-electron`, a heavier dependency not yet added). |
+| VSC-S-122 | Provenance-backed snippet set: `fn`, `main`, `struct`, `enum`, `match`, `if`, `while`, `for`, `requires`, `ensures`, `loop_invariant` | LANG-008, LANG-009 | **done** | `test/unit/snippets.test.ts`: an expansion-snapshot test resolves every snippet's placeholders and tokenizes the result through the real grammar (proving it's recognized `sv0` syntax mapped to the right keyword scope, not just a plausible string), plus a provenance test confirming `requires(...)`/`ensures(...)`/`loop_invariant(...)` call-shape has real precedent in the audited `sv0c/examples/learn` corpus (not a full compile — that's out of scope for this slice). |
+| VSC-S-123 | Lexical fixture inventory: LF, CRLF, Unicode, empty-file, very-long-line, malformed/incomplete-source cases | LANG-010 | **done** | Five committed fixture files under `test/fixtures/lexical/` (LF, real CRLF terminators verified by byte-checking the file, non-BMP Unicode + CJK, a genuinely empty 0-byte file, malformed/incomplete source), each tokenized line-by-line through the real grammar in `test/unit/lexicalFixtures.test.ts`, plus an inventory test that fails if a fixture file is added/removed without updating the expected list. Very-long-line stays generated at test time (not committed) to avoid a multi-hundred-KB git blob — its own dedicated case plus the pre-existing PERF-002 budget test both cover it. |
+| VSC-S-124 | Regex ReDoS/catastrophic-backtracking fuzz + 1 MiB single-line timeout suite | PERF-002 | **done** | `test/unit/grammarFuzz.test.ts`: 10 deterministic adversarial-pattern cases (long runs of near-miss operator/comment/escape/numeric prefixes — the classic catastrophic-backtracking shapes) each asserted under a 2s budget, on top of the pre-existing 1 MiB single-line test. Deterministic by design (TEST-003), not a randomized fuzzer. |
 
 **Phase-0 formatting**
 
 | ID | slice | requirement(s) | status | acceptance |
 |----|-------|----------------|--------|-----------|
-| VSC-S-125 | Phase-0 formatter: strip trailing whitespace, strip trailing blank lines, exactly one final LF — differential vs audited `scripts/fmt_sv0.py` | FMT-001 | **wip** | `src/common/formatting/phase0Formatter.ts` implemented and reasoned line-by-line against `scripts/fmt_sv0.py`'s `format_sv0()` (incl. the `str.rstrip()` char set and `splitlines()` trailing-empty-pop behavior); 7 unit tests pass. Not yet the required **automated differential property test** that actually shells out to `fmt_sv0.py` and compares outputs. |
+| VSC-S-125 | Phase-0 formatter: strip trailing whitespace, strip trailing blank lines, exactly one final LF — differential vs audited `scripts/fmt_sv0.py` | FMT-001 | **done** | `test/unit/phase0FormatterDifferential.test.ts` shells out to a real `python3` running the pinned `scripts/fmt_sv0.py` against a fixed 13-case corpus (empty input, CRLF, Unicode, no-trailing-newline, whitespace-only, etc.) and asserts byte-identical output. Confirmed green in real GitHub Actions CI (run 32660724240) against a fresh CI checkout of `sv0-toolchain`, not a local path. Skips gracefully (does not fail) if no sibling `sv0-toolchain` checkout or `python3` is found. |
 | VSC-S-126 | Phase-0 formatter idempotence + non-whitespace character preservation | FMT-002 | **done** | Both covered by passing unit tests (`is idempotent`, `preserves every non-whitespace character`). |
 | VSC-S-127 | Formatter returns editor TextEdits via `provideDocumentFormattingEdits`, participates in undo, never writes files directly | FMT-003 | **wip** | `registerDocumentFormattingEditProvider` implemented, returns `vscode.TextEdit[]` (undo-safe by construction, no `fs` writes). No extension-host format+undo integration test run yet. |
 | VSC-S-128 | Format-on-save opt-in setting for Preview, no external process | FMT-004 | todo | `sv0.format.onSave` setting not implemented yet — formatter only registers as a manual/on-demand provider today |
@@ -411,6 +416,51 @@ Status: **todo** / **wip** / **done** / **deferred** / **blocked**.
   annotation: `actions/checkout@v4`/`setup-node@v4` target a deprecated
   Node 20 runner image (still functions, forced onto Node 24) — worth
   bumping to `@v5` in a later pass, not blocking.
+- 2026-08-23: **Real golden grammar test harness + FMT-001 differential
+  test landed and pushed** (2 commits, CI green: 32660724240). Added
+  `test/support/grammarHarness.ts` driving the real `vscode-textmate`/
+  `vscode-oniguruma` tokenizer (same engine VS Code uses) against
+  `syntaxes/sv0.tmLanguage.json`. This flips **VSC-S-115…120 to `done`**
+  (LANG-001…006) with genuine golden/adversarial tests, and moved
+  VSC-S-113/123/124 to `wip` with real partial coverage. Also flips
+  **VSC-S-125 to `done`**: `test/unit/phase0FormatterDifferential.test.ts`
+  shells out to a real `python3` running the pinned `scripts/fmt_sv0.py`
+  against a 13-case corpus and asserts byte-identical output — confirmed
+  green against a fresh CI checkout of `sv0-toolchain`, not a local path.
+  **Found and fixed a real grammar bug while writing the LANG-005 tests:**
+  `vscode-textmate`'s oniguruma scanner breaks same-start-position ties by
+  pattern array order, not match length, so `<<`, `>>`, `&=`, `\|=`, `^=`,
+  `+=`, `-=`, `*=`, `/=`, `%=` were each splitting into a shorter operator
+  token plus a stray `=` token — reordered `syntaxes/sv0.tmLanguage.json`'s
+  operator patterns (documented inline) and added a 10-case regression
+  test. 23/23 unit tests pass; `npm run check` green in both local and CI
+  environments.
+- 2026-08-23: **All remaining F0 grammar/snippet slices closed for real**
+  (VSC-S-113, 122, 123, 124 → `done`; commit `e0784bc`, pushed, CI green
+  32661241791). Added the LANG-010 fixture inventory (5 committed files
+  under `test/fixtures/lexical/`), the LANG-008/009 snippet
+  expansion-snapshot + upstream-corpus provenance tests, the PERF-002
+  10-case deterministic fuzz suite, and the GOV-003 README paragraph.
+  44/44 unit tests pass. Remaining `wip` in this section: VSC-S-121
+  (auto-close typing test — needs `@vscode/test-electron`, a real
+  VS-Code-download dependency not yet added, deliberately deferred),
+  VSC-S-127/128 (formatter extension-host+undo test, format-on-save
+  setting).
+- 2026-08-23: **Added `.github/workflows/build-vsix.yml`** — a
+  `workflow_dispatch` job that runs the full gate suite and uploads a
+  packaged `.vsix` + SHA-256 as a downloadable Actions artifact, so the
+  user can manually upload to the Marketplace publisher dashboard before
+  OIDC trusted publishing (VSC-S-008) is configured. Triggered once
+  manually to confirm it actually works end to end (run 32661281664,
+  artifact `sv0-lang-0.1.0`, 1.9 MB zip). Documented in README under
+  "Building a release candidate". Also handed the user a real, locally
+  built, fully-gated `sv0-lang-0.1.0.vsix` directly (SHA-256
+  `13b13820...575278`) via `./scripts/package.sh --pre-release` so they
+  don't have to wait on Actions for the very first upload. This is
+  supporting infrastructure for the eventual PKG-013/PKG-016 Marketplace
+  publication slices, not itself a numbered `VSC-S-###` — the numbered
+  publication slices (VSC-S-381…395) still require VSC-S-008 (trusted
+  publishing policy) first.
 
 ## related
 

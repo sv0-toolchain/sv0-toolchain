@@ -1,9 +1,9 @@
 ---
 created: "2026-08-23T00:00:00-06:00"
-updated: "2026-08-23T00:00:00-06:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0c-runtime-executable-checklist
 key: sv0c-runtime-executable-checklist
-state: draft
+state: active
 tags:
   - sv0
   - sv0c
@@ -24,9 +24,13 @@ feature specified at `~/Documents/project-specs/sv0c-runtime-executable/SPEC.md`
 §31. The **definition of done**, scope decisions, release ladder, and gates
 live in the hub **`task/sv0c-runtime-executable.Rmd`**. This file is a
 **living index** — flip status as slices land and keep it aligned with the
-hub's phase narrative. No implementation has started (confirmed by repo audit
-2026-08-23: only the test-convenience `./scripts/sv0 compile-run` exists); every
-slice below is `todo`.
+hub's phase narrative.
+
+**Current state (2026-10-26):** 88 of 89 slices are **done**; F0, F0/R0, R0,
+R0.1 and R1 are closed except **NEX-051d**, which is **partial**: the
+Linux-Clang CI leg is applied, and the macOS Apple Clang arm64 leg is
+deliberately deferred (see that row). Parts of this spec are superseded by
+the installed-toolchain program (TID; see the hub).
 
 ## how to use
 
@@ -45,10 +49,8 @@ slice below is `todo`.
   tests run without rebuilding the self-hosted compiler per case.
 - Add a one-line result + commit/PR when a slice lands, same convention as the
   M4 checklist (`task/sv0-toolchain-milestone-4-checklist.Rmd`).
-- Reset `/tmp/.sv0_drv_path` to empty before any gate/push that touches this
-  area, and never run these driver scripts concurrently with a pre-push
-  `sv0 test` until NEX-011 retires the global control file from this path —
-  see `[[feedback_drv_path_reset]]`.
+- The `/tmp/.sv0_drv_path` control file is retired (NEX-055c / REL-004): the
+  driver reads `getenv("SV0_DRV_REQUEST")`, so no pre-push reset is needed.
 
 ## progress dashboard (sv0-track)
 

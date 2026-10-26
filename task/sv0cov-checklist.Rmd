@@ -1,9 +1,9 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-09-27T12:00:00-06:00"
+updated: "2026-10-26T12:00:00-06:00"
 id: task-sv0cov-checklist
 key: sv0cov-checklist
-state: draft
+state: active
 tags:
   - sv0
   - sv0cov
