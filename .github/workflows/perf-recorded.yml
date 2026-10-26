@@ -36,7 +36,9 @@ jobs:
       matrix:
         host: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64]
         include:
-          - { host: linux-x86_64, runner: ubuntu-24.04, toolchain: true }
+          # ubuntu-22.04: the runner root CI builds the toolchain on every day (SML/NJ cache and
+          # heap build proven there); recorded campaigns keep this one label for the class.
+          - { host: linux-x86_64, runner: ubuntu-22.04, toolchain: true }
           - { host: linux-arm64, runner: ubuntu-24.04-arm, toolchain: false }
           - { host: macos-x86_64, runner: macos-15-intel, toolchain: false }
           - { host: macos-arm64, runner: macos-15, toolchain: false }
