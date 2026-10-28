@@ -2166,8 +2166,12 @@ run_mcp_light_stack() {
     cd "$SV0_MCP" || exit 1
     export SV0_MCP_TOOLCHAIN_ROOT="$mount_root"
     export SV0_MCP_PROGRESS_DASHBOARD_REFRESH="$refresh"
-    docker compose up -d
+    # --wait returns only once both healthchecks pass, and fails (instead of
+    # hanging silently) if the daemon cannot start a container.
+    docker compose up -d --wait --wait-timeout "${SV0_MCP_LIGHT_STACK_WAIT:-180}"
   ) || exit 1
+  echo "sv0 mcp-light-stack: Neo4j bolt://localhost:7688 (browser http://localhost:7475/)"
+  echo "sv0 mcp-light-stack: progress UI http://localhost:${SV0_MCP_PROGRESS_DASHBOARD_HOST_PORT:-8766}/"
 }
 
 run_repl() {
@@ -2570,7 +2574,6 @@ case "$cmd" in
     run_milestone_orient "$@"
     ;;
   mcp-light-stack)
-    shift || true
     run_mcp_light_stack "${1:-up}"
     ;;
   progress-dashboard)
