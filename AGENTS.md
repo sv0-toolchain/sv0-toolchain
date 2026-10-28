@@ -24,6 +24,10 @@ Use this file as the **first** on-ramp when automating work in this meta-repo. N
 - `**.cursor/commands/continue-development.md**` — phased “next slices” work + **progress ledger**.
 - `**.cursor/commands/thoroughly-execute-document.md**` — charter-driven execution (pass the governing `**task/*.Rmd**` or doc as input).
 
+## Checklist slices (read these before opening checklist files)
+
+`task/*checklist*.Rmd` rows run to thousands of tokens each. The **sv0-graph** MCP server (`sv0-mcp/`) answers from the same rows compactly and needs no Neo4j: `**checklist_summary**`, `**list_slices**` (`checklist` = file-stem or id prefix such as `CV` / `M3-S`; `status` defaults to open), `**next_slices**` (open slices with all deps done), `**get_slice**` (one full row + `file:line`). Without MCP: `uv run --directory sv0-mcp sv0-mcp slices [CHECKLIST] [--ready|--summary]` and `... sv0-mcp slice <ID>`. Open the file only at the returned line when editing a row.
+
 ## Progress and tracking
 
 - Meta rollup: `**task/sv0-toolchain-progress.md**`
