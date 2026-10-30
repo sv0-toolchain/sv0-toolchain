@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-10-26T12:00:00-06:00"
+updated: "2026-10-29T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
 state: active
@@ -40,17 +40,17 @@ Like sv0-strings, sv0cov is a SPEC-governed product rather than a toolchain
 milestone. It is therefore absent from the milestone table and
 `task/milestone-orientation.json`.
 
-## current state (2026-10-26)
+## current state (2026-10-29)
 
 - **F0, R0 and R0.1 are closed** (F0 2026-10-08, R0 2026-10-17, R0.1
   2026-10-24; gate reviews below).
-- **R1 is in progress**: of the 34 `4xx` slices in the checklist, 14 are
-  done (CV-401..405, CV-408, CV-410, CV-416..420, CV-422, CV-424), 2 are
+- **R1 is in progress**: of the 34 `4xx` slices in the checklist, 16 are
+  done (CV-401..406, CV-408, CV-410, CV-416..420, CV-422..424), 2 are
   blocked (CV-421 on the owner's `sv0cov baseline` SPEC amendment; CV-460 on
-  the sv0vm expansion's typed v2 container), and 18 are todo. Nothing is
+  the sv0vm expansion's typed v2 container), and 16 are todo. Nothing is
   released. The R1 traceability table (`task/sv0cov-r1-traceability.md`) and
   the owed SPEC mismatches (M1..M7 there, M8..M12 in the R1 slice rows)
-  are current.
+  are current. The R1-G6 reliability suites are indexed below (CV-423).
 - **Open finding (CV-410):** the recorded instrumentation overhead is far
   over the SPEC §24 budgets (compile up to 4.8x, artifact +56-97%, execution
   +17-44%), so R1-G9 is at risk until the performance work lands.
@@ -290,6 +290,31 @@ the sv0 scope matcher before the rewrite, proof provenance for
 proven-impossible outcomes (no field exists: amend, or add one before the
 CV-412 freeze), AC-073 and AC-133 against DEC-087, the command inventory
 against `sv0cov baseline`, and §16.5 against D-10.
+
+## R1-G6 reliability suites (CV-423, SPEC §31.4)
+
+One suite per R1-G6 item, all green at the CV-423 revision. Every row runs
+in CI: the sv0cov unit suite runs on the four host classes, and the
+real-compiler suites under `sv0c/test/coverage/` run in the root
+`./scripts/sv0 test` (Linux x86-64 CI; also run on macOS arm64 for
+CV-423). Running the real-compiler rows on every host class end to end
+belongs to CV-409.
+
+| R1-G6 item | suite (slice) |
+|---|---|
+| shared-atomic concurrency | sv0cov `test_native_runtime.py`: thread sweep 1/2/4/8 on shared and disjoint counters, stress, TSan build (CV-210, CV-422) |
+| alignment / lock-free probes | `test_native_runtime.py` `test_lock_free_probe_and_alignment`; `test_atomics_probe.py` and the recorded probe table (CV-422) |
+| saturation | `test_native_runtime.py` saturation and the saturation race (CV-210); `test_saturation_policy.py` (CV-404) |
+| overflow | `test_native_runtime.py` `test_overflow_bitmap_names_every_saturated_counter` (CV-422) |
+| joined / unjoined flush boundaries | `test_native_runtime.py`: joined stress gives exact counts; `test_hit_during_the_flush_withholds_the_profile`, `test_unjoined_worker_never_tears_the_profile` (CV-422) |
+| exit paths (COV-INS-007) | `sv0c/test/coverage/lifecycle/run_lifecycle.py` §1: 30 exit paths (returns, contract failures, runtime panics), native = sv0vm (CV-212); `test_native_runtime.py` exit(1) and the traced return/exit(1) (CV-115, CV-406) |
+| crash (COV-INS-008) | `test_native_runtime.py` kill, abort, SIGSEGV and `_exit` publish nothing (CV-115, CV-423); `run_lifecycle.py` §4 SIGKILL/SIGTERM on both backends and §6 a fatal VM failure (CV-212) |
+| incomplete profile (COV-INS-008, AC-032) | `test_native_runtime.py` `test_hard_termination_contributes_nothing` with the real runtime (CV-406); `test_cmd_run.py` `test_an_interrupted_run_is_never_zero_coverage` (CV-234); `test_cmd_merge.py` temporaries; `test_cmd_check.py` `test_incomplete_evidence_never_passes` |
+| multi-module (COV-C-004) | `sv0c/test/coverage/fragments/run_fragments.py`: five modules, every link order, native = VM counts under the real runtime, tampered registrations refused (CV-205, CV-206); `test_native_runtime.py` two-module and per-fragment registration |
+| managed spawn-and-exec | `test_native_runtime.py` `test_spawn_and_exec`, `test_failed_spawn` (`posix_spawn`, M12); `sv0c/test/coverage/process/run_process.py` (CV-405) |
+| unmanaged-fork rejection | `test_native_runtime.py` fork, fork-hit, fork-exec; `run_process.py` (CV-405) |
+| in-place-exec rejection | `test_native_runtime.py` `test_in_place_exec`: the replaced image publishes nothing (CV-405, M12) |
+| parallel shards | `test_native_runtime.py` `test_parallel_shards_publish_side_by_side`: 16 processes of one run publish together and merge exactly (CV-423) |
 
 ## R01-G6 performance-host plan (CV-315, SPEC §24.1, DEC-087)
 

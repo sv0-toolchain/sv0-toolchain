@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 58 met, 6 mismatch, 43 owned, 29 partly met
-- **acceptance criteria:** 1 conditional, 94 met, 4 mismatch, 21 owned, 14 partly met, 1 post-R1
+- **requirements:** 2 conditional, 62 met, 6 mismatch, 42 owned, 26 partly met
+- **acceptance criteria:** 1 conditional, 95 met, 4 mismatch, 20 owned, 14 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -59,15 +59,15 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-MET-014 | Metric classification SHALL be backend-independent. | owned |  | CV-407 |  |
 | COV-MET-017 | Derived region counts SHALL use per-context interval lower bounds, retain inexact zero, aggregate those con... | partly met | CV-204, CV-221, CV-404 (no-false-pass property and exact/saturated pairs) | CV-412 | cross-language arithmetic |
 | COV-INS-006 | Generated-C counter collection SHALL use shared C11 atomic `u64` storage and relaxed saturating compare-and... | met | CV-210, CV-422 |  |  |
-| COV-INS-007 | Normal exit and defined contract failure SHALL flush a complete profile. | partly met | CV-115 | CV-423 |  |
-| COV-INS-008 | Interrupted/incomplete runs SHALL not be reported as zero coverage. | partly met | CV-234 | CV-423 |  |
+| COV-INS-007 | Normal exit and defined contract failure SHALL flush a complete profile. | met | CV-115, CV-423 |  |  |
+| COV-INS-008 | Interrupted/incomplete runs SHALL not be reported as zero coverage. | met | CV-234, CV-423 |  |  |
 | COV-INS-009 | Overflow flags SHALL be updated atomically and SHALL identify every saturated counter. | met | CV-210, CV-422 |  |  |
 | COV-INS-010 | Implementations SHALL NOT assume `u64` atomics are lock-free without a recorded host probe. | met | CV-210, CV-422 |  |  |
 | COV-INS-011 | VMs with serialized execution MAY use non-atomic internal storage only when externally observable saturatio... | partly met | CV-207, CV-171 (VM counts and saturation equal C) | CV-407 |  |
 | COV-INS-012 | Complete orderly multithreaded profiles SHALL require coverage-producing threads to be quiescent before fin... | met | CV-210, CV-422 |  |  |
 | COV-INS-013 | Saturated values SHALL be represented as lower bounds with explicit saturation metadata. | met | CV-404 |  |  |
 | COV-INS-016 | Only independently entered process images and toolchain-managed spawn-and-exec descendants SHALL be eligibl... | mismatch | CV-405 (fork guards; posix_spawn and raw fork/exec matrix) | owner | M12 |
-| COV-C-004 | Multiple instrumented modules SHALL register without counter collision. | partly met | CV-206 | CV-423 |  |
+| COV-C-004 | Multiple instrumented modules SHALL register without counter collision. | met | CV-206, CV-423 |  |  |
 | COV-C-007 | The native runtime SHALL prevent a fork child from publishing inherited counters, retain an unresolved pare... | met | CV-405 |  |  |
 | COV-VM-005 | v1 VM, v2 VM, and generated-C indexed counts SHALL match for deterministic conformance fixtures. | owned |  | CV-407 |  |
 | COV-VM-012 | Coverage-capable `sv0vm-v2-typed` SHALL carry equivalent coverage metadata inline. | owned |  | CV-462 |  |
@@ -77,7 +77,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-VM-022 | v2 `bytecode_sha256` SHALL hash the complete canonical `.sv0b` with exactly its own 32-byte field zero-fill... | owned |  | CV-462, CV-463 |  |
 | COV-VM-023 | The v2 `COVR` 1.0 payload SHALL use the exact packed little-endian layout, constants, ASCII bounds, final d... | partly met | CV-026 | CV-461 |  |
 | COV-VM-026 | VM host-process operations SHALL expose the same fresh-image and managed spawn-and-exec coverage boundary a... | mismatch | CV-405 (VM-v1 refuses FFI, E0553: no host-process operation) | owner, CV-407 | M12; VM-v2 |
-| COV-FMT-012 | The R1 runtime SHALL perform neither periodic profile checkpoints nor memory-mapped continuous counter writes. | owned |  | CV-406 |  |
+| COV-FMT-012 | The R1 runtime SHALL perform neither periodic profile checkpoints nor memory-mapped continuous counter writes. | met | CV-406 |  |  |
 | COV-FMT-024 | Diagnostic provenance and release evidence SHALL record the resolved tier and numeric ceilings. | partly met | CV-224, CV-228 (resolved tier in the report) | CV-415 | release evidence |
 | COV-FMT-037 | `sv0cov.export-manifest` version `1.0` SHALL use the exact closed fourteen-property canonical JSON schema,... | partly met | CV-403 (schema, goldens, negatives, mutation) | CV-412 | cross-language reader parity |
 | COV-MRG-006 | Source-version conflicts SHALL block passing policy. | met | CV-223 |  |  |
@@ -219,7 +219,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-029 | exact coverage instruction encoding | met | CV-117, CV-119 |  |  |
 | AC-030 | exact VM coverage identifiers | met | CV-102 |  |  |
 | AC-031 | canonical sparse raw profile | met | CV-024 |  |  |
-| AC-032 | hard termination remains incomplete in R1 | owned |  | CV-406 |  |
+| AC-032 | hard termination remains incomplete in R1 | met | CV-406, CV-423 |  |  |
 | AC-033 | post-R1 continuous data remains qualified | post-R1 |  | CV-904 |  |
 | AC-034 | CRC32C transport integrity | met | CV-023 |  |  |
 | AC-035 | contended atomic hit counting | met | CV-210, CV-422 |  |  |
