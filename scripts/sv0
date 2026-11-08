@@ -2331,6 +2331,7 @@ case "$cmd" in
     run_compile "$compile_mode" "$file"
     ;;
   native-compile)
+    [[ " $* " == *" --contract-mode=verified "* ]] && ensure_sv0_megatu_verify
     python3 "$ROOT/scripts/native_exe_main.py" "$@"
     exit $?
     ;;

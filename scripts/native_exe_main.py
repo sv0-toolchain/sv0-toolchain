@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import os
 import platform
+import shutil
 import subprocess
 import sys
 
@@ -35,6 +36,7 @@ from native_exe_build_record import build_record, write_build_record_atomically
 from native_exe_cc_probe import probe_compiler
 from native_exe_cc_select import select_cc
 from native_exe_cli import UsageError, parse_args
+from native_exe_contract_mode import DEFAULT_VERIFY_BINARY, compute_proof_lines
 from native_exe_coverage import CoverageUsageError
 from native_exe_coverage import resolve as resolve_coverage
 from native_exe_emit_c import emit_c_only
@@ -170,6 +172,22 @@ def run(argv: list[str], invocation_cwd: str) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
+    # NEX-031: verified mode strips only the ensures Z3 proves; the proof file is
+    # computed here (empty without z3, so nothing is stripped) and removed after.
+    proof_path = None
+    if request.contract_mode_requested.value == "verified" and request.input_kind.value == "file":
+        if not os.access(DEFAULT_VERIFY_BINARY, os.X_OK):
+            print(f"error: --contract-mode=verified needs {DEFAULT_VERIFY_BINARY} (built by ./scripts/sv0)", file=sys.stderr)
+            return 1
+        proof_path = compute_proof_lines(request.input_path)
+    try:
+        return _build(request, coverage, proof_path)
+    finally:
+        if proof_path is not None:
+            os.remove(proof_path)
+
+
+def _build(request, coverage, proof_path: str | None) -> int:
     if request.emit is Emit.C_ONLY:
         # CLI-014: --emit=c never invokes a host compiler and produces no
         # executable -- a genuinely separate, smaller pipeline
@@ -184,6 +202,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
                 output_path=request.output_path,
                 invocation_cwd=request.invocation_cwd,
                 contract_mode=request.contract_mode_requested.value,
+                proof_path=proof_path,
                 coverage=coverage,
             )
         except BuildError as exc:
@@ -226,6 +245,7 @@ def run(argv: list[str], invocation_cwd: str) -> int:
                 quiet=request.quiet,
                 keep_c_path=keep_c_path,
                 profile=request.profile.value,
+                proof_path=proof_path,
                 coverage=coverage,
             )
     except BuildError as exc:
@@ -488,12 +508,28 @@ def _selftest() -> int:
         if rc14 != 0 or buf14.getvalue().strip() != "":
             failures.append(f"case14: expected --quiet to suppress --emit=c output, got {buf14.getvalue()!r}")
 
+        # Case 15 (NEX-031 through the CLI): --contract-mode=verified computes the
+        # proof itself; with z3 the proven ensures check is stripped from the C.
+        if os.access(DEFAULT_VERIFY_BINARY, os.X_OK):
+            src15 = os.path.join(td, "verified.sv0")
+            with open(src15, "w", encoding="utf-8") as f:
+                f.write("fn id(x: i32) -> i32 ensures(true) {\n    return x;\n}\nfn main() -> i32 {\n    return id(0);\n}\n")
+            c15 = {}
+            for mode in ("runtime", "verified"):
+                out15 = os.path.join(td, f"verified_{mode}.c")
+                rc15 = run(["--emit=c", f"--contract-mode={mode}", "-o", out15, src15], td)
+                c15[mode] = open(out15, encoding="utf-8").read() if rc15 == 0 and os.path.isfile(out15) else None
+                if c15[mode] is None:
+                    failures.append(f"case15: --emit=c --contract-mode={mode} failed, rc={rc15}")
+            if None not in c15.values() and shutil.which("z3") is not None and c15["runtime"] == c15["verified"]:
+                failures.append("case15: verified mode stripped nothing although z3 proves ensures(true)")
+
     if failures:
         for f in failures:
             print(f"native_exe_main selftest FAIL: {f}")
         return 1
 
-    print("native_exe_main: selftest OK (14 cases)")
+    print("native_exe_main: selftest OK (15 cases)")
     return 0
 
 

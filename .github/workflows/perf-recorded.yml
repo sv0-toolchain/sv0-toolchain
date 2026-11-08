@@ -86,21 +86,21 @@ jobs:
         if: ${{ matrix.toolchain }}
         run: python3 sv0cov/bench/corpus.py check
 
-      - name: Plan both dimensions (replay digests must match the manifest)
+      - name: Plan every dimension (replay digests must match the manifest; every arm is validated once first)
         if: ${{ matrix.toolchain }}
         env:
           FIXTURES: ${{ inputs.fixtures }}
         run: |
           ids=()
           for id in $FIXTURES; do ids+=(--id "$id"); done
-          for dim in compile execute; do
+          for dim in compile execute merge native-terminal-report html-report; do
             python3 sv0cov/bench/corpus.py plan --toolchain . --work "$RUNNER_TEMP/bench-$dim" --dimension "$dim" "${ids[@]}" > "plan-$dim.json"
           done
 
-      - name: Campaign (frozen protocol, both arms)
+      - name: Campaign (frozen protocol, both arms where a dimension has two)
         if: ${{ matrix.toolchain }}
         run: |
-          for dim in compile execute; do
+          for dim in compile execute merge native-terminal-report html-report; do
             python3 sv0cov/bench/harness.py run --plan "plan-$dim.json" --stage managed-ci-recorded \
               --toolchain-revision "${{ github.sha }}" --out "results-${{ matrix.host }}-$dim.json"
           done
@@ -109,7 +109,7 @@ jobs:
         if: ${{ matrix.toolchain }}
         run: >-
           python3 sv0cov/bench/evaluate.py
-          --campaign "results-${{ matrix.host }}-compile.json,results-${{ matrix.host }}-execute.json"
+          --campaign "$(ls results-${{ matrix.host }}-*.json | paste -sd, -)"
           --template "exception-template-${{ matrix.host }}.json" > "evaluation-${{ matrix.host }}.json" || true
 
       - uses: actions/upload-artifact@v4

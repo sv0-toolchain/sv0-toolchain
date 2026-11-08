@@ -23,8 +23,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 62 met, 6 mismatch, 42 owned, 26 partly met
-- **acceptance criteria:** 1 conditional, 95 met, 4 mismatch, 20 owned, 14 partly met, 1 post-R1
+- **requirements:** 2 conditional, 66 met, 6 mismatch, 37 owned, 27 partly met
+- **acceptance criteria:** 1 conditional, 97 met, 4 mismatch, 17 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
 
@@ -144,12 +144,12 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-008 | Benchmark categories SHALL have equal aggregate weight, and geometric means SHALL be limited to dimensionle... | met | CV-410 |  |  |
 | COV-PERF-009 | Every fixture, category, and host result SHALL remain visible; aggregate success SHALL NOT hide a per-fixtu... | met | CV-410 |  |  |
 | COV-PERF-010 | CPython 3.13 and 3.14 SHALL retain four-host functional conformance even when only the qualified host descr... | owned |  | CV-428 |  |
-| COV-PERF-013 | Required real-project fixtures SHALL be content-addressed and runnable without network access. | partly met | CV-036 | CV-427 |  |
-| COV-PERF-015 | Every timed run SHALL validate its expected semantic result before contributing performance evidence. | owned |  | CV-427 |  |
-| COV-PERF-016 | Native contention evidence SHALL include one, two, four, and eight threads with shared and disjoint counters. | owned |  | CV-427 |  |
-| COV-PERF-017 | VM dispatch evidence SHALL cover equivalent v1 and v2 programs and identify profile-local overhead. | owned |  | CV-427 |  |
-| COV-PERF-018 | Scale evidence SHALL exercise 250,000 report points and 1,000,000 point/profile pairs. | owned |  | CV-427 |  |
-| COV-PERF-020 | A corpus revision SHALL version, justify, overlap-measure, and fully rebaseline every host class. | owned |  | CV-427 |  |
+| COV-PERF-013 | Required real-project fixtures SHALL be content-addressed and runnable without network access. | met | CV-036, CV-427 |  |  |
+| COV-PERF-015 | Every timed run SHALL validate its expected semantic result before contributing performance evidence. | met | CV-427 |  |  |
+| COV-PERF-016 | Native contention evidence SHALL include one, two, four, and eight threads with shared and disjoint counters. | met | CV-427 |  |  |
+| COV-PERF-017 | VM dispatch evidence SHALL cover equivalent v1 and v2 programs and identify profile-local overhead. | partly met | CV-427 (v1 dispatch fixtures) | CV-463 | v2 programs |
+| COV-PERF-018 | Scale evidence SHALL exercise 250,000 report points and 1,000,000 point/profile pairs. | met | CV-427 |  |  |
+| COV-PERF-020 | A corpus revision SHALL version, justify, overlap-measure, and fully rebaseline every host class. | partly met | CV-427 (corpus 1.1: version, rationale, overlap statement) | CV-428 | four-class rebaseline |
 | COV-PERF-023 | Dedicated or demonstrably non-overcommitted reference hosts meeting Section 24.1 floors, or a `managed-ci-r... | met | CV-410 |  |  |
 | COV-PERF-024 | Managed CI performance results SHALL NOT satisfy an R1 performance gate except as a `managed-ci-recorded` c... | met | CV-410 |  |  |
 | COV-PERF-025 | A transition to dedicated hosts SHALL include three complete overlap campaigns per host class without conve... | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |
@@ -253,10 +253,10 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | AC-063 | reference-host evidence is reproducible and native | owned |  | CV-428 |  |
 | AC-064 | benchmark rules cannot move after results | partly met | CV-035 (frozen protocol) | CV-410 |  |
 | AC-065 | aggregate reporting preserves local failures | owned |  | CV-410 |  |
-| AC-066 | hybrid corpus is complete and replayable | partly met | CV-036 | CV-427 |  |
-| AC-067 | incorrect work cannot win a benchmark | owned |  | CV-410, CV-427 |  |
-| AC-068 | native contention measures distinct costs | owned |  | CV-427 |  |
-| AC-069 | corpus changes require complete rebaseline | owned |  | CV-427 |  |
+| AC-066 | hybrid corpus is complete and replayable | met | CV-036, CV-427 |  |  |
+| AC-067 | incorrect work cannot win a benchmark | met | CV-410, CV-427 (validation before timing; fast-wrong test) |  |  |
+| AC-068 | native contention measures distinct costs | partly met | CV-427 (separate shared and disjoint fixtures) | CV-428 | per-host eight-CPU evidence |
+| AC-069 | corpus changes require complete rebaseline | partly met | CV-427 (revisions record) | CV-428 | rebaseline on all four classes |
 | AC-070 | managed CI evidence is explicitly provisional | met | CV-037 |  |  |
 | AC-071 | managed runner drift splits the trend | met | CV-037, CV-315 |  |  |
 | AC-072 | dedicated-host transition requires overlap | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |

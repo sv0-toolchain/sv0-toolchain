@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-10-29T12:00:00-06:00"
+updated: "2026-11-08T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
 state: active
@@ -44,10 +44,10 @@ milestone. It is therefore absent from the milestone table and
 
 - **F0, R0 and R0.1 are closed** (F0 2026-10-08, R0 2026-10-17, R0.1
   2026-10-24; gate reviews below).
-- **R1 is in progress**: of the 34 `4xx` slices in the checklist, 16 are
-  done (CV-401..406, CV-408, CV-410, CV-416..420, CV-422..424), 2 are
+- **R1 is in progress**: of the 34 `4xx` slices in the checklist, 17 are
+  done (CV-401..406, CV-408, CV-410, CV-416..420, CV-422..424, CV-427), 2 are
   blocked (CV-421 on the owner's `sv0cov baseline` SPEC amendment; CV-460 on
-  the sv0vm expansion's typed v2 container), and 16 are todo. Nothing is
+  the sv0vm expansion's typed v2 container), and 15 are todo. Nothing is
   released. The R1 traceability table (`task/sv0cov-r1-traceability.md`) and
   the owed SPEC mismatches (M1..M7 there, M8..M12 in the R1 slice rows)
   are current. The R1-G6 reliability suites are indexed below (CV-423).
@@ -140,7 +140,7 @@ build entry point (D-5) each needed an owner decision. **All three were resolved
 | **F0** feasibility (**closed 2026-10-08**, see the F0 gate review) | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
 | **R0** developer preview (**closed 2026-10-17**, see the R0 gate review) | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
 | **R0.1** policy preview (**closed 2026-10-24**, see the R0.1 gate review) | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
-| **R1** stable contract (`1.0.0`) (**in progress**, 14/34 slices done) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
+| **R1** stable contract (`1.0.0`) (**in progress**, 17/34 slices done) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
 | **Post-R1** | sv0 rewrite against the Python oracle; continuous counters. | `CV-9xx` (coarse; re-slice when reached) |
 
 ## F0 gate review (CV-172, SPEC §31.1)
@@ -373,7 +373,10 @@ during a campaign invalidates that campaign for the class.
   provisional workflow runs only the 1M-pair ingest fixture), at least three
   complete campaigns per class for the measured variance;
 - the pending corpus fixtures (`region-large` exceeds the native compiler's
-  Vec-handle table).
+  Vec-handle table). **Done in CV-427 (2026-11-08):** corpus 1.1, all 38
+  fixtures runnable and validated before timing; the 1M-pair merge measured
+  38 min / 5.7 GB locally against its 10 s / 1 GiB budget, so the merge gate
+  cannot pass until merge scales.
 
 **Transition, if dedicated hardware appears.** A class moves to
 `reference-dedicated` only on a host meeting every floor (8 logical CPUs,
