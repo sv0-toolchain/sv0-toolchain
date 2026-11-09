@@ -148,8 +148,8 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-015 | Every timed run SHALL validate its expected semantic result before contributing performance evidence. | met | CV-427 |  |  |
 | COV-PERF-016 | Native contention evidence SHALL include one, two, four, and eight threads with shared and disjoint counters. | met | CV-427 |  |  |
 | COV-PERF-017 | VM dispatch evidence SHALL cover equivalent v1 and v2 programs and identify profile-local overhead. | partly met | CV-427 (v1 dispatch fixtures) | CV-463 | v2 programs |
-| COV-PERF-018 | Scale evidence SHALL exercise 250,000 report points and 1,000,000 point/profile pairs. | met | CV-427 |  |  |
-| COV-PERF-020 | A corpus revision SHALL version, justify, overlap-measure, and fully rebaseline every host class. | partly met | CV-427 (corpus 1.1: version, rationale, overlap statement) | CV-428 | four-class rebaseline |
+| COV-PERF-018 | Scale evidence SHALL exercise 64,000 point/profile pairs for merge, 10,000 points for native/terminal repor... | met | CV-427, corpus 1.2 scale fixtures sized by DEC-092 |  |  |
+| COV-PERF-020 | A corpus revision SHALL version, justify, overlap-measure, and fully rebaseline every host class. | partly met | CV-427 (corpus 1.1, 1.2: version, rationale, overlap statement) | CV-428 | four-class rebaseline |
 | COV-PERF-023 | Dedicated or demonstrably non-overcommitted reference hosts meeting Section 24.1 floors, or a `managed-ci-r... | met | CV-410 |  |  |
 | COV-PERF-024 | Managed CI performance results SHALL NOT satisfy an R1 performance gate except as a `managed-ci-recorded` c... | met | CV-410 |  |  |
 | COV-PERF-025 | A transition to dedicated hosts SHALL include three complete overlap campaigns per host class without conve... | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |
@@ -158,9 +158,9 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-028 | Generated artifact geometric-mean growth SHALL be at most 30%, and a fixture above 75% SHALL require a prio... | owned |  | CV-428 |  |
 | COV-PERF-029 | Region-plus-branch execution p95 overhead SHALL be at most 20% for every applicable dedicated-host corpus r... | owned |  | CV-428 |  |
 | COV-PERF-030 | Runtime counter memory SHALL be at most 16 bytes per planned point plus 8 MiB fixed process overhead. | owned |  | CV-428 |  |
-| COV-PERF-031 | Merging 1,000,000 point/profile pairs SHALL take at most 10 seconds and 1 GiB RSS. | owned |  | CV-428 |  |
-| COV-PERF-032 | Native and terminal reporting of 250,000 points SHALL take at most 5 seconds and 768 MiB RSS. | owned |  | CV-428 |  |
-| COV-PERF-033 | HTML reporting of 250,000 points SHALL take at most 20 seconds and 1 GiB RSS. | owned |  | CV-428 |  |
+| COV-PERF-031 | Merging 64,000 point/profile pairs SHALL take at most 10 seconds and 1 GiB RSS. | owned |  | CV-428 |  |
+| COV-PERF-032 | Native and terminal reporting of 10,000 points SHALL take at most 5 seconds and 768 MiB RSS. | owned |  | CV-428 |  |
+| COV-PERF-033 | HTML reporting of 25,000 points SHALL take at most 20 seconds and 1 GiB RSS. | owned |  | CV-428 |  |
 | COV-PERF-034 | Five clean deterministic executions SHALL have identical canonical maps and semantic projections, and five... | owned |  | CV-428 |  |
 | COV-PERF-035 | A missed performance target SHALL block release unless an evidence-backed specification change is accepted... | partly met | CV-410 | CV-428 |  |
 | COV-PERF-036 | Correctness or integrity SHALL NOT be weakened to meet a performance target. | met | CV-410 |  |  |

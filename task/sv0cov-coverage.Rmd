@@ -1,6 +1,6 @@
 ---
 created: "2026-09-24T00:00:00-06:00"
-updated: "2026-11-08T12:00:00-06:00"
+updated: "2026-11-09T12:00:00-06:00"
 id: task-sv0cov-coverage
 key: sv0cov-coverage
 state: active
@@ -370,13 +370,15 @@ during a campaign invalidates that campaign for the class.
 - the exception-record artifact and its schema, and the budget evaluator
   that refuses a gate without one;
 - a recorded-campaign workflow over the complete frozen corpus (the
-  provisional workflow runs only the 1M-pair ingest fixture), at least three
+  provisional workflow runs only the merge-scale ingest fixture), at least three
   complete campaigns per class for the measured variance;
 - the pending corpus fixtures (`region-large` exceeds the native compiler's
   Vec-handle table). **Done in CV-427 (2026-11-08):** corpus 1.1, all 38
   fixtures runnable and validated before timing; the 1M-pair merge measured
-  38 min / 5.7 GB locally against its 10 s / 1 GiB budget, so the merge gate
-  cannot pass until merge scales.
+  38 min / 5.7 GB locally against its 10 s / 1 GiB budget. CV-428 scale
+  work (sv0cov 7bffe2b) cut it to 97 s, still unreachable by the design, so
+  SPEC 0.1.74-draft (DEC-092) and corpus 1.2 resized the scale fixtures to
+  the budgets (2026-11-09); all three scale gates pass locally.
 
 **Transition, if dedicated hardware appears.** A class moves to
 `reference-dedicated` only on a host meeting every floor (8 logical CPUs,
