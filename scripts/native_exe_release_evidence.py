@@ -118,6 +118,10 @@ def _selftest() -> int:
     # real checkout, so this test never depends on this repo's own actual
     # working-tree state at selftest time) produces a well-formed bundle
     # with all four inputs present.
+    # Under a Git hook GIT_DIR / GIT_INDEX_FILE name the real repository: every git
+    # call below would act on it (`git init` sets core.bare=true from a linked worktree).
+    hook_env = {k: os.environ.pop(k) for k in list(os.environ)
+                if k.startswith("GIT_") and not k.startswith(("GIT_CONFIG", "GIT_SSH"))}
     with tempfile.TemporaryDirectory() as td:
         subprocess.run(["git", "init", "-q"], cwd=td, check=True)
         subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=td, check=True)
@@ -172,6 +176,7 @@ def _selftest() -> int:
             pass
         finally:
             _kc_mod.KNOWN_CONFLICTS.pop()
+    os.environ.update(hook_env)
 
     if failures:
         for f in failures:

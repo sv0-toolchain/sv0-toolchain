@@ -18,6 +18,7 @@ git work tree, only the ``.gitmodules`` text checks run.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -89,9 +90,9 @@ def check_gitmodules(text: str) -> list[str]:
     return errors
 
 
-def git(root: Path, *args: str) -> str | None:
+def git(root: Path, *args: str, env: dict | None = None) -> str | None:
     try:
-        r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False)
+        r = subprocess.run(["git", *args], cwd=root, capture_output=True, text=True, check=False, env=env)
     except OSError:
         return None
     return r.stdout if r.returncode == 0 else None
@@ -114,7 +115,9 @@ def check_gitlink(root: Path) -> list[str]:
     if not (sub / ".git").exists():
         errors.append(f"submodule {PATH} is not initialized (run: git submodule update --init {PATH})")
         return errors
-    head = (git(sub, "rev-parse", "HEAD") or "").strip()
+    # Under a hook GIT_DIR names the root (absolute from a linked worktree): drop it here.
+    sub_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_") or k.startswith(("GIT_CONFIG", "GIT_SSH"))}
+    head = (git(sub, "rev-parse", "HEAD", env=sub_env) or "").strip()
     if head != sha:
         errors.append(f"submodule {PATH} HEAD {head or '?'} != pinned gitlink {sha}")
     return errors

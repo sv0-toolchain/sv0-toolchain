@@ -84,7 +84,10 @@ esac
 
 
 def git(cwd: Path, *args: str) -> str:
-    env = {**os.environ, **GIT_ENV}
+    # A Git hook exports GIT_DIR / GIT_INDEX_FILE; left in, `git init` in the fixture
+    # re-initializes the real repository (core.bare=true from a linked worktree).
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_") or k.startswith(("GIT_CONFIG", "GIT_SSH"))}
+    env |= GIT_ENV
     return subprocess.run(["git", "-c", "commit.gpgsign=false", "-c", "init.defaultBranch=main", *args], cwd=cwd, env=env, check=True, capture_output=True, text=True).stdout.strip()
 
 
