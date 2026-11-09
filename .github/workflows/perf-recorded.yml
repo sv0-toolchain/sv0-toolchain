@@ -5,10 +5,8 @@
 # campaigns per class, evaluated together by sv0cov/bench/evaluate.py with
 # the class's DEC-087 exception record (CV-428).
 #
-# Only Linux x86-64 can run today: building the sv0 toolchain needs SML/NJ,
-# whose CI installer supports amd64 Linux only. The other three classes join
-# once the toolchain builds on them (CV-409); until then they are listed and
-# skipped, so the matrix records what is missing.
+# All four classes build the toolchain (CV-409: scripts/ci-install-smlnj.sh
+# pins SML/NJ for each host).
 #
 # `fixtures` limits the campaign to some fixture ids (a smoke run of the
 # workflow itself): the evaluator then reports every gate incomplete.
@@ -36,37 +34,29 @@ jobs:
       matrix:
         host: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64]
         include:
-          - { host: linux-x86_64, runner: ubuntu-24.04, toolchain: true }
-          - { host: linux-arm64, runner: ubuntu-24.04-arm, toolchain: false }
-          - { host: macos-x86_64, runner: macos-15-intel, toolchain: false }
-          - { host: macos-arm64, runner: macos-15, toolchain: false }
+          - { host: linux-x86_64, runner: ubuntu-24.04 }
+          - { host: linux-arm64, runner: ubuntu-24.04-arm }
+          - { host: macos-x86_64, runner: macos-15-intel }
+          - { host: macos-arm64, runner: macos-15 }
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       SV0COV_RUNNER_LABEL: ${{ matrix.runner }}
     steps:
-      - name: Toolchain not buildable on this class yet (CV-409)
-        if: ${{ !matrix.toolchain }}
-        run: |
-          echo "::notice::${{ matrix.host }}: no recorded campaign until the sv0 toolchain builds here (CV-409)"
-
       - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
-        if: ${{ matrix.toolchain }}
         run: git config --global url."https://github.com/".insteadOf "git@github.com:"
 
       - name: Checkout with submodules
-        if: ${{ matrix.toolchain }}
         uses: actions/checkout@v4
         with:
           submodules: recursive
 
       - name: Set up Python 3.13
-        if: ${{ matrix.toolchain }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 
-      - name: Cache SML/NJ install
-        if: ${{ matrix.toolchain }}
+      - name: Cache SML/NJ install (Linux x86-64 110.99.9)
+        if: ${{ matrix.host == 'linux-x86_64' }}
         uses: actions/cache@v4
         with:
           path: ~/smlnj-110.99.9
@@ -75,19 +65,15 @@ jobs:
       # Two steps: the installer adds SML/NJ to PATH through GITHUB_PATH, which only later
       # steps see.
       - name: Install SML/NJ
-        if: ${{ matrix.toolchain }}
         run: bash scripts/ci-install-smlnj.sh
 
       - name: Build the native compiler
-        if: ${{ matrix.toolchain }}
         run: bash scripts/build-sv0-megatu-native.sh
 
       - name: Corpus manifest and snapshots are current
-        if: ${{ matrix.toolchain }}
         run: python3 sv0cov/bench/corpus.py check
 
       - name: Plan every dimension (replay digests must match the manifest; every arm is validated once first)
-        if: ${{ matrix.toolchain }}
         env:
           FIXTURES: ${{ inputs.fixtures }}
         run: |
@@ -98,7 +84,6 @@ jobs:
           done
 
       - name: Campaign (frozen protocol, both arms where a dimension has two)
-        if: ${{ matrix.toolchain }}
         run: |
           for dim in compile execute merge native-terminal-report html-report; do
             python3 sv0cov/bench/harness.py run --plan "plan-$dim.json" --stage managed-ci-recorded \
@@ -106,14 +91,13 @@ jobs:
           done
 
       - name: Evaluate this campaign alone (informational; R1-G9 needs three plus the exception record)
-        if: ${{ matrix.toolchain }}
         run: >-
           python3 sv0cov/bench/evaluate.py
           --campaign "$(ls results-${{ matrix.host }}-*.json | paste -sd, -)"
           --template "exception-template-${{ matrix.host }}.json" > "evaluation-${{ matrix.host }}.json" || true
 
       - uses: actions/upload-artifact@v4
-        if: ${{ always() && matrix.toolchain }}
+        if: ${{ always() }}
         with:
           name: perf-recorded-${{ matrix.host }}-${{ github.run_id }}
           path: |
