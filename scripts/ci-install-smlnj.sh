@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Install SML/NJ for CI (amd64 Linux). Matches developer 110.99.x; apt smlnj is too old for sv0vm/sv0c.
-# If smlnj.org and its mirror are unreachable, falls back to the NixOS-built SML/NJ 2026.3
-# (developers run 2026.x) from cache.nixos.org, pinned by store path.
+# Install SML/NJ for CI. Matches developer 110.99.x / 2026.x; apt smlnj is too old for sv0vm/sv0c.
+# Linux x86-64 installs 110.99.9 from smlnj.org and falls back, when smlnj.org and its mirror
+# are unreachable, to the NixOS-built SML/NJ from cache.nixos.org, pinned by store path. The
+# other R1 hosts (Linux arm64, macOS arm64 and x86-64; CV-409) use that Nix build directly.
 set -euo pipefail
 
 SMLNJ_VERSION="${SMLNJ_VERSION:-110.99.9}"
@@ -48,23 +49,36 @@ download_config_tgz() {
   "${CURL_LONG[@]}" -o "$dest" "$mirror"
 }
 
-# Hydra build of nixpkgs smlnj for x86_64-linux; cache.nixos.org signs it.
-NIX_SMLNJ="/nix/store/w681j2v1xplprr505biwy6qwz0p8g1ra-smlnj-2026.3"
+# Hydra builds of nixpkgs smlnj, signed by cache.nixos.org (x86_64-darwin's last is 110.99.9).
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64) NIX_SMLNJ="/nix/store/w681j2v1xplprr505biwy6qwz0p8g1ra-smlnj-2026.3" ;;
+  Linux-aarch64) NIX_SMLNJ="/nix/store/zr29j62f3v710d4166sj3ck2xg5m18vv-smlnj-2026.3" ;;
+  Darwin-x86_64) NIX_SMLNJ="/nix/store/7vplah84i8wkndm7kllh3zwhqscz1czm-smlnj-110.99.9" ;;
+  Darwin-arm64) NIX_SMLNJ="/nix/store/1milnnnw0n9g4l9dcy7qw1vmghrrc044-smlnj-2026.3" ;;
+  *) echo "ci-install-smlnj: unsupported host $(uname -s)-$(uname -m)" >&2; exit 1 ;;
+esac
 NIX_INSTALLER="https://releases.nixos.org/nix/nix-2.28.4/install"
 
 install_from_nix() {
-  echo "ci-install-smlnj: smlnj.org unavailable; installing SML/NJ 2026.3 from cache.nixos.org" >&2
+  echo "ci-install-smlnj: installing ${NIX_SMLNJ#*-} from cache.nixos.org" >&2
   cd "$HOME"
   rm -rf "$ROOT" # a partial tree would be saved under the 110.99.9 cache key and block the real install
   if ! command -v nix-store >/dev/null; then
-    sh <("${CURL_LONG[@]}" "$NIX_INSTALLER") --no-daemon --yes
+    if [[ "$(uname -s)" == Darwin ]]; then
+      sh <("${CURL_LONG[@]}" "$NIX_INSTALLER") --daemon --yes # macOS supports only the multi-user install
+    else
+      sh <("${CURL_LONG[@]}" "$NIX_INSTALLER") --no-daemon --yes
+    fi
   fi
-  if [[ -f "$HOME/.nix-profile/etc/profile.d/nix.sh" ]]; then
-    set +u # nix.sh reads unset variables
-    # shellcheck disable=SC1091
-    . "$HOME/.nix-profile/etc/profile.d/nix.sh"
-    set -u
-  fi
+  local profile
+  for profile in "$HOME/.nix-profile/etc/profile.d/nix.sh" /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh; do
+    if [[ -f "$profile" ]]; then
+      set +u # the Nix profile scripts read unset variables
+      # shellcheck disable=SC1090
+      . "$profile"
+      set -u
+    fi
+  done
   nix-store --realise "$NIX_SMLNJ" >/dev/null
   export PATH="$NIX_SMLNJ/bin:$PATH"
   if [[ -n "${GITHUB_PATH:-}" ]]; then
@@ -76,6 +90,11 @@ install_from_nix() {
 append_path
 if [[ -x "$ROOT/bin/sml" ]]; then
   sml '@SMLversion'
+  exit 0
+fi
+
+if [[ "$(uname -s)-$(uname -m)" != Linux-x86_64 ]]; then
+  install_from_nix
   exit 0
 fi
 

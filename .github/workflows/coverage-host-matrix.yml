@@ -1,0 +1,126 @@
+# sv0cov CV-409 (R1-G10; SPEC 25.1, 20.6.4; COV-PORT-001..007): the eight
+# OS/architecture/interpreter cells, end to end with this toolchain. Each cell
+# builds sv0c and sv0vm, runs the generated-C and sv0vm coverage workflows,
+# checks runtime selection and empty-/poisoned-site isolation through the
+# sv0cov launcher (3.12 must fail early), and writes a canonical coverage
+# record. The last job requires all eight records to be identical.
+#
+# SML/NJ: Linux x86-64 installs 110.99.9 (Nix fallback); the other hosts use
+# the pinned NixOS build (scripts/ci-install-smlnj.sh).
+
+name: Coverage host matrix
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cell:
+    name: ${{ matrix.host }} / py${{ matrix.python }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13", "3.14"]
+        host: [linux-x86_64, linux-arm64, macos-x86_64, macos-arm64]
+        include:
+          - { host: linux-x86_64, runner: ubuntu-24.04, machine: x86_64 }
+          - { host: linux-arm64, runner: ubuntu-24.04-arm, machine: aarch64 }
+          - { host: macos-x86_64, runner: macos-15-intel, machine: x86_64 }
+          - { host: macos-arm64, runner: macos-15, machine: arm64 }
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Use HTTPS for SSH-form submodule URLs in .gitmodules
+        run: git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # 3.12 first so the cell's interpreter ends up first on PATH.
+      - id: py312
+        name: CPython 3.12 (the unsupported-version check only)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - id: py
+        name: CPython ${{ matrix.python }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Host and interpreter identity
+        shell: bash
+        run: |
+          python3 - <<'EOF'
+          import platform, sys
+          print(sys.implementation.name, platform.python_version(), platform.system(), platform.machine())
+          assert sys.implementation.name == "cpython"
+          assert f"{sys.version_info.major}.{sys.version_info.minor}" == "${{ matrix.python }}"
+          assert platform.machine() == "${{ matrix.machine }}", platform.machine()
+          EOF
+
+      - name: Cache SML/NJ install (Linux x86-64 110.99.9)
+        if: ${{ matrix.host == 'linux-x86_64' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/smlnj-110.99.9
+          key: smlnj-110.99.9-${{ runner.os }}-${{ runner.arch }}-curl-v2
+
+      - name: Install SML/NJ
+        run: bash scripts/ci-install-smlnj.sh
+
+      - name: Build sv0c and sv0vm
+        run: ./scripts/sv0 check
+
+      - name: Generated-C and sv0vm coverage workflows
+        shell: bash
+        run: |
+          set -e
+          for t in plan/run_emit_c plan/run_emit_vm plan/run_vm_profile zero/run_zero ownership/run_ownership \
+                   lines/run_lines lifecycle/run_lifecycle privacy/run_privacy; do
+            echo "::group::$t"
+            python3 "sv0c/test/coverage/$t.py"
+            echo "::endgroup::"
+          done
+          python3 scripts/verify_coverage_modes.py
+
+      - name: Runtime selection, empty and poisoned sites, unsupported Python
+        run: python3 scripts/verify_coverage_host_isolation.py --unsupported "${{ steps.py312.outputs.python-path }}"
+
+      - name: Canonical coverage record
+        run: python3 scripts/verify_coverage_host_record.py --write "coverage-host-${{ matrix.host }}-py${{ matrix.python }}.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-host-${{ matrix.host }}-py${{ matrix.python }}
+          path: coverage-host-${{ matrix.host }}-py${{ matrix.python }}.json
+          if-no-files-found: error
+
+  compare:
+    name: canonical coverage identical on all eight cells
+    needs: cell
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-host-*
+          merge-multiple: true
+
+      - name: Compare
+        run: |
+          set -e
+          n=$(ls coverage-host-*.json | wc -l)
+          test "$n" -eq 8 || { echo "expected 8 records, found $n"; exit 1; }
+          python3 scripts/verify_coverage_host_record.py --compare coverage-host-*.json

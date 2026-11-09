@@ -2250,7 +2250,7 @@ run_coverage() {
       exit 2
       ;;
   esac
-  SV0_COVERAGE_ENTRY_PATH="$_SV0_ENTRY_PATH" exec python3 -I -B "$ROOT/scripts/sv0cov_dispatch.py" "$@"
+  SV0_COVERAGE_ENTRY_PATH="$_SV0_ENTRY_PATH" exec python3 -I -S -B "$ROOT/scripts/sv0cov_dispatch.py" "$@"
 }
 
 cmd="${1:-}"
