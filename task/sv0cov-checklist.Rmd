@@ -332,7 +332,7 @@ the sv0vm expansion. Gate references are SPEC §31.4.
 
 | ID | slice | refs | repo | deps | status | done when |
 |----|-------|------|------|------|--------|-----------|
-| CV-409 | **Four-host × two-Python matrix, end to end.** Generated-C and sv0vm workflows on every cell, exact ordered launcher resolution, empty-site and poisoned-site runs, unsupported Python failing early, Windows refused, cross-host canonical output comparison. | BL-057, BL-062, COV-PORT-001..007 | cov | CV-234 | todo | Eight cells green end to end. |
+| CV-409 | **Four-host × two-Python matrix, end to end.** Generated-C and sv0vm workflows on every cell, exact ordered launcher resolution, empty-site and poisoned-site runs, unsupported Python failing early, Windows refused, cross-host canonical output comparison. | BL-057, BL-062, COV-PORT-001..007 | cov | CV-234 | done | Eight cells green end to end. **Done 2026-11-09:** `.github/workflows/coverage-host-matrix.yml` (meta `de022c1`, run 42680894725): linux-x86_64, linux-arm64, macos-x86_64, macos-arm64 × CPython 3.13 and 3.14, all eight cells green on the first run. Each cell builds sv0c and sv0vm (`./scripts/sv0 check`) and runs the generated-C and sv0vm coverage scripts (emit C/VM, VM profiles = native, zero, ownership, lines, lifecycle, privacy, `--coverage` modes). `scripts/verify_coverage_host_isolation.py`: the launcher selects the cell's interpreter under a controlled PATH (only `python3.<minor>`; a 3.13 cell has no `python3.14`), and `sv0cov merge` of a toolchain-built map and profile gives byte-identical evidence from a clean PATH, an empty venv and a poisoned venv (shadowing `sv0cov`, `sitecustomize`, `usercustomize`, `.pth`, `PYTHON*` and working-directory poisoning) with no hook run; CPython 3.12 fails early with COV0016, exit 7, nothing on stdout, both alone and under the `python3.13` name. `scripts/verify_coverage_host_record.py`: per program (7 semantic fixtures, constructs, 10 in all) map digest, native and VM per-point counts and semantic projection digests, merged through the launcher; the compare job finds all eight records identical (COV-PORT-003), although macOS x86-64 runs SML/NJ 110.99.9 (the last nixpkgs build there) and the rest 2026.3. **Found and fixed (DEC-093, SPEC 0.1.75-draft, owner choice):** `-I` still processed the selected environment's site-packages, so a poisoned `sitecustomize` or `.pth` ran inside sv0cov; the launcher's probe and exec and the `sv0 coverage` dispatcher now use `-I -S -B` (sv0cov `dad0f1b`, a poisoned-venv launcher test that fails without `-S`). **Windows (COV-PORT-004):** README Platforms section states Windows is not supported (WSL, Cygwin, MSYS2, Wine, cross-compilation); `test_packaging_policy` audits the OS classifiers and every Windows mention. **SML/NJ:** `scripts/ci-install-smlnj.sh` pins the NixOS builds for all four hosts (smlnj.org is down; sv0c `728332b` and sv0vm `06169a3` carry the Linux fallback, CI green). **Not in this slice:** COV-PORT-007's runtime-provenance binding (protected per-cell execution record, SPEC 20.6.4) is left to CV-415; R1-G10's clean installation, all seven root subcommands and doctor per cell are other R1-X work. |
 | CV-426 | **Install and uninstall on eight cells.** From a locally verified `py3-none-any` wheel with every required resource, zero runtime dependencies, no implicit download. | COV-REL-004, COV-PKG-005/006/008/010/016 | cov | CV-409 | todo | R1-G10 installation items. |
 
 ### R1-F: performance (R1-G9, DEC-087 plan in the hub)
@@ -396,7 +396,9 @@ to 64 s, HTML to 88 s, output bytes unchanged. That is still far over the
 §24 budgets, so the owner chose (d) under COV-PERF-035: SPEC 0.1.74-draft
 (DEC-092) and corpus 1.2 size the fixtures to the budgets (64,000 merge
 pairs, 10,000 and 25,000 report points); all three pass locally at about
-40% of their time budgets. CV-428 now needs only the recorded managed-CI
-campaigns (it also depends on CV-409). Ready now: CV-412
-(schema freeze; settle M3 first), CV-425, CV-409 and CV-411 (see
-"Suggested order").
+40% of their time budgets. CV-409 closed the eight-cell host matrix
+(2026-11-09, all cells green, canonical records identical; the launcher
+now runs CPython with -I -S -B, DEC-093), so CV-428 is unblocked and
+needs only the recorded managed-CI campaigns. Ready now: CV-428, CV-412
+(schema freeze; settle M3 first), CV-425 and CV-411 (see "Suggested
+order").

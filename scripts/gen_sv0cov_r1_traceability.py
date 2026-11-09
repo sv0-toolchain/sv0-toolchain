@@ -109,6 +109,7 @@ def main() -> int:
      "COV-PERF-026": ("conditional", "CV-315 plan", "CV-428", "only if a dedicated host appears"),
      "COV-PERF-017": ("partly met", "CV-427 (v1 dispatch fixtures)", "CV-463", "v2 programs"),
      "COV-PERF-018": ("met", "CV-427, corpus 1.2 scale fixtures sized by DEC-092", "", ""),
+    "COV-PORT-007": ("partly met", "CV-031, CV-409 (eight-cell resolution, -I -S -B, isolation)", "CV-415", "runtime-provenance execution record"),
     "COV-PERF-020": ("partly met", "CV-427 (corpus 1.1, 1.2: version, rationale, overlap statement)", "CV-428", "four-class rebaseline"),
      "COV-RW-001": ("partly met", "CV-011 (language-neutral schemas)", "CV-412", "cross-reader parity at the freeze"),
      "COV-EXC-006": ("partly met", "CV-305 (C and VM v1)", "CV-407", "v2"),

@@ -23,7 +23,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 
 ## Summary
 
-- **requirements:** 2 conditional, 66 met, 6 mismatch, 37 owned, 27 partly met
+- **requirements:** 2 conditional, 71 met, 6 mismatch, 33 owned, 26 partly met
 - **acceptance criteria:** 1 conditional, 97 met, 4 mismatch, 17 owned, 15 partly met, 1 post-R1
 
 ## SPEC mismatches for owner amendment
@@ -130,13 +130,13 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-POL-027 | `allow-ordinary` SHALL use only proven-positive lower bounds for coverage and SHALL permit conservative fai... | met | CV-404 |  |  |
 | COV-SEC-005 | Public artifacts SHALL omit host/user/process metadata by default. | met | CV-424 |  |  |
 | COV-SEC-008 | Doctor SHALL use one private bounded temporary directory, fixed child and aggregate time/output/storage lim... | owned |  | CV-425 |  |
-| COV-PORT-001 | macOS arm64, macOS x86-64, Linux arm64, and Linux x86-64 SHALL all be required host combinations. | owned |  | CV-409 |  |
-| COV-PORT-002 | Each required host SHALL execute both generated-C and sv0vm coverage workflows. | owned |  | CV-409 |  |
-| COV-PORT-003 | Canonical coverage meaning and canonical semantic-projection bytes SHALL be platform-independent. | owned |  | CV-409 |  |
-| COV-PORT-004 | Windows SHALL remain explicitly unsupported rather than inferred from compatibility layers. | owned |  | CV-409 |  |
-| COV-PORT-005 | The Python implementation SHALL support CPython 3.13 and 3.14 on every required host combination. | partly met | CV-006 | CV-409 |  |
-| COV-PORT-006 | Unsupported Python versions SHALL fail early with an actionable version diagnostic. | partly met | CV-031 | CV-409 |  |
-| COV-PORT-007 | Repository-local Python launchers SHALL resolve exact basename `python3.14` then `python3.13` by Section 20... | partly met | CV-031 | CV-409 |  |
+| COV-PORT-001 | macOS arm64, macOS x86-64, Linux arm64, and Linux x86-64 SHALL all be required host combinations. | met | CV-409 |  |  |
+| COV-PORT-002 | Each required host SHALL execute both generated-C and sv0vm coverage workflows. | met | CV-409 |  |  |
+| COV-PORT-003 | Canonical coverage meaning and canonical semantic-projection bytes SHALL be platform-independent. | met | CV-409 |  |  |
+| COV-PORT-004 | Windows SHALL remain explicitly unsupported rather than inferred from compatibility layers. | met | CV-409 |  |  |
+| COV-PORT-005 | The Python implementation SHALL support CPython 3.13 and 3.14 on every required host combination. | met | CV-006, CV-409 |  |  |
+| COV-PORT-006 | Unsupported Python versions SHALL fail early with an actionable version diagnostic. | met | CV-031, CV-409 |  |  |
+| COV-PORT-007 | Repository-local Python launchers SHALL resolve exact basename `python3.14` then `python3.13` by Section 20... | partly met | CV-031, CV-409 (eight-cell resolution, -I -S -B, isolation) | CV-415 | runtime-provenance execution record |
 | COV-PERF-002 | Section 24 budgets SHALL pass on all four required host combinations. | owned |  | CV-428 |  |
 | COV-PERF-003 | Each required OS/architecture combination SHALL be an independent performance reference-host class. | owned |  | CV-428 |  |
 | COV-PERF-004 | Measurements from different host classes SHALL NOT be pooled or used to compensate for another host's failure. | owned |  | CV-428 |  |
@@ -151,7 +151,7 @@ No item is unmapped. R1 still re-verifies every "met" item at the gate review
 | COV-PERF-018 | Scale evidence SHALL exercise 64,000 point/profile pairs for merge, 10,000 points for native/terminal repor... | met | CV-427, corpus 1.2 scale fixtures sized by DEC-092 |  |  |
 | COV-PERF-020 | A corpus revision SHALL version, justify, overlap-measure, and fully rebaseline every host class. | partly met | CV-427 (corpus 1.1, 1.2: version, rationale, overlap statement) | CV-428 | four-class rebaseline |
 | COV-PERF-023 | Dedicated or demonstrably non-overcommitted reference hosts meeting Section 24.1 floors, or a `managed-ci-r... | met | CV-410 |  |  |
-| COV-PERF-024 | Managed CI performance results SHALL NOT satisfy an R1 performance gate except as a `managed-ci-recorded` c... | met | CV-410 |  |  |
+| COV-PERF-024 | Managed CI performance results SHALL NOT satisfy an R1 performance gate except as a `managed-ci-recorded` c... | partly met | CV-410 | CV-428 |  |
 | COV-PERF-025 | A transition to dedicated hosts SHALL include three complete overlap campaigns per host class without conve... | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |
 | COV-PERF-026 | Dedicated-host replacement SHALL use the same descriptor, overlap, and complete four-host rebaseline proced... | conditional | CV-315 plan | CV-428 | only if a dedicated host appears |
 | COV-PERF-027 | Instrumented compile p95 overhead SHALL be at most 20% for every applicable dedicated-host corpus result. | owned |  | CV-428 |  |

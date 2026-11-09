@@ -140,7 +140,7 @@ build entry point (D-5) each needed an owner decision. **All three were resolved
 | **F0** feasibility (**closed 2026-10-08**, see the F0 gate review) | One nontrivial fixture gives identical point IDs + counts on generated C and VM v1 (F0-G4, as amended). Byte protocols, schemas, registries, and release policies are frozen (F0-G1..G34). | `CV-0xx` (sv0cov repo), `CV-1xx` (upstream) |
 | **R0** developer preview (**closed 2026-10-17**, see the R0 gate review) | Closed map/raw/indexed schemas, lifecycle CLI, merge, terminal/native report, fixed thresholds, submodule + compatibility policy. | `CV-2xx` |
 | **R0.1** policy preview (**closed 2026-10-24**, see the R0.1 gate review) | Exclusions (attribute + comment), contexts, HTML, contract coverage, scopes/entities, changed regions, ratchets. | `CV-3xx` |
-| **R1** stable contract (`1.0.0`) (**in progress**, 17/34 slices done) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
+| **R1** stable contract (`1.0.0`) (**in progress**, 18/34 slices done) | VM v2 coverage (§15.6), LCOV/Cobertura + export manifests, saturation policy, process lifecycle, 4-host × 2-Python matrix, performance, accessibility, supply chain, release. | `CV-4xx` |
 | **Post-R1** | sv0 rewrite against the Python oracle; continuous counters. | `CV-9xx` (coarse; re-slice when reached) |
 
 ## F0 gate review (CV-172, SPEC §31.1)
