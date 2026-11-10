@@ -1,7 +1,9 @@
 # sv0cov CV-428: what the native runtime's exit-time profile publication
 # costs on each managed runner, and how much of it is the two fsync calls
-# (scripts/perf_exit_probe.py). Diagnostic evidence for a possible
-# COV-PERF-035 change; not a campaign and not gate evidence.
+# (scripts/perf_exit_probe.py), for the runtime test driver and for the
+# real startup-empty fixture, with a phase trace on Linux. Diagnostic
+# evidence for a possible COV-PERF-035 change; not a campaign and not gate
+# evidence.
 
 name: Runtime exit-cost probe
 
@@ -31,29 +33,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check out the sv0cov submodule only
+      - name: Check out the sv0c and sv0cov submodules only
         run: |
           git config --global url."https://github.com/".insteadOf "git@github.com:"
-          git submodule update --init --depth 1 sv0cov
+          git submodule update --init --depth 1 sv0c sv0cov
 
       - name: Probe
         run: python3 scripts/perf_exit_probe.py --work "$RUNNER_TEMP/exit-probe" | tee "exit-probe-${{ matrix.host }}.json"
 
-      - name: Syscall timings of one publication (Linux)
-        if: ${{ runner.os == 'Linux' }}
+      - name: Filesystem under RUNNER_TEMP
         run: |
-          sudo apt-get install -y -qq strace >/dev/null
-          w="$RUNNER_TEMP/exit-probe"
-          for i in 1 2 3; do
-            SV0COV_PROFILE_DIR="$w/prof" SV0COV_RUN_ID=0123456789abcdef0123456789abcdef SV0COV_REQUIRED=1 \
-              strace -T -e trace=openat,write,fsync,renameat2 "$w/driver" ok 2>&1 >/dev/null | grep -E 'prof|fsync' || true
-            rm -f "$w"/prof/*
-          done | tee "strace-${{ matrix.host }}.txt"
-          findmnt -T "$RUNNER_TEMP" | tee -a "strace-${{ matrix.host }}.txt"
+          if [ "$RUNNER_OS" = Linux ]; then findmnt -T "$RUNNER_TEMP"; else mount | grep -E ' on /( |System/Volumes/Data )'; fi | tee "fs-${{ matrix.host }}.txt"
 
       - uses: actions/upload-artifact@v4
         with:
           name: exit-probe-${{ matrix.host }}
           path: |
             exit-probe-*.json
-            strace-*.txt
+            fs-*.txt
