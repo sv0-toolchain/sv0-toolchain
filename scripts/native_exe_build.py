@@ -26,7 +26,9 @@ Run `python3 scripts/native_exe_build.py --selftest` for the corpus.
 
 from __future__ import annotations
 
+import contextlib
 import os
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from native_exe_argv_builder import build_dev_profile_argv, build_release_profile_argv
@@ -157,53 +159,68 @@ def build_native_executable(
 
     # 4. Host C compiler selection + capability probe (NEX-021/022).
     cc_path, _cc_selection = select_cc(explicit_cc, os.environ)
-    if probe:
-        probe_compiler(cc_path)
 
-    # 5. Core-compiler invocation (NEX-011).
-    resolved_compiler_path = compiler_path if compiler_path is not None else DEFAULT_COMPILER_PATH
-    if input_kind == "project":
-        control_value = CoreCompilerRequest.project(input_path)
-    elif contract_mode == "disabled":
-        control_value = CoreCompilerRequest.disabled(input_path)
-    elif contract_mode == "verified":
-        control_value = CoreCompilerRequest.verified(proof_path or "", input_path)
-    else:
-        control_value = CoreCompilerRequest.file(input_path)
-
-    # sv0cov CV-106: a non-off coverage mode reaches the compiler through
-    # its own request variable; off leaves the invocation as it was.
-    client = CoreCompilerClient(resolved_compiler_path)
-    core_result = client.invoke(control_value, extra_env=child_env(os.environ, coverage or COVERAGE_OFF))
-
-    # 6. Emission protocol classification + staging validation (NEX-012/018).
-    emission = classify_emission(core_result)
-    validate_staging_c(emission.c_source)
-
-    # 6b. Retain the staging C (NEX-040) -- unconditionally, before host
-    # compile runs, so it survives a later host-compile/link failure too.
-    if keep_c_path is not None:
-        write_text_atomically(emission.c_source, keep_c_path)
-
-    # 7. Scratch dir, argv, sanitized env, host compile (NEX-008/023/024/025).
-    with ScratchDir(base_dir=scratch_base_dir) as scratch:
-        program_c_path = os.path.join(scratch.path, "program.c")
-        with open(program_c_path, "w", encoding="utf-8") as f:
-            f.write(emission.c_source)
-        tmp_output_path = os.path.join(scratch.path, "program.tmp-exe")
-
-        env = sanitized_child_env(os.environ)
-        link_inputs = list(extra_cc_args or [])
+    # sv0cov CV-428: the coverage runtime compile needs only the selected host C
+    # compiler, so it starts here and runs alongside the probe and the core
+    # compiler; it is joined before the host link, which is its only consumer.
+    # The stack joins the worker before removing its scratch directory, also
+    # when an earlier phase fails (that phase's error is the one reported, and
+    # the object of a compiler the probe rejects is never used).
+    with contextlib.ExitStack() as stack:
+        runtime_job = None
         if coverage_runtime is not None:
-            # The runtime is C11 (stdatomic); the program C stays gnu99, so it
-            # is compiled on its own and linked as an object.
-            link_inputs.append(compile_coverage_runtime(cc_path, coverage_runtime, scratch.path, env,
-                                                        coverage.tier))
-        argv = build_argv(cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=link_inputs or None)
-        run_host_compile(argv, env, tmp_output_path)
+            runtime_scratch = stack.enter_context(ScratchDir(base_dir=scratch_base_dir))
+            pool = stack.enter_context(ThreadPoolExecutor(max_workers=1))
+            runtime_job = pool.submit(compile_coverage_runtime, cc_path, coverage_runtime,
+                                      runtime_scratch.path, sanitized_child_env(os.environ),
+                                      coverage.tier)
 
-        # 8. Atomic publication (NEX-007).
-        publish_atomically(tmp_output_path, final_output)
+        if probe:
+            probe_compiler(cc_path)
+
+        # 5. Core-compiler invocation (NEX-011).
+        resolved_compiler_path = compiler_path if compiler_path is not None else DEFAULT_COMPILER_PATH
+        if input_kind == "project":
+            control_value = CoreCompilerRequest.project(input_path)
+        elif contract_mode == "disabled":
+            control_value = CoreCompilerRequest.disabled(input_path)
+        elif contract_mode == "verified":
+            control_value = CoreCompilerRequest.verified(proof_path or "", input_path)
+        else:
+            control_value = CoreCompilerRequest.file(input_path)
+
+        # sv0cov CV-106: a non-off coverage mode reaches the compiler through
+        # its own request variable; off leaves the invocation as it was.
+        client = CoreCompilerClient(resolved_compiler_path)
+        core_result = client.invoke(control_value, extra_env=child_env(os.environ, coverage or COVERAGE_OFF))
+
+        # 6. Emission protocol classification + staging validation (NEX-012/018).
+        emission = classify_emission(core_result)
+        validate_staging_c(emission.c_source)
+
+        # 6b. Retain the staging C (NEX-040) -- unconditionally, before host
+        # compile runs, so it survives a later host-compile/link failure too.
+        if keep_c_path is not None:
+            write_text_atomically(emission.c_source, keep_c_path)
+
+        # 7. Scratch dir, argv, sanitized env, host compile (NEX-008/023/024/025).
+        with ScratchDir(base_dir=scratch_base_dir) as scratch:
+            program_c_path = os.path.join(scratch.path, "program.c")
+            with open(program_c_path, "w", encoding="utf-8") as f:
+                f.write(emission.c_source)
+            tmp_output_path = os.path.join(scratch.path, "program.tmp-exe")
+
+            env = sanitized_child_env(os.environ)
+            link_inputs = list(extra_cc_args or [])
+            if coverage_runtime is not None:
+                # The runtime is C11 (stdatomic); the program C stays gnu99, so it
+                # is compiled on its own and linked as an object.
+                link_inputs.append(runtime_job.result())
+            argv = build_argv(cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=link_inputs or None)
+            run_host_compile(argv, env, tmp_output_path)
+
+            # 8. Atomic publication (NEX-007).
+            publish_atomically(tmp_output_path, final_output)
 
     # 8b. sv0cov CV-208: drop coverage companions an earlier build left
     # beside this artifact that this build did not write (a stale map next to
@@ -333,12 +350,31 @@ def _selftest() -> int:
         except OSError as exc:  # pragma: no cover - the exact regression this guards against
             failures.append(f"case8: leaked a raw OSError instead of BuildError: {exc}")
 
+        # Case 9 (sv0cov CV-428): the coverage runtime compiles alongside the
+        # core compiler. When both fail (here the host C compiler and the core
+        # compiler are both /usr/bin/false), the core compiler's error is the
+        # one reported, as when the runtime compiled after it, and the
+        # runtime's scratch directory is gone once the build returns.
+        scratch9 = os.path.join(td, "scratch9")
+        os.mkdir(scratch9)
+        out9 = os.path.join(td, "coverage_out")
+        cov9 = CoverageRequest("instrument", os.path.join(td, "coverage_out.sv0covmap.json"), "coverage_out", "sv0c+test")
+        try:
+            build_native_executable("file", src4, out9, td, explicit_cc="/usr/bin/false", compiler_path="/usr/bin/false",
+                                    probe=False, scratch_base_dir=scratch9, coverage=cov9)
+            failures.append("case9: expected BuildError from the failing core compiler, none raised")
+        except BuildError as exc:
+            if exc.phase is DiagnosticPhase.HOST_COMPILE:
+                failures.append(f"case9: the runtime compile error replaced the core compiler's: {exc}")
+        if os.listdir(scratch9):
+            failures.append(f"case9: scratch left behind: {os.listdir(scratch9)}")
+
     if failures:
         for f in failures:
             print(f"native_exe_build selftest FAIL: {f}")
         return 1
 
-    print("native_exe_build: selftest OK (8 cases)")
+    print("native_exe_build: selftest OK (9 cases)")
     return 0
 
 
