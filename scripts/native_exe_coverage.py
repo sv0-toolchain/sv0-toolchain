@@ -361,14 +361,27 @@ def tier_defines(tier: Tier) -> list[str]:
     return [f"-DSV0COV_TIER_MAX_COUNTERS={tier.max_counters}", f"-DSV0COV_TIER_MAX_BYTES={tier.max_bytes}"]
 
 
+# Split runtime build (sv0cov CV-428, D-25): the hit path at -O2, the rest at
+# -O0. Each part is (macro, optimization level, object name).
+RUNTIME_PARTS = {
+    "hot": ("-DSV0COV_RT_PART_HOT", "-O2", "sv0cov_rt_hot.o"),
+    "cold": ("-DSV0COV_RT_PART_COLD", "-O0", "sv0cov_rt_cold.o"),
+}
+
+
 def compile_coverage_runtime(cc_path: str, source: str, scratch_dir: str, env: dict[str, str],
-                             tier: Tier = STANDARD_TIER) -> str:
-    """Compile the runtime, for `tier`, to <scratch>/sv0cov_rt.o and return that path."""
+                             tier: Tier = STANDARD_TIER, part: str | None = None) -> str:
+    """Compile the runtime, for `tier`, to an object in `scratch_dir` and return its path.
+
+    With `part` ("hot" or "cold", RUNTIME_PARTS) only that half is compiled;
+    a program links both halves. Without it the whole runtime is compiled at
+    -O2 to sv0cov_rt.o."""
     from native_exe_errors import BuildError, DiagnosticPhase
     from native_exe_subprocess import SubprocessError, run_argv
 
-    obj = os.path.join(scratch_dir, "sv0cov_rt.o")
-    argv = [cc_path, "-std=c11", "-O2", *tier_defines(tier), "-c", source, "-o", obj]
+    macro, level, name = RUNTIME_PARTS[part] if part is not None else (None, "-O2", "sv0cov_rt.o")
+    obj = os.path.join(scratch_dir, name)
+    argv = [cc_path, "-std=c11", level, *([macro] if macro else []), *tier_defines(tier), "-c", source, "-o", obj]
     try:
         result = run_argv(argv, env=dict(env))
     except SubprocessError as exc:

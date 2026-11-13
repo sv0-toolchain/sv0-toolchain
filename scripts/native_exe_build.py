@@ -170,10 +170,12 @@ def build_native_executable(
         runtime_job = None
         if coverage_runtime is not None:
             runtime_scratch = stack.enter_context(ScratchDir(base_dir=scratch_base_dir))
-            pool = stack.enter_context(ThreadPoolExecutor(max_workers=1))
-            runtime_job = pool.submit(compile_coverage_runtime, cc_path, coverage_runtime,
-                                      runtime_scratch.path, sanitized_child_env(os.environ),
-                                      coverage.tier)
+            # D-25: the hot half (-O2) and the cold half (-O0) compile at once.
+            pool = stack.enter_context(ThreadPoolExecutor(max_workers=2))
+            runtime_job = [pool.submit(compile_coverage_runtime, cc_path, coverage_runtime,
+                                       runtime_scratch.path, sanitized_child_env(os.environ),
+                                       coverage.tier, part)
+                           for part in ("hot", "cold")]
 
         if probe:
             probe_compiler(cc_path)
@@ -215,7 +217,7 @@ def build_native_executable(
             if coverage_runtime is not None:
                 # The runtime is C11 (stdatomic); the program C stays gnu99, so it
                 # is compiled on its own and linked as an object.
-                link_inputs.append(runtime_job.result())
+                link_inputs.extend(job.result() for job in runtime_job)
             argv = build_argv(cc_path, runtime, program_c_path, tmp_output_path, extra_cc_args=link_inputs or None)
             run_host_compile(argv, env, tmp_output_path)
 
