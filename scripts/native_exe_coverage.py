@@ -176,16 +176,59 @@ def target_name(artifact_path: str) -> str:
     return name
 
 
+def _read_head(repo: str) -> str:
+    """HEAD of `repo` read from its git files, or "" when the layout is not
+    the plain one handled here (the caller then asks git). Saves a git
+    process on every coverage build (sv0cov CV-428)."""
+    def read(path: str) -> str:
+        with open(path, encoding="ascii") as f:
+            return f.read().strip()
+
+    def is_sha(s: str) -> bool:
+        return len(s) == 40 and all(c in "0123456789abcdef" for c in s)
+
+    try:
+        gitdir = os.path.join(repo, ".git")
+        if os.path.isfile(gitdir):  # a submodule or worktree: "gitdir: <path>"
+            line = read(gitdir)
+            if not line.startswith("gitdir: "):
+                return ""
+            gitdir = os.path.normpath(os.path.join(repo, line[len("gitdir: "):]))
+        head = read(os.path.join(gitdir, "HEAD"))
+        if is_sha(head):
+            return head
+        if not head.startswith("ref: refs/"):
+            return ""
+        ref = head[len("ref: "):]
+        common = gitdir
+        if os.path.isfile(os.path.join(gitdir, "commondir")):
+            common = os.path.normpath(os.path.join(gitdir, read(os.path.join(gitdir, "commondir"))))
+        for d in dict.fromkeys((gitdir, common)):
+            if os.path.isfile(os.path.join(d, ref)):
+                rev = read(os.path.join(d, ref))
+                return rev if is_sha(rev) else ""
+        with open(os.path.join(common, "packed-refs"), encoding="ascii") as f:
+            for row in f:
+                parts = row.split()
+                if len(parts) == 2 and parts[1] == ref and is_sha(parts[0]):
+                    return parts[0]
+    except (OSError, UnicodeDecodeError):
+        pass
+    return ""
+
+
 def compiler_identity(toolchain_root: str | None = None) -> str:
     """sv0c+<git revision of sv0c>, or sv0c+unknown outside a checkout."""
     import subprocess
 
     root = toolchain_root or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    try:
-        rev = subprocess.run(["git", "-C", os.path.join(root, "sv0c"), "rev-parse", "HEAD"],
-                             capture_output=True, text=True, timeout=30).stdout.strip()
-    except (OSError, subprocess.SubprocessError):
-        rev = ""
+    rev = _read_head(os.path.join(root, "sv0c"))
+    if not rev:
+        try:
+            rev = subprocess.run(["git", "-C", os.path.join(root, "sv0c"), "rev-parse", "HEAD"],
+                                 capture_output=True, text=True, timeout=30).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            rev = ""
     return f"sv0c+{rev or 'unknown'}"
 
 
@@ -366,6 +409,8 @@ def child_env(base: dict[str, str], req: CoverageRequest) -> dict[str, str]:
 
 
 def _selftest() -> int:
+    import subprocess
+
     failures: list[str] = []
 
     def check(name: str, cond: bool) -> None:
@@ -384,6 +429,10 @@ def _selftest() -> int:
     check("map default path", m.map_path == "/w/dist/hello.sv0covmap.json")
     ident = compiler_identity()
     check("identity", ident.startswith("sv0c+") and len(ident) > 5)
+    sv0c_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sv0c")
+    git_rev = subprocess.run(["git", "-C", sv0c_dir, "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    check("identity file read matches git", not git_rev or _read_head(sv0c_dir) == git_rev)
+    check("identity file read declines a non-repo", _read_head(os.path.dirname(os.path.abspath(__file__))) == "")
     check("map request value", request_value(m) == f"map\n/w/dist/hello.sv0covmap.json\nhello\n{ident}")
     check("target of sv0b", target_name("/o/prog.sv0b") == "prog" and target_name("/o/a.c") == "a")
     i = resolve("instrument", "cov/m.json", "dist/hello", "/w")
